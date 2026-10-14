@@ -12,6 +12,7 @@ Publishes sensor_msgs/JointState.position[20] to /{hand_name}/joint_commands
 
 from __future__ import annotations
 
+import json
 import os
 import time
 from morla_core.ownership import PolicyLease, fresh_header
@@ -23,6 +24,7 @@ from geometry_msgs.msg import PoseArray
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import JointState
+from std_msgs.msg import Bool, String
 from std_srvs.srv import Trigger
 
 
@@ -113,13 +115,17 @@ class WujiHandRetargetNode(Node):
         }
         self._cmd_pub: Dict[str, object] = {}
         self._viz_pub: Dict[str, object] = {}
+        self._status_pub: Dict[str, object] = {}
+        self._armed_by_side: Dict[str, bool] = {side: False for side in sides}
+        self.create_subscription(Bool, "/teleop/armed", self._on_armed, 10)
+        self.create_subscription(Bool, "/teleop/disarm", self._on_disarm, 10)
         fps_interval = float(self.get_parameter("fps_print_interval").value)
         self._fps: Dict[str, FPSCounter] = {
             s: FPSCounter(window=100, print_interval=fps_interval) for s in ("left", "right")
         }
 
         for side in sides:
-            self._policy_lease.bind(self, f'{side}_hand')
+            self._policy_lease.bind(self, f'{side}_hand', callback=self._on_ownership)
             self._backends[side] = self._make_backend(side)
             hand_name = (
                 self.left_hand_name if side == "left" else self.right_hand_name
@@ -128,6 +134,9 @@ class WujiHandRetargetNode(Node):
                 JointState,
                 f"/{hand_name}/joint_commands",
                 _sensor_data_qos(),
+            )
+            self._status_pub[side] = self.create_publisher(
+                String, f"/teleop/writer_status/{side}_hand", 10
             )
             if self.viz:
                 self._viz_pub[side] = self.create_publisher(
@@ -146,6 +155,8 @@ class WujiHandRetargetNode(Node):
                 f"~/home_{side}",
                 lambda req, res, s=side: self._home_cb(req, res, s),
             )
+
+        self._status_timer = self.create_timer(0.2, self._publish_runtime_status)
 
         self.get_logger().info(
             f"WujiHand retarget ready: side={self.hand_side}, "
@@ -194,10 +205,47 @@ class WujiHandRetargetNode(Node):
                 self._last_qpos[side] = values.tolist()
                 self._last_pub_times[side] = time.monotonic()
 
+    def _on_armed(self, msg: Bool):
+        if msg.data and self._policy_lease.manual_allowed:
+            for side in self._armed_by_side:
+                self._armed_by_side[side] = True
+        elif not msg.data:
+            for side in self._armed_by_side:
+                self._armed_by_side[side] = False
+
+    def _on_ownership(self, msg):
+        accepted = self._policy_lease.update(msg.data)
+        if not self._policy_lease.manual_allowed:
+            for side in self._armed_by_side:
+                self._armed_by_side[side] = False
+        elif accepted and self._policy_lease.activity == "human":
+            for side in self._armed_by_side:
+                self._armed_by_side[side] = True
+        elif accepted:
+            for side in self._armed_by_side:
+                self._armed_by_side[side] = False
+
+    def _on_disarm(self, msg: Bool):
+        if msg.data:
+            for side in self._armed_by_side:
+                self._armed_by_side[side] = False
+
+    def _publish_runtime_status(self):
+        for side, publisher in self._status_pub.items():
+            payload = {
+                "writer_id": f"{side}_hand",
+                "armed": bool(self._armed_by_side[side]),
+                "ownership": self._policy_lease.activity,
+                "sent_at": time.time(),
+            }
+            publisher.publish(String(data=json.dumps(payload, sort_keys=True)))
+
     def _on_landmarks(self, msg: PoseArray, side: str) -> None:
         if not fresh_header(msg, self.get_clock().now().nanoseconds * 1e-9):
             return
         if not self._policy_lease.manual_allowed:
+            return
+        if not self._armed_by_side.get(side, False):
             return
         if len(msg.poses) < 21:
             self.get_logger().warning(

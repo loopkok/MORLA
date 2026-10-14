@@ -94,6 +94,7 @@ def test_tactile_sidecar_survives_align_repair_verify_and_export(tmp_path):
     assert align_episode(str(ep)) is not None
     report = validate_episode(str(ep), min_duration_s=0, require_aligned=True)
     assert report.status != "fail", report.issues
+    assert not any(issue["rule"] == "W9" for issue in report.issues), report.issues
     with h5py.File(ep / "aligned_data.h5", "r") as aligned:
         group = aligned["sensors/left_hand_tactile"]
         assert group["force_raw"].shape == (101, 5, 120, 3)

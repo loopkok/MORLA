@@ -17,6 +17,7 @@ the whole suite skips with exit 0.
 """
 
 import sys
+import json
 import threading
 import time
 
@@ -37,6 +38,15 @@ class _FakeRes:
     def __init__(self):
         self.success = None
         self.message = ""
+
+
+class _FakeDriverLog:
+    """Minimal inert logger for node methods exercised without __init__()."""
+
+    enabled = False
+
+    def write(self, _record):
+        pass
 
 
 class _FakeRobot:
@@ -92,6 +102,8 @@ def _make_node(robot=None, dry_run=False, q18=None):
     node._full_cmd_t = 0.0
     node._head_cmd_t = 0.0
     node._use_full_priority = False
+    node._grip_rad = {"left": None, "right": None}
+    node._dlog = _FakeDriverLog()
     return node
 
 

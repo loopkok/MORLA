@@ -1,6 +1,6 @@
 # MORLA robot platform
 
-MORLA is the independent ROS 2 Humble workspace where Astral capabilities are being consolidated and Nero/XHand are being integrated. The migration follows [`docs/MIGRATION_PLAN.md`](docs/MIGRATION_PLAN.md), with source commits and exact upstream file hashes in [`docs/SOURCE_BASELINE.json`](docs/SOURCE_BASELINE.json). Current phase evidence is tracked in [`docs/migration_progress.md`](docs/migration_progress.md).
+MORLA is the unified ROS 2 Humble workspace for Astral, Nero, Wuji Hand, and XHand. The software migration through P10 is complete: common input, profile-driven robot assembly, description assets, collection/pipeline, policy/replay/HITL, and Web operation/monitoring are integrated. Hardware and deployed-model acceptance is tracked separately as P11; no software simulation result implies real-hardware acceptance. See [`docs/migration_progress.md`](docs/migration_progress.md) for evidence and remaining deployment conditions, [`docs/MIGRATION_PLAN.md`](docs/MIGRATION_PLAN.md) for contracts, and [`docs/SOURCE_BASELINE.json`](docs/SOURCE_BASELINE.json) for upstream provenance.
 
 ## Workspace layout
 
@@ -14,14 +14,27 @@ MORLA is the independent ROS 2 Humble workspace where Astral capabilities are be
 Use the system Python that matches ROS 2 Humble; do not build ROS packages under a conda Python. From the SDK root:
 
 ```bash
-source /opt/ros/humble/setup.bash
-export PATH=/usr/bin:/opt/ros/humble/bin:$PATH
-/usr/bin/colcon build --base-paths MORLA/src --build-base MORLA/build --install-base MORLA/install
-source MORLA/install/setup.bash
+cd MORLA
+bash scripts/build.sh --mode symlink
+source install/setup.bash
+python3 -m morla_core.profile validate-all
 ```
+
+The reusable checks are `scripts/test_ros.sh`, `scripts/test_offline.sh`,
+`scripts/test_policy.sh`, and `scripts/test_sim_integration.sh`. The simulation
+test writes its synthetic raw and exported data under `/tmp` by default; set
+`MORLA_TEST_OUTPUT_ROOT` to choose another empty directory.
 
 The web UI source is in `src/common/morla_web_manager/web`; build it with `npm ci && npm run build` there.
 
 ## Migration state
 
-MORLA currently contains the Astral baseline in the target directory layout plus initial component package shells. Nero/XHand migration and unified profiles, description, collection, policy, and web operation support are in progress. Treat only items marked complete and software-verified in `docs/migration_progress.md` as delivered. Do not connect real hardware until its phase-specific acceptance is recorded.
+Use one validated `profile_id` across teleop/simulation, data collection, policy, and Web. Typical checks:
+
+```bash
+source /opt/ros/humble/setup.bash
+source MORLA/install/setup.bash
+ros2 run morla_core morla-profile validate-all
+```
+
+Run hardware only after completing the device-specific P11 checklist. The current acceptance boundary and test limitations are recorded in `docs/migration_progress.md`.

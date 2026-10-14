@@ -57,6 +57,8 @@ class WujiHandMujocoSimNode(Node):
         self.declare_parameter("hand_name", "")  # default: {side}_hand
         self.declare_parameter("mjcf_path", "")  # empty → package assets
         self.declare_parameter("cmd_topic", "")  # empty → /{hand_name}/joint_commands
+        self.declare_parameter("state_topic", "")  # empty → /{hand_name}/joint_states
+        self.declare_parameter("state_rate_hz", 50.0)
         self.declare_parameter("enable_viewer", True)
         self.declare_parameter("realtime", True)  # sleep model.opt.timestep
         self.declare_parameter("fps_print_interval", 5.0)
@@ -74,6 +76,11 @@ class WujiHandMujocoSimNode(Node):
         if not cmd_topic:
             cmd_topic = f"/{self.hand_name}/joint_commands"
         self.cmd_topic = cmd_topic
+        state_topic = str(self.get_parameter("state_topic").value).strip()
+        self.state_topic = state_topic or f"/{self.hand_name}/joint_states"
+        self.state_rate_hz = float(self.get_parameter("state_rate_hz").value)
+        if self.state_rate_hz <= 0.0:
+            raise ValueError("state_rate_hz must be positive")
 
         self.enable_viewer = bool(self.get_parameter("enable_viewer").value)
         self.realtime = bool(self.get_parameter("realtime").value)
@@ -150,8 +157,14 @@ class WujiHandMujocoSimNode(Node):
         self.create_subscription(
             JointState, self.cmd_topic, self._on_cmd, _sensor_data_qos()
         )
+        self._state_pub = self.create_publisher(
+            JointState, self.state_topic, _sensor_data_qos()
+        )
+        self._state_period = 1.0 / self.state_rate_hz
+        self._next_state_publish = 0.0
         self.get_logger().info(
             f"MuJoCo sim ready: side={self.hand_side}, topic={self.cmd_topic}, "
+            f"state_topic={self.state_topic}, state_rate_hz={self.state_rate_hz:g}, "
             f"viewer={self.enable_viewer}"
         )
 
@@ -213,6 +226,17 @@ class WujiHandMujocoSimNode(Node):
         nu = self.model.nu
         self.data.ctrl[: min(len(ctrl), nu)] = ctrl[:nu]
         self._mujoco.mj_forward(self.model, self.data)
+
+    def _publish_state(self, now: float) -> None:
+        if now < self._next_state_publish:
+            return
+        msg = JointState()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.name = list(_DEFAULT_CMD_NAMES)
+        msg.position = self.data.qpos[self._qpos_addrs].astype(float).tolist()
+        self._state_pub.publish(msg)
+        self._next_state_publish = now + self._state_period
+
     def run(self) -> None:
         """Blocking sim loop (call instead of rclpy.spin)."""
         viewer = None
@@ -234,6 +258,8 @@ class WujiHandMujocoSimNode(Node):
                     self._apply_ctrl(qpos)  # sets qpos + mj_forward
                 else:
                     self._mujoco.mj_step(self.model, self.data)
+
+                self._publish_state(time.monotonic())
 
                 if viewer is not None:
                     viewer.sync()

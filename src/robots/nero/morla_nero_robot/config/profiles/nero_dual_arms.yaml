@@ -290,7 +290,7 @@ action_blocks:
   semantics: next_state
   writable: true
   command_stream: left_arm_cmd
-  writer_id: left_arm_writer
+  writer_id: left_arm
   limits: *id001
 - block_id: right_arm
   dim: 7
@@ -307,7 +307,7 @@ action_blocks:
   semantics: next_state
   writable: true
   command_stream: right_arm_cmd
-  writer_id: right_arm_writer
+  writer_id: right_arm
   limits: *id001
 cameras:
 - base
@@ -342,16 +342,16 @@ capabilities:
   grippers: false
   hands: false
 writers:
-- writer_id: left_arm_writer
+- writer_id: left_arm
   component_id: left_arm
   command_stream: left_arm_cmd
   ack_topic: /teleop/ownership_ack
-  prepare_reanchor_service: /left_arm/prepare_reanchor
-- writer_id: right_arm_writer
+  prepare_reanchor_service: /left_arm/nero_arm_teleop/prepare_reanchor
+- writer_id: right_arm
   component_id: right_arm
   command_stream: right_arm_cmd
   ack_topic: /teleop/ownership_ack
-  prepare_reanchor_service: /right_arm/prepare_reanchor
+  prepare_reanchor_service: /right_arm/nero_arm_teleop/prepare_reanchor
 backend_requirements:
   model_layout_id: nero_dual_arms_v1
   action_semantics: absolute_position

@@ -4,7 +4,7 @@
 
 本文是基于本机源码核对形成的执行规格。后续执行者应直接按本文的接口、文件地图、阶段与验收条件实施；不需要重新通读两个项目。实施时仍须阅读正在修改的函数并检查当前版本差异，不得把本文中的“目标实现”误认为已存在。
 
-本次交付只有计划和源码基线清单；没有创建 MORLA 工作空间，没有迁移代码，没有启动机器人。本文中的命令、包和接口，除标明“现有”的内容外，均为未来实施项。
+本文定义迁移目标、源码基线、包边界、ROS 数据契约和分阶段验收。执行进度与本次实测证据见 [`migration_progress.md`](migration_progress.md)；计划里的阶段状态以进度文件为准，历史分析段落描述的是建立计划时的源仓库状态。
 
 ## 1. 目标、范围与已经确定的决策
 
@@ -274,7 +274,7 @@ core 不 import rclpy、硬件 SDK、torch、OpenPI 或 ROS 自定义消息。`P
 
 `morla_astral_robot`、`morla_nero_robot`、`morla_wuji_hand`、`morla_xhand_hand`为薄配置包：安装profiles/component模板和机器人入口launch，声明真实依赖，没有另写一套IK或数采。机器人硬件yaml通过组件模板引用，profile仅覆盖必要值；冻结结果物化全部值供溯源。
 
-`morla_bringup`新增`control_coordinator_node.py`、`control_coordinator_logic.py`，提供第5.4节协调接口。core仅提供状态决策，不成为ROS节点；Web、手柄闸门和CLI统一调用协调入口。
+`morla_bringup`新增`control_coordinator_node.py`、`coordinator_logic.py`，提供第5.4节协调接口。core仅提供状态决策，不成为ROS节点；Web、手柄闸门和CLI统一调用协调入口。
 
 ## 5. ROS 接口与数据上下游契约
 
@@ -330,9 +330,9 @@ core 不 import rclpy、硬件 SDK、torch、OpenPI 或 ROS 自定义消息。`P
 
 ### 5.4 共享操作协调接口
 
-在`morla_bringup`提供`/morla/control/{pause,resume,start,home,workpos,workpos_direct,ready,enable,position,damping,estop}`，类型统一`std_srvs/Trigger`。操作通过resolved profile的capability映射到原teleop话题/driver服务；不支持的capability立即失败，不发布运动话题。
+在`morla_bringup`提供`/morla/control/{pause,resume,start,release,home,workpos,workpos_direct,ready,enable,position,damping,estop}`，类型统一`std_srvs/Trigger`。操作通过resolved profile的capability映射到原teleop话题/driver服务；不支持的capability立即失败，不发布运动话题。
 
-服务response的`success=true`只表示请求已接纳，message携带生成的operation_id；完成结果通过`/morla/control/state`（String JSON、RELIABLE/TRANSIENT_LOCAL）公布，字段至少包含profile_id、operation_id、operation、phase（accepted/freezing/executing/completed/failed/cancelled）、每component结果、error、sent_at。Web必须区分“已接纳”和“已完成”。同一时刻只允许一个改变运动模式的协调操作；estop可抢占并取消它。异步调用/状态机轮询，不在ROS回调里sleep等归位。
+服务response的`success=true`只表示请求已接纳，message携带生成的operation_id；完成结果通过`/morla/control/state`（String JSON、RELIABLE/TRANSIENT_LOCAL）公布，字段包含profile_id、operation_id、operation、phase（idle/accepted/freezing/waiting_services_ready/waiting_services/executing/completed/failed/cancelled）、每component结果、message、result、started_at、updated_at。Web必须区分“已接纳”和“已完成”。同一时刻只允许一个改变运动模式的协调操作；estop可抢占并取消它。异步调用/状态机轮询，不在ROS回调里sleep等归位。
 
 pause在POLICY/PLAYBACK时转发policy pause并确认，在manual时disarm；resume按当前owner恢复，不只一律发armed。start在policy活动时转换为takeover；HUMAN/合法IDLE时才重锚manual。硬件ready/home/position/damping/workpos先停止策略、确认无pending、冻结manual，再执行；录制中拒绝home/workpos/模式切换，estop始终允许。原`/teleop/init*|home`消费者也检查所有权及录制保护，拒绝策略占有期间绕过协调入口的直接运动触发。
 
@@ -858,4 +858,4 @@ bash scripts/data_pipeline.sh --help
 
 ## 16. 给下一位执行模型的直接任务说明
 
-> 在 `/home/robot/loopkok/sdk` 阅读本文与 `MORLA_SOURCE_BASELINE.json`，按P0→P11顺序执行软件迁移。先复制当前Astral源码到独立MORLA，再仅修改MORLA。既定共享包名、目录、profile/schema、ROS契约和验收标准遵循本文，不重新设计一套无兼容关系的框架。优先保留Astral已有配置、算法、HITL和离线保护；将Nero硬件逻辑拆独立driver，将XHand接到标准JointState并真实反馈，触觉实现落盘/对齐/旁路导出。每阶段在progress记录实际修改与验证后保存commit；测试缺环境写skip/未验收，不写PASS。硬件、APK、模型或架构库缺失只阻止对应真实部署验收，不阻止独立的软件阶段。不要改动原工作空间，不自动驱动真机归位，不通过关闭ACK/截维数/填零/旧路径兜底让测试表面通过。最终交付可构建的MORLA、配置与接口文档、迁移映射、全链路软件证据及真实部署待验收项。
+> 在 `/home/robot/loopkok/sdk` 使用 `docs/MORLA_MIGRATION_PLAN.md` 与 `MORLA/docs/SOURCE_BASELINE.json`。若 `MORLA/` 已存在，先读 `MORLA/docs/migration_progress.md` 和当前 Git 状态并从最近未完成阶段续做；不得重新复制或覆盖工作区。若尚无 `MORLA/`，才按P0建立独立副本，然后只修改MORLA。既定共享包名、目录、profile/schema、ROS契约和验收标准遵循本文，不重新设计一套无兼容关系的框架。优先保留Astral已有配置、算法、HITL和离线保护；将Nero硬件逻辑拆独立driver，将XHand接到标准JointState并真实反馈，触觉实现落盘/对齐/旁路导出。每阶段在progress记录实际修改与验证后保存commit；测试缺环境写skip/未验收，不写PASS。硬件、APK、模型或架构库缺失只阻止对应真实部署验收，不阻止独立的软件阶段。不要改动原工作空间，不自动驱动真机归位，不通过关闭ACK/截维数/填零/旧路径兜底让测试表面通过。最终交付可构建的MORLA、配置与接口文档、迁移映射、全链路软件证据及真实部署待验收项。

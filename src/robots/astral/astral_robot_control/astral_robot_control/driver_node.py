@@ -37,6 +37,7 @@ Contract (default)::
 
 from __future__ import annotations
 
+import json
 from functools import partial
 import threading
 import time

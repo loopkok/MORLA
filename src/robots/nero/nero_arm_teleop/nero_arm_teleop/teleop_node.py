@@ -59,7 +59,9 @@ class NeroArmTeleopNode(Node):
             raise ValueError("arm_side must be left or right")
         self.joint_names = [f"{self.side}_joint{i}" for i in range(1, 8)]
         defaults = {
-            "wrist_topic": f"quest3/{self.side}_wrist_pose",
+            # Input is a shared root-level stream from morla_input. Keeping
+            # this absolute avoids resolving it under the arm namespace.
+            "wrist_topic": f"/quest3/{self.side}_wrist_pose",
             "state_topic": f"/{self.side}_arm/joint_states",
             "command_topic": f"/{self.side}_arm/joint_commands",
         }

@@ -1,6 +1,6 @@
 # MORLA 迁移进度
 
-执行依据：`docs/MIGRATION_PLAN.md` 与 `docs/SOURCE_BASELINE.json`。
+执行依据：SDK根目录 `docs/MORLA_MIGRATION_PLAN.md` 的校验基线副本 `docs/MIGRATION_PLAN.md`，以及 `docs/SOURCE_BASELINE.json`。当前运行进度以本文为准。
 开始时间：2026-10-13（Asia/Shanghai）。
 源基线：Astral `3a57d722d3c4257670d9f90526127bed77063e66`；XNero `e6a0100429024f04e18238f1a42ee968bb18967a`。
 
@@ -8,7 +8,7 @@
 
 | 阶段 | 状态 | 结果/证据 |
 | --- | --- | --- |
-| P0 独立副本与环境 | 完成 | 595 个 Astral Git 跟踪文件均存在且 SHA256 一致；源提交匹配 baseline；原工作区未修改；MORLA 独立提交 `f441a3e`。 |
+| P0 独立副本与环境 | 完成 | 595 个 Astral Git 跟踪文件均存在且 SHA256 一致；迁移起点与冻结基线匹配；复核时 Astral 仍在基线提交，XNero 基线 `e6a0100` 是当前干净分支 `6f467bf` 的祖先；两源工作区均未被迁移修改；MORLA 独立提交 `f441a3e`。后续源提交复核见下节。 |
 | P1 包路径与改名 | 完成 | 25 ROS 包可发现且全量 clean build 成功；五个共享包完成改名，入口脚本与Web launch路径适配；前端和指定回归通过。映射见 `docs/package_map.json`。 |
 | P2 core/profile | 完成 | 新增`morla_core`共享schema/lease/资源/关节映射/profile registry；12个profile固定布局并从已安装ament share验证，见本次日志。消费者运行时接入仍在P7-P9完成。 |
 | P3 description | 完成 | 新建`robot_description`（ament_cmake），集中27个model ID与358项资产；manifest含来源/目标SHA、关节映射、847个mesh闭包和授权信息。24包干净构建成功；普通安装、colcon symlink-install 均由Pinocchio加载12份URDF、MuJoCo加载5份MJCF；生成器可重跑，Astral FK和sim机械量、XNero sim机械量对照通过。 |
@@ -16,10 +16,16 @@
 | P5 Nero driver/teleop | 软件完成 | 新建标准 ROS driver/teleop 两包并按 profile 参数装配；fake 双侧 launch 和命名命令往返通过。真实 CAN/固件/安全路径未验收，见 P11。 |
 | P6 XHand adapter/sim | 完成 | 31 ROS 包构建通过；adapter/retarget 59 项、XNero 仿真 29 项通过；profile 驱动 headless 整链路实测通过，触觉源约 50 Hz。 |
 | P7 unified data collection | 完成 | profile数采/具名重排、XHand力/温度/valid raw sidecar、按源时钟离散对齐、repair同源选帧、source索引验证、LeRobot v2.1/v3 schema与触觉旁路、只读XNero导入均完成。端到端三项新增集成测试通过；数采测试128通过/1跳过。 |
-| P8 policy/HITL | 进行中 | 开始将 policy/replay 从 Astral 固定布局接到 `FrozenSchema`，并梳理全部遥操 writer 的 freeze/ACK/prepare/token 交接。 |
-| P9 Web manager | 未开始 | |
-| P10 software integration | 未开始 | |
-| P11 hardware/model acceptance | 未开始 | |
+| P8 policy/HITL | 软件完成 | policy、stub/remote handshake、Replay 统一接入 FrozenSchema；标准可靠 QoS、具名 writer 路由、所有权 freeze/ACK 与 Nero prepare/token；149 项策略测试通过。19维实际仿真中完成 stub→HITL takeover/release→LeRobot replay→pause/resume。没有真实硬件策略运行。 |
+| P9 Web manager | 软件完成 | profile/API/操作互锁/三条泳道与动态 streams 已接通；Web manager 37项回归通过；Vite 52 modules 构建通过；headless Chrome 实际加载 MORLA UI，SPA 与 JS asset 均 HTTP 200。 |
+| P10 software integration | 软件完成 | Astral8/35、Nero19/38已有profile仿真证据；8/35/38完成采集→对齐→校验→LeRobot v2.1，均218帧；Nero19完成277帧stub/HITL/replay/pause闭环。本轮验证统一 Astral/Nero 启动入口、Nero19采集到190帧并成功导出。profile CLI 12/12。 |
+| P11 hardware/model acceptance | 待设备验收 | 等待 Astral/Nero/XHand/Wuji 实机、固件/SDK、严格Quest APK与38维策略模型。XNero 冻结点之后新增的 HUG grasp bridge 尚未纳入本次执行计划；其边界见下节。不得将软件仿真结果表述为真机通过。 |
+
+## 源仓库后续提交复核
+
+冻结基线 `docs/SOURCE_BASELINE.json` 记录 XNero `e6a0100429024f04e18238f1a42ee968bb18967a`。最终复核时 `/home/robot/loopkok/sdk/xnero_ws` 位于干净分支 `feat/hug-grasp-loop`，HEAD 为 `6f467bf2a1131019a882399c0be21059464cd06e`，冻结提交仍是其祖先。Astral 当前 HEAD 仍为冻结的 `3a57d722d3c4257670d9f90526127bed77063e66`，两个源工作区的 Git 状态均为空。
+
+XNero 冻结点后的17个新增文件全部属于独立的 `xnero_grasp_bridge` 研究实现及其 HUG 计划/设计文档：包含右手 MANO→retargeter 坐标候选、HUG WebSocket 模型服务和校准脚本；没有改动冻结基线中的 Nero driver/teleop、XHand retarget、MuJoCo sim 或旧数据采集源文件。该新实现没有 ROS package manifest，且计划基线未定义其接入契约，因此本次不把它并入 MORLA 的 robot graph，也不把它伪装成 `morla_policy_inference` 的标准 action writer。若后续要接入，需要单独定义它输出 MANO landmarks 如何通过冻结 schema、输入所有权和 XHand 坐标兼容校验进入 MORLA。MORLA 当前按用户指定的冻结源基线与迁移计划验收。
 
 ## 日志
 
@@ -67,3 +73,23 @@
 - P7 导出：LeRobot v2.1 写完整 `meta/morla_schema.json`、profile/layout/schema hash 和 policy feature exclusions；非触觉模型将对齐触觉保存到 `meta/sensors/episode_*.h5`，不会拼入 state/action；v2.1→v3 继续复制契约、sidecar、质量和来源目录。`--model-capacity` 仅在显式选择目标模型时启用，通用导出不限制38/54维。
 - P7 XNero import：统一入口 `data_pipeline import-xnero`，要求profile、活动侧、camera map、task、TCP frame、camera calibration和format version。验证旧 HDF5形状、共享严格递增host tick、TCP 7th列为零占位后仅导入xyz+rpy；不补command/tactile/ownership/validity。输出记录逐文件SHA256，导入前后hash一致；validator以`W10`警告 legacy cache validity未知，必须人工审查训练来源。
 - P7 验证：新增profile触觉采集、raw→align→validate→repair→verify→LeRobot v2.1/v3，以及XNero只读导入三条合成集成测试，3/3通过；全量 `morla_data_collect/test` 为128 passed/1 skipped；ROS旧采集 smoke 为2/2；12 profile CLI 12/12；`import-xnero --help`可从安装入口调用；干净source `/opt/ros/humble/setup.bash` 后全workspace `colcon build --symlink-install --base-paths src` 为31/31通过。第一次构建只source了workspace overlay，缺ROS underlay导致依赖查找失败，按标准干净shell重跑通过。期间修复legacy JointState callback闭包变量未初始化导致 executor 线程退出的回归。
+
+- P8：policy 与 replay 以 profile 解析出的 `FrozenSchema` 固定 state/action 布局；模型握手校验 action capacity、profile/layout hash 和具名命令块；stub 对当前观测输出绝对 hold target，policy 命令使用与机器人适配器匹配的 reliable QoS。LeRobot 外层 schema 会校验并解包内部 MORLA schema，避免 replay 将19/38维布局降级成 legacy gripper schema。新增绝对目标与 LeRobot replay 回归后，策略测试149项通过。
+- P8协调：新增 `morla_control_coordinator` 和 ROS-free `coordinator_logic.py`；Web、手柄闸门与CLI共用 `/morla/control/*` 服务。start/pause/resume/release 和 HOME/workpos/driver mode 操作使用异步 operation_id/state；先冻结 policy/遥操 writer，要求全部活动 writer ACK/prepare 成功再路由，未知或过期状态 fail closed，急停可抢占。Nero19仿真实际测得协调 start完成、HITL takeover/release、playback、pause/resume；不连接硬件。
+- P9：统一 Web profile 选择、sim/real模式、robot/collector/inference lanes；profile切换检查 web 与CLI launch、collector、policy、coordinator及ROS command publishers；页面 streams/joints 根据profile动态生成。修复 install symlink 下 Starlette拒绝 dist 资产路径导致首页资源404的问题：symlink install使用源码dist，普通安装使用share/dist。headless Chrome实测 dashboard 可显示，`/` 与 JS bundle 均为200；`npm run build`通过，52 modules。实际后端/前端/API/launch测试最终结果见本文件最后记录。
+- P10 Nero19端到端：`nero_left_xhand`在fake MuJoCo仿真上经Web启动teleop、采集及stub policy；19维状态/动作、profile layout hash `c77a2284825a`。协调start与策略命令运行，采集两路camera、arm/XHand、tactile约277帧；raw align/validate/export LeRobot v2.1成功，策略绝对动作、HITL接管/释放、policy replay与暂停/恢复均实际运行。验证报告有可选对齐触觉缺样及约50Hz状态低于策略推荐100Hz warning，无fail。无真机动作。
+- P10 Astral35端到端采集：`astral_dual_gripper_wuji`仿真Profile装配双臂、左夹爪、DexPilot右WuJi手及Wuji MJCF；新sim hand状态发布 `/right_hand/joint_states` 50Hz。合成21点Quest hand landmarks驱动retarget，Profile采集含35维state/action、3相机、arm/hand命令和仿真状态；7.27s原始段对齐218帧，校验0 fail/1个右手约46.8Hz warning，导出LeRobot v2.1成功。
+- P10 Nero38端到端：`nero_dual_xhand` sim Profile真实启动双侧 retarget/adapter/XNero MuJoCo；修复发现的XHand输入QoS冲突（Quest `/hand_landmarks/{side}`是best-effort，retarget此前默认reliable，现用`qos_profile_sensor_data`）。标准21点输入驱动左右12维标准命令（各约30.1Hz），仿真反馈约50.1Hz；raw保存双臂14维、双手24维、3相机与命令，7.27s对齐218帧、导出LeRobot v2.1 state/action 38/38。validate 0 fail，报告两个手state约50.1Hz、可选tactile未对齐为warning。首次合成测试误发26点且得到0 hand command，未作为通过证据；修正为21点后以`smoke5`数据通过，保留失败诊断在`/tmp/morla-ner38/nero_dual_xhand/smoke*`供复查。
+- P10 profile/Web/构建：安装态 `morla-profile validate-all` 12/12（覆盖8/16/19/27/35/38/54维）；本次全workspace增量构建31/31通过。
+- P10分包回归（ROS Humble系统Python、`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`并隔离ROS domain）：Web manager 37 passed、policy 149 passed、bringup 33 passed、data collect 128 passed/1 skipped；XHand retarget+adapter+XNero sim 88 passed，另有2个ROS demo Node类不可收集的pytest warning。
+- 环境/过程：仿真均置于隔离 ROS_DOMAIN_ID，采集输出只写 `/tmp`；session结束后用SIGINT关闭仿真和collector。由于data_collect节点收到SIGINT时writer join会被KeyboardInterrupt打断，launch记录进程退出码-2；episode已由显式`stop`保存并可读/对齐，不能把此收尾退出码当作episode写盘失败。
+
+- P10 Astral8完整链路：`astral_left_gripper`仿真Profile接收21点手输入与Quest腕Pose，经Astral遥操和夹爪话题写入；录制7.27s，8维state/action、双相机218帧；align后validate为1 pass/0 warn/0 fail，LeRobot v2.1导出成功。
+- P10 Astral35修订验证使用规范21点输入和真实遥操输出：双臂命令约150Hz、Wuji retarget命令约30Hz，仿真右手状态约46.8Hz；35维数据段218帧完成align/export，只有低于策略推荐100Hz的手状态warning。
+- P10 Nero38最终`smoke5`数据包含双臂Quest遥操命令约125Hz、左右XHand标准命令约30Hz、仿真反馈约50Hz；校验无fail，LeRobot v2.1导出38/38与3路相机。此前`smoke4`为同一链路的手输入修复前样本，按错误诊断保留，不用作验收证据。
+- P10 full colcon lint记录：`colcon test`汇总813项里49个失败归于静态检查；其中`morla_input` flake8/pep257，以及上游`xhand_control_ros2`文件缺版权头、CMake空白和uncrustify。功能pytest按包隔离ROS domain后全通过；不要格式化供应商代码或伪造授权头。
+- P10补齐统一复验入口：新增 `scripts/build.sh`（symlink/regular两种完整工作区构建）、`test_ros.sh`、`test_offline.sh`、`test_policy.sh` 与 `test_sim_integration.sh`。集成脚本只在隔离ROS domain启动Nero+XHand MuJoCo和profile采集器，发布合成21点手输入、标准臂命令及两路合成相机帧，再执行raw→align→validate→LeRobot v2.1；输出与日志默认留在`/tmp`，不接真机。此处记录为实现项，实测状态在后续追加。
+
+- P10 闭环复验：`scripts/build.sh --mode symlink` 31/31 包通过；`scripts/test_ros.sh` 341 passed，tactile 专项筛选为1 passed/2 deselected，且 Astral geometric IK、IK solver、Quest mapping 三个独立回归入口均通过；`scripts/test_policy.sh` 149 passed；`scripts/test_offline.sh` 97 passed/1 deselected；profile CLI 12/12。统一 `robot.launch.py` 的 Astral `astral_left_gripper mode=sim` 分支实际启动成功，Nero `nero_left_xhand mode=sim` 分支由端到端脚本启动成功。
+- P10 本轮 Nero19 端到端产物：`/tmp/morla-sim-e2e.vLvZOy/nero_left_xhand/smoke/episode000000`，采集两路图像及 arm/hand 命令、状态和触觉；对齐190帧并成功导出 LeRobot v2.1，schema 为19/19。验证报告 `validation_report.json` 为0 fail、1 warn；唯一 warning 是仿真 `left_hand_state` 50.2Hz 低于100Hz推荐速率。触觉原始侧车300个有效样本/每指、对齐触觉组存在；此前 validator 查错 HDF5 根路径导致的 W9 已修复，并由触觉对齐/导出回归锁定；录制起始手势跳变 W3 通过录制前仿真预热消除。产物摘要 SHA256：episode `meta.json` `028ea03a6a7e3872f810f6dfa936b6b6960c65fff5496c3b7b9086d381e65215`；validation report `b7efd7c21439047c4b2db9a72e07c81937cd8af8cb64cb98d7dac0b456d5568f`；LeRobot `morla_schema.json` `0394182b03c61b644e77f84c21c2b1f8767721cfa47e02e619159e971724b2f1`。所有数据与日志留在 `/tmp`，不进入 Git。
+- 最终基线复核：SDK 根迁移计划 SHA256 仍为 `2b8580fd3a1af2865297a5f60a36098351fa0e2ffd2c5e19447bd80415af82b5`；`docs/SOURCE_BASELINE.json` 与根目录冻结清单字节一致（SHA256 `8880299fead51c35619f8f7027d3a3231557acaac75d623174ff80e2122b5733`）。XNero 当前分支只比冻结点多出上一节描述的新独立组件；未修改任何源工作区文件。

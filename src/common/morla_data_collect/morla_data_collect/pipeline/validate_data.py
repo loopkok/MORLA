@@ -216,13 +216,14 @@ def _check_aligned(rep: _Report, f: h5py.File, schema) -> None:
     for sensor in getattr(schema, "sensor_specs", ()):
         key = str(sensor.get("sensor_key", ""))
         required = bool(sensor.get("required", False))
-        if key not in f:
+        sensor_root = f.get("sensors")
+        if sensor_root is None or key not in sensor_root:
             if required:
                 rep.fail("F2", f"aligned required sensor {key} missing")
             else:
                 rep.warn("W9", f"optional aligned sensor {key} missing; tactile features are unavailable")
             continue
-        group = f[key]
+        group = sensor_root[key]
         npoints = int(sensor.get("point_count_per_finger", 120))
         n_fingers = len(sensor.get("finger_order", ("thumb", "index", "middle", "ring", "pinky")))
         expected = {
@@ -237,17 +238,15 @@ def _check_aligned(rep: _Report, f: h5py.File, schema) -> None:
             "source_offsets": (n,),
         }
         for name, shape in expected.items():
-            full = f"{key}/{name}"
-            if full not in f or f[full].shape != shape:
-                rep.fail("F6", f"aligned sensor {full} missing/shape mismatch")
-        if f"{key}/valid" in f:
-            valid = f[f"{key}/valid"][:].astype(bool)
-            temp_valid = (f[f"{key}/temperature_valid"][:].astype(bool)
-                          if f"{key}/temperature_valid" in f else np.zeros_like(valid))
+            if name not in group or group[name].shape != shape:
+                rep.fail("F6", f"aligned sensor {key}/{name} missing/shape mismatch")
+        if "valid" in group:
+            valid = group["valid"][:].astype(bool)
+            temp_valid = (group["temperature_valid"][:].astype(bool)
+                          if "temperature_valid" in group else np.zeros_like(valid))
             for field in ("force_raw", "force_sum", "temperature_raw", "temperature_mean"):
-                full = f"{key}/{field}"
-                if full in f and np.issubdtype(f[full].dtype, np.number):
-                    values = f[full][:]
+                if field in group and np.issubdtype(group[field].dtype, np.number):
+                    values = group[field][:]
                     mask = temp_valid if field.startswith("temperature") else valid
                     while mask.ndim < values.ndim:
                         mask = mask[..., None]

@@ -21,6 +21,8 @@
   <exec_depend>morla_bringup</exec_depend>
   <exec_depend>robot_description</exec_depend>
   <exec_depend>morla_core</exec_depend>
+  <exec_depend>wujihand_retargeting</exec_depend>
+  <exec_depend>wujihand_mujoco_sim</exec_depend>
   <!-- pip: mujoco -->
 
   <export>

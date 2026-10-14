@@ -1,6 +1,7 @@
 /right_arm/nero_arm_teleop:
   ros__parameters:
     arm_side: right
+    wrist_topic: /quest3/right_wrist_pose
     control_rate_hz: 125.0
     require_start_signal: true
     vr_to_arm_rot_after_unity_to_robot: [0.0, 0.0, 1.0, 0.0, 1.0, 0.0, -1.0, 0.0, 0.0]

@@ -304,7 +304,7 @@ action_blocks:
   semantics: next_state
   writable: true
   command_stream: right_arm_cmd
-  writer_id: right_arm_writer
+  writer_id: right_arm
   limits: *id003
 - block_id: right_ee
   dim: 20
@@ -334,7 +334,7 @@ action_blocks:
   semantics: next_state
   writable: true
   command_stream: right_hand_cmd
-  writer_id: right_ee_writer
+  writer_id: right_hand
   limits: *id004
 cameras:
 - base
@@ -350,12 +350,12 @@ camera_specs:
   image_size: null
 sensors: []
 capabilities:
-  ready: false
-  enable: false
-  position: false
-  damping: false
-  estop: false
-  home: false
+  ready: true
+  enable: true
+  position: true
+  damping: true
+  estop: true
+  home: true
   workpos: true
   reanchor: true
   tactile: false
@@ -364,12 +364,12 @@ capabilities:
   grippers: false
   hands: true
 writers:
-- writer_id: right_arm_writer
+- writer_id: right_arm
   component_id: right_arm
   command_stream: right_arm_cmd
   ack_topic: /teleop/ownership_ack
-  prepare_reanchor_service: /right_arm/prepare_reanchor
-- writer_id: right_ee_writer
+  prepare_reanchor_service: /astral_arm_teleop_right/prepare_reanchor
+- writer_id: right_hand
   component_id: right_ee
   command_stream: right_hand_cmd
   ack_topic: /teleop/ownership_ack

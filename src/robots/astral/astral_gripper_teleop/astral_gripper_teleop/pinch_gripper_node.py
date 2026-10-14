@@ -13,6 +13,7 @@ Swap this node later for a hardware adapter that publishes the same topic.
 
 from __future__ import annotations
 
+import json
 import time
 import math
 
@@ -21,7 +22,7 @@ import rclpy
 from geometry_msgs.msg import PoseArray
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64, String
 from morla_core.ownership import PolicyLease, fresh_header
 
 from astral_gripper_teleop.pinch import (
@@ -118,6 +119,9 @@ class PinchGripperNode(Node):
 
         qos = _sensor_qos()
         self._pub_cmd = self.create_publisher(Float64, self.command_topic, qos)
+        self._status_pub = self.create_publisher(
+            String, f"/teleop/writer_status/{self.side}_gripper", 10
+        )
         self.create_subscription(
             PoseArray, self.landmark_topic, self._on_landmarks, qos
         )
@@ -178,6 +182,7 @@ class PinchGripperNode(Node):
             )
 
         self.create_timer(1.0 / max(1.0, rate), self._on_timer)
+        self._status_timer = self.create_timer(0.2, self._publish_runtime_status)
         self.get_logger().info(
             f"pinch→gripper[{side}] landmarks={self.landmark_topic} "
             f"cmd={self.command_topic} "
@@ -323,6 +328,15 @@ class PinchGripperNode(Node):
         self._policy_lease.update(msg.data)
         if not self._policy_lease.manual_allowed:
             self._set_gate(True)
+
+    def _publish_runtime_status(self) -> None:
+        payload = {
+            "writer_id": f"{self.side}_gripper",
+            "armed": bool(not self._gripper_disarmed and self._policy_lease.manual_allowed),
+            "ownership": self._policy_lease.activity,
+            "sent_at": time.time(),
+        }
+        self._status_pub.publish(String(data=json.dumps(payload, sort_keys=True)))
 
     def _on_executed_ratio(self, msg):
         if self._gripper_disarmed or not self._policy_lease.manual_allowed:

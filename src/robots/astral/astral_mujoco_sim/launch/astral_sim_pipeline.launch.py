@@ -26,6 +26,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from morla_core.resource_locator import resolve_robot_asset
+from morla_core.profile import ProfileRegistry
 
 
 def _resolve_astral_urdf() -> str:
@@ -58,8 +59,48 @@ def _launch_setup(context, *args, **kwargs):
     if require_start:
         teleop_extra["require_start_signal"] = require_start.lower() in ("true", "1", "yes")
 
+    control_profile_id = _opt(context, "control_profile_id")
+    arm_side = _opt(context, "arm_side").lower() or "both"
+    if arm_side not in ("left", "right", "both"):
+        raise RuntimeError("arm_side must be left|right|both")
+    arm_sides = ["left", "right"] if arm_side == "both" else [arm_side]
+    gripper_sides_arg = _opt(context, "gripper_sides")
+    gripper_sides = [side for side in gripper_sides_arg.split(",") if side]
+    coordinator = []
+    profile_hands = []
+    profile_has_head = True
+    if control_profile_id:
+        profile = ProfileRegistry.from_index().load(control_profile_id)
+        if profile.robot_id != "astral":
+            raise RuntimeError(f"profile {control_profile_id!r} is not an Astral profile")
+        profile_sides = sorted({item["side"] for item in profile.values["components"]
+                                if item.get("enabled") and item.get("type") == "arm"})
+        if profile_sides != sorted(arm_sides):
+            raise RuntimeError(
+                f"profile arms {profile_sides} do not match arm_side {arm_side!r}"
+            )
+        profile_grippers = sorted({item["side"] for item in profile.values["components"]
+                                   if item.get("enabled") and item.get("type") == "gripper"})
+        profile_hands = [item for item in profile.values["components"]
+                         if item.get("enabled") and item.get("type") == "wuji_hand"]
+        unsupported_hands = [item for item in profile.values["components"]
+                             if item.get("enabled") and item.get("type") not in {
+                                 "arm", "gripper", "wuji_hand"}]
+        profile_has_head = bool(profile.values.get("capabilities", {}).get("head", False))
+        if profile_grippers != sorted(gripper_sides) or unsupported_hands:
+            raise RuntimeError(
+                "Astral MuJoCo profile grippers must match gripper_sides and only "
+                "Wuji Hand is supported as a simulated dexterous hand"
+            )
+        coordinator.append(Node(
+            package="morla_bringup", executable="control_coordinator_node",
+            name="morla_control_coordinator", output="screen",
+            parameters=[{"profile_id": control_profile_id, "operating_mode": "sim"}],
+        ))
+    elif not gripper_sides and _opt(context, "with_gripper").lower() in ("true", "1", "yes"):
+        gripper_sides = ["left"]
     mocap_extra = {
-        "arm_side": "both",
+        "arm_side": arm_side,
         "landmark_preprocess": "raw",
         "allow_legacy_packets": _opt(context, "allow_legacy_packets").lower()
         in ("true", "1", "yes"),
@@ -78,6 +119,7 @@ def _launch_setup(context, *args, **kwargs):
         output="screen",
         parameters=[quest_cfg, mocap_extra],
     )
+    with_input = _opt(context, "with_input").lower() not in ("false", "0", "no")
 
     # Left Touch controller grip button (mask bit 5) → /teleop/start external
     # start gate — same as full_teleop. Lets you test the external start switch
@@ -88,7 +130,8 @@ def _launch_setup(context, *args, **kwargs):
         name="controller_start_gate",
         output="screen",
         emulate_tty=True,
-        parameters=[{"joy_topic": "quest3/left_controller_joy", "button_index": 5}],
+        parameters=[{"joy_topic": "quest3/left_controller_joy", "button_index": 5,
+                      "use_control_coordinator": bool(control_profile_id)}],
         condition=IfCondition(LaunchConfiguration("with_start_gate")),
     )
 
@@ -100,7 +143,8 @@ def _launch_setup(context, *args, **kwargs):
         name="controller_workpos_gate",
         output="screen",
         emulate_tty=True,
-        parameters=[{"joy_topic": "quest3/left_controller_joy", "button_index": 0}],
+        parameters=[{"joy_topic": "quest3/left_controller_joy", "button_index": 0,
+                      "use_control_coordinator": bool(control_profile_id)}],
         condition=IfCondition(LaunchConfiguration("with_start_gate")),
     )
 
@@ -119,7 +163,9 @@ def _launch_setup(context, *args, **kwargs):
         output="screen",
         emulate_tty=True,
         parameters=[head_cfg, head_extra],
-        condition=IfCondition(LaunchConfiguration("with_head_teleop")),
+        condition=IfCondition(
+            LaunchConfiguration("with_head_teleop") if profile_has_head else "false"
+        ),
     )
 
     sim_extra = {}
@@ -131,41 +177,84 @@ def _launch_setup(context, *args, **kwargs):
     if sim_extra:
         sim_params.append(sim_extra)
 
-    gripper = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
+    grippers = []
+    for side in gripper_sides:
+        if side not in ("left", "right"):
+            raise RuntimeError(f"invalid gripper side {side!r}")
+        grippers.append(IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(os.path.join(
                 get_package_share_directory("astral_gripper_teleop"),
-                "launch",
-                "gripper_teleop.launch.py",
-            )
-        ),
-        condition=IfCondition(LaunchConfiguration("with_gripper")),
-        launch_arguments={
-            "hand_side": "left",
-            "controller_joy_topic": "quest3/left_controller_joy",
-        }.items(),
-    )
+                "launch", "gripper_teleop.launch.py")),
+            launch_arguments={
+                "hand_side": side,
+                "controller_joy_topic": f"quest3/{side}_controller_joy",
+            }.items(),
+        ))
+
+    wuji_hands = []
+    for item in profile_hands:
+        side = item["side"]
+        hand_pkg = get_package_share_directory("wujihand_mujoco_sim")
+        retarget_pkg = get_package_share_directory(
+            item.get("retarget_package", "wujihand_retargeting")
+        )
+        retarget_config = os.path.join(
+            retarget_pkg, item.get("retarget_params_file", "config/retarget_dexpilot_right.yml")
+        )
+        default_retarget_params = os.path.join(
+            retarget_pkg, "config", "wujihand_retarget_params.yaml"
+        )
+        model_id = str(item.get("description_model_id", f"wuji_{side}_hand"))
+        urdf_path = str(resolve_robot_asset(model_id))
+        wuji_hands.extend([
+            Node(
+                package="wujihand_retargeting",
+                executable="wujihand_retarget_node",
+                name=f"wujihand_retarget_{side}",
+                output="screen",
+                parameters=[default_retarget_params, {
+                    "hand_side": side,
+                    "retarget_backend": "dexpilot",
+                    "input_topic": "/hand_landmarks",
+                    f"dexpilot_config_{side}": retarget_config,
+                    f"dexpilot_urdf_{side}": urdf_path,
+                    "smoothing_alpha": 0.7,
+                    "max_joint_rate": 1.5,
+                }],
+            ),
+            Node(
+                package="wujihand_mujoco_sim",
+                executable="wujihand_mujoco_sim_node",
+                name=f"wujihand_mujoco_sim_{side}",
+                output="screen",
+                parameters=[os.path.join(hand_pkg, "config", "wujihand_mujoco_sim.yaml"), {
+                    "hand_side": side,
+                    "hand_name": f"{side}_hand",
+                    "cmd_topic": str(item.get("command_topic", f"/{side}_hand/joint_commands")),
+                    "state_topic": str(item.get("state_topic", f"/{side}_hand/joint_states")),
+                    "enable_viewer": False,
+                    "realtime": True,
+                    "state_rate_hz": 50.0,
+                }],
+            ),
+        ])
+
+    arm_nodes = []
+    for side in arm_sides:
+        arm_nodes.append(Node(
+            package="astral_arm_teleop", executable="astral_arm_teleop_node",
+            name=f"astral_arm_teleop_{side}", output="screen",
+            parameters=[cfg_l if side == "left" else cfg_r, teleop_extra],
+        ))
 
     return [
-        mocap,
+        *([mocap] if with_input else []),
         start_gate,
         workpos_gate,
         head_teleop,
-        gripper,
-        Node(
-            package="astral_arm_teleop",
-            executable="astral_arm_teleop_node",
-            name="astral_arm_teleop_left",
-            output="screen",
-            parameters=[cfg_l, teleop_extra],
-        ),
-        Node(
-            package="astral_arm_teleop",
-            executable="astral_arm_teleop_node",
-            name="astral_arm_teleop_right",
-            output="screen",
-            parameters=[cfg_r, teleop_extra],
-        ),
+        *grippers,
+        *wuji_hands,
+        *arm_nodes,
         Node(
             package="astral_mujoco_sim",
             executable="astral_mujoco_sim_node",
@@ -173,6 +262,7 @@ def _launch_setup(context, *args, **kwargs):
             output="screen",
             parameters=sim_params,
         ),
+        *coordinator,
     ]
 
 
@@ -217,6 +307,13 @@ def generate_launch_description() -> LaunchDescription:
                 default_value="true",
                 description="Quest3 left pinch/trigger → /left_gripper/command (sim echoes, no MJCF gripper joint yet)",
             ),
+            DeclareLaunchArgument("control_profile_id", default_value="",
+                                  description="MORLA profile; enables coordinated controls"),
+            DeclareLaunchArgument("with_input", default_value="true",
+                                  description="launch the shared Quest input receiver"),
+            DeclareLaunchArgument("arm_side", default_value="both", description="left|right|both"),
+            DeclareLaunchArgument("gripper_sides", default_value="",
+                                  description="Comma-separated configured gripper sides"),
             DeclareLaunchArgument(
                 "with_start_gate",
                 default_value="true",

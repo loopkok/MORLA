@@ -489,6 +489,10 @@ class AstralTeleopArmNode(Node):
             self.get_logger().info(
                 f"[{self.side}] teleop jsonl log -> {self._tlog.path}"
             )
+        self._runtime_status_pub = self.create_publisher(
+            String, f"/teleop/arm_status/{self.side}", 10
+        )
+        self.create_timer(0.2, self._publish_runtime_status)
         self.create_timer(self.dt, self._loop)
         solver_name = getattr(self.ik, "method_name", type(self.ik).__name__)
         n_via = max(0, len(self._homing_path) - 1)
@@ -1946,6 +1950,25 @@ class AstralTeleopArmNode(Node):
             *map(float, q_cmd),
         ]
         self._tune_pubs["xyz"].publish(packed)
+
+    def _publish_runtime_status(self) -> None:
+        now = time.monotonic()
+        feedback_fresh = bool(
+            self._got_state and self._state_t is not None
+            and now - self._state_t <= max(self.data_timeout, 1.0)
+        )
+        payload = {
+            "side": self.side,
+            "armed": bool(self._armed),
+            "homing": bool(self._homing),
+            "homing_mode": self._homing_mode,
+            "at_init_pose": bool(self._at_init_pose),
+            "at_zero": bool(feedback_fresh and np.max(np.abs(self.state_q)) < 0.05),
+            "feedback_fresh": feedback_fresh,
+            "ownership": getattr(getattr(self, "_policy_lease", None), "activity", "unknown"),
+            "sent_at": time.time(),
+        }
+        self._runtime_status_pub.publish(String(data=json.dumps(payload, sort_keys=True)))
 
     def _track_summary(self) -> dict:
         """慢/快段跟踪质量窗口汇总（供 kind=metrics 的 track 字段）。

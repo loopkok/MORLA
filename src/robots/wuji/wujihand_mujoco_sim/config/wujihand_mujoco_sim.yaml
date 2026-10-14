@@ -5,5 +5,7 @@ wujihand_mujoco_sim_node:
     hand_name: ""               # empty → {hand_side}_hand
     mjcf_path: ""               # empty → resolve wuji_{side}_sim from robot_description manifest
     cmd_topic: ""               # empty → /{hand_name}/joint_commands
+    state_topic: ""             # empty → /{hand_name}/joint_states
+    state_rate_hz: 50.0
     enable_viewer: true
     realtime: true
