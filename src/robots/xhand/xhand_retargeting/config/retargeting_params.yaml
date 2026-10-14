@@ -1,0 +1,20 @@
+# XHand retargeting node parameters
+xhand_dex_retargeting:
+  ros__parameters:
+    side: "left"
+    input_topic: "/hand_landmarks"
+    require_armed: true
+    smoothing_alpha: 0.7
+    enable_thumb_fix: true
+    preprocess_mode: "legacy_xhand_pinky"
+    index_bend_sign: 1.0
+
+# Quest3 hand mocap node parameters
+quest3_udp_mocap:
+  ros__parameters:
+    protocol: "tcp_wired"
+    udp_port: 9000
+    tcp_port: 8000
+    arm_side: "both"
+    ema_alpha: 0.7
+    viz: true

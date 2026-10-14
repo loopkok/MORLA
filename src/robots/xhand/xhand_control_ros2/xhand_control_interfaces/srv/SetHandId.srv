@@ -1,0 +1,8 @@
+int32 current_id
+# The current hand ID
+int32 new_id
+# The new hand ID to set
+---
+bool success
+# True if the hand ID was successfully set, false otherwise
+string message

@@ -1,0 +1,5 @@
+int32 hand_id
+string hand_name
+---
+bool success
+string message

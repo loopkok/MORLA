@@ -29,6 +29,10 @@
   <exec_depend>morla_xhand_hand</exec_depend>
   <exec_depend>nero_robot_control</exec_depend>
   <exec_depend>nero_arm_teleop</exec_depend>
+  <exec_depend>xhand_adapter</exec_depend>
+  <exec_depend>xhand_retargeting</exec_depend>
+  <exec_depend>xhand_control_ros2</exec_depend>
+  <exec_depend>xnero_mujoco_sim</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>

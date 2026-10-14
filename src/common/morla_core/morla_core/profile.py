@@ -292,9 +292,7 @@ class ProfileRegistry:
         relative = Path(entry["path"])
         if relative.is_absolute() or ".." in relative.parts:
             raise ProfileValidationError(f"profile path escapes package: {entry['path']!r}")
-        path = (share / relative).resolve()
-        if not path.is_relative_to(share) or not path.is_file():
-            raise ProfileValidationError(f"profile resource missing or outside package: {entry['package']}/{relative}")
+        path = self._resolve_profile_resource(entry["package"], relative, share)
         raw = _yaml_module().safe_load(path.read_text(encoding="utf-8"))
         if raw.get("profile_id") != profile_id:
             raise ProfileValidationError(f"profile id mismatch: registry {profile_id!r}, file {raw.get('profile_id')!r}")
@@ -304,12 +302,34 @@ class ProfileRegistry:
             if relative.is_absolute() or ".." in relative.parts:
                 raise ProfileValidationError(f"component params path escapes package: {component['params_file']!r}")
             component_share = self._package_share(component["package"])
-            params = (component_share / relative).resolve()
-            if not params.is_relative_to(component_share) or not params.is_file():
-                raise ProfileValidationError(
-                    f"component params resource missing: {component['package']}/{relative}"
-                )
+            self._resolve_profile_resource(component["package"], relative, component_share,
+                                           label="component params")
         return profile
+
+    def _resolve_profile_resource(self, package: str, relative: Path, share: Path,
+                                  *, label="profile resource") -> Path:
+        """Resolve installed resources in both regular and colcon-symlink installs."""
+        path = (share / relative).resolve()
+        if not path.is_relative_to(share):
+            # `colcon --symlink-install` resolves share files through the build
+            # tree into the matching source package. Permit that exact source
+            # package target, while rejecting arbitrary links outside MORLA.
+            source_root = (self.source_root or morla_source_root()).resolve()
+            source_package = None
+            if path.is_relative_to(source_root / "src"):
+                for parent in path.parents:
+                    if parent == source_root / "src":
+                        break
+                    manifest = parent / "package.xml"
+                    if (parent.name == package and manifest.is_file()
+                            and f"<name>{package}</name>" in manifest.read_text(encoding="utf-8")):
+                        source_package = parent.resolve()
+                        break
+            if source_package is None or not path.is_relative_to(source_package):
+                raise ProfileValidationError(f"{label} missing or outside package: {package}/{relative}")
+        if not path.is_file():
+            raise ProfileValidationError(f"{label} missing: {package}/{relative}")
+        return path
 
     def validate_all(self) -> list[RobotProfile]:
         return [self.load(profile_id) for profile_id in self.ids()]

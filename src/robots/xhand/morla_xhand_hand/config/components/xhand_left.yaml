@@ -62,13 +62,13 @@ adapter_params_file: config/xhand_adapter_left.yaml
 native_command_topic: /left_hand/driver/xhand_command
 native_state_topic: /left_hand/driver/xhand_state
 hand_id: 0
+retarget_compatibility:
+  preprocess_mode: legacy_xhand_pinky
+  index_bend_sign: 1.0
 native_command:
   mode: 3
   kp: 80.0
   ki: 0.0
   kd: 0.0
   effort_limit_ma: 400
-retarget_compatibility:
-  preprocess_mode: legacy_xhand_pinky
-  index_bend_right_sign: 1
 description_model_id: xhand_left

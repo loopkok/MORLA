@@ -14,8 +14,8 @@
 | P3 description | 完成 | 新建`robot_description`（ament_cmake），集中27个model ID与358项资产；manifest含来源/目标SHA、关节映射、847个mesh闭包和授权信息。24包干净构建成功；普通安装、colcon symlink-install 均由Pinocchio加载12份URDF、MuJoCo加载5份MJCF；生成器可重跑，Astral FK和sim机械量、XNero sim机械量对照通过。 |
 | P4 unified input | 完成 | `morla_input` 固定输出 robot-axis raw 21点；strict packet 默认拒绝legacy，session/坐标帧变化发epoch并由统一闸门停止策略/遥操、清缓存且要求松开后重新start；XHand旧MANO/小指局部适配和Nero新旧pose链等价验证通过。 |
 | P5 Nero driver/teleop | 软件完成 | 新建标准 ROS driver/teleop 两包并按 profile 参数装配；fake 双侧 launch 和命名命令往返通过。真实 CAN/固件/安全路径未验收，见 P11。 |
-| P6 XHand adapter/sim | 未开始 | |
-| P7 unified data collection | 未开始 | |
+| P6 XHand adapter/sim | 完成 | 31 ROS 包构建通过；adapter/retarget 59 项、XNero 仿真 29 项通过；profile 驱动 headless 整链路实测通过，触觉源约 50 Hz。 |
+| P7 unified data collection | 进行中 | 已开始将在线采集订阅和传感写盘接入 `FrozenSchema`；仍需完成触觉对齐/校验/导出及 XNero 旧格式导入。 |
 | P8 policy/HITL | 未开始 | |
 | P9 Web manager | 未开始 | |
 | P10 software integration | 未开始 | |
@@ -57,3 +57,8 @@
 - P5 teleop 只订阅 Quest wrist 与真实 named state，输出 named command；保留 Nero IK/VR 算法和 `0.065 rad/step` 旧滤波语义，逐周期限速由 driver 的 `rad/s` 层另外处理。补入 core `PolicyLease`、动态 ownership ACK writer、`prepare_reanchor` 一次性token提交及手动 `reanchor`；策略/回放所有权下拒绝遥操，frame/session epoch 清锚并 disarm，不在退出/disarm 时回位。`nero_arm_stack.launch.py`从profile启用侧和组件参数路径装配 input/gate/driver/teleop，XHand本阶段仅报告尚未启动；未复制 `SimArmStub` 生产入口。
 - P5 软件验证：完整 `colcon build --base-paths src` 27/27通过；12 profiles全通过；83项 driver/input/lease/XHand相关测试通过；Nero VR mapping 6/6、analytic IK 5/5。源IK solver SHA256与XNero完全相同；原压力用例的未设种子随机输入导致结果跨运行变化，本次仅在回归脚本固定 seed=2026（求解算法未变）。Fake双侧ROS launch实际跑通，双方SDK连接、实测反馈和125Hz teleop loop正常；隔离ROS domain显式enable左侧fake driver后，逆序JointState命名命令被正确重排，实测七关节各限速移动0.008rad。运行中没有发布Quest数据或自动运动；未连接CAN/实体手臂。
 - P5 smoke同时发现并修正ROS全限定参数文件选择、空Python列表被推断为BYTE_ARRAY、连接future被重复当作未完成等三个启动/生命周期缺陷；回归运行后双侧节点保持存活且status反馈持续新鲜。实际状态发布保持20Hz，不把源配置里的20Hz写成125Hz。硬件 SDK ABI、CAN通道、位置/工作位机械安全仍属于P11。
+- P6：迁入 XNero `xhand_control_interfaces`、`xhand_control_ros2` 和 `xnero_mujoco_sim` 到 `src/robots/xhand/`、`src/robots/nero/`；新增纯逻辑/ROS `xhand_adapter`。MORLA 具名 12 关节 `JointState` 是 retargeter 唯一标准输出；adapter 独占标准反馈和原生 XHand 命令；DexPilot 的 21 点 raw Quest 转旧 XHand MANO/pinky 坐标仅发生在 XHand 局部。旧手目标伪造 `/joint_states`、直接控制/HOME 入口均未安装为运行入口。
+- P6 仿真装配：新增 `nero_xhand_stack.launch.py`，由 robot profile 选择左右 arm/hand；`mode=sim|real` 分支互斥，仿真接标准臂命令与原生手内部消息，真实分支必须显式硬件 backend 和真实串口配置。XNero MuJoCo MJCF/mesh 从 `robot_description` manifest 解析；1000 个触觉点/侧来自模型中的 1200 个 geom。未启动 real 分支、未连接物理设备。
+- P6 验证：`colcon build --symlink-install --base-paths src` 31/31 成功；`morla_core.profile validate-all` 12/12；XHand adapter+retarget 59 项通过、XNero MuJoCo 29 项通过。profile `nero_left_xhand` headless launch 实测合成 21 点 `/hand_landmarks/left` → 95 对具名目标/标准命令 → 95 条原生 `XHandCommand`，adapter 发布 161 条具名 12 维状态，sim 原生反馈约 50.1Hz；原生命令与标准命令相同、hand_id/mode/gain/限位正确；每个触觉样本含5指×120点力及每指20温度值。未测相机和实体 Quest 输入。
+- P6 调度修正：实测确认原 simulator 的“当前时刻+周期”调度会因 220Hz 物理步长产生约44Hz状态；改为累进固定周期后，独立订阅 5.98s 收到300条、50.01Hz，整链路测得50.1Hz。
+- P6 依赖：安装 DexPilot runtime 缺失的 `torch==2.5.1+cpu` 到系统 Python 3.10 的用户目录，DexPilot + Pinocchio 现可实际构造/运行。该 wheel 仅验证 x86-64；ARM64/CUDA 依赖需按部署平台提供。供应商 ROS 包原始 license 字段仍为 TODO、XHand SDK 用户协议与外部分发授权待上游明确；SDK `.so` 为 x86-64，硬件分发/ARM64验收未完成。

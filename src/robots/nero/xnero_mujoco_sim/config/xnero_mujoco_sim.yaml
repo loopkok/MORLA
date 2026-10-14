@@ -1,0 +1,25 @@
+xnero_mujoco_sim_node:
+  ros__parameters:
+    mjcf_path: ""                 # 空 = 通过 robot_description manifest 定位 MJCF
+    enable_viewer: true
+    realtime: true
+    state_rate: 50.0
+
+    # 手部执行器增益。XHand 命令里的 kp=80 是手内部单位，不能 1:1 映到 MuJoCo kp，
+    # 所以这里单独给；抓不稳就加大 hand_kp / hand_torque_limit。
+    hand_kp: 5.0
+    hand_kv: 0.1
+    hand_torque_limit: 0.5        # N·m，写进执行器 forcerange
+
+    # 触觉：把 MuJoCo 逐点接触力注入 xhand_state.sensor_states
+    publish_tactile: true
+    tactile_rate: 50.0            # 与 state_rate 独立；带宽约 1.4MB/s @50Hz 两手全开
+
+    # 臂：运动学覆盖。超时未收到命令则保持最后值
+    arm_command_timeout: 0.5
+    init_pose_left:  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    init_pose_right: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+    fps_print_interval: 5.0
+    print_latency: true
+    latency_print_interval: 2.0

@@ -1,0 +1,18 @@
+xhand_adapter:
+  ros__parameters:
+    side: right
+    hand_id: 0
+    mode: 3
+    kp: 80.0
+    ki: 0.0
+    kd: 0.0
+    effort_limit_ma: 400.0
+    joint_lower_limits: [0.0, -1.05, -0.175, -0.175, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    joint_upper_limits: [1.83, 1.57, 1.83, 0.175, 1.92, 1.92, 1.92, 1.94, 1.92, 1.92, 1.92, 1.92]
+    require_armed: true
+    command_timeout_s: 0.5
+    state_topic: /right_hand/joint_states
+    command_topic: /right_hand/joint_commands
+    native_state_topic: /right_hand/driver/xhand_state
+    native_command_topic: /right_hand/driver/xhand_command
+    status_topic: /right_hand/adapter/status

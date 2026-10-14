@@ -1,0 +1,18 @@
+retargeting:
+  type: DexPilot
+  urdf_path: xhand_left.urdf
+
+  # Target refers to the retargeting target, which is the robot hand
+  wrist_link_name: "left_hand_link"
+  target_joint_names: [ 'left_hand_thumb_bend_joint', 'left_hand_thumb_rota_joint1', 'left_hand_thumb_rota_joint2',
+                      'left_hand_index_bend_joint', 'left_hand_index_joint1', 'left_hand_index_joint2',
+                      'left_hand_mid_joint1', 'left_hand_mid_joint2',
+                      'left_hand_ring_joint1', 'left_hand_ring_joint2',
+                      'left_hand_pinky_joint1', 'left_hand_pinky_joint2' ]
+  finger_tip_link_names: [ "left_hand_thumb_rota_tip", "left_hand_index_rota_tip", "left_hand_mid_tip", "left_hand_ring_tip", "left_hand_pinky_tip" ]
+
+  # A smaller alpha means stronger filtering, i.e. more smooth but also larger latency
+  low_pass_alpha: 0.6
+
+  project_dist: 0.03
+  escape_dist: 0.03

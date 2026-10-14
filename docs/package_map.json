@@ -1,7 +1,7 @@
 {
   "source_workspace": "astral_ws",
   "target_workspace": "MORLA",
-  "package_count": 27,
+  "package_count": 31,
   "packages": {
     "astral_arm_clean_description": {
       "source_path": "astral_ws/src/astral_arm_clean_description",
@@ -380,8 +380,13 @@
       "target_path": "src/robots/xhand/xhand_retargeting",
       "renamed": false,
       "migration_kind": "robot_specific_preprocess_then_retarget",
-      "executable_names": [],
-      "node_names": []
+      "executable_names": [
+        "xhand_dex_retargeting_node"
+      ],
+      "node_names": [
+        "xhand_dex_retargeting_left",
+        "xhand_dex_retargeting_right"
+      ]
     },
     "nero_robot_control": {
       "source_path": "xnero_ws/src/nero_quest_teleop",
@@ -408,10 +413,66 @@
       "node_names": [
         "nero_arm_teleop"
       ]
+    },
+    "xhand_adapter": {
+      "source_path": null,
+      "target_name": "xhand_adapter",
+      "target_path": "src/robots/xhand/xhand_adapter",
+      "renamed": false,
+      "origin": "new P6 standard/native XHand adapter",
+      "migration_kind": "strict_named_standard_native_adapter",
+      "executable_names": [
+        "xhand_adapter"
+      ],
+      "node_names": [
+        "xhand_adapter_left",
+        "xhand_adapter_right"
+      ]
+    },
+    "xhand_control_interfaces": {
+      "source_path": "xnero_ws/src/xhand_control_ros2/xhand_control_interfaces",
+      "target_name": "xhand_control_interfaces",
+      "target_path": "src/robots/xhand/xhand_control_ros2/xhand_control_interfaces",
+      "renamed": false,
+      "migration_kind": "vendor_ros_interfaces",
+      "executable_names": [],
+      "node_names": []
+    },
+    "xhand_control_ros2": {
+      "source_path": "xnero_ws/src/xhand_control_ros2/xhand_control_ros2",
+      "target_name": "xhand_control_ros2",
+      "target_path": "src/robots/xhand/xhand_control_ros2/xhand_control_ros2",
+      "renamed": false,
+      "migration_kind": "vendor_ros_driver",
+      "executable_names": [
+        "xhand_control_ros2_node"
+      ],
+      "node_names": [
+        "xhand_control_left",
+        "xhand_control_right"
+      ],
+      "architecture_limit": "x86-64 libxhand_control.so"
+    },
+    "xnero_mujoco_sim": {
+      "source_path": "xnero_ws/src/xnero_mujoco_sim",
+      "target_name": "xnero_mujoco_sim",
+      "target_path": "src/robots/nero/xnero_mujoco_sim",
+      "renamed": false,
+      "migration_kind": "headless_xnero_sim_standard_arm_native_hand_io",
+      "executable_names": [
+        "xnero_mujoco_sim_node"
+      ],
+      "node_names": [
+        "xnero_mujoco_sim_node"
+      ],
+      "migrated_assets_to": "src/robot_description",
+      "target_asset_roots": [
+        "mjcf/xnero/"
+      ]
     }
   },
   "source_package_count": 25,
-  "active_ros_package_count": 27,
+  "active_ros_package_count": 31,
   "additional_workspace_assets": {
     "source_workspace": "xnero_ws",
     "target_package": "robot_description",

@@ -62,6 +62,9 @@ adapter_params_file: config/xhand_adapter_right.yaml
 native_command_topic: /right_hand/driver/xhand_command
 native_state_topic: /right_hand/driver/xhand_state
 hand_id: 0
+retarget_compatibility:
+  preprocess_mode: legacy_xhand_pinky
+  index_bend_sign: -1.0
 native_command:
   mode: 3
   kp: 80.0

@@ -1,5 +1,15 @@
-"""XHand robot-specific input and retargeting helpers."""
+"""XHand retargeting, keeping robot-specific landmark conversion local."""
 
-from .preprocess import preprocess_xhand_landmarks
+from .preprocess import (
+    adaptive_retargeting_xhand,
+    estimate_frame_from_hand_points,
+    preprocess_xhand_landmarks,
+    unity_points_from_robot_raw,
+)
 
-__all__ = ["preprocess_xhand_landmarks"]
+__all__ = [
+    "adaptive_retargeting_xhand",
+    "estimate_frame_from_hand_points",
+    "preprocess_xhand_landmarks",
+    "unity_points_from_robot_raw",
+]
