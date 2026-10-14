@@ -21,9 +21,19 @@ python3 -m morla_core.profile validate-all
 ```
 
 The reusable checks are `scripts/test_ros.sh`, `scripts/test_offline.sh`,
-`scripts/test_policy.sh`, and `scripts/test_sim_integration.sh`. The simulation
-test writes its synthetic raw and exported data under `/tmp` by default; set
-`MORLA_TEST_OUTPUT_ROOT` to choose another empty directory.
+`scripts/test_policy.sh`, `scripts/test_sim_integration.sh`, and
+`scripts/test_astral_sim_integration.sh`. Simulation checks write synthetic
+raw and exported data under `/tmp` by default; set `MORLA_TEST_OUTPUT_ROOT` or
+`MORLA_ASTRAL_TEST_OUTPUT_ROOT` to choose another empty directory.
+
+Future architecture work, including declarative high-flexibility robot and
+actuator composition, is tracked in [`docs/TODO.md`](docs/TODO.md).
+The [coordinate and kinematics optimization plan](docs/coordinate_kinematics_optimization_plan.md)
+records the implemented coordinate contract, Nero J2 zero correction, named
+URDF tool-chain resolver, measured-state TF bridge, and validation evidence.
+The active tool remains the legacy solver tip until the real SDK flange,
+connector, and task TCP are checked against the physical assembly; see the
+plan for that hardware boundary.
 
 The web UI source is in `src/common/morla_web_manager/web`; build it with `npm ci && npm run build` there.
 

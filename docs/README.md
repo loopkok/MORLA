@@ -9,6 +9,8 @@
 
 | 主题 | 独立文档 | 一句话结论 | 权威源 |
 |---|---|---|---|
+| 坐标、零位与工具链优化 | [coordinate_kinematics_optimization_plan.md](coordinate_kinematics_optimization_plan.md) | 软件实施与仿真/数据闭环已完成；实机 flange、connector、TCP 与安装标定待设备验收 | [审查与实施证据](coordinate_kinematics_audit_2026-10-14.json) |
+| MORLA 后续 TODO | [TODO.md](TODO.md) | 声明式、高自由度的机器人与执行器组合装配规划；当前尚未实现 | `morla_bringup/robot_profile_launch.py` |
 | ACT 推理卡顿 | [act-inference-stutter-investigation.md](act-inference-stutter-investigation.md) | 真机"一卡一卡"= 四层独立原因叠加（参数没生效/换 chunk 断流/收敛拉回尖峰/数据节奏/网络），按层排查 | `src/common/morla_policy_inference/CLAUDE.md`「推理优化历程」 |
 | pi0.5 推理问题调查（进行中） | [2026-09-21-pi05-inference-investigation.md](2026-09-21-pi05-inference-investigation.md) | 抓偏/误抓/卡顿的 A/B/C/D 轮实验设计与结论；左腕视角变化 + 时间轴定责 | `pi05_infer_test_log/`、CHANGELOG 09-21/22 |
 | 推理部署环境/后端坑 | [inference-deploy-pitfalls.md](inference-deploy-pitfalls.md) | py3.12 lerobot vs py3.10 rclpy 硬墙、ACT 1 行 chunk、锁饥饿、陈旧队列、绝对语义守卫等 | `src/common/morla_policy_inference/CLAUDE.md` 坑表 |

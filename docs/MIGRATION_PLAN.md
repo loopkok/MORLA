@@ -429,7 +429,7 @@ SDK 参数 `firmeware_version` 是现有拼写，禁止擅自“纠正”而使�
 
 初始命令与第一次 policy 输出都用新鲜实测 q 播种，禁止回读缺失时填零继续启动。connect/enable/首反馈必须有界超时和失败状态，移除旧 `while not enable()` 无限循环。状态发布独立于 IK/遥操，停遥操后仍可给推理和 Web 提供真实 q。需要可配置 control/state rate；先保留源 125Hz 遥操频率和稳定的反馈实现，再实测驱动频率，不能把旧 20Hz反馈伪报成125Hz。
 
-Nero 标准关节名为 `left_joint1..7` / `right_joint1..7`，driver 转成 SDK 的有序7数组；旧 `joint1..7` 只用于历史映射。URDF 名表通过 manifest 核验。TCP 状态改为 `/{side}_arm/tcp_pose` PoseStamped，位置m，rpy转换为xyzw；header.frame_id 为实际 arm base。原采集把6维 xyz+rpy补成7维的路径不得迁入。
+Nero 标准关节名为 `left_joint1..7` / `right_joint1..7`，driver 转成 SDK 的有序7数组；旧 `joint1..7` 只用于历史映射。URDF 名表通过 manifest 核验。规范测量法兰话题为 `/{side}_arm/flange_pose`，由 SDK flange xyz+rpy 转换为 PoseStamped；header.frame_id 是父坐标系 `{side}_base_link`。历史 `tcp_pose` 仅作为同数据的兼容别名，不能推断为单独标定的任务 TCP。当前解析 IK 与 Profile 活动裸臂控制末端都使用 `*_link7`；`*_gripper_flange` 是独立物理法兰帧。原采集把6维 xyz+rpy补成7维的路径不得迁入。
 
 新 driver 提供 `~/enable`、`~/position`、`~/estop` 和状态/诊断；`ready/home/damping` 只有 SDK 和机械意义已核实后才提供。可统一路由层按左右 driver 分派 Trigger，不用假成功填齐按钮。一次操作双侧中一侧失败时返回整体失败和每侧结果，保留显式部分完成状态。
 

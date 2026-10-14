@@ -1,0 +1,453 @@
+{
+  "date": "2026-10-14",
+  "kind": "read_only_source_and_kinematics_audit",
+  "head": "f3b226c27486d995d04a08c8f0334453b8989fe0",
+  "seed": 20261014,
+  "samples_per_side": 501,
+  "hardware_or_live_simulation_used": false,
+  "source_sha256": {
+    "src/robot_description/urdf/nero/xhand_nero_description.urdf": "531682dbd23613d0f0d079488aa97f3ef2d409ed9e349390ec62b0e5ce858f22",
+    "src/robots/nero/nero_arm_teleop/nero_arm_teleop/ik_solver.py": "21148b61197a2014d799c6d672b40dd21d0ab38484886b503031f03d32249a06",
+    "src/robots/nero/nero_arm_teleop/nero_arm_teleop/teleop_node.py": "cc12437a9167222314a310b969254627492827d3c86f50707c0e19e3fd052d33",
+    "src/robots/nero/xnero_mujoco_sim/xnero_mujoco_sim/sim_node.py": "9e218f1cbb18f1b0cb59825c1164b7f89e81704f71fecc220c690ed15cff6044",
+    "src/common/morla_input/morla_input/quest3_udp_mocap.py": "624222b51ef0170fa0f8302b5adfc1c593df5dece8d54ef401e4f9e5dd202012",
+    "src/common/morla_core/morla_core/schema.py": "8c52f5382a0171a7aa28efd6fbe22dd1509599c4747bdaa94206ad18d370d6ea"
+  },
+  "units": {
+    "position_error": "m",
+    "rotation_error": "rad"
+  },
+  "unity_to_canonical_basis": [
+    [
+      -1.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      -1.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0
+    ]
+  ],
+  "unity_basis_determinant": -1.0,
+  "sides": {
+    "left": {
+      "post_unity_rotation": [
+        [
+          0.0,
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        [
+          1.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "T_bracket_from_arm_base": [
+        [
+          -3.6732051033327995e-06,
+          -0.9999999999865075,
+          3.6732051032495328e-06,
+          0.0
+        ],
+        [
+          -5.551115123125783e-17,
+          -3.6732051033327995e-06,
+          -0.9999999999932536,
+          -0.1975
+        ],
+        [
+          0.9999999999932536,
+          -3.6732051032495328e-06,
+          1.349240164039145e-11,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "R_bracket_from_canonical_derived": [
+        [
+          3.6732051032495328e-06,
+          0.9999999999865075,
+          -3.6732051033327995e-06
+        ],
+        [
+          -0.9999999999932536,
+          3.6732051033327995e-06,
+          -5.551115123125783e-17
+        ],
+        [
+          1.349240164039145e-11,
+          3.6732051032495328e-06,
+          0.9999999999932536
+        ]
+      ],
+      "joint2_model_minus_hardware_offset_rad": -1.5707963267948966,
+      "joint2_urdf_limits_rad": [
+        -3.3108,
+        0.1692
+      ],
+      "joint2_limits_mapped_back_to_hardware_rad": [
+        -1.7400036732051034,
+        1.7399963267948966
+      ],
+      "joint2_dh_limits_rad": [
+        -1.74533,
+        1.74533
+      ],
+      "raw_zero_link7_vs_dh_errors": [
+        0.8202510665950594,
+        1.570796339023852
+      ],
+      "raw_zero_gripper_flange_vs_dh_errors": [
+        0.8435096962447773,
+        1.570803646410207
+      ],
+      "mapped_link7_vs_dh_max_errors": [
+        1.1638566575817462e-05,
+        5.301876912826943e-06
+      ],
+      "manual_urdf_fk_vs_pinocchio_max_errors": [
+        7.850462293418876e-16,
+        7.845884308912542e-16
+      ],
+      "T_link7_from_hand_link_nominal": [
+        [
+          3.673195356140296e-06,
+          3.6732148504161716e-06,
+          0.9999999999865075,
+          0.05999999999962221
+        ],
+        [
+          0.9999999999897329,
+          2.6535763009331875e-06,
+          -3.6732051032495328e-06,
+          -1.0284974289098692e-07
+        ],
+        [
+          -2.653589793390339e-06,
+          0.9999999999897329,
+          -3.6732051033327995e-06,
+          -0.023500102849742893
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_link7_from_hand_ee_link_nominal": [
+        [
+          3.673195356140296e-06,
+          3.6732148504161716e-06,
+          0.9999999999865075,
+          0.1249999999987452
+        ],
+        [
+          0.9999999999897329,
+          2.6535763009331875e-06,
+          -3.6732051032495328e-06,
+          -3.4160807460220655e-07
+        ],
+        [
+          -2.653589793390339e-06,
+          0.9999999999897329,
+          -3.6732051033327995e-06,
+          -0.02350034160807461
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_gripper_flange_from_hand_link_nominal": [
+        [
+          -0.9999999999964793,
+          -2.65358979335273e-06,
+          0.0,
+          0.0
+        ],
+        [
+          2.65358979335273e-06,
+          -0.9999999999964793,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.028
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "neutral_anchor_error_if_nonidentity_hand_tool_is_enabled_before_anchor_fix": [
+        0.06443799216233959,
+        2.094393570356509
+      ]
+    },
+    "right": {
+      "post_unity_rotation": [
+        [
+          0.0,
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          -1.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "T_bracket_from_arm_base": [
+        [
+          -3.6732051033327995e-06,
+          0.9999999999865075,
+          3.6732051032495328e-06,
+          0.0
+        ],
+        [
+          5.551115123125783e-17,
+          -3.6732051033327995e-06,
+          0.9999999999932536,
+          0.1975
+        ],
+        [
+          0.9999999999932536,
+          3.6732051032495328e-06,
+          1.349240164039145e-11,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "R_bracket_from_canonical_derived": [
+        [
+          -3.6732051032495328e-06,
+          0.9999999999865075,
+          -3.6732051033327995e-06
+        ],
+        [
+          -0.9999999999932536,
+          -3.6732051033327995e-06,
+          5.551115123125783e-17
+        ],
+        [
+          -1.349240164039145e-11,
+          3.6732051032495328e-06,
+          0.9999999999932536
+        ]
+      ],
+      "joint2_model_minus_hardware_offset_rad": -1.5707963267948966,
+      "joint2_urdf_limits_rad": [
+        -3.3108,
+        0.1692
+      ],
+      "joint2_limits_mapped_back_to_hardware_rad": [
+        -1.7400036732051034,
+        1.7399963267948966
+      ],
+      "joint2_dh_limits_rad": [
+        -1.74533,
+        1.74533
+      ],
+      "raw_zero_link7_vs_dh_errors": [
+        0.8202510665950594,
+        1.570796339023852
+      ],
+      "raw_zero_gripper_flange_vs_dh_errors": [
+        0.8435096962447773,
+        1.570803646410207
+      ],
+      "mapped_link7_vs_dh_max_errors": [
+        1.1638566575817462e-05,
+        5.301876912826943e-06
+      ],
+      "manual_urdf_fk_vs_pinocchio_max_errors": [
+        7.043575467574348e-16,
+        8.862137556579434e-16
+      ],
+      "T_link7_from_hand_link_nominal": [
+        [
+          3.673195356140296e-06,
+          3.6732148504161716e-06,
+          0.9999999999865075,
+          0.05999999999962221
+        ],
+        [
+          0.9999999999897329,
+          2.6535763009331875e-06,
+          -3.6732051032495328e-06,
+          -1.0284974289098692e-07
+        ],
+        [
+          -2.653589793390339e-06,
+          0.9999999999897329,
+          -3.6732051033327995e-06,
+          -0.023500102849742893
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_link7_from_hand_ee_link_nominal": [
+        [
+          3.673195356140296e-06,
+          3.6732148504161716e-06,
+          0.9999999999865075,
+          0.1249999999987452
+        ],
+        [
+          0.9999999999897329,
+          2.6535763009331875e-06,
+          -3.6732051032495328e-06,
+          -3.4160807460220655e-07
+        ],
+        [
+          -2.653589793390339e-06,
+          0.9999999999897329,
+          -3.6732051033327995e-06,
+          -0.02350034160807461
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_gripper_flange_from_hand_link_nominal": [
+        [
+          -0.9999999999964793,
+          -2.65358979335273e-06,
+          0.0,
+          0.0
+        ],
+        [
+          2.65358979335273e-06,
+          -0.9999999999964793,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.028
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "neutral_anchor_error_if_nonidentity_hand_tool_is_enabled_before_anchor_fix": [
+        0.06443799216233959,
+        2.094393570356509
+      ]
+    }
+  },
+  "interpretation": [
+    "URDF joint2 model coordinate is approximately hardware/DH coordinate minus pi/2.",
+    "After that mapping, analytic FK matches the URDF link7 frame, not gripper_flange.",
+    "These are mathematical/source findings, not device calibration or hardware acceptance.",
+    "These fields preserve the pre-implementation frozen source audit; they do not describe the current active URDF."
+  ],
+  "implementation_validation": {
+    "date": "2026-10-14",
+    "status": "software_implementation_and_simulation_validation_passed_hardware_acceptance_pending",
+    "hardware_or_live_robot_used": false,
+    "active_joint_convention": "hardware_q_rad_no_offset",
+    "active_solver_tip": "*_link7",
+    "active_nero_model_sha256": {
+      "urdf": "c0d063752ce433c437befc6c0e0e0552f5927980666ae621d602930d8eb06961",
+      "mjcf": "c04624ca95abfb530891d9fd68115ce0e0a6d72ba12e7acce7db645f960f0890",
+      "asset_manifest": "ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6"
+    },
+    "geometric_crosscheck": {
+      "samples_per_side": 501,
+      "solver_vs_urdf_max_position_m": {
+        "left": 1.0018923965086847e-05,
+        "right": 1.001892396518849e-05
+      },
+      "solver_vs_urdf_max_rotation_rad": {
+        "left": 2.1827660650373512e-07,
+        "right": 2.1827660659173038e-07
+      },
+      "solver_vs_mjcf_max_position_m": {
+        "left": 1.0152300939993713e-05,
+        "right": 1.0151243391466803e-05
+      },
+      "solver_vs_mjcf_max_rotation_rad": {
+        "left": 5.564659546755675e-07,
+        "right": 5.414288576869435e-07
+      }
+    },
+    "active_tool_selection": "legacy_solver_tip",
+    "named_urdf_tool_chain_resolution": "implemented_but_physical_sdk_flange_connector_and_task_tcp_unverified",
+    "software_validation": {
+      "symlink_and_regular_builds": "31_packages_passed_in_each_mode",
+      "regular_install_assets": "27_models_358_assets_pinocchio_and_mujoco_loaders_passed",
+      "profile_validation": "12_of_12_passed_in_symlink_and_regular_installs",
+      "profile_state_bridge_and_rsp_assembly": "12_arm_profiles_constructed_actions_successfully",
+      "astral_profile_launch_smoke": "unified_astral_left_gripper_sim_started_profile_state_bridge_robot_state_publisher_quest_input_teleop_and_sim_nodes",
+      "ros_regression": "scripts/test_ros.sh passed",
+      "policy_regression": "scripts/test_policy.sh passed",
+      "offline_data_regression": "scripts/test_offline.sh passed",
+      "web_frontend": "npm run build passed",
+      "simulation_data_pipeline": {
+        "command": "scripts/test_sim_integration.sh",
+        "result": "simulation_recording_alignment_validation_and_lerobot_v2_1_export_passed",
+        "profile_id": "nero_left_xhand",
+        "aligned_frames": 190,
+        "warning": "left_hand_state stream was approximately 50.2 Hz against a 100 Hz quality threshold; report status was warn, no fail"
+      },
+      "astral_simulation_data_pipeline": {
+        "command": "scripts/test_astral_sim_integration.sh",
+        "result": "profile_teleop_recording_alignment_validation_and_lerobot_v2_1_export_passed",
+        "profile_id": "astral_left_gripper",
+        "aligned_frames": 208,
+        "validation": "1 pass / 0 warn / 0 fail",
+        "kinematics_status": "profile hash 623416c5783d; measured left arm state fresh"
+      }
+    },
+    "hardware_acceptance": "pending_physical_robot_sdk_and_tool_measurements"
+  },
+  "derived_shared_rotation_left_right_maxabs_difference": 7.346410206665599e-06
+}

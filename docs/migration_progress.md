@@ -27,6 +27,16 @@
 
 XNero 冻结点后的17个新增文件全部属于独立的 `xnero_grasp_bridge` 研究实现及其 HUG 计划/设计文档：包含右手 MANO→retargeter 坐标候选、HUG WebSocket 模型服务和校准脚本；没有改动冻结基线中的 Nero driver/teleop、XHand retarget、MuJoCo sim 或旧数据采集源文件。该新实现没有 ROS package manifest，且计划基线未定义其接入契约，因此本次不把它并入 MORLA 的 robot graph，也不把它伪装成 `morla_policy_inference` 的标准 action writer。若后续要接入，需要单独定义它输出 MANO landmarks 如何通过冻结 schema、输入所有权和 XHand 坐标兼容校验进入 MORLA。MORLA 当前按用户指定的冻结源基线与迁移计划验收。
 
+## 坐标与运动学专项实施（2026-10-14）
+
+基于前一节冻结源码审查中发现的 Unity basis 分散、Nero J2 仿真零位、solver-tip/tool 语义和非零 TCP anchor 问题，已按 [优化计划](coordinate_kinematics_optimization_plan.md) 完成软件实施。原始修改前源码 SHA 和 FK 结果保留在 [审查与实施证据 JSON](coordinate_kinematics_audit_2026-10-14.json) 顶层历史字段；当前活动模型和实施后验证在 `implementation_validation`，两者不可混读。
+
+实施结果：MORLA Core 新增严格 SO(3)/SE(3)、URDF 固定链与统一 coordinate contract；Quest 在线和 standalone 输入复用同一 Unity basis，并分别声明 tracking-world、operator-body 和 robot body；12 个 Profile 统一定义 input basis、身体参考系、左右安装派生、solver adapter、tip/tool 和 `kinematics_hash`。遥操 launch 从同一 Profile/URDF 解析左右输入变换和工具矩阵，清除了重复 YAML 矩阵。Astral/Nero 的 init/start/re-anchor/HITL 锚点现在保存 TCP pose 并在 IK 前反算 solver tip。活动 Nero URDF/MJCF 恢复硬件 q=0 与角限位，旧 J2 偏置模型移入 legacy，仿真垂下姿态由 sim-only 初始角表达。
+
+TF 由 Profile-scoped `robot_state_publisher` 加测量 JointState bridge 提供；bridge 依 joint name 映射真实状态、保留每条来源时间戳、拒绝缺关节，不订阅命令或拼接异步状态。坐标 hash 已进入数采和 export、policy handshake/replay、Web Profile API/UI。Nero Profile 的活动裸臂控制末端保持 `*_link7`，与解析 IK solver tip 一致；`*_gripper_flange` 是 URDF 中独立的物理法兰帧，可供 TF、实测法兰位姿和显式工具选择使用。driver 规范实测接口为 `/flange_pose`，旧 `/tcp_pose` 同值兼容并标记 deprecated。SDK flange pose 到 URDF frame 对齐、实体安装尺寸和外接任务 TCP 仍待硬件资料/实测。
+
+几何闭环以每侧501个 q_hw 随机/零位姿态核对。当前解析 solver tip `*_link7` 对 URDF 最大位置差约 `0.01002 mm`、姿态差 `2.18e-7 rad`；对 MJCF 最大位置差约 `0.01015 mm`、姿态差 `5.57e-7 rad`。普通安装加载检查通过 27 个模型/358 个资产；12 个 Profile 在 symlink 与普通安装均通过解析；状态桥/RSP action 能对全部12个 Profile 成功构造。Astral `astral_left_gripper` 统一 sim Profile 数据端到端通过：测量状态桥/RSP 与遥操启动后，208帧数据完成对齐、验证和 LeRobot v2.1 导出，报告为1 pass/0 warn/0 fail。`scripts/test_ros.sh`、`scripts/test_policy.sh`、`scripts/test_offline.sh`、Web `npm run build`、`scripts/test_sim_integration.sh` 及 `scripts/test_astral_sim_integration.sh` 均通过。Nero仿真整链路记录/对齐/校验/LeRobot v2.1导出190帧成功；唯一质量 warning 为左手状态约50.2Hz低于100Hz门槛，没有fail。P11设备验收未改变，仍待真实机器人和厂商/实体测量依据。
+
 ## 日志
 
 ### 2026-10-13
@@ -93,3 +103,21 @@ XNero 冻结点后的17个新增文件全部属于独立的 `xnero_grasp_bridge`
 - P10 闭环复验：`scripts/build.sh --mode symlink` 31/31 包通过；`scripts/test_ros.sh` 341 passed，tactile 专项筛选为1 passed/2 deselected，且 Astral geometric IK、IK solver、Quest mapping 三个独立回归入口均通过；`scripts/test_policy.sh` 149 passed；`scripts/test_offline.sh` 97 passed/1 deselected；profile CLI 12/12。统一 `robot.launch.py` 的 Astral `astral_left_gripper mode=sim` 分支实际启动成功，Nero `nero_left_xhand mode=sim` 分支由端到端脚本启动成功。
 - P10 本轮 Nero19 端到端产物：`/tmp/morla-sim-e2e.vLvZOy/nero_left_xhand/smoke/episode000000`，采集两路图像及 arm/hand 命令、状态和触觉；对齐190帧并成功导出 LeRobot v2.1，schema 为19/19。验证报告 `validation_report.json` 为0 fail、1 warn；唯一 warning 是仿真 `left_hand_state` 50.2Hz 低于100Hz推荐速率。触觉原始侧车300个有效样本/每指、对齐触觉组存在；此前 validator 查错 HDF5 根路径导致的 W9 已修复，并由触觉对齐/导出回归锁定；录制起始手势跳变 W3 通过录制前仿真预热消除。产物摘要 SHA256：episode `meta.json` `028ea03a6a7e3872f810f6dfa936b6b6960c65fff5496c3b7b9086d381e65215`；validation report `b7efd7c21439047c4b2db9a72e07c81937cd8af8cb64cb98d7dac0b456d5568f`；LeRobot `morla_schema.json` `0394182b03c61b644e77f84c21c2b1f8767721cfa47e02e619159e971724b2f1`。所有数据与日志留在 `/tmp`，不进入 Git。
 - 最终基线复核：SDK 根迁移计划 SHA256 仍为 `2b8580fd3a1af2865297a5f60a36098351fa0e2ffd2c5e19447bd80415af82b5`；`docs/SOURCE_BASELINE.json` 与根目录冻结清单字节一致（SHA256 `8880299fead51c35619f8f7027d3a3231557acaac75d623174ff80e2122b5733`）。XNero 当前分支只比冻结点多出上一节描述的新独立组件；未修改任何源工作区文件。
+
+### 2026-10-14：坐标与运动学实施复验
+
+- 按坐标优化计划完成 runtime、Profiles、asset revision、data/policy/Web 和 TF 状态桥适配；修改前基线数值仅保留作审查证据，实施后数据单独记录在 JSON 的 `implementation_validation`。
+- 修复 ROS 参数类型边界：`solver_tip_to_tcp_transform` 现在声明为明确的 16 元素 double array，并用 `use_solver_tip_to_tcp_transform` 选择该工具链；standalone `tcp_offset` 仍可作为既有 fallback。新增 Profile launch 对 true/false tool matrix 的一致注入。
+- 改进 `scripts/build.sh`：symlink/regular install 的 build mode 或 install prefix 发生变化时使用 `--cmake-clean-cache` 重配；symlink 输出到 `install/`，普通安装独立输出到 `install_regular/`，避免交替构建时复用旧 CMake install prefix。两种模式各31个包构建通过。
+- 12/12 Profile 在 symlink 与 regular install 空间验证通过；12个含机械臂的 Profile 均成功构造测量状态 bridge 和 `robot_state_publisher` 启动动作。普通安装检查 27 个模型、358 个资产及 URDF/MJCF 加载器和全部 SHA 通过。
+- `scripts/test_ros.sh`、`scripts/test_policy.sh`、`scripts/test_offline.sh` 全部通过；Web `npm run build` 通过。新版本 `scripts/test_sim_integration.sh` 实际启动 `nero_left_xhand` 仿真、采集器和 TF 状态桥，得到 190 帧，raw→align→validate→LeRobot v2.1 export 成功；quality report 只有已知的左手状态约50.2Hz低于100Hz建议阈值 warning。
+- Nero solver-vs-URDF/MJCF FK 核对两侧各501个姿态通过：URDF最大约 `1.002e-5 m / 2.183e-7 rad`，MJCF最大约 `1.015e-5 m / 5.565e-7 rad`。活动 URDF/MJCF/manifest SHA 见实施 JSON；设备未连接，真实安装、SDK flange、connector 与任务 TCP 仍待验收。
+- Astral `astral_left_gripper` Profile 通过新建的 `scripts/test_astral_sim_integration.sh` 完成 teleop start、实测状态桥、双相机合成采集、对齐、校验和 LeRobot v2.1 导出；208帧、8/8 schema、校验1 pass/0 warn/0 fail。另有短时无动作 smoke 确认 RSP 识别身体和双臂 frame；本轮数据只使用软件仿真和合成操作者腕位。
+
+### 2026-10-14：恢复 Nero 活动控制末端为 link7
+
+- 按用户最新指示，撤回将 `*_gripper_flange` 设为 Nero 默认活动控制末端的改动；四个 Nero Profile 均改回 `legacy_solver_tip=*_link7`，与解析 DH IK 的 FK/目标帧一致。通用命名工具 frame 固定链能力仍保留，Profile 如显式选法兰或手部 frame 时仍可解析。
+- Nero teleop 未显式指定 `tool_frame` 时回到 solver tip/link7；默认变换为单位阵。因此默认 anchor、workspace 检查和 IK 目标使用同一 link7 frame，不再把法兰目标隐式换算成 link7。
+- `*_gripper_flange` 和 SDK `get_flange_pose()` 继续作为独立的物理法兰模型/测量接口；规范 `/flange_pose` 及旧 `/tcp_pose` 兼容别名保留，SDK 与 URDF frame 的实体对齐仍标记未验收。
+- 同步修正坐标计划、TODO、Nero 接口说明、FK 审计断言及 VR→IK→FK 回归的 frame 语义；删除只对应已撤销默认法兰选择的临时审计 JSON。
+- 验证：`scripts/build.sh --mode symlink` 31/31 包通过；坐标与 flange-topic 测试 8 passed；Profile 校验 12/12；Nero 501姿态/侧的解析 FK 与 URDF/MJCF 审计通过；VR 位置映射及 link7 FK→IK→FK 回归 8/8；`git diff --check` 通过。
