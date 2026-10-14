@@ -74,5 +74,14 @@
 | 时间（Asia/Shanghai） | 操作 | 结果 |
 | --- | --- | --- |
 | 2026-10-13 17:21 CST | 查询指定 GitHub 远端 refs | 命令成功；远端无 HEAD/main 引用 |
-| 待追加 | 配置 `origin` 并首次推送 `main` | 待执行 |
+| 2026-10-13 17:22 CST | 查询 GitHub 仓库与分支 | `loopkok/MORLA` 为 public、size 0、无 branches；API 对 `main` 返回 `Git Repository is empty`（HTTP 409） |
+| 2026-10-13 17:22 CST | 检查授权身份 | GitHub 连接器登录为 `loopkok`，仓库权限包含 admin/maintain/push；本机 GitHub CLI 未登录，Git credential store 无可用凭据 |
+| 2026-10-13 17:22 CST | HTTPS 首次推送尝试 | 失败：Git 无法读取 GitHub Username，当前环境无可交互终端凭据 |
+| 2026-10-13 17:22 CST | SSH 端口连通性与身份检查 | 22 端口超时；GitHub SSH over 443 可连接，但本机 key 对应账号 `zhongrenjiexing` |
+| 2026-10-13 17:22 CST | SSH 推送尝试 | 失败：GitHub 返回 `Permission to loopkok/MORLA.git denied to zhongrenjiexing`；远端仍为空，未创建或修改任何分支 |
+| 待追加 | 使用对目标仓库有写权限的 Git 凭据推送 `main` | 待执行；远端尚未收到本地提交 |
 | 待追加 | 推送后复核远端分支 SHA 与本地 HEAD | 待执行 |
+
+### 当前阻塞
+
+本机现有 Git 凭据不具备目标仓库写权限；已连接的 GitHub `loopkok` 账号虽具备权限，但该连接器未提供可供本地 `git push` 使用的凭据。完成推送需要使本地 Git 使用 `loopkok` 的已授权凭据，或将 GitHub 用户 `zhongrenjiexing` 加入该仓库并授予写权限。收到可用授权后，应从本地 `main` 推送，确认远端 HEAD 等于最终本地 HEAD，并更新本节日志。
