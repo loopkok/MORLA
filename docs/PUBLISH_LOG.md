@@ -82,9 +82,36 @@
 | 2026-10-13 17:22 CST | SSH 推送尝试 | 失败：GitHub 返回 `Permission to loopkok/MORLA.git denied to zhongrenjiexing`；远端仍为空，未创建或修改任何分支 |
 | 2026-10-13 17:34 CST | 切换到 `loopkok` GitHub API 身份 | 连接器返回登录用户 `loopkok`；仓库权限为 admin/maintain/push |
 | 2026-10-13 17:34 CST | 初始化远端空仓库 | 以 MORLA `README.md` 创建 `main` 初始提交 `efc2de6a26e909cc25811e0380efe5973c4a4bac`；接下来写入完整 Git 对象和迁移提交树 |
-| 待追加 | 写入 MORLA 完整对象、提交链并更新 `main` | 进行中 |
-| 待追加 | 读取 GitHub `main` 并校验文件树与本地发布树一致 | 待执行 |
+| 2026-10-14 10:35 CST | 经 `loopkok` API 写入缺失 Git 对象并按本地顺序重建 14 个提交 | 完成；远端提交身份为 `loopkok`，提交 SHA 与本地 SHA 不同；远端历史以初始化提交 `efc2de6a26e909cc25811e0380efe5973c4a4bac` 为父提交 |
+| 2026-10-14 10:37 CST | 核验基线与最终递归文件树 | 完成；首个提交 596 个文件逐项一致；最终 1,301 个文件、193,959,773 字节，路径、mode、blob SHA、文件大小均与本地 HEAD 一致，无额外文件，GitHub API 未截断结果 |
+| 2026-10-14 10:38 CST | 使用 expected SHA 非强制快进 `main` | 完成；从 `efc2de6a26e909cc25811e0380efe5973c4a4bac` 快进到 `63122820380113b5394b7e014c04ce2f90736469`，`force=false` |
+| 2026-10-14 10:38 CST | GitHub API 分支读取与匿名 HTTPS `git ls-remote` | 完成；两者均返回 `63122820380113b5394b7e014c04ce2f90736469` |
 
 ### 身份与传输说明
 
 本机 HTTPS 没有可交互凭据；SSH over 443 的 key 登录为 `zhongrenjiexing`，对目标仓库无写权。按用户指示改用已认证且有管理员/push 权限的 GitHub `loopkok` 连接器执行 Git Data API 上传。API 创建的远端提交由 `loopkok` 签署身份、SHA 与本地对象不同；迁移提交标题和每个版本的完整文件树将按本地提交顺序保留。完成后读取远端 branch/tree 校验，再追加远端 SHA 与结果。
+
+## 实际发布结果与提交映射
+
+发布操作已完成。远端 `main` 的预日志收尾 HEAD 为 `63122820380113b5394b7e014c04ce2f90736469`，树 SHA 为 `151015fe50de1c0b5be085c2702ec7990361d860`。GitHub 递归树返回 1,301 个 blob 文件，未截断；本地与远端的路径、文件 mode、blob SHA 和字节数全部逐项相同，合计 193,959,773 字节。`git ls-remote https://github.com/loopkok/MORLA.git refs/heads/main` 与 GitHub Branch API 均确认该 HEAD。发布日志的本地收尾提交会再以此 HEAD 为父提交，通过同一 `loopkok` API 快进；其最终 SHA 以 `main` 分支读取结果为准，避免在日志中自引用自身 SHA。
+
+GitHub API 以 `loopkok` 身份重新生成提交对象，因此下表远端 SHA 与本地 SHA 不同；提交顺序、标题和每一提交对应的完整文件树均保留。
+
+| 序号 | 本地提交 | 远端提交 | 标题 |
+| ---: | --- | --- | --- |
+| 1 | `f441a3e176728713a9a209877d4d3e6d2aae5caf` | `a4977b6ef1b0659a28e8011415dc0a28febb5b76` | `chore: create MORLA from astral baseline` |
+| 2 | `9f933f1f7002d420445a45ed90d82c5d7af0a277` | `a99583b9a04f56fb5b024be18eaa9dbdec998224` | `refactor: reorganize Astral packages into MORLA layout` |
+| 3 | `74d5537152a0495760ad2a74c605e48b15a5bbc8` | `8204385fa2f2d5105c50870ffb376da40cf1c1d3` | `feat: add shared MORLA core and robot profiles` |
+| 4 | `f87a7671312c622032b737cfb232d050b9b3335b` | `86f045c87701fff3b2a74208e91cd47a2d43533d` | `feat: centralize robot descriptions and assets` |
+| 5 | `92664305546414c743cb70f1f26e73b4dd1aa394` | `e355427751cfd457ac841ee060721772620fac7a` | `feat(morla): unify Quest input and XHand preprocessing` |
+| 6 | `2b8b4bc99837c28e62eb5a45862dc650be40dac0` | `2f944606bf159951a1d26fa14b5606a6d82d4304` | `feat(morla): split Nero SDK driver and teleop` |
+| 7 | `be18e6f7f6ca0f4e679932d435c89e82aeeeeec3` | `38064c5cba9d997b229a3c74e752b6a5df99adfd` | `feat(morla): integrate XHand with Nero simulation` |
+| 8 | `1eff77129e6fa56596c2c1b9a30f7d4d748b32ac` | `d5e95aaee0c1857ee8ba25a415edccd490c378e6` | `feat(morla): unify profile data collection and legacy import` |
+| 9 | `d903c379b8a624ce313241af282c3045ef16ad5e` | `cb1d206cd3ffeda37303e1c52413d78ed0c0da2b` | `feat(morla): unify policy ownership and control coordination` |
+| 10 | `71717b1e0dbfb3597a7764099e0891fa9d8d19cf` | `f2e6e5d2b8de2794c0b7e68fda3bb1cac28af78c` | `feat(morla): unify profile-driven web management` |
+| 11 | `ef32ab174cb7f4caba875d96a79fee2ac97ea1b4` | `783d99272f44260a129c69b00a899158f17e83f0` | `feat(morla): close unified robot and data integration` |
+| 12 | `cfd602a78550ba370d75aa4cfe95bca1c603c41c` | `f7752422bbc613a19d736b193f284e0cd3834c1c` | `docs: add MORLA release and push log` |
+| 13 | `c1a4066e0278362cfe72a59f9d2ac92007d4dc4c` | `af3b28f1e738e132f66c8ba5a6820fa1979f634d` | `docs: record GitHub push authorization blocker` |
+| 14 | `c88af46444d9230950d43a820b6fe307a44f17cb` | `63122820380113b5394b7e014c04ce2f90736469` | `docs: switch MORLA publication to loopkok API` |
+
+后续收尾日志提交以远端预日志 HEAD `63122820380113b5394b7e014c04ce2f90736469` 为父提交，并将本日志更新内容纳入发布树；最终远端分支 SHA 由更新后查询的 `main` ref 确认。
