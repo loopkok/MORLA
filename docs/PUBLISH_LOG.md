@@ -83,9 +83,11 @@
 | 2026-10-13 17:34 CST | 切换到 `loopkok` GitHub API 身份 | 连接器返回登录用户 `loopkok`；仓库权限为 admin/maintain/push |
 | 2026-10-13 17:34 CST | 初始化远端空仓库 | 以 MORLA `README.md` 创建 `main` 初始提交 `efc2de6a26e909cc25811e0380efe5973c4a4bac`；接下来写入完整 Git 对象和迁移提交树 |
 | 2026-10-14 10:35 CST | 经 `loopkok` API 写入缺失 Git 对象并按本地顺序重建 14 个提交 | 完成；远端提交身份为 `loopkok`，提交 SHA 与本地 SHA 不同；远端历史以初始化提交 `efc2de6a26e909cc25811e0380efe5973c4a4bac` 为父提交 |
-| 2026-10-14 10:37 CST | 核验基线与最终递归文件树 | 完成；首个提交 596 个文件逐项一致；最终 1,301 个文件、193,959,773 字节，路径、mode、blob SHA、文件大小均与本地 HEAD 一致，无额外文件，GitHub API 未截断结果 |
+| 2026-10-14 10:37 CST | 首次递归树核验 | 结果有误：文件数、mode、blob SHA 和字节数看似匹配，但比较沿用了 Git 的 C-quoted 路径字符串，未识别中文文件名被当作远端字面路径；见下方纠正记录 |
 | 2026-10-14 10:38 CST | 使用 expected SHA 非强制快进 `main` | 完成；从 `efc2de6a26e909cc25811e0380efe5973c4a4bac` 快进到 `63122820380113b5394b7e014c04ce2f90736469`，`force=false` |
 | 2026-10-14 10:38 CST | GitHub API 分支读取与匿名 HTTPS `git ls-remote` | 完成；两者均返回 `63122820380113b5394b7e014c04ce2f90736469` |
+| 2026-10-14 10:48 CST | 调查用户报告的 XHand 异常目录 | 找到路径编码错误；`git diff-tree --raw` 默认按 `core.quotePath` 将 UTF-8 路径输出为 C-quoted 字符串，上传脚本把转义文本作为实际路径传给 GitHub API |
+| 2026-10-14 10:48 CST | 修复远端 XHand 中文文件路径 | 完成；非强制快进提交 `b471886d70e3f4e81fbf6ad87714be0b46297776` 删除错误路径并恢复真实 UTF-8 路径，保留原 mode `100755`、blob SHA `2802f3abf96d47e8bab90b1007a05b2260d09589` |
 
 ### 身份与传输说明
 
@@ -93,7 +95,11 @@
 
 ## 实际发布结果与提交映射
 
-发布操作已完成。远端 `main` 的预日志收尾 HEAD 为 `63122820380113b5394b7e014c04ce2f90736469`，树 SHA 为 `151015fe50de1c0b5be085c2702ec7990361d860`。GitHub 递归树返回 1,301 个 blob 文件，未截断；本地与远端的路径、文件 mode、blob SHA 和字节数全部逐项相同，合计 193,959,773 字节。`git ls-remote https://github.com/loopkok/MORLA.git refs/heads/main` 与 GitHub Branch API 均确认该 HEAD。发布日志的本地收尾提交会再以此 HEAD 为父提交，通过同一 `loopkok` API 快进；其最终 SHA 以 `main` 分支读取结果为准，避免在日志中自引用自身 SHA。
+首次发布的 14 个迁移与日志提交已保留在远端。用户报告 XHand 下出现意外的 `"src/.../\\347...md\"` 路径后，复核发现首轮路径核验有误：上传时 `git diff-tree --raw` 对中文文件名输出 C-quoted 字符串，脚本未将其解码；首次比较又将 `git ls-tree` 的 quoted 表示当成真实文件名，因而错误地通过。
+
+实际受影响的只有一个文件：远端错误路径 `"src/robots/xhand/xhand_control_ros2/xhand_control_ros2/xhand_control/\\347\\224\\250\\346\\210\\267\\345\\215\\217\\350\\256\\256.md\"` 被替换为正确路径 `src/robots/xhand/xhand_control_ros2/xhand_control_ros2/xhand_control/用户协议.md`。文件内容未变，blob SHA 为 `2802f3abf96d47e8bab90b1007a05b2260d09589`，mode 为 `100755`。修复提交 `b471886d70e3f4e81fbf6ad87714be0b46297776` 以之前的远端 HEAD `d0a90bac792b7b052d1df0b0adc0e7ac3c2b1b78` 为父提交，使用非强制快进更新 `main`。
+
+修正后改用 `git ls-tree -rzl` 的 NUL 分隔原始路径核对。修复提交的树 SHA 为 `9beb91f59593e9857b08f31e8a252c86fc689d80`；远端递归树中该真实 UTF-8 路径存在，错误的带引号/八进制转义路径已不存在。最后再把本次调查、原因和修复结果提交到 `docs/PUBLISH_LOG.md` 并推送；最终 HEAD 与完整文件树将在该收尾提交后复核。远端 GitHub SHA 由 API 创建，日志不会自引用最终收尾提交 SHA。
 
 GitHub API 以 `loopkok` 身份重新生成提交对象，因此下表远端 SHA 与本地 SHA 不同；提交顺序、标题和每一提交对应的完整文件树均保留。
 
@@ -114,4 +120,4 @@ GitHub API 以 `loopkok` 身份重新生成提交对象，因此下表远端 SHA
 | 13 | `c1a4066e0278362cfe72a59f9d2ac92007d4dc4c` | `af3b28f1e738e132f66c8ba5a6820fa1979f634d` | `docs: record GitHub push authorization blocker` |
 | 14 | `c88af46444d9230950d43a820b6fe307a44f17cb` | `63122820380113b5394b7e014c04ce2f90736469` | `docs: switch MORLA publication to loopkok API` |
 
-后续收尾日志提交以远端预日志 HEAD `63122820380113b5394b7e014c04ce2f90736469` 为父提交，并将本日志更新内容纳入发布树；最终远端分支 SHA 由更新后查询的 `main` ref 确认。
+收尾日志提交以已修正路径的远端 HEAD `b471886d70e3f4e81fbf6ad87714be0b46297776` 为父提交，并将本次调查与修复记录纳入发布树；最终远端分支 SHA 由更新后查询的 `main` ref 确认。
