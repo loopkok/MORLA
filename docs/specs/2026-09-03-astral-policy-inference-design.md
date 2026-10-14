@@ -4,13 +4,13 @@
 
 ## 1. 目标（Goal）
 
-在 `astral_ws` 中新增 ROS 2 功能包 `astral_policy_inference`，面向已完成的遥操数采 + 数据收集 + 训练链路，提供：
+在 `astral_ws` 中新增 ROS 2 功能包 `morla_policy_inference`，面向已完成的遥操数采 + 数据收集 + 训练链路，提供：
 
 1. **策略部署**：换 checkpoint（openpi pi0.5 或 lerobot ACT）即可换模型，不改其它配置。
 2. **同步 / 异步 / 实时分块（RTC）** 三种执行引擎（节点内，参考 lerobot rollout 形态）。
 3. **真机/仿真回放**：把采集的数据（绝对动作轨迹）按节奏回放到机器人；回放与策略推理共用同一执行器与模式机。
 4. **人在环路控制**：推理/回放过程中支持策略暂停 → VR 接管（增量控制，重新记录机器人原点与 VR 位姿零点）→ 控制权交还策略。
-5. 与 `astral_data_collect`（schema 真源）、`astral_arm_teleop`（VR 遥操/接管）、`astral_robot_control` / `astral_mujoco_sim`（机器人执行侧）适配；全链路 schema 驱动，配置变更自动跟随。
+5. 与 `morla_data_collect`（schema 真源）、`astral_arm_teleop`（VR 遥操/接管）、`astral_robot_control` / `astral_mujoco_sim`（机器人执行侧）适配；全链路 schema 驱动，配置变更自动跟随。
 
 ## 2. 设计决策（用户已确认）
 
@@ -28,9 +28,9 @@
 分层：ROS 层薄，核心逻辑纯 Python 可离线测试。
 
 ```
-astral_ws/src/astral_policy_inference/
-  astral_policy_inference/
-    robot_io.py      观测/动作适配（纯逻辑，复用 astral_data_collect.schema.CollectSchema）
+astral_ws/src/common/morla_policy_inference/
+  morla_policy_inference/
+    robot_io.py      观测/动作适配（纯逻辑，复用 morla_data_collect.schema.CollectSchema）
     executor.py      指令执行器（限速/NaN/限位防护，动作向量→分块写入值）
     backend.py       PolicyBackend 抽象 + OpenPiServerBackend + LerobotActBackend + factory
     engine.py        执行引擎 queue_sync / queue_async / rtc + 线性插值
@@ -51,7 +51,7 @@ astral_ws/src/astral_policy_inference/
 
 ## 4. 观测 / 动作适配（robot_io.py）
 
-- 复用 `CollectSchema`（`astral_data_collect`）：推理包加载一份与 `data_collect.yaml` 同构的 robot config，构建同一 `state_blocks()/state_names()`。换右臂/换手/加腰头/换相机 → 只改这一份 yaml，obs 布局、动作拆分、topic 对应全部自动跟随。
+- 复用 `CollectSchema`（`morla_data_collect`）：推理包加载一份与 `data_collect.yaml` 同构的 robot config，构建同一 `state_blocks()/state_names()`。换右臂/换手/加腰头/换相机 → 只改这一份 yaml，obs 布局、动作拆分、topic 对应全部自动跟随。
 - 观测源（在线实时）：
   - 臂 `{side}_arm` ← `/{side}_arm/joint_states`（rad）。
   - 末端 gripper `{side}_ee` ← 跟踪 `/{side}_gripper/command`（Float64 闭合比 0..1；HITL 交还后自动同步人捏的值）。

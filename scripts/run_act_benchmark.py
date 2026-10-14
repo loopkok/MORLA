@@ -13,7 +13,7 @@
 
 用法（先起 serve.py）：
   source /opt/ros/humble/setup.bash
-  /usr/bin/python3 astral_ws/scripts/run_act_benchmark.py --host 127.0.0.1 --port 8001
+  /usr/bin/python3 MORLA/scripts/run_act_benchmark.py --host 127.0.0.1 --port 8001
 
 退出码 0=链路正常；非 0=异常。
 """
@@ -23,8 +23,11 @@ import argparse
 import statistics
 import subprocess
 import sys
+from pathlib import Path
 import threading
 import time
+
+MORLA_ROOT = Path(__file__).resolve().parents[1]
 
 import numpy as np
 
@@ -47,10 +50,10 @@ def main() -> int:
                     help="上行 camera 槽位编码成 JPEG（对比 RGB 的带宽/延迟收益）")
     args = ap.parse_args()
 
-    sys.path.insert(0, "/home/robot/loopkok/sdk/astral_ws/src/astral_policy_inference")
-    sys.path.insert(0, "/home/robot/loopkok/sdk/astral_ws/src/astral_data_collect")
-    from astral_policy_inference import protocol as _proto
-    from astral_policy_inference.backend import ObsBatch, RemoteBackend
+    sys.path.insert(0, str(MORLA_ROOT / "src/common/morla_policy_inference"))
+    sys.path.insert(0, str(MORLA_ROOT / "src/common/morla_data_collect"))
+    from morla_policy_inference import protocol as _proto
+    from morla_policy_inference.backend import ObsBatch, RemoteBackend
 
     rng = np.random.default_rng(1)
     cam = args.camera_size
@@ -61,7 +64,7 @@ def main() -> int:
         prompt="benchmark",
     )
     if args.jpeg:
-        from astral_policy_inference.image_codec import encode_jpeg
+        from morla_policy_inference.image_codec import encode_jpeg
 
         payload = {
             "observation/state": obs.state.astype(np.float32),
@@ -185,7 +188,7 @@ def main() -> int:
               f"p95 {pct(net_ms,95):.2f}  max {max(net_ms):.2f} ms")
 
     # ---- 线缆探测：小消息往返（畸形请求被快速拒绝）----
-    from astral_policy_inference.client import WebsocketClient
+    from morla_policy_inference.client import WebsocketClient
     try:
         raw = WebsocketClient(args.host, args.port)
         t0 = time.perf_counter()

@@ -1,6 +1,6 @@
 # astral_ws 数据采集、处理与清洗审查
 
-日期：2026-10-10。范围：astral_data_collect、quest3_video_streamer 采集抽头、repair_aligned、OpenPI/ACT 处理入口，以及 sdk/astral_data/raw 的现有数据。此次只审查、复现及生成报告，没有修改业务代码或采集数据。
+日期：2026-10-10。范围：morla_data_collect、quest3_video_streamer 采集抽头、repair_aligned、OpenPI/ACT 处理入口，以及 sdk/astral_data/raw 的现有数据。此次只审查、复现及生成报告，没有修改业务代码或采集数据。
 
 ## 结论
 

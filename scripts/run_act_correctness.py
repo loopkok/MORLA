@@ -10,8 +10,8 @@
   * 每维 MAE + 整体 MAE（数值上「推理结果是否正确」的直接证据）。
 
 用法（py3.12 环境）：
-  PYTHONPATH=astral_ws/src/astral_policy_inference:astral_ws/src/astral_data_collect \
-    /home/robot/miniconda3/envs/lerobot/bin/python astral_ws/scripts/run_act_correctness.py \
+  PYTHONPATH=MORLA/src/common/morla_policy_inference:MORLA/src/common/morla_data_collect \
+    /home/robot/miniconda3/envs/lerobot/bin/python MORLA/scripts/run_act_correctness.py \
       --checkpoint-dir astral_ckpt/pickup_act_480/checkpoints/080000/pretrained_model \
       --dataset-dir astral_data/act/pick_up_and_place_480（空格注意引号）
 
@@ -23,9 +23,11 @@ import argparse
 import json
 import os
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "/home/robot/loopkok/sdk/astral_ws/src/astral_policy_inference")
-sys.path.insert(0, "/home/robot/loopkok/sdk/astral_ws/src/astral_data_collect")
+MORLA_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(MORLA_ROOT / "src/common/morla_policy_inference"))
+sys.path.insert(0, str(MORLA_ROOT / "src/common/morla_data_collect"))
 
 import numpy as np
 
@@ -111,7 +113,7 @@ def main() -> int:
     ap.add_argument("--action-dim", type=int, default=8)
     args = ap.parse_args()
 
-    from astral_policy_inference.backend import InprocBackend, ObsBatch
+    from morla_policy_inference.backend import InprocBackend, ObsBatch
 
     states, actions, video_files, video_offsets, task, idxs = load_episode(
         args.dataset_dir, args.episode, args.max_frames, args.stride)

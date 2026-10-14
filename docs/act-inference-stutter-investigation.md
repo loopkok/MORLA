@@ -2,7 +2,7 @@
 
 > 2026-09-14 真机实录（test1–5），2026-09-22 整理归档。
 > 给新会话/接手者：理解**为什么**有这些引擎参数与机制，以及排查"推理卡顿"的正确顺序。
-> 完整逐日记录见 `astral_ws/CHANGELOG.md`；本文件是推理包 `src/astral_policy_inference/CLAUDE.md`
+> 完整逐日记录见 `astral_ws/CHANGELOG.md`；本文件是推理包 `src/common/morla_policy_inference/CLAUDE.md`
 > "推理优化历程"章节的独立展开版，两者内容同源。
 
 ## TL;DR（一分钟结论）
@@ -24,7 +24,7 @@
 **症状**：真机连续 4 次测试（test1-4）"改了 yaml 参数（coeff/tol/interp/jpeg）运动却不见
 对应变化"；test4 实测指令流仍 30Hz（`control_interp: 2` 未生效）、尖峰仍在。
 
-**根因**：yaml 顶层键是 `astral_policy_inference:`，而 launch 节点名是 `policy_node`——
+**根因**：yaml 顶层键是 `morla_policy_inference:`，而 launch 节点名是 `policy_node`——
 rclpy 按节点名匹配 `--params-file` 的段，键不匹配**整份参数被静默丢弃**（Humble 无单键回退），
 节点回落到 `_declare_params` 代码默认值：`control_interp=1`、`temporal_ensemble_coeff=0.0`、
 `chunk_anchor_tol=0.0`、`jpeg_transport=false`。即**此前所有真机测试的时序融合 / 切换平滑 /
@@ -34,7 +34,7 @@ launch 显式传参而侥幸正确）。
 对照 data_collect：其 yaml 顶层键 = `data_collect` = 节点名，所以从未踩坑。
 
 **修法**：
-1. yaml 顶层键 `astral_policy_inference:` → `policy_node:`（+ 注释警示）；
+1. yaml 顶层键 `morla_policy_inference:` → `policy_node:`（+ 注释警示）；
 2. node 启动行扩展为**生效参数自报**（`ctrl/coeff/anchor_tol/anchor_blend/prefetch/jpeg/
    backend/host:port`），未来任何 launch 一眼可见实际参数、防复发。
 
@@ -129,7 +129,7 @@ loop 7.9→1.26ms。锁修复：`Event.wait` 移出锁外（空闲判定在锁�
 ### B. 任务粘滞 / 摩擦伪影（数据层）
 
 遥操 stick-slip（速度环 kp 弱）+ 摩擦卡点被模型学进 next-state 标签。量化脚本
-`src/astral_data_collect/astral_data_collect/pipeline/quantify_cmd_state.py` 区分"操作意图停顿 vs 摩擦伪影"；摩擦主导 → `repair_aligned.py`
+`src/common/morla_data_collect/morla_data_collect/pipeline/quantify_cmd_state.py` 区分"操作意图停顿 vs 摩擦伪影"；摩擦主导 → `repair_aligned.py`
 修复。
 
 ---
@@ -157,6 +157,6 @@ loop 7.9→1.26ms。锁修复：`Event.wait` 移出锁外（空闲判定在锁�
 
 ## 参考
 
-- 推理包：`src/astral_policy_inference/CLAUDE.md`（已解决坑表 + 优化历程 + 环境约束 + 验证清单）
-- 数据修复：`src/astral_data_collect/astral_data_collect/pipeline/repair_aligned.py`（README 数据层）、`scripts/compress_pauses.py`
+- 推理包：`src/common/morla_policy_inference/CLAUDE.md`（已解决坑表 + 优化历程 + 环境约束 + 验证清单）
+- 数据修复：`src/common/morla_data_collect/morla_data_collect/pipeline/repair_aligned.py`（README 数据层）、`scripts/compress_pauses.py`
 - 推理测试归档：`inference_test_logs/inference/`

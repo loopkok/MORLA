@@ -12,7 +12,7 @@
 
 ### 1. 接管等待绕过停止队列；新接管当帧仍运行策略分支
 
-位置：`src/astral_policy_inference/astral_policy_inference/node.py`，`_tick`（1210）、`_drain_cmds`。
+位置：`src/common/morla_policy_inference/morla_policy_inference/node.py`，`_tick`（1210）、`_drain_cmds`。
 
 `_tick` 先轮询 pending takeover，未完成即 return，因此 `_drain_cmds` 中“pending 时仍允许 stop”的逻辑根本没有执行机会。普通 `/policy_inference/cmd=stop` 可等待整个 3 秒接管超时；这里不是说独立硬件急停接口被阻塞。
 
@@ -32,7 +32,7 @@
 
 ### 3. X 回位旁路没有策略所有权检查
 
-位置：`src/astral_teleop/astral_teleop/controller_workpos_gate.py`（107、140）。
+位置：`src/common/morla_bringup/morla_bringup/controller_workpos_gate.py`（107、140）。
 
 该门只检查数采状态，未订阅策略状态。未录制而策略正在执行时，X 仍发 disarm，100ms 后发 init_direct。disarm 只拆遥操，不暂停 policy_node；臂回位轨迹与策略可能同时写 joint_commands。定时器触发时也不重新检查录制/所有权状态。
 
@@ -40,7 +40,7 @@
 
 ### 4. 夹爪接管没有与策略当前值对齐
 
-位置：`src/astral_gripper_teleop/astral_gripper_teleop/pinch_gripper_node.py`（272、300）。
+位置：`src/robots/astral/astral_gripper_teleop/astral_gripper_teleop/pinch_gripper_node.py`（272、300）。
 
 重新打开门控后，夹爪立即使用 trigger/pinch 和遥操自身 `_ratio_cmd`。策略期间的实际夹爪指令没有同步到这里。策略保持 close=1、操作者扳机释放=0 时，首次遥操输出可为 open=0；即使启用限速，其起点也可能是旧遥操值，不是当前策略值。
 
@@ -60,7 +60,7 @@
 
 ### 6. 缺少可直接训练使用的介入数据标记
 
-位置：`src/astral_data_collect/astral_data_collect/data_collect_node.py`（293、590）及 pipeline。
+位置：`src/common/morla_data_collect/morla_data_collect/data_collect_node.py`（293、590）及 pipeline。
 
 数采主要记录 armed/disarm 等事件，没有订阅 policy state 并保存 policy/human/takeover_pending 区间，也没有逐帧 intervention / action owner。armed 可以来自普通遥操、暂停恢复等路径，不能等同人工纠正标签。当前 next_state 数据能用于一般模仿学习，但不能可靠区分自主段与纠正段、按纠正片段加权。
 
@@ -68,7 +68,7 @@
 
 ### 7. 远程数据“收到”不等于“新鲜”，按键路由状态也无失效机制
 
-位置：`src/quest3_hand_mocap/quest3_hand_mocap/quest3_udp_mocap.py`（559）；`controller_start_gate.py`（98）；臂 reanchor（1056）。
+位置：`src/common/morla_input/morla_input/quest3_udp_mocap.py`（559）；`controller_start_gate.py`（98）；臂 reanchor（1056）。
 
 TCP 将缓冲中的所有行按本次接收时间发布；协议未携带可用于拒绝陈旧输入的源采样时间/序号，UDP 也没有顺序过滤。远程拥塞后的旧输入会重新看似新鲜；接收超时看门狗不能覆盖该情形。reanchor 只检查腕数据对象存在，接受陈旧缓存；本次构造 60 秒前腕与关节状态仍返回成功并武装。policy 发请求前检查 fresh joint state 有帮助，但不能替代服务执行时检查，也不检查腕新鲜度。
 
@@ -78,7 +78,7 @@ grip 路由仅缓存 activity，无状态心跳超时、发布者活性或确认
 
 ### 8. Wuji 灵巧手仲裁不完整（仅启用灵巧手时）
 
-位置：`src/wujihand_retargeting/wujihand_retargeting/wujihand_retarget_node.py`（181）。
+位置：`src/robots/wuji/wujihand_retargeting/wujihand_retargeting/wujihand_retarget_node.py`（181）。
 
 retarget 每帧直接发布手 joint_commands，没有与夹爪同等的 disarm/owner 门控；若策略 schema 包含相同灵巧手，策略和 retarget 可同时发布。当前 policy 默认 left gripper/right none，此问题不应误报成当前夹爪配置必然发生。
 

@@ -7,10 +7,10 @@ ros2 topic hz 在 Humble 没有 QoS 选项，默认 RELIABLE 订阅，匹配不�
 写 JSONL，供相机超时测试与 policy 控制日志对齐。
 
 用法（py3.10 + ROS 环境）：
-  PYTHONPATH=astral_ws/src/astral_policy_inference:astral_ws/src/astral_data_collect \
-    /usr/bin/python3 astral_ws/scripts/hz_best_effort.py \
+  PYTHONPATH=MORLA/src/common/morla_policy_inference:MORLA/src/common/morla_data_collect \
+    /usr/bin/python3 MORLA/scripts/hz_best_effort.py \
       /left_arm/joint_commands --msg js
-  /usr/bin/python3 astral_ws/scripts/hz_best_effort.py \
+  /usr/bin/python3 MORLA/scripts/hz_best_effort.py \
       /quest3_video_streamer/collect/left_wrist --msg cimg --window 150 \
       --log-file /tmp/left_wrist_hz.jsonl
   # --msg: js(JointState) | cimg(CompressedImage) | float(Float64) |

@@ -39,7 +39,7 @@ Quest 与接收机系统时钟需要同步。接收端代码默认拒绝旧 APK�
 ```bash
 cd /home/robot/loopkok/sdk/astral_ws
 ROS_DOMAIN_ID=91 ROS_LOCALHOST_ONLY=1 \
-  src/astral_policy_inference/scripts/run_policy_inference_tests.sh
+  src/common/morla_policy_inference/scripts/run_policy_inference_tests.sh
 ```
 
 离线回归在 OpenPI Python 环境执行，导出深度检查使用现代 LeRobot Python 环境。源目录和输出路径见 `/tmp/astral-hitl-raw-real-v2-20261012/report.json`。

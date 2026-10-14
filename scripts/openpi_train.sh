@@ -32,7 +32,7 @@ esac
 
 OPENPI="/home/robot/loopkok/sdk/VLA/openpi"
 CKPT_CACHE="${OPENPI_DATA_HOME:-$HOME/.cache/openpi}/openpi-assets/checkpoints/pi05_base"
-DATASET_LINK="$HOME/.cache/huggingface/lerobot/astral/astral_teleop"
+DATASET_LINK="$HOME/.cache/huggingface/lerobot/astral/morla_bringup"
 
 cd "$OPENPI"
 

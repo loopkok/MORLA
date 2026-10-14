@@ -1,0 +1,1 @@
+"""MORLA component metadata package."""

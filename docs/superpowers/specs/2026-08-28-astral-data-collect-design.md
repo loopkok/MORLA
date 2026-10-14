@@ -1,4 +1,4 @@
-# astral_data_collect 设计文档
+# morla_data_collect 设计文档
 
 日期：2026-08-28
 状态：已获批（用户选定方案 A 及各决策项）
@@ -33,7 +33,7 @@
 ```
 采集期（与遥操作同机）:
   各驱动/遥操话题 ──┐
-                    ├─► astral_data_collect_node ──► episodeN/{robot_data.h5, camera_data.h5, meta.json}
+                    ├─► morla_data_collect_node ──► episodeN/{robot_data.h5, camera_data.h5, meta.json}
   streamer 抽头 ────┘        ▲ /data_collect/control, /data_collect/task
                     keyboard_controller（热键→话题）
 
@@ -173,9 +173,9 @@ videos/chunk-000/observation.images.{cam}/episode_XXXXXX.mp4
 
 ### 3.10 文件清单
 
-新增 `src/astral_data_collect/`：package.xml、setup.py/cfg、config/data_collect.yaml、launch/data_collect.launch.py、模块 {schema, data_writer, data_collect_node, keyboard_controller, align_data, validate_data, convert_to_lerobot, replay_rerun}、test/（4 单测 + 1 采集冒烟）、README.md。
+新增 `src/common/morla_data_collect/`：package.xml、setup.py/cfg、config/data_collect.yaml、launch/data_collect.launch.py、模块 {schema, data_writer, data_collect_node, keyboard_controller, align_data, validate_data, convert_to_lerobot, replay_rerun}、test/（4 单测 + 1 采集冒烟）、README.md。
 
-改动 `src/quest3_video_streamer/`：+collect_tap.py；webcam_source.py / ros_source.py 各加 collect_hook（2 行级改动）；streamer_node.py 加 `_setup_collect_taps`（仿 _setup_previews）；params.yaml 加 collect_tap 参数；README/CHANGELOG 更新。
+改动 `src/common/quest3_video_streamer/`：+collect_tap.py；webcam_source.py / ros_source.py 各加 collect_hook（2 行级改动）；streamer_node.py 加 `_setup_collect_taps`（仿 _setup_previews）；params.yaml 加 collect_tap 参数；README/CHANGELOG 更新。
 
 ## 4. 验证计划
 

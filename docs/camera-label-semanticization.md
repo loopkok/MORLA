@@ -23,7 +23,7 @@ right_wrist  右腕 USB 相机（2026-09-18 起启用；口位 0:1.3:1.0 已于 
 - ⚠ 模型槽名 `base_0_rgb` / `left_wrist_0_rgb` / `right_wrist_0_rgb` 是 **pi0.5 固定输入**，
   **不随 label 改名**——改的是"槽 → label"的映射，不是槽名。
 
-## 2. 旧数据迁移（`src/astral_data_collect/astral_data_collect/pipeline/migrate_camera_labels.py`）
+## 2. 旧数据迁移（`src/common/morla_data_collect/morla_data_collect/pipeline/migrate_camera_labels.py`）
 
 旧数据（语义化之前录的）用 videoN 作相机键。`migrate_camera_labels.py` 改名
 `video8→base`、`video0→left_wrist`、`video2→right_wrist`：
@@ -81,7 +81,7 @@ uv run scripts/train.py pi05_astral_lora_3cam   --exp-name=new_data   # 新数�
 ```bash
 # 机器人侧（nvidia@nvidia-desktop，~/loopkok/astral_ws）
 git pull                                  # 拉到 2026-09-18 的改动
-colcon build --packages-select quest3_video_streamer astral_data_collect astral_policy_inference
+colcon build --packages-select quest3_video_streamer morla_data_collect morla_policy_inference
 # 重启 streamer → 日志 "alias ... matched ..." 是命中提示非错误
 # web 视频卡片应显示 base=realsense、left_wrist=左腕、right_wrist=右腕
 # 验证：ros2 topic hz /quest3_video_streamer/collect/base

@@ -9,8 +9,8 @@
   3. 输出语义：夹爪维绝对闭合比、相邻行不跳变、维度 = action_dim。
 
 用法（在 py3.12 lerobot 环境）：
-  PYTHONPATH=astral_ws/src/astral_policy_inference:astral_ws/src/astral_data_collect \
-    /home/robot/miniconda3/envs/lerobot/bin/python astral_ws/scripts/run_act_integration.py \
+  PYTHONPATH=MORLA/src/common/morla_policy_inference:MORLA/src/common/morla_data_collect \
+    /home/robot/miniconda3/envs/lerobot/bin/python MORLA/scripts/run_act_integration.py \
       --checkpoint-dir astral_ckpt/pickup_act_480/checkpoints/080000/pretrained_model
 
 退出码 0=通过；非 0=失败（打印 FAIL 行）。
@@ -19,14 +19,16 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "/home/robot/loopkok/sdk/astral_ws/src/astral_policy_inference")
-sys.path.insert(0, "/home/robot/loopkok/sdk/astral_ws/src/astral_data_collect")
+MORLA_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(MORLA_ROOT / "src/common/morla_policy_inference"))
+sys.path.insert(0, str(MORLA_ROOT / "src/common/morla_data_collect"))
 
 import numpy as np
 
-from astral_policy_inference.backend import InprocBackend, ObsBatch
-from astral_policy_inference.engine import ActionEngine
+from morla_policy_inference.backend import InprocBackend, ObsBatch
+from morla_policy_inference.engine import ActionEngine
 
 DEFAULT_TASK = "Pick up the red-capped liquid container and place it into the box"
 

@@ -5,7 +5,7 @@
 > [act-inference-stutter-investigation.md](act-inference-stutter-investigation.md) 与
 > [2026-09-21-pi05-inference-investigation.md](2026-09-21-pi05-inference-investigation.md)；
 > 本文件收**环境/后端/协议/部署**这一类"跑不起来、回传不对、静默退化"的坑。
-> 母本：`src/astral_policy_inference/CLAUDE.md`（坑表 + 环境约束 + 验证清单）+ CHANGELOG 09-03~09-22。
+> 母本：`src/common/morla_policy_inference/CLAUDE.md`（坑表 + 环境约束 + 验证清单）+ CHANGELOG 09-03~09-22。
 
 ## 一、环境硬墙（先确认能跑起来）
 
@@ -32,7 +32,7 @@
 
 | 坑 | 症状 | 根因 | 修法 |
 |---|---|---|---|
-| **yaml 顶层键 ≠ 节点名** | 改了 coeff/tol/interp/jpeg 运动却不见变化（连续 4 轮真机测试被吞） | rclpy 按节点名匹配 `--params-file` 段，键不匹配**整份参数静默丢弃**（Humble 无单键回退） | yaml 顶层键 `astral_policy_inference:` → `policy_node:`；节点启动行**自报生效参数**（ctrl/coeff/anchor_tol/.../jpeg） |
+| **yaml 顶层键 ≠ 节点名** | 改了 coeff/tol/interp/jpeg 运动却不见变化（连续 4 轮真机测试被吞） | rclpy 按节点名匹配 `--params-file` 段，键不匹配**整份参数静默丢弃**（Humble 无单键回退） | yaml 顶层键 `morla_policy_inference:` → `policy_node:`；节点启动行**自报生效参数**（ctrl/coeff/anchor_tol/.../jpeg） |
 | **launch 默认值盖 yaml** | 改了 yaml host/port 仍连 127.0.0.1:8000 | launch 默认值非空且无条件 append 整包参数 | host/port/checkpoint_dir 默认空串，只 append 显式传入键（与 data_collect 不变量 1 同反模式） |
 | rclpy 无 struct 参数 | `camera_map` 声明 dict 报 "not one of allowed types" | Humble rclpy 无 struct 参数类型 | `camera_map` 改 JSON 字符串参数（`_parse_camera_map`） |
 | `BEST_EFFORT` 话题 echo 收 0 条 | `ros2 topic echo` 收不到节点指令 | 节点发布 cmd/gripper 是 BEST_EFFORT depth=1，默认 RELIABLE echo 匹配不上 | 加 `--qos-reliability best_effort --qos-depth 1`；测速用 `scripts/hz_best_effort.py` |
@@ -61,4 +61,4 @@
   实测：控制率 29.6Hz、稳态 RTT 4.3ms、吞吐 198-207 req/s、GPU ~957MiB-1GiB。
 - **pi05 部署**：serve 需 **RAM≥32GB** 机器（权重 11.6GB 必须整体进 RAM，本机 3 次 OOM）；
   首次推理 XLA 编译 2-5 分钟——serve 内 `_warmup_policy` + `jax_compilation_cache_dir` 跨进程复用。
-- **每类坑的现有防护/参数**：完整坑表见 `src/astral_policy_inference/CLAUDE.md`「已解决的坑」。
+- **每类坑的现有防护/参数**：完整坑表见 `src/common/morla_policy_inference/CLAUDE.md`「已解决的坑」。

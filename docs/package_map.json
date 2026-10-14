@@ -1,0 +1,342 @@
+{
+  "source_workspace": "astral_ws",
+  "target_workspace": "MORLA",
+  "package_count": 25,
+  "packages": {
+    "astral_arm_clean_description": {
+      "source_path": "astral_ws/src/astral_arm_clean_description",
+      "target_name": "astral_arm_clean_description",
+      "target_path": "src/robots/astral/astral_arm_clean_description",
+      "renamed": false,
+      "executable_names": [],
+      "node_names": [
+        "gui",
+        "pub_rate"
+      ]
+    },
+    "astral_arm_description": {
+      "source_path": "astral_ws/src/astral_arm_description",
+      "target_name": "astral_arm_description",
+      "target_path": "src/robots/astral/astral_arm_description",
+      "renamed": false,
+      "executable_names": [],
+      "node_names": [
+        "gui",
+        "pub_rate"
+      ]
+    },
+    "astral_arm_teleop": {
+      "source_path": "astral_ws/src/astral_arm_teleop",
+      "target_name": "astral_arm_teleop",
+      "target_path": "src/robots/astral/astral_arm_teleop",
+      "renamed": false,
+      "executable_names": [
+        "astral_arm_teleop_node",
+        "body_joints_sim",
+        "fit_dh_from_urdf",
+        "ik_solver_node",
+        "keyboard_vr_sim",
+        "teleop_tune_plot",
+        "test_dataflow",
+        "test_dh_urdf_fk",
+        "test_geometric_ik",
+        "test_ik_solver",
+        "test_safe_teleop",
+        "test_vr_mapping"
+      ],
+      "node_names": [
+        "astral_arm_teleop_arm",
+        "astral_arm_teleop_left",
+        "astral_arm_teleop_right",
+        "body_joints_sim",
+        "ik_solver_left",
+        "ik_solver_node",
+        "ik_solver_right",
+        "keyboard_vr_sim",
+        "quest3_udp_mocap",
+        "teleop_tune_plot",
+        "test_dataflow",
+        "test_safe_teleop"
+      ]
+    },
+    "astral_data_collect": {
+      "source_path": "astral_ws/src/astral_data_collect",
+      "target_name": "morla_data_collect",
+      "target_path": "src/common/morla_data_collect",
+      "renamed": true,
+      "executable_names": [
+        "data_collect_node",
+        "data_pipeline",
+        "keyboard_controller",
+        "vr_collect_control"
+      ],
+      "node_names": [
+        "data-collect-kbd",
+        "data-collect-writer",
+        "data_collect",
+        "data_collect_keyboard",
+        "data_collect_vr_control",
+        "fake_teleop",
+        "task"
+      ]
+    },
+    "astral_gripper_teleop": {
+      "source_path": "astral_ws/src/astral_gripper_teleop",
+      "target_name": "astral_gripper_teleop",
+      "target_path": "src/robots/astral/astral_gripper_teleop",
+      "renamed": false,
+      "executable_names": [
+        "pinch_gripper_node"
+      ],
+      "node_names": [
+        "pinch_gripper_node"
+      ]
+    },
+    "astral_mujoco_sim": {
+      "source_path": "astral_ws/src/astral_mujoco_sim",
+      "target_name": "astral_mujoco_sim",
+      "target_path": "src/robots/astral/astral_mujoco_sim",
+      "renamed": false,
+      "executable_names": [
+        "astral_mujoco_sim_node"
+      ],
+      "node_names": [
+        "astral_arm_teleop_left",
+        "astral_arm_teleop_right",
+        "astral_mujoco_sim_node",
+        "controller_start_gate",
+        "controller_workpos_gate",
+        "head_teleop_node",
+        "quest3_udp_mocap"
+      ]
+    },
+    "astral_pim_ik": {
+      "source_path": "astral_ws/src/astral_pim_ik",
+      "target_name": "astral_pim_ik",
+      "target_path": "src/robots/astral/astral_pim_ik",
+      "renamed": false,
+      "executable_names": [],
+      "node_names": []
+    },
+    "astral_policy_inference": {
+      "source_path": "astral_ws/src/astral_policy_inference",
+      "target_name": "morla_policy_inference",
+      "target_path": "src/common/morla_policy_inference",
+      "renamed": true,
+      "executable_names": [
+        "policy_keyboard",
+        "policy_node"
+      ],
+      "node_names": [
+        "camera-diagnostics-writer",
+        "pi_test_reject_trigger",
+        "pi_test_trigger",
+        "plan-trace-writer",
+        "policy-first-plan",
+        "policy-planner",
+        "policy_keyboard",
+        "policy_node"
+      ]
+    },
+    "astral_robot_control": {
+      "source_path": "astral_ws/src/astral_robot_control",
+      "target_name": "astral_robot_control",
+      "target_path": "src/robots/astral/astral_robot_control",
+      "renamed": false,
+      "executable_names": [
+        "astral_robot_driver"
+      ],
+      "node_names": [
+        "astral_robot_driver"
+      ]
+    },
+    "astral_robot_description": {
+      "source_path": "astral_ws/src/astral_robot_description",
+      "target_name": "astral_robot_description",
+      "target_path": "src/robots/astral/astral_robot_description",
+      "renamed": false,
+      "executable_names": [],
+      "node_names": [
+        "gui",
+        "pub_rate"
+      ]
+    },
+    "astral_teleop": {
+      "source_path": "astral_ws/src/astral_teleop",
+      "target_name": "morla_bringup",
+      "target_path": "src/common/morla_bringup",
+      "renamed": true,
+      "executable_names": [
+        "controller_start_gate",
+        "controller_workpos_gate",
+        "head_teleop_node"
+      ],
+      "node_names": [
+        "controller_start_gate",
+        "controller_workpos_gate",
+        "head_teleop_node",
+        "quest3_udp_mocap"
+      ]
+    },
+    "astral_web_monitor": {
+      "source_path": "astral_ws/src/astral_web_monitor",
+      "target_name": "morla_web_manager",
+      "target_path": "src/common/morla_web_manager",
+      "renamed": true,
+      "executable_names": [
+        "morla_web_manager"
+      ],
+      "node_names": [
+        "Policy inference (web)",
+        "assets",
+        "morla_web_manager"
+      ]
+    },
+    "quest3_hand_mocap": {
+      "source_path": "astral_ws/src/quest3_hand_mocap",
+      "target_name": "morla_input",
+      "target_path": "src/common/morla_input",
+      "renamed": true,
+      "executable_names": [
+        "quest3_udp_mocap"
+      ],
+      "node_names": [
+        "quest3_udp_mocap"
+      ]
+    },
+    "quest3_video_streamer": {
+      "source_path": "astral_ws/src/quest3_video_streamer",
+      "target_name": "quest3_video_streamer",
+      "target_path": "src/common/quest3_video_streamer",
+      "renamed": false,
+      "executable_names": [
+        "quest3_video_streamer"
+      ],
+      "node_names": [
+        "camera",
+        "quest3_video_streamer",
+        "usb_cam"
+      ]
+    },
+    "wuji_glove": {
+      "source_path": "astral_ws/src/wuji_glove",
+      "target_name": "wuji_glove",
+      "target_path": "src/common/wuji_glove",
+      "renamed": false,
+      "executable_names": [
+        "wuji_glove_mocap"
+      ],
+      "node_names": [
+        "wuji_glove_mocap"
+      ]
+    },
+    "wujihand_control": {
+      "source_path": "astral_ws/src/wujihand_control",
+      "target_name": "wujihand_control",
+      "target_path": "src/robots/wuji/wujihand_control",
+      "renamed": false,
+      "executable_names": [],
+      "node_names": [
+        "quest3_udp_mocap",
+        "wujihand_driver"
+      ]
+    },
+    "wujihand_mujoco_sim": {
+      "source_path": "astral_ws/src/wujihand_mujoco_sim",
+      "target_name": "wujihand_mujoco_sim",
+      "target_path": "src/robots/wuji/wujihand_mujoco_sim",
+      "renamed": false,
+      "executable_names": [
+        "wujihand_mujoco_sim_node",
+        "wujihand_tuning_node"
+      ],
+      "node_names": [
+        "quest3_udp_mocap",
+        "wujihand_mujoco_sim_node",
+        "wujihand_tuning_node"
+      ]
+    },
+    "wujihand_retargeting": {
+      "source_path": "astral_ws/src/wujihand_retargeting",
+      "target_name": "wujihand_retargeting",
+      "target_path": "src/robots/wuji/wujihand_retargeting",
+      "renamed": false,
+      "executable_names": [
+        "wujihand_retarget_node"
+      ],
+      "node_names": [
+        "wujihand_retarget_node"
+      ]
+    },
+    "wujihand_bringup": {
+      "source_path": "astral_ws/src/wujihandros2/wujihand_bringup",
+      "target_name": "wujihand_bringup",
+      "target_path": "src/robots/wuji/wujihandros2/wujihand_bringup",
+      "renamed": false,
+      "executable_names": [],
+      "node_names": [
+        "foxglove_bridge",
+        "home",
+        "robot_state_publisher",
+        "rviz2",
+        "wave_demo",
+        "wujihand_driver"
+      ]
+    },
+    "wujihand_driver": {
+      "source_path": "astral_ws/src/wujihandros2/wujihand_driver",
+      "target_name": "wujihand_driver",
+      "target_path": "src/robots/wuji/wujihandros2/wujihand_driver",
+      "renamed": false,
+      "executable_names": [
+        "wujihand_driver_node",
+        "wujihand_list"
+      ],
+      "node_names": []
+    },
+    "wujihand_msgs": {
+      "source_path": "astral_ws/src/wujihandros2/wujihand_msgs",
+      "target_name": "wujihand_msgs",
+      "target_path": "src/robots/wuji/wujihandros2/wujihand_msgs",
+      "renamed": false,
+      "executable_names": [],
+      "node_names": []
+    },
+    "morla_nero_robot": {
+      "source_path": null,
+      "target_name": "morla_nero_robot",
+      "target_path": "src/robots/nero/morla_nero_robot",
+      "renamed": false,
+      "origin": "new P1 framework package",
+      "executable_names": [],
+      "node_names": []
+    },
+    "morla_astral_robot": {
+      "source_path": null,
+      "target_name": "morla_astral_robot",
+      "target_path": "src/robots/astral/morla_astral_robot",
+      "renamed": false,
+      "origin": "new P1 framework package",
+      "executable_names": [],
+      "node_names": []
+    },
+    "morla_xhand_hand": {
+      "source_path": null,
+      "target_name": "morla_xhand_hand",
+      "target_path": "src/robots/xhand/morla_xhand_hand",
+      "renamed": false,
+      "origin": "new P1 framework package",
+      "executable_names": [],
+      "node_names": []
+    },
+    "morla_wuji_hand": {
+      "source_path": null,
+      "target_name": "morla_wuji_hand",
+      "target_path": "src/robots/wuji/morla_wuji_hand",
+      "renamed": false,
+      "origin": "new P1 framework package",
+      "executable_names": [],
+      "node_names": []
+    }
+  }
+}

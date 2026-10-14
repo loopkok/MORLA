@@ -1,0 +1,55 @@
+# morla_data_collect 采集参数（单一可调来源）。
+#
+#   ros2 run morla_data_collect data_collect_node \
+#       --ros-args --params-file <this file>
+#
+# ── 采集前必须确认的三件事（schema 会在 episode 开始时冻结进 meta.json）──
+#   1. end_effector_left / end_effector_right：左/右末端是 gripper 还是 wuji
+#   2. include_waist / include_head：腰、头是否纳入 state/action
+#   3. cameras：要录的相机 label（须与 quest3_video_streamer 的 label 一致）
+data_collect:
+  ros__parameters:
+    # 存储位置：{save_root}/{session}/episode{N:06d}/
+    # 目录约定：采集原始数据统一落 astral_data/raw/{session}/；
+    #   openpi 转换 → astral_data/pi/{session}/，ACT 转换 → astral_data/act/{session}/
+    #   （见 README §4；转换脚本入参 session 目录即 astral_data/raw/{session}）。
+    save_root: "~/astral_data/raw"
+    session: "default_task"
+
+    # --- schema ---
+    # 臂配置：启用哪些臂侧（["left"] 仅左臂 / ["right"] 仅右臂 / 双臂默认）。
+    # 末端块跟随所属臂：臂未启用时该侧 end_effector 设置不生效。
+    arms: ["left"] #["left", "right"]
+    end_effector_left: "gripper"   # gripper | wuji | none
+    end_effector_right: "none"  # gripper | wuji | none
+    include_waist: false
+    include_head: false
+
+    # 相机 label 列表（对应 /quest3_video_streamer/collect/{label}）。
+    # 第一个相机 = 对齐参考时钟（episode 有效区间由其首尾帧界定），base 主视角在前。
+    # label 必须与 streamer 实际生效值一致——streamer 的 label_aliases 按硬件指纹把
+    # 设备钉成语义名：base=realsense 主视角 / left_wrist=左腕 / right_wrist=右腕，
+    # 与内核 videoN 编号解耦（换口/重插编号漂移不影响这里）。
+    # ⚠ 每次开录前在 web「系统」tab 视频卡片核对 base（sysfs 名含 RealSense）确实有图，
+    #   或 ros2 topic echo --once /quest3_video_streamer/gate_state 看 sysfs_name。
+    # 相机选择：三路全录 = ["base", "left_wrist", "right_wrist"]；只录两路删 right_wrist。
+    # 第一个相机 = 对齐参考时钟，保持 base 那路在首位。
+    cameras: ["base", "left_wrist", "right_wrist"]
+    camera_topic_prefix: "/quest3_video_streamer/collect"
+
+    # 数据集帧率（对齐网格与 LeRobot fps；LeRobot 要求整数）
+    dataset_fps: 30
+
+    # action 语义：next_state = action[t] 是 t+1 帧观测（下一帧关节反馈真值，
+    # 夹爪/无反馈块用其指令回显）；command = 用指令流在 t 时刻的采样
+    # （腰/头无采集侧指令话题，command 模式下仍回退 next_state 语义）。
+    action_source: "next_state"
+
+    # 对齐时 episode 末尾追加的 hold 帧数（帮助模型学习"任务完成保持"）
+    hold_frames: 10
+
+    # 对齐时数值流允许的最大采样空洞（ms），超过记 quality flag
+    max_gap_ms: 100.0
+
+    # 首段任务文本（运行中可用 keyboard 't' 或 /data_collect/task 改）
+    default_task: ""

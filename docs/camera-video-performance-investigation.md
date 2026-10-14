@@ -2,7 +2,7 @@
 
 > 2026-08-20~09-21 反复排障，2026-09-22 整理归档。
 > 给新会话/接手者：相机链路"帧率掉、整进程卡"的排查顺序，以及为什么性能瓶颈要 py-spy 实证别猜。
-> 母本：`src/quest3_video_streamer/README.md`（帧率排障插桩/常见问题）+ `astral_ws/CHANGELOG.md`
+> 母本：`src/common/quest3_video_streamer/README.md`（帧率排障插桩/常见问题）+ `astral_ws/CHANGELOG.md`
 > （08-20~09-21 各条）。相机 label 语义化见 [camera-label-semanticization.md](camera-label-semanticization.md)。
 
 ## TL;DR（一分钟结论）

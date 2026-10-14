@@ -19,7 +19,7 @@
 | 项 | 来源路径（本机） | 体积 | 目标机器动作 |
 |---|---|---|---|
 | **① 代码** | `sdk/VLA/openpi/`（**排除 `.venv`/`assets`**） | ~几百 MB（源码） | 拷贝源码 → `uv sync` 重建 venv（**不要拷 .venv，路径绑定会坏**） |
-| **② 数据集** | `astral_data/pi/pick_place_merged`（v2.1, 100 段 21321 帧, 红/绿双任务） | **58MB** | 拷贝 → 软链到 `HF_LEROBOT_HOME/astral/astral_teleop` |
+| **② 数据集** | `astral_data/pi/pick_place_merged`（v2.1, 100 段 21321 帧, 红/绿双任务） | **58MB** | 拷贝 → 软链到 `HF_LEROBOT_HOME/astral/morla_bringup` |
 | **③ pi05_base 权重** | `~/.cache/openpi/openpi-assets/checkpoints/pi05_base` | **12GB** | 拷贝到目标机 `~/.cache/openpi/openpi-assets/checkpoints/pi05_base`（**避免 11.6GB 重新下载**；别设 `OPENPI_DATA_HOME` 到别处，见 §3 坑） |
 | 环境 | Python 3.11 + uv + NVIDIA 驱动 | — | 目标机装好 |
 
@@ -40,10 +40,10 @@ rsync -aP ~/.cache/openpi/openpi-assets/checkpoints/pi05_base/ <目标机>:/home
 curl -LsSf https://astral.sh/uv/install.sh | sh     # uv
 # ② 代码 + venv
 cd VLA/openpi && uv sync                            # 拉 jax-cuda12/torch 等（需网络）
-# ③ 数据集软链（pinned lerobot 0.1.0 经 HF_LEROBOT_HOME 解析 repo_id=astral/astral_teleop）
+# ③ 数据集软链（pinned lerobot 0.1.0 经 HF_LEROBOT_HOME 解析 repo_id=astral/morla_bringup）
 mkdir -p ~/.cache/huggingface/lerobot/astral
 ln -sfn <你放的路径>/pi/pick_place_merged \
-        ~/.cache/huggingface/lerobot/astral/astral_teleop
+        ~/.cache/huggingface/lerobot/astral/morla_bringup
 # ④ 权重（已 rsync）→ 验证命中缓存不下载：
 uv run python -c "from openpi.shared import download; print(download.maybe_download('gs://openpi-assets/checkpoints/pi05_base'))"
 #    ↑ 应秒级返回并指向 ~/.cache/openpi/...，若开始下载说明路径不对
@@ -71,7 +71,7 @@ uv run scripts/train.py pi05_astral_lora --exp-name=smoke \
 batch 32、action_horizon 50、lr 1e-4→1e-5 cosine、clip 1.0。可 `--batch_size=N` 覆盖（RAM/VRAM 允许可加大）。
 
 **产出**：checkpoint 在 `VLA/openpi/checkpoints/pi05_astral_lora/<exp-name>/`，推理用
-`serve.py --model pi05 --checkpoint-dir <该目录>` 部署（见 astral_policy_inference）。
+`serve.py --model pi05 --checkpoint-dir <该目录>` 部署（见 morla_policy_inference）。
 
 ### 训练参数（`pi05_astral_lora` 配置，源码 config.py 为准）
 

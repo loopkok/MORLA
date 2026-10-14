@@ -3,7 +3,7 @@
 
 用法（先跑推理，节点 joint_stream_log_file:=/tmp/pi_cmds.jsonl 已记录；
 可再给 --metrics /tmp/pi_metrics.jsonl 做换 chunk 边界关联）：
-  /usr/bin/python3 astral_ws/scripts/plot_inference_curves.py \
+  /usr/bin/python3 MORLA/scripts/plot_inference_curves.py \
       --log /tmp/pi_cmds.jsonl --out /tmp/pi_curves.png [--metrics /tmp/pi_metrics.jsonl]
 
 输出：

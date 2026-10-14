@@ -47,7 +47,7 @@ W7 是旧版相互矛盾的 armed/disarm 快照，旧日志不能可靠恢复实
 - lerobot_v21 / lerobot_v3：可加载导出样本，含质量/处理信息。
 - act_preprocessing_check.txt：增强 ACT 预处理检查结果。
 
-复现入口：`src/astral_data_collect/astral_data_collect/pipeline/verify_existing_data_pipeline.py`，参数见采集包 README。输出目录必须新建；当前只完整重建与导出 5 段，未批量迁移旧 repaired 目录。
+复现入口：`src/common/morla_data_collect/morla_data_collect/pipeline/verify_existing_data_pipeline.py`，参数见采集包 README。输出目录必须新建；当前只完整重建与导出 5 段，未批量迁移旧 repaired 目录。
 
 ## 优化选择与边界
 
@@ -57,7 +57,7 @@ W7 是旧版相互矛盾的 armed/disarm 快照，旧日志不能可靠恢复实
 
 ## 离线工具目录统一（同日后续）
 
-实现集中到 `src/astral_data_collect/astral_data_collect/pipeline/`，统一入口 `scripts/data_pipeline.sh` / 安装后的 `data_pipeline`。完整文件地图见包内 `pipeline/README.md`。旧根模块、旧 scripts/ 数据工具及旧 ROS 离线入口已删除；一键 OpenPI/ACT 共用 `process.sh`。来源验证不再写死本机目录，并拒绝空 session。
+实现集中到 `src/common/morla_data_collect/morla_data_collect/pipeline/`，统一入口 `scripts/data_pipeline.sh` / 安装后的 `data_pipeline`。完整文件地图见包内 `pipeline/README.md`。旧根模块、旧 scripts/ 数据工具及旧 ROS 离线入口已删除；一键 OpenPI/ACT 共用 `process.sh`。来源验证不再写死本机目录，并拒绝空 session。
 
 回归：91 项离线测试，含实际统一入口的诊断、对齐、清洗、来源检查、OpenPI/ACT 一键导出及带空格路径；39 项 ROS 回归（36+3）通过。wheel 构建和临时安装通过，包内 process.sh、README 和 console entry 可用；旧入口现已移除，统一使用 data_pipeline。
 

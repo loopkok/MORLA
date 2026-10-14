@@ -14,7 +14,7 @@
 
 退出码 0=通过；非 0=失败（附 FAIL 行原因）。需在 source 后运行：
   ros2 launch astral_mujoco_sim astral_mujoco_sim.launch.py enable_viewer:=false &
-  ros2 run astral_policy_inference policy_node ... &
+  ros2 run morla_policy_inference policy_node ... &
   /usr/bin/python3 scripts/run_inference_sim_smoke.py --replay <h5> --run-s 12
 """
 

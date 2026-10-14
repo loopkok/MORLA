@@ -7,14 +7,14 @@
 #   1. 清场：停 daemon、查残留节点（有残留→提示确认后强清/退出）、
 #      查 astral_drivers（抢 8081）、查 Web 端口（8080 被占→可换 8088）
 #   2. adb：确认 Quest 在线（device），清掉旧 reverse 再重新建立
-#   3. 前台启动 astral_web_monitor（本终端一直挂着）
+#   3. 前台启动 morla_web_manager（本终端一直挂着）
 #
 # 用法：bash scripts/jetson_teleop_start.sh     （或加执行权限后直接运行）
 # ============================================================================
 
 set -uo pipefail  # 不用 -e：交互确认需要自己控制分支
 
-WS=/home/nvidia/loopkok/astral_ws
+WS="${MORLA_WS:-$HOME/loopkok/MORLA}"
 WEB_PORT_DEFAULT=8080
 WEB_PORT_FALLBACK=8088
 
@@ -75,7 +75,7 @@ if [[ -n "$NODES" ]]; then
         pkill -f "data_collect"           2>/dev/null || true
         pkill -f "keyboard_controller"    2>/dev/null || true
         pkill -f "wujihand"               2>/dev/null || true
-        pkill -f "astral_web_monitor"     2>/dev/null || true
+        pkill -f "morla_web_manager"     2>/dev/null || true
         pkill -f "astral_robot_driver"    2>/dev/null || true
         pkill -f "ros2 launch"            2>/dev/null || true
         sleep 2
@@ -159,9 +159,9 @@ fi
 # ----------------------------------------------------------------------------
 # 3. 启动 Web 控制台（前台，本终端一直挂着）
 # ----------------------------------------------------------------------------
-info "启动 astral_web_monitor（端口 $WEB_PORT）—— 本终端保持前台"
+info "启动 morla_web_manager（端口 $WEB_PORT）—— 本终端保持前台"
 echo "      浏览器打开:  http://<jetson_ip>:$WEB_PORT"
 echo
-exec env ASTRAL_WEB_MONITOR_PORT=$WEB_PORT \
-         ASTRAL_WEB_MONITOR_DIST=$WS/src/astral_web_monitor/web/dist \
-         ros2 launch astral_web_monitor web_monitor.launch.py
+exec env MORLA_WEB_MANAGER_PORT=$WEB_PORT \
+         MORLA_WEB_MANAGER_DIST=$WS/src/common/morla_web_manager/web/dist \
+         ros2 launch morla_web_manager web_manager.launch.py

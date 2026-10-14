@@ -8,7 +8,7 @@
 
 - 模型：Astral 数据微调的 pi0.5（需继续确认是 `pi05_astral` 全量还是 `pi05_astral_lora`）。
 - GPU 推理主机：`192.168.1.249`。
-- GPU 启动脚本：`~/loopkok/VLA/astral_ws/scripts/` 下的 `server29999` / `sever29999` 脚本（准确文件名待确认）。
+- GPU 启动脚本：`~/loopkok/VLA/MORLA/scripts/` 下的 `server29999` / `sever29999` 脚本（准确文件名待确认）。
 - 训练数据：`astral_data/pi/pick_place_merged_repaired_v3`。
 - 本次推理日志：`astral_ws/inference_test_logs/inference/20260921-143151_pi0.5_single+camera`。
 - 本次推理录像：`astral_data/pi/pi0_infer_test`。
@@ -182,7 +182,7 @@ mask 设为 true，这会产生另一种训练分布外输入。
 
 ```bash
 grep -nE 'checkpoint-dir|policy-config|default-prompt|capture-dir' \
-  ~/loopkok/VLA/astral_ws/scripts/*29999*
+  ~/loopkok/VLA/MORLA/scripts/*29999*
 ```
 
 确认：
@@ -190,7 +190,7 @@ grep -nE 'checkpoint-dir|policy-config|default-prompt|capture-dir' \
 - LoRA checkpoint 使用 `--policy-config pi05_astral_lora`；
 - 全量 checkpoint 使用 `--policy-config pi05_astral`；
 - checkpoint 确实来自 `pick_place_merged_repaired_v3`；
-- checkpoint 内含对应的 `assets/astral/astral_teleop/norm_stats.json`；
+- checkpoint 内含对应的 `assets/astral/morla_bringup/norm_stats.json`；
 - 服务端相机槽配置与本次实验一致。
 
 ## 9. 单轮实验记录模板

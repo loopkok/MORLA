@@ -14,7 +14,7 @@
 
 用法（py3.10 + ROS，用 ros2 conda env python 或 /usr/bin/python3，需 cv2/PIL 之一）：
   source /opt/ros/humble/setup.bash
-  /home/robot/miniconda3/envs/ros2/bin/python astral_ws/scripts/run_act_e2e.py \
+  /home/robot/miniconda3/envs/ros2/bin/python MORLA/scripts/run_act_e2e.py \
       --check-server --host 127.0.0.1 --port 8001
 
 退出码 0=通过；非 0=失败。
@@ -68,9 +68,11 @@ def make_jpeg(size: int = 480) -> bytes:
 def check_server(host: str, port: int, jpeg: bool = False) -> None:
     """用真实 RemoteBackend 直连 serve.py 做一次推理往返。"""
     import sys
-    sys.path.insert(0, "/home/robot/loopkok/sdk/astral_ws/src/astral_policy_inference")
-    sys.path.insert(0, "/home/robot/loopkok/sdk/astral_ws/src/astral_data_collect")
-    from astral_policy_inference.backend import ObsBatch, RemoteBackend
+    from pathlib import Path
+    morla_root = Path(__file__).resolve().parents[1]
+    sys.path.insert(0, str(morla_root / "src/common/morla_policy_inference"))
+    sys.path.insert(0, str(morla_root / "src/common/morla_data_collect"))
+    from morla_policy_inference.backend import ObsBatch, RemoteBackend
 
     rng = np.random.default_rng(7)
     bk = RemoteBackend(

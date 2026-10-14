@@ -2,7 +2,7 @@
 
 > 2026-09-14 前后真机/离线排障，2026-09-22 整理归档。
 > 给新会话/接手者：理解数采链路质量认知的**五层演进**（坑表是"症状→防护"，这里是"决策顺序 +
-> 数据 + 教训"）。母本：`src/astral_data_collect/CLAUDE.md`「数据质量优化历程」+ `README.md` §5c
+> 数据 + 教训"）。母本：`src/common/morla_data_collect/CLAUDE.md`「数据质量优化历程」+ `README.md` §5c
 > + `astral_ws/CHANGELOG.md`（09-14~09-18）。
 > 关联：训练后真机卡点的数据侧根因详见 [teleop-stick-slip-investigation.md](teleop-stick-slip-investigation.md)
 > （摩擦伪影来源）；推理侧表现见 [act-inference-stutter-investigation.md](act-inference-stutter-investigation.md) 第 3 层。
@@ -23,7 +23,7 @@
 
 慢速遥操"抖抖的"——上游 `astral-tracking` 位姿序列化 F4/F3（0.1mm/0.001）量化成台阶，
 下游 EMA 滤不净（遥操日志实测 VR 零速占比 36%、cmd 高频抖动 ~10mm/s）。
-**修法**：上游改 F7/F6（1e-7/1e-6 ≈ float 原生精度），协议行结构不变、`quest3_hand_mocap`
+**修法**：上游改 F7/F6（1e-7/1e-6 ≈ float 原生精度），协议行结构不变、`morla_input`
 解析零改动。**教训**：采集质量的最上游是精度；量化台阶在慢速段最显眼
 （详见 [teleop-stick-slip-investigation.md](teleop-stick-slip-investigation.md)）。
 
@@ -65,7 +65,7 @@ ACT 忠实学进示范节奏，真机在对应任务状态复现停顿（推理�
 
 ### 意图 vs 摩擦量化（先诊断再修）
 
-`src/astral_data_collect/astral_data_collect/pipeline/quantify_cmd_state.py` 读 raw `*_cmd` + `*_state`（互相关对齐后）把每个停顿分型：
+`src/common/morla_data_collect/morla_data_collect/pipeline/quantify_cmd_state.py` 读 raw `*_cmd` + `*_state`（互相关对齐后）把每个停顿分型：
 **意图型**（cmd 也停=操作者/任务真实停顿，训练该保留）vs **摩擦型**（cmd 平滑移动、state 平段
 突跳=驱动层摩擦伪影，训练该去掉）。实测（pick_place_merged 100 episode，`--align` 对齐后）：
 
@@ -92,7 +92,7 @@ ACT 忠实学进示范节奏，真机在对应任务状态复现停顿（推理�
 
 | 症状 | 根因 | 防护/参数 |
 |---|---|---|
-| 两个采集节点各录一份（双开事故） | `/data_collect/control` 全局控制面，谁订阅谁执行；残留节点+再启动 | 三层：domain 排他锁（`/tmp/astral_data_collect_domain{N}.lock`）+ episode 原子 mkdir 占号 + web 发布者计数红条 |
+| 两个采集节点各录一份（双开事故） | `/data_collect/control` 全局控制面，谁订阅谁执行；残留节点+再启动 | 三层：domain 排他锁（`/tmp/morla_data_collect_domain{N}.lock`）+ episode 原子 mkdir 占号 + web 发布者计数红条 |
 | 改了 yaml 却采出旧 schema | launch 自身默认值静默盖 yaml | launch 默认空串、显式传参才覆盖；schema 冻结进每段 meta.json |
 | 转换 exit 137（OOM），管道里还"只出 1 段、退出码 0" | SVT-AV1 默认按核数并行+深 lookahead；np.stack 统计堆 620MB/相机 | `svtav1-params lp=2:lookahead=16`（不识别退化 h264）+ `ImageStatsAccumulator` 流式；**该命令勿接 `\| tail`，要看退出码**；峰值 RSS 6.3→1.14GB |
 | openpi 加载数据集崩 "Could not infer dtype of dict" | parquet 多写了视频 struct 列 | 转换器删列；测试断言**不得**出现 `observation.images.*` 列 |
@@ -104,11 +104,11 @@ ACT 忠实学进示范节奏，真机在对应任务状态复现停顿（推理�
 
 | 工具 | 用途 |
 |---|---|
-| `src/astral_data_collect/astral_data_collect/pipeline/quantify_cmd_state.py` | 采集数据"意图 vs 摩擦"量化（停顿分型 + 平段/粘滑/突跳统计），`--self-test` 合成自测 |
-| `src/astral_data_collect/astral_data_collect/pipeline/repair_aligned.py` | aligned 层数据节奏修复（`--mode natural\|uniformize`、`--keep-intent`、`--dry-run`；输出新目录绝不在原地改） |
-| `src/astral_data_collect/astral_data_collect/pipeline/verify_aligned.py` | 修复输出对抗验证（state=原始帧/图像同源/时间戳单调/action=next-state，零错位） |
+| `src/common/morla_data_collect/morla_data_collect/pipeline/quantify_cmd_state.py` | 采集数据"意图 vs 摩擦"量化（停顿分型 + 平段/粘滑/突跳统计），`--self-test` 合成自测 |
+| `src/common/morla_data_collect/morla_data_collect/pipeline/repair_aligned.py` | aligned 层数据节奏修复（`--mode natural\|uniformize`、`--keep-intent`、`--dry-run`；输出新目录绝不在原地改） |
+| `src/common/morla_data_collect/morla_data_collect/pipeline/verify_aligned.py` | 修复输出对抗验证（state=原始帧/图像同源/时间戳单调/action=next-state，零错位） |
 | `scripts/data_pipeline.sh process-openpi` / `data_pipeline process-act` | 同一 raw 各进各的输出目录（openpi v2.1 / ACT v3+两级自检） |
-| `src/astral_data_collect/astral_data_collect/pipeline/migrate_camera_labels.py` | 旧数据相机键 videoN→语义名迁移（注意：不迁 meta schema.cameras，见遗留） |
+| `src/common/morla_data_collect/morla_data_collect/pipeline/migrate_camera_labels.py` | 旧数据相机键 videoN→语义名迁移（注意：不迁 meta schema.cameras，见遗留） |
 
 ## 遗留 / 注意
 

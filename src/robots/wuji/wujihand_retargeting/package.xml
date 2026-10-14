@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>wujihand_retargeting</name>
+  <version>0.1.0</version>
+  <description>
+    Wuji Hand retargeting: hand_landmarks PoseArray → joint_commands (20-DoF).
+    Backends: official (wuji_sdk RetargetSession, rob_station-aligned) and
+    dexpilot (dex-retargeting adapted from xhand_retargeting).
+  </description>
+  <maintainer email="loopkok@todo.todo">loopkok</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>ament_index_python</depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+  <exec_depend>morla_data_collect</exec_depend>
+</package>

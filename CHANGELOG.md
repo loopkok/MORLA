@@ -4,26 +4,26 @@
 
 **工作位/启动 init 轨迹增加实体到点确认**——`astral_arm_teleop`。此前路径推进只看命令位置 `q_cmd` 到达途经点，实体关节可能仍明显落后却已开始下一段。现工作位 `/teleop/init` 对每个途经点和最终 `init_pose` 都等待新鲜关节实测进入 `homing_via_tol`（默认 0.12 rad）并稳定 `homing_via_settle_s`（默认 0.5 s）；等待时间由 `homing_init_arrive_timeout`（默认每目标 12 s）限制。超时后停止在当前命令目标、保留原 `init_pose` 并提示检查电机使能与关节反馈，不跨越未确认的安全点。直达 init 路径同样确认最终目标。HOME park 保留原有 `homing_via_hold_s` 超时放行兼容语义；逐拍跟随冻结守卫仍只作用于 HOME park。左右臂配置和 README 同步说明。新增途经点稳定、最终目标等待及超时保持回归；**本次按要求未运行测试**。
 
-**离线数据管线强化来源签名与默认失败保护**——`astral_data_collect.pipeline`。**背景**：旧 aligned 文件可能缺少 raw 来源签名或与当前 raw 已不匹配，却仍被预览、回放、诊断、清洗或导出流程消费；一键导出默认隔离移动失败段，也可能在质量检查失败后继续尝试导出。**做法**：① 新增 `require_source_signature`，要求 aligned 内记录的源签名与 episode 当前输入一致；签名覆盖 raw HDF5/meta 的大小与修改时间及 meta SHA256。align 的缓存跳过、prepare（含 aligned）、preview、quantify、repair、replay、validate 与 verify-aligned 均先检查签名；缺签名或源变更要求在工作副本显式重建，拒绝把旧缓存当作可信输入。② `verify-existing` 对来源不可信的 aligned 跳过清洗预览并标出原因，不把其结果累计成有效帧。③ `process-openpi`/`process-act` 默认不移动失败段；只有显式 `--quarantine` 才启用隔离。校验失败现在立即中止导出；帮助文本、pipeline README 和 Web 任务回归同步这一默认行为。④ next_state 校验补查最后一帧 action 必须等于末帧 state，避免终止 hold 被改坏后仍通过训练准入。新增来源签名缺失/过期、terminal hold 和默认/显式隔离回归；**本次按要求未运行测试或数据处理**。
+**离线数据管线强化来源签名与默认失败保护**——`morla_data_collect.pipeline`。**背景**：旧 aligned 文件可能缺少 raw 来源签名或与当前 raw 已不匹配，却仍被预览、回放、诊断、清洗或导出流程消费；一键导出默认隔离移动失败段，也可能在质量检查失败后继续尝试导出。**做法**：① 新增 `require_source_signature`，要求 aligned 内记录的源签名与 episode 当前输入一致；签名覆盖 raw HDF5/meta 的大小与修改时间及 meta SHA256。align 的缓存跳过、prepare（含 aligned）、preview、quantify、repair、replay、validate 与 verify-aligned 均先检查签名；缺签名或源变更要求在工作副本显式重建，拒绝把旧缓存当作可信输入。② `verify-existing` 对来源不可信的 aligned 跳过清洗预览并标出原因，不把其结果累计成有效帧。③ `process-openpi`/`process-act` 默认不移动失败段；只有显式 `--quarantine` 才启用隔离。校验失败现在立即中止导出；帮助文本、pipeline README 和 Web 任务回归同步这一默认行为。④ next_state 校验补查最后一帧 action 必须等于末帧 state，避免终止 hold 被改坏后仍通过训练准入。新增来源签名缺失/过期、terminal hold 和默认/显式隔离回归；**本次按要求未运行测试或数据处理**。
 
 **视频预览保留源帧时间并暴露 hook 错误**——`quest3_video_streamer`。ROS 图像预览继续使用消息 header 时间，webcam 预览使用 `VideoCapture.read()` 返回时记录的主机时间；时间随帧穿过非阻塞队列与 JPEG 编码，发布时不再改写成编码完成时间。preview 编码/发布和 ROS/webcam preview hook 异常由静默吞掉改为每个 publisher/source 仅告警一次，避免重复刷屏同时留下故障线索。新增源时间戳回归文件，**本次未执行**。
 
-**Web Monitor 默认只监听本机**——`astral_web_monitor`。host 默认值由 `0.0.0.0` 改为 `127.0.0.1`，避免服务启动后自动暴露到所有网络接口；需要局域网访问时可显式设置 `ASTRAL_WEB_MONITOR_HOST=0.0.0.0`，或 launch 参数 `web_host:=0.0.0.0`。README 与 launch 用法同步更新，并增加默认 host 配置回归；**本次未执行测试**。
+**Web Monitor 默认只监听本机**——`morla_web_manager`。host 默认值由 `0.0.0.0` 改为 `127.0.0.1`，避免服务启动后自动暴露到所有网络接口；需要局域网访问时可显式设置 `ASTRAL_WEB_MONITOR_HOST=0.0.0.0`，或 launch 参数 `web_host:=0.0.0.0`。README 与 launch 用法同步更新，并增加默认 host 配置回归；**本次未执行测试**。
 
-**Quest 3 人在环接管、控制权仲裁与介入数据链路加固**——`astral_policy_inference`、`astral_arm_teleop`、`astral_teleop`、`astral_gripper_teleop`、`wujihand_retargeting`、`quest3_hand_mocap`、`astral_data_collect`。
+**Quest 3 人在环接管、控制权仲裁与介入数据链路加固**——`morla_policy_inference`、`astral_arm_teleop`、`morla_bringup`、`astral_gripper_teleop`、`wujihand_retargeting`、`morla_input`、`morla_data_collect`。
 **背景**：策略与人工控制切换边界可能同时写执行器；重锚服务在其他 writer 准备完成前即可武装，迟到响应也可能越过回滚；X 回位、头部和 Wuji 手部存在绕开策略仲裁的路径；夹爪策略转人工可能从旧遥操值跳变；Quest 网络接收按到达时间发布，无法识别旧包/乱序包；采集和导出缺少可用于区分策略与人工接管的逐帧标签。
 **控制交接**：① 新增共享 `PolicyLease`，策略状态携带 epoch、递增序号、发送时间、transition ID、pending 标记和 reanchor token；writer 校验租约、拒绝过期/重复/乱序状态，并在串行门控生效后按 transition 回 ACK。策略/回放切换等待当前 schema 所有执行器 writer 确认。② 接管先调用 `prepare_reanchor` 更新臂锚点并取得一次性 token，但不开放输出；全部准备完成后提交 HUMAN，匹配 token 后臂 writer 才能武装。腕部与关节反馈须新鲜，失败/超时取消准备、保持当前位置并暂停旧策略，不能恢复可能陈旧的 chunk。③ pending 控制周期优先处理 stop，禁止策略/回放继续发目标；首轮策略规划移到后台，等待 writer ACK、规划完成和新鲜观测后才交还控制权。执行器以当前关节/夹爪目标 seed，交接提交周期不额外发送首帧；引擎拆除移出控制周期，stop 可中断等待。④ 臂、头、夹爪、Wuji retarget/HOME 均检查所有权租约；输入 header 默认按 0.5 秒限龄。策略运行时屏蔽人工 start、HOME、init 和 X 回位。夹爪以策略最近执行闭合比为软接管起点，要求新鲜输入靠近该值后再响应；Wuji 根据当前关节命令起步并按 `max_joint_rate` 限速。右手 A 的 release 统一由常驻 `controller_start_gate` 发送。
 **Quest 输入**：ROS UDP/TCP 接收器和 standalone 接入共用 `PacketGuard`，识别 `@q3 <session> <sequence> <utc_ms>|` 包头，默认最大源年龄 0.5 秒，拒绝未来/过期、重复、乱序和旧 session 包；TCP 行缓冲限制为 1 MiB，controller 数值与 mask 也做有限值/范围检查。当前 `quest3_mocap.yaml` 为本次旧 APK 验证暂设 `allow_legacy_packets: true`；该兼容模式不提供源时间、序号和 session 防护，换装带新包头的 APK 后应改回 `false`。Quest/PC 时钟需同步；Windows Unity 6000.0 未用于重建或安装 APK，设备端效果仍待确认。
 **介入标签与导出**：采集 episode 记录策略 ownership 事件；align 将 `control_owner`、`intervention`、`intervention_valid` 投影到帧，repair 按选中源帧同步标签，OpenPI LeRobot v2.1/v3 导出保留字段。`control_owner` 编码为 unknown=0、policy=1、human=2、playback=3、pending=4、idle=5；合成 hold 不标成人工，历史无事件段保留 unknown/invalid，不从动作轨迹推断。Parquet 将 intervention 两列写为 scalar bool、owner 写为 scalar int64（LeRobot feature shape `[1]`），避免 v3 reader 将列表列拒绝。详见 [HITL 审查](docs/quest3-hitl-audit-2026-10-12.md) 与 [修复和验证记录](docs/quest3-hitl-fixes-2026-10-12.md)。
 **验证记录**：随附修复记录报告 policy inference 143 项、数据管线 117 项通过/1 项跳过、臂与遥操 70 项、Quest 3 项，以及 7 个相关 ROS Python 包 `colcon build --symlink-install` 通过。历史数据 episode 0/50/99 在副本中导出 611 帧，v2.1→v3、现代 LeRobot 加载和 ACT CPU 预处理通过；原始 HDF5 只读，且因旧段没有 ownership 事件，标签仍为 unknown/invalid。本次按用户要求未重新运行测试、构建或真机操作；修复记录中的数字为已有工作记录。
 
-**采集暂停分段与相机时间戳语义修复**——`astral_data_collect`、`quest3_video_streamer`。
+**采集暂停分段与相机时间戳语义修复**——`morla_data_collect`、`quest3_video_streamer`。
 **背景**：旧暂停/继续仍把整段时间作为连续轨迹，对齐可能跨暂停间隔补帧；arm/disarm 分开保存会造成有效状态矛盾；采集抽头在 JPEG 编码后才取时间，时间戳混入队列与编码延迟。**做法**：① 暂停前落盘缓冲，继续时封存当前 episode 并创建新段；末尾暂停时间不计入段时长。任务文本在段开始时冻结，避免后续修改污染当前段。② arm/disarm 更新同一有效 armed 状态，段首记录状态快照，meta 标明 `effective_armed_v2`。③ 相机采样时间随帧穿过 collect hook、抽头编码队列和 ROS 发布；ROS 输入保留 header stamp，无有效 stamp 时回退主机时间；raw 相机 HDF5 新增 `arrival_timestamps`，meta 标出各流时间戳语义。④ webcam 在 `read()` 返回时记录主机时间；该值代表主机读帧时间，不代表曝光时间或跨设备同步精度。schema 同时校验 fps、相机标签、最大时间缺口与 hold 参数。**验证**：本次按要求未运行测试或真机采集；新增回归用例已提交，未执行。
 
-**离线数据工具集中迁移并统一质量准入**——`src/astral_data_collect/astral_data_collect/pipeline/`。
-**背景**：对齐、诊断、清洗、导出与迁移逻辑散落于仓库 scripts 和 ROS 包父目录，入口及安装行为不一致。**做法**：① 通过 `scripts/data_pipeline.sh`、安装后的 `data_pipeline`、`python -m astral_data_collect.pipeline` 统一分发 prepare/preview、quantify、align、validate、repair、replay、OpenPI/ACT 导出、v3 升级、相机迁移及来源验证；两种一键导出共用 `process.sh`。Python 路径按仓库位置定位并支持 `ASTRAL_DATA_PYTHON`。② 离线实现归入 pipeline 子包，旧 scripts 实现和父包模块移除；删除 `align_data`、`validate_data`、`convert_to_lerobot`、`replay_rerun` 四个旧 ROS 离线 console entry，改用统一入口。训练提示、策略回放导入、README 与排障文档同步迁移。③ 对齐采用过去最近 command 与夹爪零阶保持，记录来源网格/帧索引/源签名并拒绝失效缓存。清洗修复相机组内时间字段和 HDF5 属性读取，默认保护操作意图及非臂动作，保留 command action、源时间与帧来源。校验和导出覆盖 state/action/时间戳/schema/维数/相机与严重缺口，逐段准入并全量解码 JPEG；失败时停止而非静默跳过。④ `artifacts.py` 增加来源签名、路径重叠拒绝和暂存文件/目录提交，目录替换失败可恢复旧产物；质量报告与处理清单随导出保存。**验证**：本次未运行新测试、构建、数据处理或训练。10 月 10 日既有离线/ROS 测试、wheel 安装及 100 段只读检查和 5 段 1066 帧来源验证记录，详见下方同日条目及 `docs/data-pipeline-fixes-2026-10-10.md`，本次未复跑。
+**离线数据工具集中迁移并统一质量准入**——`src/common/morla_data_collect/morla_data_collect/pipeline/`。
+**背景**：对齐、诊断、清洗、导出与迁移逻辑散落于仓库 scripts 和 ROS 包父目录，入口及安装行为不一致。**做法**：① 通过 `scripts/data_pipeline.sh`、安装后的 `data_pipeline`、`python -m morla_data_collect.pipeline` 统一分发 prepare/preview、quantify、align、validate、repair、replay、OpenPI/ACT 导出、v3 升级、相机迁移及来源验证；两种一键导出共用 `process.sh`。Python 路径按仓库位置定位并支持 `ASTRAL_DATA_PYTHON`。② 离线实现归入 pipeline 子包，旧 scripts 实现和父包模块移除；删除 `align_data`、`validate_data`、`convert_to_lerobot`、`replay_rerun` 四个旧 ROS 离线 console entry，改用统一入口。训练提示、策略回放导入、README 与排障文档同步迁移。③ 对齐采用过去最近 command 与夹爪零阶保持，记录来源网格/帧索引/源签名并拒绝失效缓存。清洗修复相机组内时间字段和 HDF5 属性读取，默认保护操作意图及非臂动作，保留 command action、源时间与帧来源。校验和导出覆盖 state/action/时间戳/schema/维数/相机与严重缺口，逐段准入并全量解码 JPEG；失败时停止而非静默跳过。④ `artifacts.py` 增加来源签名、路径重叠拒绝和暂存文件/目录提交，目录替换失败可恢复旧产物；质量报告与处理清单随导出保存。**验证**：本次未运行新测试、构建、数据处理或训练。10 月 10 日既有离线/ROS 测试、wheel 安装及 100 段只读检查和 5 段 1066 帧来源验证记录，详见下方同日条目及 `docs/data-pipeline-fixes-2026-10-10.md`，本次未复跑。
 
-**Web 数据处理后台及界面**——`astral_web_monitor`。新增 DataProcessTab 与独立 Python 子进程任务管理，调用统一数据管线；支持完整流程或单步、段号/相机映射、可选诊断与保守清洗、OpenPI/ACT 导出、v2.1→v3 升级、步骤状态、日志、质量报告、图片/状态预览和历史产物。REST 增加 session、任务提交/查询/取消与产物读取，WS 状态增加 `data_process`；限制为单活动任务，阻止处理正在录制/暂停/保存的 session，支持取消、服务重启中断标记和历史恢复。session 先复制到任务工作目录，Web 不自动隔离失败段；输入限定于数据根目录，产物读取限定任务目录。前端源码与已有 dist 一并提交，setup 安装静态资源并支持 ROS share 路径回退。部署配置：`ASTRAL_SDK_ROOT`、`ASTRAL_DATA_ROOT`、`ASTRAL_DATA_PYTHON`、`ASTRAL_DATA_CHECK_PYTHON`，静态目录可由 `ASTRAL_WEB_MONITOR_DIST` 覆盖。**验证**：本次未运行新增 Web 测试、前端构建或浏览器验收；10 月 10 日既有 REST/数据流程验证记录见同日条目，未复跑。
+**Web 数据处理后台及界面**——`morla_web_manager`。新增 DataProcessTab 与独立 Python 子进程任务管理，调用统一数据管线；支持完整流程或单步、段号/相机映射、可选诊断与保守清洗、OpenPI/ACT 导出、v2.1→v3 升级、步骤状态、日志、质量报告、图片/状态预览和历史产物。REST 增加 session、任务提交/查询/取消与产物读取，WS 状态增加 `data_process`；限制为单活动任务，阻止处理正在录制/暂停/保存的 session，支持取消、服务重启中断标记和历史恢复。session 先复制到任务工作目录，Web 不自动隔离失败段；输入限定于数据根目录，产物读取限定任务目录。前端源码与已有 dist 一并提交，setup 安装静态资源并支持 ROS share 路径回退。部署配置：`ASTRAL_SDK_ROOT`、`ASTRAL_DATA_ROOT`、`ASTRAL_DATA_PYTHON`、`ASTRAL_DATA_CHECK_PYTHON`，静态目录可由 `ASTRAL_WEB_MONITOR_DIST` 覆盖。**验证**：本次未运行新增 Web 测试、前端构建或浏览器验收；10 月 10 日既有 REST/数据流程验证记录见同日条目，未复跑。
 
 ## 2026-10-10
 
@@ -31,13 +31,13 @@
 
 **删除旧数据处理入口**：按用户要求移除 7 个旧 scripts/ 数据脚本、7 个父包兼容模块和 4 个旧 ROS 离线 console entry；实现仅保留在 pipeline/，命令统一为 data_pipeline。文档、训练提示和测试同步更新。验证：84 项离线测试、39 项 ROS 测试通过；colcon 重建后仅保留 data_pipeline 离线入口；真实 5 段 1066 帧来源检查通过。
 
-**离线数据工具统一目录与入口**：对齐、校验、清洗、诊断、导出、回放、迁移与验证实现集中到 `astral_data_collect/pipeline/`；`scripts/data_pipeline.sh` / 安装后的 `data_pipeline` 提供子命令。两条导出共用 `process.sh` 编排，Python 路径按仓库位置推导并支持 `ASTRAL_DATA_PYTHON`。旧脚本、父包离线模块及旧 ROS 离线入口已删除，只保留统一入口。来源验证去掉本机目录硬编码，按帧索引核对全部图像与动作；空输入拒绝。数据格式与默认清洗规则保持不变。验证：91 项离线回归（含带空格路径的完整 OpenPI/ACT 一键链路）、39 项 ROS 回归通过；wheel 打包/临时安装通过；统一入口对真实 100 段只读检查、5 段 1066 帧端到端验证通过，raw 未修改。
+**离线数据工具统一目录与入口**：对齐、校验、清洗、诊断、导出、回放、迁移与验证实现集中到 `morla_data_collect/pipeline/`；`scripts/data_pipeline.sh` / 安装后的 `data_pipeline` 提供子命令。两条导出共用 `process.sh` 编排，Python 路径按仓库位置推导并支持 `ASTRAL_DATA_PYTHON`。旧脚本、父包离线模块及旧 ROS 离线入口已删除，只保留统一入口。来源验证去掉本机目录硬编码，按帧索引核对全部图像与动作；空输入拒绝。数据格式与默认清洗规则保持不变。验证：91 项离线回归（含带空格路径的完整 OpenPI/ACT 一键链路）、39 项 ROS 回归通过；wheel 打包/临时安装通过；统一入口对真实 100 段只读检查、5 段 1066 帧端到端验证通过，raw 未修改。
 
 **采集与数据清洗修复**：暂停继续分段、有效 armed 状态及任务冻结；相机编码保留采样时间并记录 arrival；command 因果对齐、夹爪零阶保持，缺口与失效缓存拒绝复用。清洗默认保护操作意图及非臂动作，保留 command action、真实相机时间戳和来源索引，显式处理历史相机别名。校验覆盖 aligned action/时间戳/schema，导出强制检查每段并全量解码 JPEG；输出失败不破坏既有产物。新增质量报告、处理清单与真实数据验证脚本。验证：100 段原始数据只读检查及清洗预览；5 段重建/清洗导出 1066 帧，LeRobot v3 加载成功，raw 未修改。详见 `docs/data-pipeline-fixes-2026-10-10.md`。
 
 
 **独立推理部署适配：serve.py 部署机无关化 + init 超时可诊断 + 夹爪越界钳制**——
-`astral_policy_inference/scripts/serve.py`、`pi05_standalone`。真机部署期间三处改进：
+`morla_policy_inference/scripts/serve.py`、`pi05_standalone`。真机部署期间三处改进：
 ① **serve.py 去硬编码**——原来 `sys.path.insert(0, "/home/robot/loopkok/sdk/...")` 写死开发机
 绝对路径，换部署机/用户名/目录即失效；改为按脚本自身位置定位（`Path(__file__).parents[1]`，
 package/scripts 与 package 并列布局），不依赖 cwd 与用户名。
@@ -54,7 +54,7 @@ package/scripts 与 package 并列布局），不依赖 cwd 与用户名。
 ## 2026-09-24
 
 **OpenPI π0.5 guided RTC：旧块未执行尾段引导去噪（LeRobot RTCInferenceEngine 风格）**——
-`astral_policy_inference`。**动机**：普通 pi05 checkpoint 换块时新块与旧块尾段互不知情，边界拉回/
+`morla_policy_inference`。**动机**：普通 pi05 checkpoint 换块时新块与旧块尾段互不知情，边界拉回/
 内部接缝需靠节点端平滑；guided RTC 把旧块**尚未执行的绝对目标**随请求送到服务端，经 Astral
 `DeltaActions`+归一化+维度填充后，在每个 flow-matching 去噪步约束新块前缀——边界由模型自身平滑，
 **不需要 RTC 专项训练 checkpoint**。**做法**：① `serve.py` 新增 `--rtc-guided`/`--rtc-execution-horizon`
@@ -84,7 +84,7 @@ collect 三路各 40 帧全解码、0 条带伪影。**结论**：坏帧问题�
 720p**，当前配置可正常采数/推理。
 
 **policy_inference 远程协议加固：有界超时 + action_dim 握手校验 + 响应形状/NaN 校验**——
-`astral_policy_inference`。**动机**：服务未启动或推理无响应时 `WebsocketClient` 会一直重连/阻塞读，
+`morla_policy_inference`。**动机**：服务未启动或推理无响应时 `WebsocketClient` 会一直重连/阻塞读，
 节点无从报错退出；且无法在握手阶段发现"客户端/服务端 action_dim 不一致"（错配要到首帧 infer 才崩）。
 **做法**：① `server_connect_timeout_s`/`server_infer_timeout_s`（默认 5s/3s）：连接在期限内重试
 （0.2s 间隔）、握手与单次推理读取超时即报错；`infer` 超时关闭该连接再抛错。② `RemoteBackend.open()`
@@ -140,7 +140,7 @@ vs video9_ubs3（USB3,1563 帧）12 帧（0.77%；前次录像 7/287≈2.4%）�
 UVC 传输有 CRC、出错帧默认被 uvcvideo 丢弃（`nodrop=0`）——能完整送达的损坏是相机 JPEG 编码器在
 120fps 下间歇性故障（传感器/编码器跟不上），不是 USB 丢字节。**待实机验证**：`--set-parm=30` 是否
 被 USB3 相机接受；USB2@120fps 对照（损坏跟帧率还是端口）；dmesg 无 USB 错（佐证相机侧）。脚本
-固化以上三步并输出 VERDICT。**做法**：新增 `astral_ws/scripts/diag_camera_usb3_fps.sh`（S_PARM 30
+固化以上三步并输出 VERDICT。**做法**：新增 `MORLA/scripts/diag_camera_usb3_fps.sh`（S_PARM 30
 测试 + USB3 录制 + USB2@120 对照录制 + ffmpeg error dc 计数 + dmesg USB 错误检查）。**后续实测
 （Jetson 报告 2026-09-23）**：① ffmpeg `-f v4l2` 实时解码 120fps 报 `Found EOI before any SOF`/
 `No JPEG data`/`bad vlc`/dts 洪水 = 软解过载+缓冲覆盖，**只在实时路径、文件里没有**；② ffmpeg
@@ -168,7 +168,7 @@ quality-90 使训练数据不受原始帧大小影响，且换 USB2 链路后相
 ## 2026-09-22
 
 **修复 `TEST_0922-1626` 第二个 chunk 安装崩溃及 planner 静默死亡**——
-`astral_policy_inference/engine.py`。本轮 `coeff=0 + anchor_tol=0.05` 在第二次 plan 的 anchor blend
+`morla_policy_inference/engine.py`。本轮 `coeff=0 + anchor_tol=0.05` 在第二次 plan 的 anchor blend
 报 `ValueError: assignment destination is read-only`：msgpack 从不可变 `bytes` 恢复 ndarray，原
 `np.asarray` 未取得可写所有权；planner 线程退出后仅执行完首个 50 行 chunk，随后持续重发末指令。
 现于引擎所有权边界复制实际安装的 `rows × action_dim` 小数组，并将融合、anchor 与计数更新改为事务式
@@ -180,12 +180,12 @@ ensemble 组合、非法/空 chunk 拒绝、后处理回滚和 planner 异常注
 与 `git diff --check` 通过。
 
 **整理 ACT 推理卡顿排查记录为独立文档**——`docs/act-inference-stutter-investigation.md`。
-从 `astral_policy_inference/CLAUDE.md`"推理优化历程"章节展开：四层叠加原因（参数没生效 /
+从 `morla_policy_inference/CLAUDE.md`"推理优化历程"章节展开：四层叠加原因（参数没生效 /
 换 chunk 断流 / 收敛拉回尖峰 / 训练数据节奏 / 网络带宽）+ 两个 ACT 专属机制（单行 chunk、
 摩擦伪影）+ 排查标准 checklist + 诊断资产。CLAUDE.md 加指向；CHANGELOG 留档。
 
 **新增 pi0.5 每次 plan 的端到端可审计 trace，验证观测旧/非原子快照与 chunk 切换**——
-`astral_policy_inference`。D2 表明训练集动作本身均在硬件范围内；先前日志中的越界是当前模型 raw
+`morla_policy_inference`。D2 表明训练集动作本身均在硬件范围内；先前日志中的越界是当前模型 raw
 output，不能反推训练数据有问题。此前 C1 的 left_wrist timeout 已由 callback 隔离修复，但“图像流
 fresh”不等于模型请求中的 state/双相机是同一时刻，也无法从旧日志验证约 95ms remote RTT 期间的
 action 消费补偿。新增 `plan_trace_log_file`，`log_dir` 自动生成 `pi_plan_trace.jsonl`；每次 plan 以
@@ -214,7 +214,7 @@ applied arm 指令相同，安全层未参与。这与 ACT 的收敛拉回共因
 降低旧 chunk 开环年龄而不固定 pi0.5 采样或用平滑掩盖问题。
 
 **修复 pi0.5 policy 命令永远 IDLE、left_wrist 在 policy 端被饿死**——
-`astral_policy_inference/node.py`。`TEST_922-1101` 中 streamer 对 base/left_wrist 均稳定发布
+`morla_policy_inference/node.py`。`TEST_922-1101` 中 streamer 对 base/left_wrist 均稳定发布
 约 30fps（queue_full=0），policy 却收到 base 28.7fps、left_wrist 2.86fps（最大 gap 2.37s），
 `pi_cmds.jsonl` 为 0 行；Web 显示已发送及终端直接 pub 都不触发状态切换。**根因**：所有高频
 image callback、30Hz control timer 与可靠 cmd subscription 仍共用 Node 默认
@@ -234,7 +234,7 @@ clip/slew 的影响；现对每个发生安全修正的动作记录 `raw_targets
 `pi_control.jsonl`。控制行为不变。**验证**：node-flow + executor 29 passed。
 
 **Web 推理卡片接入 Launch 实时日志；pi0.5/224 成为全链路默认**——
-`astral_web_monitor`。推理泳道原本已采集 subprocess stdout/stderr 到独立的 `LaunchManager`，但
+`morla_web_manager`。推理泳道原本已采集 subprocess stdout/stderr 到独立的 `LaunchManager`，但
 `infer_launch.log_tail` 未在卡片渲染，`/api/v1/logs` 也未返回推理的完整环形缓冲，故 Web 启动失败时
 仍要回终端查日志。现将通用日志面板复用于推理卡片：实时显示最新 800 行、可复制显示内容；下载从
 REST 获取推理泳道完整缓冲（默认最多 8000 行）。系统页下载同步包含遥操/数采/推理三段。并将前端
@@ -253,7 +253,7 @@ main 调用处改回 `diagnostic_hook=diagnostics_hook`（与定义/CollectTapPu
 streamer 测试 39 passed；语法 OK。**部署**：机器人侧 git pull + colcon build quest3_video_streamer。
 
 **Web“记录推理日志”自动收齐相机全链路诊断，无需额外终端**——
-`quest3_video_streamer` × `astral_policy_inference`。streamer 新增 BEST_EFFORT
+`quest3_video_streamer` × `morla_policy_inference`。streamer 新增 BEST_EFFORT
 `~/diagnostics`：每 5 秒按相机发布 capture FPS/read failure，以及 collect tap 的 submit/rate skip/
 queue full/encode/publish FPS 与耗时。policy 在 `log_dir` 模式自动创建第四份
 `camera_diagnostics.jsonl`，逐帧记录 `policy_rx` 的 gap、payload bytes、JPEG decode ms/result，并
@@ -282,7 +282,7 @@ C 轮共 6 个文件，streamer 的 capture/tap stdout 需从 Web Launch 日志�
 `log_dir` 会自动收集上游进程输出。
 
 **修复 Web 启动推理节点后“开始策略”偶发无反应的 DDS 发现竞态**——
-`astral_web_monitor`。**根因**：`/policy_inference/cmd` 有意采用 VOLATILE QoS，但 Web 在启动节点后
+`morla_web_manager`。**根因**：`/policy_inference/cmd` 有意采用 VOLATILE QoS，但 Web 在启动节点后
 立即单次 publish，不等待订阅者发现，并无条件向前端返回成功；若用户点得早，命令会静默丢失。
 **做法**：保持 VOLATILE（禁止旧 `policy` 在节点重启后被重放而自动运动），发送前最多等待 2 秒
 直到 publisher 发现订阅者；超时返回 503 而非假成功；前端在 `/policy_inference/state` 离线时禁用
@@ -291,7 +291,7 @@ C 轮共 6 个文件，streamer 的 capture/tap stdout 需从 Web Launch 日志�
 被 gate 拒绝，joint/base 全程 fresh、engine 未耗尽；本轮卡顿及最终自动暂停已定责到左腕图像流
 间歇与 `image_required=true` 的组合，而不是 GPU 推理速度。
 
-**推理控制卡顿增加逐 tick 可归因日志 `pi_control.jsonl`**——`astral_policy_inference/node.py`
+**推理控制卡顿增加逐 tick 可归因日志 `pi_control.jsonl`**——`morla_policy_inference/node.py`
 + launch/config/tests/README。**动机**：现有 `pi_cmds.jsonl` 只记录新 target，无法区分 0.1～0.9s
 指令空档究竟是 joint state 超过 `obs_timeout_s`、`_state_ok()` 静默拒绝、ROS timer/callback
 阻塞，还是 `_resend_last()` 保持旧指令。**实现**：① 新增 `control_diagnostics_log_file`，每个
@@ -304,7 +304,7 @@ C 轮共 6 个文件，streamer 的 capture/tap stdout 需从 Web Launch 日志�
 保留原指令流/绘图格式兼容。
 
 **`mute_cameras` 完成 pi0/pi05 端到端 `image_mask=False` 相机消融**——
-`astral_policy_inference/node.py` + `VLA/openpi/src/openpi/policies/astral_policy.py`。**动机**：把腕部图
+`morla_policy_inference/node.py` + `VLA/openpi/src/openpi/policies/astral_policy.py`。**动机**：把腕部图
 改成全黑但保留 key 会令 OpenPI 设置 `image_mask=True`，仍是训练分布外输入，不能等价验证
 base-only。**做法**：① 节点对静音 label 跳过 freshness 门并从 `ObsBatch.images` 删除，
 `RemoteBackend` 因而不发送对应 camera key；② OpenPI `AstralInputs` 按请求实际存在的 key 构建
@@ -362,7 +362,7 @@ cmd×6/send×6/state×1/srv×1/spike×1，spike 正确捕获 298mrad（含 befor
 或 web 勾选记录遥操日志。定位方法：spike 时间对齐 cmd/send/srv。
 
 
-**serve.py pi05 分支加进程内 XLA 预热 + 磁盘编译缓存**——`astral_policy_inference`。
+**serve.py pi05 分支加进程内 XLA 预热 + 磁盘编译缓存**——`morla_policy_inference`。
 **动机**：pi05 首轮推理要 XLA 编译（2-5 分钟），此前在 serve 进程外单独 warmup 无法加速
 serve 本身（编译结果随进程退出丢失）；换 checkpoint/重启 serve 每次都重编。**做法**：①
 `_warmup_policy`（加载模型后 dummy infer 做掉编译，`--warmup` 默认开 / `--no-warmup` 关）；
@@ -411,7 +411,7 @@ key=`observation.images.base/left_wrist`，与当前 openpi camera_map 匹配）
 
 
 **相机 label 语义化重构：videoN → base/left_wrist/right_wrist，全流水线同步 + 旧数据迁移 + 右腕启用**——
-`quest3_video_streamer` × `astral_data_collect` × openpi × `astral_policy_inference`。**动机**：
+`quest3_video_streamer` × `morla_data_collect` × openpi × `morla_policy_inference`。**动机**：
 换口后 videoN 编号漂移（video8→video6）暴露 videoN 是"内核号"不是"角色"；label_aliases 已把设备
 钉成稳定语义名（by-id/by-path），干脆把 label 本身改成位置名。**做法**（三处决策）：
 ① label 改名：streamer params `label_aliases` 目标 + 覆盖块 → `base`（realsense 彩色，by-id
@@ -506,7 +506,7 @@ natural 保自然时序 + 保护窗避免脱节；真机回放待用户验证。
 
 
 **接管臂角改方案B（保持到操作者手臂真的动） + 右手 A 释放移到常驻 gate**——
-`astral_arm_teleop` × `astral_teleop`。**现象**（真机复测 09-17-11:06，5 次接管）：方案A
+`astral_arm_teleop` × `morla_bringup`。**现象**（真机复测 09-17-11:06，5 次接管）：方案A
 （reanchor 重锚臂角到当前配置 + EMA 过渡）虽消除了首拍跳变（cmd==state，FK 验证一致），
 但**接管后肘仍自行摆动 0.07-0.42 rad/1s**（body_joints 62Hz 新鲜、腕部跟手零延迟
 |vr−cmd|≤3mm）——EMA 过渡被感知为"卡一下/臂自己在动"；且操作者手臂角度 ≠ 策略留下
@@ -538,7 +538,7 @@ natural 保自然时序 + 保护窗避免脱节；真机回放待用户验证。
 缺 `_tlog` stub（节点 09-16 加 `_tlog_event` 后测试骨架没跟上）。**用户真机 A/B**：
 方案A 效果不满意则切方案B（reanchor 后保持当前臂角，直到手臂方向变化超阈值）。
 
-**~1.1s 接管状态显示延迟：加时间戳日志 + 提前发布 HUMAN**——`astral_policy_inference`。
+**~1.1s 接管状态显示延迟：加时间戳日志 + 提前发布 HUMAN**——`morla_policy_inference`。
 **现象**：reanchor 武装遥操（如 28.58s）到 web 显示 HUMAN（29.71s）稳定差 ~1.1-1.3s
 （三次一致）；期间状态话题仍 POLICY，操作者以为没接管。**排查**：29.198s 的 POLICY
 发布证明 `_tick` 未在 teardown 中阻塞 → 更可能是 reanchor 响应/提交延迟。**本轮修法**：
@@ -548,8 +548,8 @@ natural 保自然时序 + 保护窗避免脱节；真机回放待用户验证。
 planner+关后端可达 ~2s），web 也立即显示 HUMAN。**验证**：推理包全套 108 例全绿。**待真机**：
 下一次复现抓 policy_node 终端三行时间戳，钉死"响应慢 vs 提交慢 vs teardown"后针对性修。
 
-**VR 键位语义：推理活跃时 grip=HUMAN 接管、右手 A=HUMAN 释放**——`astral_teleop` ×
-`astral_data_collect`。**动机**：策略运行中误按 grip 会 `/teleop/start` 重新武装遥操，
+**VR 键位语义：推理活跃时 grip=HUMAN 接管、右手 A=HUMAN 释放**——`morla_bringup` ×
+`morla_data_collect`。**动机**：策略运行中误按 grip 会 `/teleop/start` 重新武装遥操，
 与策略**双写** `/left_arm/joint_commands`（150Hz 遥操盖掉 30Hz 策略）；改为推理活跃
 （`/policy_inference/state` activity∈{policy,playback}）时 grip 发
 `/policy_inference/cmd`="takeover"（不发 /teleop/start+/armed）；右手 A 在 HUMAN 时发
@@ -595,7 +595,7 @@ speed_ref（时长 1:1 保留），摩擦型照常压缩；去重豁免意图停
 
 
 **日志落盘改"每次运行独立目录"：`log_dir`/`log_tag` 取代 /tmp 固定文件**——`astral_arm_teleop` ×
-`astral_policy_inference` × `astral_web_monitor`。**现象**：遥操/推理诊断日志默认写 `/tmp/pi_*.jsonl`、
+`morla_policy_inference` × `morla_web_manager`。**现象**：遥操/推理诊断日志默认写 `/tmp/pi_*.jsonl`、
 `teleop_teleop.jsonl`——重启即丢、多跑互相追加到同一文件、无法区分本次记录。**做法**：两个 launch
 新增 `log_dir`（根目录）+ `log_tag`（事件名）参数，每次 `ros2 launch` 自动建
 `{log_dir}/{YYYYMMDD-HHMMSS}[_tag]/` 运行目录并落文件——遥操按侧拆 `teleop_teleop_{left,right}.jsonl`，
@@ -645,7 +645,7 @@ p50 0.019→0.025、>0.05 rad 占比 16%→**17%**（不再放大）；零错位
 物理根因，见本日 SDK 排障条目；`action_source: command` 意图语义是采集侧根治方案（未实测）。
 
 
-**采集数据"意图 vs 摩擦"量化工具 `quantify_cmd_state.py`**——`astral_ws/scripts/`。
+**采集数据"意图 vs 摩擦"量化工具 `quantify_cmd_state.py`**——`MORLA/scripts/`。
 **动机**：遥操粘滞/静摩擦 → state"粘-滑"（平段+突跳）→ next-state 语义 action[t]=state[t+1]
 把摩擦伪影直接做成回归目标 → 模型学到"停-跳"节奏（真机固定卡点的数据侧源头）。要决策
 "标签平滑 vs 切 command-source"，需要先把每个停顿量化成**意图型**（cmd 也停=操作者/任务
@@ -691,7 +691,7 @@ README「遥操不平滑排障全记录」+ CLAUDE.md「低速粘滑排障全记
 ## 2026-09-15
 
 **推理优化历程文档化——README「推理质量优化」+ CLAUDE.md「优化历程实录」**——
-`astral_policy_inference`。把 09-14 真机推理优化全过程的认知沉淀成文档：**README** 新增
+`morla_policy_inference`。把 09-14 真机推理优化全过程的认知沉淀成文档：**README** 新增
 「推理质量优化（真机卡顿→流畅）」章节——症状画像（换 chunk 冲一下/边界尖峰/固定卡点/慢速
 一卡一卡）、根因链（①yaml 命名空间未生效 ②引擎锁跨推理 ③收敛拉回 ④训练数据节奏）、参数体系
 表（coeff/anchor_tol/control_interp/prefetch/jpeg 各自机制与调优方向）、诊断三板斧
@@ -702,7 +702,7 @@ README「遥操不平滑排障全记录」+ CLAUDE.md「低速粘滑排障全记
 固定卡点=训练数据节奏、选帧零错位 vs 插值必然错位）。**验证**：纯文档，无代码改动。
 
 **数采质量优化历程文档化——README「数据质量优化（采集→训练）」+ CLAUDE.md「质量优化历程」**——
-`astral_data_collect`。把采集→训练链路质量认知沉淀成文档：**README** 新增 5c 章节——症状画像
+`morla_data_collect`。把采集→训练链路质量认知沉淀成文档：**README** 新增 5c 章节——症状画像
 （慢速抖/3fps 无人知/空录/坏段/训练后固定卡点，各对应防线与根因）、三层防线体系（实时告警/
 离线隔离/转换两级自检）、训练数据节奏修复（compress_pauses/repair_aligned 对比表）。
 **CLAUDE.md** 新增「数据质量优化历程」时间线——五层演进（上游 F7/F6 精度 → 实时防线 → 控制面
@@ -711,16 +711,16 @@ README「遥操不平滑排障全记录」+ CLAUDE.md「低速粘滑排障全记
 
 ## 2026-09-14
 
-**真机推理调参：`async_prefetch_ahead` 25→5、`control_interp` 2→3**——`astral_policy_inference`。
+**真机推理调参：`async_prefetch_ahead` 25→5、`control_interp` 2→3**——`morla_policy_inference`。
 yaml 生效参数调整（配合时序融合/切换平滑实测）：prefetch=5（每 45 步重规划，重规划 ~0.7Hz——
 更少推理、网络压力更小；观测新鲜度略降但融合/锚点已兜住）；control_interp=3（90Hz 插值下发，
 30Hz 大步再拆细）。serve_policy.env checkpoint 指回 pickup_act_480/080000（部署目标模型）。
 数值为真机 A/B 可调项，改 launch 参数或 yaml 生效。
 
-**遥操诊断 JSONL 日志 + web 记录开关**——`astral_arm_teleop` × `astral_web_monitor`。
+**遥操诊断 JSONL 日志 + web 记录开关**——`astral_arm_teleop` × `morla_web_manager`。
 **动机**：慢速平移"停一下走一下"卡顿排查需要遥操链路逐级数据（VR 原始 / 滤波 / 命令 /
 实测关节 / 人肘 psi / IK 计数），此前只能靠 tune 话题实时看或 `ros2 topic echo`。照
-`astral_policy_inference` 的 `metrics_log_file`/`joint_stream_log_file` 模式：遥操节点新参数
+`morla_policy_inference` 的 `metrics_log_file`/`joint_stream_log_file` 模式：遥操节点新参数
 `teleop_log_file`（空=关，零开销），非空则行缓冲追加写 JSONL，`kind` 区分五类记录——
 `loop`（每 armed 控制拍：vr/filt/cmd TCP 位、q/q_state、psi_ref、vr_age/ik/loop_ms、
 ik_fail/ik_sat/hard_fallback/ws_clip/reach_clip）、`wrist`（每腕位事件，upstream 阶梯证据）、
@@ -729,7 +729,7 @@ LatencyMeter 窗口 ms 统计+计数）。写失败绝不抛（不打断控制�
 launch 透传：`full_teleop.launch.py` → `astral_dual_arm_teleop.launch.py` 新增
 `teleop_log_file` 参数，共享基路径按侧拆 `_left/_right`（`teleop_log.py:side_log_path`）。
 web：预设启动请求 `StartRequest` 加 `log` 字段，System tab 启动按钮旁加「记录遥操日志」
-勾选框（仅 astral_teleop/astral_arm_teleop 预设生效，注入
+勾选框（仅 morla_bringup/astral_arm_teleop 预设生效，注入
 `teleop_log_file:=/tmp/teleop_teleop.jsonl`）。**验证**：新 `test_teleop_log.py` 4 例全绿
 （side_log_path 拆路径、JSONL 写入/空路径禁用、写失败安全、LatencyMeter.snapshot 非破坏）；
 web_monitor test 11→**15 例**全绿（新 `test_teleop_log_preset.py` 覆盖白名单注入/非白名单跳过/
@@ -745,7 +745,7 @@ web_monitor test 11→**15 例**全绿（新 `test_teleop_log_preset.py` 覆盖�
 astral_arm_teleop.teleop_log import side_log_path` 解析期 ModuleNotFoundError（包不在
 sys.path）→ 加 try/except 内联兜底（生产安装路径仍走单测过的包内函数）。**用法**：web 勾选
 记录启动遥操 → `/tmp/teleop_teleop_{left,right}.jsonl`；CLI 直接
-`ros2 launch astral_teleop full_teleop.launch.py ... teleop_log_file:=/tmp/x.jsonl`。
+`ros2 launch morla_bringup full_teleop.launch.py ... teleop_log_file:=/tmp/x.jsonl`。
 
 **对齐数据完整修复 `scripts/repair_aligned.py`——弧长匀速化重采样（插补）替代删帧**——
 `astral_ws/scripts`。**动机**：compress_pauses.py（raw 层删帧）会让相邻帧位移变大、动作变
@@ -797,15 +797,15 @@ v2.1 按帧序重建无碍）。**用法**：压缩 → `vla_process_act.sh raw/
 JPEG 数组须复用源 dtype 写入。
 
 **修复：yaml 顶层命名空间 ≠ 节点名 → 整份参数被 rclpy 静默丢弃，推理长期按代码默认值跑**——
-`astral_policy_inference`。**症状**：真机连续 4 次测试（test1-4）"改了 yaml 参数（coeff/
+`morla_policy_inference`。**症状**：真机连续 4 次测试（test1-4）"改了 yaml 参数（coeff/
 tol/interp/jpeg）运动却不见对应变化"；本次 test4 实测指令流仍 30Hz（`control_interp: 2`
-未生效）、尖峰仍在。**根因**：yaml 顶层键是 `astral_policy_inference:`，而 launch 节点名是
+未生效）、尖峰仍在。**根因**：yaml 顶层键是 `morla_policy_inference:`，而 launch 节点名是
 `policy_node`——rclpy 按节点名匹配 `--params-file` 的段，键不匹配**整份参数被静默丢弃**
 （Humble 无单键回退），节点回落到 `_declare_params` 代码默认值：`control_interp=1`、
 `temporal_ensemble_coeff=0.0`、`chunk_anchor_tol=0.0`、`jpeg_transport=false`。即**此前所有
 真机测试的时序融合 / 切换平滑 / 60Hz 插值 / JPEG 全都没生效**（host/port、camera_image_size、
 metrics/joint_stream 日志因 launch 显式传参而侥幸正确）。对照 data_collect：其 yaml 顶层键
-= `data_collect` = 节点名，正确。**做法**：yaml 顶层键 `astral_policy_inference:` →
+= `data_collect` = 节点名，正确。**做法**：yaml 顶层键 `morla_policy_inference:` →
 `policy_node:`（+ 注释警示）；node 启动行扩展为**生效参数自报**（ctrl/coeff/anchor_tol/
 anchor_blend/prefetch/jpeg/backend/host:port），未来任何 launch 一眼可见实际参数、防复发。
 **验证**：launch 默认（不传 interp）→ `ctrl=60.0Hz coeff=0.01 anchor_tol=0.05 anchor_blend=4
@@ -814,7 +814,7 @@ prefetch=40 jpeg=True`（此前 interp=1/coeff=0/tol=0/jpeg=false）；launch �
 prefetch 40、interp 2、jpeg true）将**首次真正生效**——test4 声称的 coeff 0.05 / prefetch 25
 从未跑过，要测哪组用 launch 参数或改 yaml。
 
-**上行 JPEG 传输优化 `jpeg_transport`**——`astral_policy_inference`。**动机**：远程推理
+**上行 JPEG 传输优化 `jpeg_transport`**——`morla_policy_inference`。**动机**：远程推理
 RTT 主项是上行带宽×载荷（1.38MB 原始 RGB，WiFi ~106ms/直连 ~14ms），GPU 推理仅 ~8ms。
 **做法**：节点保持"解码→letterbox→RGB"不变（像素无改），`RemoteBackend` 在发送前把每个
 camera 槽位 `encode_jpeg`（quality 92）成字节 + 载荷加 `image_format="jpeg"`（新
@@ -831,7 +831,7 @@ ALL PASS + e2e `--check-server --jpeg` preflight PASS。benchmark/e2e 加 `--jpe
 e2e 补 `--jpeg`（此前 --check-server 不测 JPEG 路径）。
 
 **服务端推理分项进节点指标：engine `server_timing` 透传 + `[MET]` 行 `srv=`**——
-`astral_policy_inference`。**动机**：真机排障要拆"端到端 RTT（发送观测→收到 action）vs
+`morla_policy_inference`。**动机**：真机排障要拆"端到端 RTT（发送观测→收到 action）vs
 服务端推理"——此前 `last_plan_ms`（端到端，remote 实测 avg ~140ms）在 state/metrics 有记录，
 但服务端分项只存在 backend 内部、要单独跑 benchmark 才看得到。**做法**：引擎 `_run_plan`
 infer 后把 `backend.last_server_timing` 透传到 `engine.stats.server_timing`（serve.py 返回的
@@ -841,7 +841,7 @@ prep/pre/infer/post/total_ms）→ 进 `/policy_inference/state` + `metrics_log_
 README 指标口径（last_plan_ms=端到端、RTT−total=网络+序列化 ~130ms）与 CLAUDE.md 指标表同步。
 
 **换 chunk 切换平滑 `chunk_anchor_tol`——消除收敛拉回/模型突变切换尖峰**——
-`astral_policy_inference`。**症状**：temporal_ensemble 已开仍残留换 chunk 尖峰（真实
+`morla_policy_inference`。**症状**：temporal_ensemble 已开仍残留换 chunk 尖峰（真实
 pi_cmds 7 个 >0.1 rad 全在换 chunk 边界，多收敛拉回）。**根因**：时序融合只平滑"新旧
 预测"，不平滑"预测 vs 执行"——旧 command 开环 chunk 内漂移（重规划观测过时 ~130-160ms +
 预测漂移累积），重规划时新预测一步追向实测（收敛拉回，跳后新 chunk[i0]≈state）；初版"从
@@ -872,7 +872,7 @@ control_interp=1，801 行 / 26.8s 实测）发现 7 个 >0.1 rad 尖峰**全部
 `async_prefetch_ahead=40`（每 10 步更勤重规划，预测漂移积累更少）。
 
 **推理时间曲线诊断：joint_stream_log 同轴记录 state + `plot_inference_curves.py`**——
-`astral_policy_inference`。**需求**：真机推理时查看 state/action 时间曲线、state↔action
+`morla_policy_inference`。**需求**：真机推理时查看 state/action 时间曲线、state↔action
 错位时间、输出动作平滑度。**做法**：① 节点 `joint_stream_log_file` 每行指令值之外**同轴
 加记观测 state**（`_state_ok()` 只读取，layout 顺序），旧日志无 state 自动降级；
 ② 新 `scripts/plot_inference_curves.py`：读 jsonl 画 7 臂关节 state(蓝)vs command(红)
@@ -883,7 +883,7 @@ control_interp=1，801 行 / 26.8s 实测）发现 7 个 >0.1 rad 尖峰**全部
 套件 99 例全绿。**坑**：matplotlib DejaVu 无 CJK 字形，图内文本用 ASCII（终端输出可中文）。
 
 **web 推理模块白屏修复：engine.server_timing 嵌套对象进 React child + 顶层 ErrorBoundary**——
-`astral_web_monitor`（前端）。**症状**：web 启动推理节点 → 开始策略后界面白屏，刷新仍白屏。
+`morla_web_manager`（前端）。**症状**：web 启动推理节点 → 开始策略后界面白屏，刷新仍白屏。
 **根因**：推理节点一跑，WS 遥测里 `engine` 出现嵌套对象 `server_timing:{prep_ms,pre_ms,infer_ms,...}`，
 `InferenceCard` 引擎参数渲染 `<b>{v}</b>` 把对象直接当 React child——React 抛
 "Objects are not valid as a React child" → 整棵树卸载白屏；节点持续推遥测，每次加载都崩。
@@ -896,7 +896,7 @@ InferenceCard + 整棵 MonitorTab——修复前抛错、修复后正常且 serv
 [object Object] 泄漏；前端 `npm run build`（tsc+vite）通过；web_monitor pytest 11 例全绿。
 **部署**：机器人侧重建前端 dist（`cd web && npm run build`）后刷新页面即可，后端无改动。
 
-**launch 默认值反模式修复 + `control_interp` 透传（yaml 默认 1→2）**——`astral_policy_inference`。
+**launch 默认值反模式修复 + `control_interp` 透传（yaml 默认 1→2）**——`morla_policy_inference`。
 ① **launch host/port 默认值静默覆盖 yaml（bug）**：`host`/`port` 的 launch 默认值此前是
 `127.0.0.1`/`8000`，而 launch 无条件把整包参数 append——`ros2 launch` 部署时即使用户在 yaml
 改了 host/port，也会被 launch 默认值覆盖、连到 127.0.0.1:8000（data_collect 不变量 1 的反
@@ -909,14 +909,14 @@ py_compile；launch 语义回归——不传 host/port 时回落 yaml（无 127.
 
 ## 2026-09-11
 
-**融合频率参数化 `async_prefetch_ahead`**——`astral_policy_inference`。把"每多少步
+**融合频率参数化 `async_prefetch_ahead`**——`morla_policy_inference`。把"每多少步
 重规划并融合"从引擎硬编码默认（chunk//2=25）暴露为 yaml/launch 可配：`每
 (action_chunk − async_prefetch_ahead) 步融合一次`。默认 25（每 25 步）；yaml 当前设
 **40 = 每 10 步融合一次**（重规划 1.2→3Hz，观测更新鲜 + 重叠 40 行融合更充分，直连网线
 下无压力）。0 = 自动 (chunk//2)。仅 queue_async 生效。node/launch 透传 + 新增
 `test_async_prefetch_ahead_reaches_engine`，套件 98→**99 例**全绿。
 
-**推理移出引擎锁：消除换 chunk 指令空档 + 修正续播对齐**——`astral_policy_inference`。
+**推理移出引擎锁：消除换 chunk 指令空档 + 修正续播对齐**——`morla_policy_inference`。
 **症状**：真机推理时"固定时刻突然冲一下"（夹爪闭合上提、放完回程等，都恰逢换 chunk 重
 规划）。分析 `pi_cmds.jsonl`：6 个 >0.1 rad 的步长**每个都紧跟在 106~149ms 的指令空档
 之后**，且 plans 同时 +2——"先停着等 ~120ms、再冲过去追"。**根因**：`_run_plan` 锁跨
@@ -954,7 +954,7 @@ Quest3 → Astral 双臂 + Wuji 双手。从 `xnero_ws-main` 迁入。各包 REA
 时间均为北京时间。
 
 **web 监控 tab 新增「策略推理」模块（配置化泳道 + 按钮化键盘控制面）**——
-`astral_web_monitor` × `astral_policy_inference`。**动机**：用户要求——推理包实机测完但一直命令行
+`morla_web_manager` × `morla_policy_inference`。**动机**：用户要求——推理包实机测完但一直命令行
 启动（launch 参数 + 单独键盘节点），要在数采模块下方加一个推理模块：可配置 GPU 主机 IP/端口/图像
 尺寸/是否记录日志，用按钮实现键盘全部功能，UI 美观。**做法**：①`monitor_node` 加推理话题桥——
 发布 `/policy_inference/cmd`（String 动词，同 `policy_keyboard` 契约）+ `/task`（latched），订阅
@@ -973,12 +973,12 @@ exec_events/error/stale）。**对抗性审查修复**：推理泳道 launch 参
 （`[^A-Za-z0-9_.:\-]` 剔除，port/尺寸先 int 化），回归测试锁死。**验证**：新增 `test_infer_control.py`
 **11 例全绿**（launch 参数默认/覆盖/int 化、注入清洗无 shell 元字符残留、cmd 白名单全动词+playback
 带源+垃圾拒绝）；web_monitor 套件全绿；前端 `npm run build`（tsc+vite，50 模块）通过；后端
-py_compile 通过。**待办（机器人侧）**：同步构建 `astral_web_monitor` + 前端 dist 后实机冒烟——
+py_compile 通过。**待办（机器人侧）**：同步构建 `morla_web_manager` + 前端 dist 后实机冒烟——
 配置 host/尺寸 → 启动推理节点 → 按钮发 policy/pause/stop → state 实时刷新、日志文件落盘。
 
 ## 2026-09-10
 
-**节点关节指令流自动记录 `joint_stream_log_file`**——`astral_policy_inference`。
+**节点关节指令流自动记录 `joint_stream_log_file`**——`morla_policy_inference`。
 **症状**：排障真机卡顿需要实际的关节指令流（30Hz 步长/节奏），但 metrics_log_file 只记
 state 高层指标，不含指令值；`ros2 topic echo` 又因 BEST_EFFORT depth=1 需手加 QoS flag 且
 输出 YAML 难解析。**做法**：节点新增参数 `joint_stream_log_file`（默认空=关闭）：非空时每次
@@ -988,7 +988,7 @@ state 高层指标，不含指令值；`ros2 topic echo` 又因 BEST_EFFORT dept
 7 维浮点行），套件 94→**95 例**全绿。**用途**：`joint_stream_log_file:=/tmp/pi_cmds.jsonl`
 后可直接分析"每 25 行（0.83s）边界步长是否偏大、指令到达间隔是否均匀"。
 
-**引擎级 ACT 时序融合 `temporal_ensemble_coeff`**——`astral_policy_inference`。
+**引擎级 ACT 时序融合 `temporal_ensemble_coeff`**——`morla_policy_inference`。
 **症状**：真机 POLICY 一卡一卡（换 chunk 时指令硬跳）。已排除网络（直连网线后延迟
 116→21ms 卡顿依旧）、GPU 争用、数据抖动、夹爪 clip（实测模型输出仅越界 ≤0.008）。
 **做法**：借鉴 lerobot `ACTTemporalEnsembler`（ACT 论文 Algorithm 2：重规划的新 chunk 与
@@ -1009,7 +1009,7 @@ launch 全链路透传，`reset()` 清融合计数。**验证**：新增 2 例�
 `engine.reset()` 的 `ensembler.reset()` 原在锁外，与 planner 线程锁内的 `_install` 改计数
 竞态——移入锁内。套件 93→**94 例**全绿。
 
-**GPU 主机 serve 启动脚本 `serve_policy.sh`**——`astral_ws/scripts/`。包装
+**GPU 主机 serve 启动脚本 `serve_policy.sh`**——`MORLA/scripts/`。包装
 `serve.py` 为可运维入口：参数**外置**在 `serve_policy.env`（PY/MODEL/CHECKPOINT_DIR/HOST/
 PORT/ACTION_DIM/SLOT_MAP/...），改参不动脚本；CLI 可临时覆盖（`--port`/`--config`）。**启动前
 两道冲突检查**：① pidfile 认"是否本脚本旧实例"（是→默认拒绝、`--force` 优雅停旧再起新）；
@@ -1019,7 +1019,7 @@ PORT/ACTION_DIM/SLOT_MAP/...），改参不动脚本；CLI 可临时覆盖（`--
 JSON——`${SLOT_MAP:-'{"a":...}'}` 解析时词内 `}` 被当闭合符，**变量已设也被尾部 `"}` 污染**
 （实测 54→56 字符、serve 报 JSON Extra data）；默认值改用 `:?` 必填，注释已写明。
 
-**节点指标自动记录 `metrics_log_file`**——`astral_policy_inference`。**症状**：真机推理想
+**节点指标自动记录 `metrics_log_file`**——`morla_policy_inference`。**症状**：真机推理想
 看延迟/引擎指标（`latency_ms.loop/obs_age`、engine pops/plans/plan_ms/remaining、
 exec_events），只能手动 `ros2 topic echo /policy_inference/state > file`，且 echo 输出是
 YAML 非 JSON 行、传感器话题还常因 QoS 不匹配收到 0 条。**做法**：节点新增参数
@@ -1070,10 +1070,10 @@ payload）；`serve.py --model act` + RemoteBackend(自包含 client) 真实 ACT
 `config/robot_session.yaml` + `tests/test_hw_io.py`/`tests/test_session.py`（共 9 文件），
 并清 CLAUDE.md/README 的非 ROS 章节。包回到纯 ROS 侧结构（node/keyboard/backend/engine/
 executor/controller/replay/robot_io + scripts/serve_act.py）。`s` 键盘问题（launch 子进程
-stdin=/dev/null）按「单独终端 `ros2 run astral_policy_inference policy_keyboard`」解决。
+stdin=/dev/null）按「单独终端 `ros2 run morla_policy_inference policy_keyboard`」解决。
 
 **真机推理"policy blocked: missing left_gripper_ratio"修复——夹爪状态三级种子**——
-`astral_policy_inference`。**症状**：机器人侧纯 POLICY 部署（无遥操在发）按 policy 直接被拒
+`morla_policy_inference`。**症状**：机器人侧纯 POLICY 部署（无遥操在发）按 policy 直接被拒
 `incomplete obs, missing=['left_gripper_ratio']`。**根因**：夹爪观测订 `/left_gripper/command`
 （命令回显约定），节点对 ratio 有两级种子（收到过命令 / 自己发过命令），但**首次进 POLICY 时
 两者皆空**（teleop 不在 → 无人发命令；节点还没输出过动作）→ 鸡蛋问题死锁。**做法**：加第三级
@@ -1095,7 +1095,7 @@ policy_node 侧换算链路（open_rad→ratio 0.0）由 node_flow 的 driver �
 driver 与 policy_inference 两个包都要同步 + colcon build。
 
 
-**新增 `astral_policy_inference` 非 ROS 真机推理 Session（`hw_io.py` + `session.py` +
+**新增 `morla_policy_inference` 非 ROS 真机推理 Session（`hw_io.py` + `session.py` +
 `scripts/robot_session_cli.py` + `config/robot_session.yaml`）——脱离 ROS2 完成完整真机推理 Session。**
 **动机**：`runner.py` 已是纯线程的非 ROS 完整编排（FSM/引擎/安全层/回放/HITL），但输入输出没接
 真实硬件——`runner_demo.py` 只喂合成观测、把动作丢进列表，无法实机使用。**做法**：新增三层 I/O
@@ -1121,7 +1121,7 @@ RobotSession 编排/HITL、config 解析）。**部署注意**：真机参数（
 Jetson 侧需装 `astral_robot_sdk`（act 进程内还要 + pyrealsense2 + lerobot env）；`camera_map`
 与 ACT 图像键就是 `observation.images.video8/video0`（`make_backend` label→label 路径正确）。
 
-**修复 `astral_policy_inference` ACT 后端加载真实 checkpoint 的 bug + 本机全链路验证**——
+**修复 `morla_policy_inference` ACT 后端加载真实 checkpoint 的 bug + 本机全链路验证**——
 `LerobotActBackend.open()` 原用 `PreTrainedPolicy.from_pretrained()` 直接加载，但 lerobot 0.6.2
 （`/home/robot/loopkok/lerobot` 与 `VLA/lerobot` 两个 checkout 行为一致）里 `PreTrainedPolicy`
 是**抽象基类**，直接调用必挂 `Can't instantiate abstract class`。**根因**：正确用法是经
@@ -1161,13 +1161,13 @@ camera_image_size=480）+ 合成关节/夹爪/480² 图像驱动，**真实 ACT 
 2.11.0+cu130 + torchvision 0.26.0 装入 ros2 conda env（与训练 env 同版本，满足 lerobot `<2.12`
 约束）；ros2 env 里 pip 强装的 lerobot 因 py3.10 无法解析已卸载。**部署模型**：ACT = serve_act
 进程（py3.12, GPU 主机）+ 节点（py3.10, 机器人侧）远程连；pi0.5 走原 openpi server 同理。
-**验证脚本收拢进仓库**（原 /tmp 脚本会丢）：`astral_ws/scripts/run_act_integration.py`
+**验证脚本收拢进仓库**（原 /tmp 脚本会丢）：`MORLA/scripts/run_act_integration.py`
 （模型侧：后端 get_policy_class 加载 + 推理 + 引擎分块/队列/reset，py3.12 环境跑）与
-`astral_ws/scripts/run_act_e2e.py`（节点侧全链路 + `--check-server` 预检，py3.10 + ROS 跑），
+`MORLA/scripts/run_act_e2e.py`（节点侧全链路 + `--check-server` 预检，py3.10 + ROS 跑），
 均已实测 ALL PASS；包 CLAUDE.md/README、顶层 README、根 CLAUDE.md 均补交接文档。
 
 **完整端到端 + 推理正确性 + 远程链路指标（真实数据集 + 真实模型，本机 4090D）**。新增
-`astral_ws/scripts/run_act_correctness.py`（正确性）与 `run_act_benchmark.py`（链路基准）。
+`MORLA/scripts/run_act_correctness.py`（正确性）与 `run_act_benchmark.py`（链路基准）。
 **正确性方法**：从 `astral_data/act/pick up and place_480` 读真实 episode（observation.state +
 video8/video0 视频帧，用 PyAV seek 按需解码，**禁止整段解码——单文件含全部 50 段 ~1 万帧 ≈15GB/相机，
 全量解码会 OOM 卡死**，已踩过），喂训练好的 checkpoint 对比录制的 next-state 动作。
@@ -1196,7 +1196,7 @@ B 与 A 残留差 0.1156（新推理）。② **launch 不透传 `camera_image_s
 queue_sync 才是 **29.6Hz**——launch 补 `engine_mode` 透传，文档/yaml 明示 ACT 用 queue_sync。
 ④ **console script 进 `bin/` 而非 `lib/<pkg>/`**：缺 `setup.cfg`，`ros2 run`/`ros2 launch`
 找不到可执行文件（README 里早有的 "No executable found" 坑根因）——补 setup.cfg
-（`[install] install_scripts=$base/lib/<pkg>`，与 astral_data_collect 一致），launch 部署验证
+（`[install] install_scripts=$base/lib/<pkg>`，与 morla_data_collect 一致），launch 部署验证
 通过。⑤ **openpi_client 需手动 PYTHONPATH**：`pip install --user -e openpi-client --no-deps`
 （其 numpy<2 约束过旧，numpy 2.2.6 实测兼容）免 PYTHONPATH。另：backend.py 的
 "lerobot not importable" 错误改提示 serve_act 路径（py3.10 跑进程内 ACT 的运行时护栏）；
@@ -1284,7 +1284,7 @@ stop；stub 后端（任意 python，无模型）同样全 PASS。**对抗性审
 ## 2026-09-07
 
 **左手柄 X 键「段间回位」+ web 数采卡片同功能按钮（episode 间免手摆放物品）**——
-`astral_teleop`（新 `controller_workpos_gate` 闸门）× `astral_web_monitor`（数采卡片按钮）×
+`morla_bringup`（新 `controller_workpos_gate` 闸门）× `morla_web_manager`（数采卡片按钮）×
 `astral_mujoco_sim`（sim launch 同启）。**动机**：单人数采的段与段之间，人要离开手柄去重新摆放
 物品——需要一只手柄按键"停止跟随 VR 并回到工作位"；web 侧同功能按钮方便不戴头盔时操作。
 **做法**：①新闸门节点镜像 `controller_start_gate`（grip→start）对称——左手柄 X（primary,
@@ -1303,27 +1303,27 @@ init。②depth=1 BEST_EFFORT 订阅连发不消费时中间跃迁被最新帧�
 （intra 快路径 + DDS 环回各一，~6ms 间隔）——纯测试环境怪癖，非生产缺陷（跨进程单收）。
 **验证**：纯逻辑 pytest 10 例 + 节点集成 6 例（rclpy，本机 ROS humble 实测**16/16 全绿 ×2 连跑**；
 节点测试用独立 client 捕获节点 + 直接驱动 `_on_joy`（回调内发布会双投，主线程调用单投，确定性），
-含 disarm 先于 init 的时序断言、连按取消待发 init）；`colcon build astral_teleop` 后**跨进程
+含 disarm 先于 init 的时序断言、连按取消待发 init）；`colcon build morla_bringup` 后**跨进程
 DDS 冒烟 ×3 稳定 PASS**（子进程精确 PID 启停，零残留）——独立闸门进程 + rclpy 客户端：
 IDLE+X → disarm×1+init×1（0.1s 间隔）、RECORDING+X → 忽略并节流 WARN；前端 `npm run build`
 （tsc+vite）通过；smoke_test.sh 加 workpos 端点探测（遥操停止时 409 非 404）。**待办（机器人
 侧）**：实机冒烟——按 X 回位 → 再 grip 重标定开始下一段；录制中按 X 确认被忽略。
 
-**遥操完整启动命令 + 操作步骤文档化并全树同步**——`astral_teleop/README.md`（主）× 顶层
-`CLAUDE.md`（采集→训练速查）× `astral_web_monitor/README.md` × `astral_data_collect/CLAUDE.md`。
+**遥操完整启动命令 + 操作步骤文档化并全树同步**——`morla_bringup/README.md`（主）× 顶层
+`CLAUDE.md`（采集→训练速查）× `morla_web_manager/README.md` × `morla_data_collect/CLAUDE.md`。
 **动机**：用户要求把"完整遥操启动（web + CLI 两条路径）与遥操步骤"写成文档，一处权威、各处引用。
-**做法**：①`astral_teleop/README.md` 新增「完整遥操启动（web/CLI）」+「遥操操作步骤（数采 episode
+**做法**：①`morla_bringup/README.md` 新增「完整遥操启动（web/CLI）」+「遥操操作步骤（数采 episode
 循环）」两节——web 路径（起监控 → 预设启动 → 数采卡片启节点/设目录/任务 → 工作位）、CLI 路径
 （单左臂/双臂/双夹爪/仿真/数采五条命令）、七步 episode 循环表（grip→A→任务→B→X→摆物→grip）、
 键位速查（VR/web/键盘/CLI 四端等价）、顺序要求（先 grip 再 A 防 W5；B 后等 IDLE 再 X；回位完再
 grip）、安全收尾（急停/暂停/HOME）；②顶层 `CLAUDE.md` 采集→训练速查加遥操启动两条路径 + episode
-循环摘要；③`astral_web_monitor/README.md` 启动节后加「完整数采流程」指引；④`astral_data_collect/
+循环摘要；③`morla_web_manager/README.md` 启动节后加「完整数采流程」指引；④`morla_data_collect/
 CLAUDE.md` 新增「数采完整流程」节（含 X 与数据的关系：`_accepting` 门控 + `dq.clear` + 录制拦截
 三保险）。**验证**：文档与代码契约逐条核对（命令与 presets.yaml/launch 参数一致、键位与
 vr_collect_logic/controller_start_gate/workpos_gate 一致）；无代码改动，无需跑测试。
 
 **段间回位改直达（X / 数采卡片「段间回位」不经途径点）+ 工作位保持途经点**——
-`astral_arm_teleop` × `astral_teleop` × `astral_web_monitor`。**动机**：真机测试后用户要求——
+`astral_arm_teleop` × `morla_bringup` × `morla_web_manager`。**动机**：真机测试后用户要求——
 段间回位（左 X / 数采卡片）现在先回 init_waypoints 再到 init_pose，改为**直接**关节空间直线
 插补回工作位（不经途经点）；而系统 tab「工作位」按钮保持途经点路径。**做法**：①臂节点新增
 `/teleop/init_direct` 订阅 + `~/init_direct` 服务，`_go_init(direct=True)` 时 `_homing_path` 仅
@@ -1335,13 +1335,13 @@ vr_collect_logic/controller_start_gate/workpos_gate 一致）；无代码改动�
 `TOPIC_INIT_DIRECT`、`monitor_node` 加 `publish_init_direct`、client.ts 加 `teleopWorkposDirect`。
 **验证**：新增臂节点级测试 `test_arm_teleop_node_init.py` **7/7 全绿**（直达路径=1 点=init_pose、
 途经点路径=途经点+init_pose=2 点、回调触发、level guard、homing 中拒绝、只读参数 init_waypoints
-经 `rclpy.init(args)` 构造期注入）；astral_teleop **16/16**（闸门节点测试改订 `/teleop/init_direct`）；
+经 `rclpy.init(args)` 构造期注入）；morla_bringup **16/16**（闸门节点测试改订 `/teleop/init_direct`）；
 跨进程 DDS 冒烟 **×3 PASS**（IDLE+X → disarm×1 + init_direct×1；RECORDING+X → 忽略；零残留）；
-前端 tsc+vite build 通过；`colcon build astral_teleop astral_arm_teleop` 后冒烟。**待办（机器人
+前端 tsc+vite build 通过；`colcon build morla_bringup astral_arm_teleop` 后冒烟。**待办（机器人
 侧）**：同步构建三包后实机冒烟——X 直达回位、工作位途经点回位、录制中按 X 忽略。
 
 **数采卡片「本次采集数据」实时下拉窗口（实时看采了多少、在哪个文件夹）**——
-`astral_data_collect` × `astral_web_monitor`。**动机**：用户要求——设定目录/任务旁加一个可实时
+`morla_data_collect` × `morla_web_manager`。**动机**：用户要求——设定目录/任务旁加一个可实时
 查看本次采集数据量的下拉窗口，实时看"采了多少数据、在哪个文件夹采的"。**做法**：①采集节点
 `/data_collect/state`（1Hz 定时器 + 控制事件即时补发）新增 5 字段——`folder`（完整目录路径
 `save_root/session`）、`episode_counts`/`camera_counts`（**当前段已写精确样本数/每相机帧数**，
@@ -1353,12 +1353,12 @@ vr_collect_logic/controller_start_gate/workpos_gate 一致）；无代码改动�
 `test_node_guards.py` 29→**30 例全绿**（新用例覆盖：IDLE 空计数、录制中精确样本/帧数、磁盘占用
 >0、session 累计=当前段、切 session 后 folder 变 + 累计归零）；data_collect 节点套件 30/30；
 前端 `npm run build`（tsc+vite）通过；py_compile 通过。**待办（机器人侧）**：同步构建
-`astral_data_collect` + 前端 dist 后实机冒烟——录制中下拉实时增长、文件夹路径正确。
+`morla_data_collect` + 前端 dist 后实机冒烟——录制中下拉实时增长、文件夹路径正确。
 
 ## 2026-09-04
 
 **AV1 并行度可配：`ASTRAL_AV1_LP` 环境变量（默认 2 保内存红线，20 核机可放开）**——
-`astral_data_collect`。**动机**：用户问"为什么转换这么慢"——实测 20 核机器只用了 2 核
+`morla_data_collect`。**动机**：用户问"为什么转换这么慢"——实测 20 核机器只用了 2 核
 （SVT `Level of Parallelism: 2`，内存红线），AV1-224 ≈78 帧/秒、720 ≈8 帧/秒；要求针对本机
 放开核数。**做法**：`encode_video` 的 `lp=` 从硬编码改为 `_svt_av1_params()` 读
 `ASTRAL_AV1_LP`（默认 2；非法值回退 2；>2 时 stderr 提示 ~0.6GB/lp 峰值内存），
@@ -1369,7 +1369,7 @@ vr_collect_logic/controller_start_gate/workpos_gate 一致）；无代码改动�
 要 lp=8 需先关 IDE/opencode。
 
 **convert_to_act 分辨率选项化：224/480/720/原生（0）+ 原生同 shape 预检**——
-`astral_data_collect` × `scripts/vla_process_act.sh`。**动机**：用户要求 ACT 转换输出分辨率可
+`morla_data_collect` × `scripts/vla_process_act.sh`。**动机**：用户要求 ACT 转换输出分辨率可
 选（224/480/720/原生）。机制本已存在（`--image-size` 任意整数、0=原生），真正的坑是**原生模式下
 各相机分辨率不同**（video8=1080p、video0=720p）会破坏 ACT 的"全部相机同 shape"要求，此前要到结构
 自检才报通用错。**做法**：①`convert_to_act` 新增 `_probe_native_shapes`——原生模式（image_size=0）
@@ -1381,7 +1381,7 @@ issue + 产物视频实测 480×480）；`bash -n` 通过；README §5b 补分�
 + conda lerobot 深度自检后台运行中（5 段 2 相机）。
 
 **数据目录三文件夹重组（raw/ pi/ act/）+ 剔除 video2 + 清理旧转换产物**——
-`astral_data` × `astral_data_collect` × `scripts/`。**动机**：用户要求——不要 video2（原生+转换都
+`astral_data` × `morla_data_collect` × `scripts/`。**动机**：用户要求——不要 video2（原生+转换都
 不要）、删掉之前几次转换产物、统一到 astral_data 下建 原始/pi/act 三个文件夹、后续按 session 各进各的。
 **做法**：①5 段 raw（061-065）剔除 `camera_data.h5` 的 video2 组 + meta.json schema.cameras 同步为
 [video8,video0] + 删旧 3 相机 aligned_data.h5（对齐按新 schema 重建）；②删除全部旧转换产物
@@ -1408,7 +1408,7 @@ openpi 和 ACT 分开，转换后的文件夹也分开"。**做法**：删掉合
 act → `default_task_act`（v3，conda lerobot 深度自检 `OK episodes=5 frames=1391`）全绿。
 
 **convert_to_act 增 `--v21-root` 快速入口 + vla_process_session.sh 的 --act-output 改走 convert_to_act**——
-`astral_data_collect` × `scripts/vla_process_session.sh`。**动机**：用户问"keep-v21 中间产物是什么、
+`morla_data_collect` × `scripts/vla_process_session.sh`。**动机**：用户问"keep-v21 中间产物是什么、
 与 openpi 转换什么关系、脚本同步改"——明确 openpi/ACT 共享 raw→v2.1 中间层：openpi 直接消费 v2.1，
 ACT 在 v2.1 之上升版 v3 + 自检。**做法**：①`convert_to_act` 输入改为 `--session`/`--v21-root` 二选一
 （`--v21-root` 跳过对齐/重编码，直接升版+自检，秒级）；②`vla_process_session.sh` 的 `--act-output` 从
@@ -1420,7 +1420,7 @@ ACT 在 v2.1 之上升版 v3 + 自检。**做法**：①`convert_to_act` 输入�
 `bash -n` 语法通过。
 
 **新增 ACT 专属转换 `convert_to_act.py`：raw 会话目录 → 官方 lerobot ACT 可训数据集（内置两级自检）**——
-`astral_data_collect`。**动机**：用户要求"转 ACT 不要写通用 v3 升版，要专门的 ACT 转换，且保证无缝接
+`morla_data_collect`。**动机**：用户要求"转 ACT 不要写通用 v3 升版，要专门的 ACT 转换，且保证无缝接
 官方 lerobot ACT 训练"。**前提澄清**：官方 `lerobot-train --policy.type=act` 的输入格式就是 LeRobot
 v3（无独立于 v3 的 ACT 专用格式），所以"专属"体现在**硬保证 + 自检**而非新格式。**做法**：新模块
 `convert_to_act.py`——输入 raw session（含 episode*），内部复用 align_data → convert_to_lerobot(v2.1,
@@ -1436,7 +1436,7 @@ lerobot 深度自检输出 `OK episodes=5 frames=1391 cams=[video0,video2,video8
 预处理管线构建成功，即"无缝衔接官方 ACT"的实测证明。
 
 **数采 web 端可运行期切换录制目录（session）——换目录不再重启节点**——
-`astral_data_collect` × `astral_web_monitor`。**动机**：web 泳道 launch 把
+`morla_data_collect` × `morla_web_manager`。**动机**：web 泳道 launch 把
 `session:=default_task` 写死，所有段都进 `~/astral_data/default_task/`——用户按 A 录完
 几段后在自己的 `~` 下"找不到数据集"（其实都在 default_task 里），换目录只能改 launch
 重启节点（pending task 也丢）。**做法**：① 节点新增 latched 话题 `/data_collect/session`
@@ -1451,10 +1451,10 @@ lerobot 深度自检输出 `OK episodes=5 frames=1391 cams=[video0,video2,video8
 切换后段落新 session 目录（段号独立从 000000 起）且 meta.json 带 session、录制中切换
 与 6 种非法名（a/b、a\b、..、空、.hidden、65 字符）被拒且计入 ignored、IDLE 再切成功；
 `npm run build`（tsc+vite）通过 dist 重建；后端 py_compile 通过。机器人侧需同步
-`astral_data_collect`（节点话题）与 web dist。
+`morla_data_collect`（节点话题）与 web dist。
 
 **工作位/HOME 后夹爪无响应——latched disarm 把 pinch 仲裁门关死，「开始遥操」补发 /teleop/armed 开门**——
-`astral_web_monitor` × `astral_teleop`。**症状**：no-right-arm 预设 → 点工作位 → 开始遥操，
+`morla_web_manager` × `morla_bringup`。**症状**：no-right-arm 预设 → 点工作位 → 开始遥操，
 手柄对夹爪无响应（此前正常）。**根因**：工作位/HOME 流程发 **latched** `/teleop/disarm`
 （门控语义），pinch 仲裁门只认 `/teleop/armed=true` 重开；而「开始遥操」（web 按钮 / 左手
 gripClick 闸门）只发 `/teleop/start`，从不发 armed——点过工作位后门永久关死。**做法**：
@@ -1476,14 +1476,14 @@ armed，无害）；② `controller_start_gate`（gripClick 入口）同步一�
 只发右、双侧新鲜仍 move_arm_js 双发、无新鲜零下发。README 话题契约补"缺侧不补零"。
 
 **fix：monitor 节点补 import `TOPIC_INIT`——上条「工作位」条目遗留的启动 NameError**——
-`astral_web_monitor`。**症状**：monitor_node `__init__` 里 `create_publisher(Bool,
+`morla_web_manager`。**症状**：monitor_node `__init__` 里 `create_publisher(Bool,
 TOPIC_INIT, ...)` 引用的常量未在 import 区导入（上条改动只加了 config 定义与
 `publish_init` 调用，import 列表漏 `TOPIC_INIT`），monitor 节点启动即抛
 `NameError: name 'TOPIC_INIT' is not defined`，web 整体不可用。**做法**：import 区补
 `TOPIC_INIT`（config.py 中已定义，无其他缺失）。**验证**：模块可导入（rclpy 环境）。
 
 **web「工作位」按钮：启动不再自动归位，回初始位改手动触发**——`astral_arm_teleop` ×
-`astral_web_monitor`。**动机**：web 启动会拉起节点并自动走 init_waypoints → init_pose，
+`morla_web_manager`。**动机**：web 启动会拉起节点并自动走 init_waypoints → init_pose，
 机器人动不动不该由"启动栈"决定，且操作员常要先把臂摆开/上电再决定回位时机；改为启动只
 拉节点、回工作位由按钮显式触发。**做法**：① 节点新增 `_go_init()`（与 `_go_home` 对称：
 disarm → init_waypoints **正序** → init_pose，启动同款 init 轨迹机，不加 park 门控），
@@ -1498,7 +1498,7 @@ dist。**验证**：`test_home_park.py` 16→**21 例**全绿（新增 _go_init 
 busy 拒绝、init arrived 置位/超时与 park 不置位、start 不在工作位时重锚+告警、在工作位时
 不重锚）；reanchor 5 例全绿（共享 helper 重构回归）；web monitor 4 例、py_compile 通过。
 README（arm_teleop 工作位节 + web REST/话题表）与 CHANGELOG 同步。机器人侧需重新
-colcon build（astral_arm_teleop + astral_web_monitor）。
+colcon build（astral_arm_teleop + morla_web_manager）。
 
 **HOME/启动途经点调整：init_waypoints 改远摆位 [-1.6, ±0.2, 0, -1.92, ∓0.2, 0, 0]**——
 `astral_arm_teleop` 配置。**动机**：HOME 收回时臂到途经点的摆臂动作不明显（原途经点
@@ -1540,7 +1540,7 @@ settle 不推进、中途离开 tol 清零重计、实测流缺失按命令驻�
 0.02 s(1 拍)→**0.52-0.68 s**（τ=0.05-0.35 s 全档）；reanchor 5 例全绿。左右 yaml 补
 `homing_via_settle_s`，README 同步。机器人侧重新 colcon build 生效。
 
-**数采卡片加「动态状态提示行 + 操作键位/门控小抄」**——`astral_web_monitor` 前端。
+**数采卡片加「动态状态提示行 + 操作键位/门控小抄」**——`morla_web_manager` 前端。
 **动机**：卡片此前只给按钮不给"当前状态能做什么/为什么按键没反应"的语境——VR 摇杆按下=丢弃
 （删文件不可逆）等门控语义只写在 README，操作者在 IDLE 下误按摇杆、SAVING 期按 A 只会看到
 "没反应"。**做法**：①按钮行下方动态提示行（online 显示，按 state 出文案）——IDLE：可开始、
@@ -1550,7 +1550,7 @@ settle 不推进、中途离开 tol 清零重计、实测流缺失按命令驻�
 s/q/d/n/p/t 的键位与各自合法状态、门控忽略语义、"要确认弹窗的破坏性操作用卡片按钮"。
 **验证**：`npm run build`（tsc+vite）通过，dist 重建（index-Dxq7FFA1.js）。
 
-**VR 采集控制改键：A=开始 / B=停止保存 / 摇杆按下=丢弃**——`astral_data_collect`。
+**VR 采集控制改键：A=开始 / B=停止保存 / 摇杆按下=丢弃**——`morla_data_collect`。
 上一版键位（摇杆=start / A=next）实机试用手感不合，用户改配：**A 键(IDLE) → start；
 B 键(录制中) → stop&save；摇杆按下(录制中) → discard**（删除当前段并回 IDLE，语义同
 键盘 `d`）。上升沿 + 状态门控机制不变（同帧多键：低号键优先、非法跳过）；`discard` 是
@@ -1580,7 +1580,7 @@ pim_ik→teleop 依赖不可反向），成功同步连续性 state 保证回退
 `--no_split` 整段评估）跑通。**硬模式是录制前提**：执行的 q 的臂角 == 喂入的 ψ_human，故训练
 标签零额外录制流。真机 runbook 见 pim_ik `CLAUDE.md` §7.1。机器人侧需重新 colcon build 生效。
 
-**VR 采集控制：右手柄 摇杆按下=开始 / A=下一段 / B=停止保存**——`astral_data_collect`。
+**VR 采集控制：右手柄 摇杆按下=开始 / A=下一段 / B=停止保存**——`morla_data_collect`。
 **动机**：单人采集时双手都在遥操，录段控制（开始/分段/停止）要伸手去键盘或 web，打断操作
 节奏。**做法**：新增 `vr_collect_logic.py`（纯决策：上升沿 + 状态门控，无 ROS 可离线单测）
 + `vr_collect_control.py` 节点——订 `quest3/right_controller_joy`（mocap 已发布，
@@ -1635,8 +1635,8 @@ test_deterministic_solver 新增用例 8/8。**F2 关闭**：torch/numpy 肘点�
 **训练闭环实测**（lerobot/4090D，时间相干轨迹 20k 帧/40 ep）：ψ err 27.1°（median 19°）、
 Joint MAE 10.0°、solve 率 74%、位姿 <0.06 mm；oracle（真值 ψ）100% solve——stage-2 几何 IK 精确，
 残差为合成数据宽肘先验的信息瓶颈，真机遥操录制是生产路径。5k 帧 seed 对照 ψ err 15.2°（方差来自
-小 val 集）。**包布局修复**：`package.xml`/`setup.py` 原埋在 `src/astral_pim_ik/src/astral_pim_ik/`
-（多一层 src），上移到包根 `src/astral_pim_ik/`——与其余 20 包一致，colcon 可发现，PYTHONPATH 与
+小 val 集）。**包布局修复**：`package.xml`/`setup.py` 原埋在 `src/robots/astral/astral_pim_ik/src/robots/astral/astral_pim_ik/`
+（多一层 src），上移到包根 `src/robots/astral/astral_pim_ik/`——与其余 20 包一致，colcon 可发现，PYTHONPATH 与
 文档对上了。**验证**：test_network 4/4、test_deterministic_solver 8/8、test_dataset 3/3、
 test_pipeline 2/2、test_geometric_ik 10/10（回归）；全部实测数字见包 `CLAUDE.md` §5.1 与
 `docs/adversarial_review.md`（F9/F10/F11 三条新发现）。
@@ -1667,7 +1667,7 @@ SDK `one_click_ready` 签名向后兼容（旧调用不带参行为不变）。
 同步为当前值。
 
 **数采"坏段默认隔离 + 空录/吞指令在线告警"——堵坏数据进训练集的通路**——
-`astral_data_collect` × `astral_web_monitor` × `scripts/vla_process_session.sh`。
+`morla_data_collect` × `morla_web_manager` × `scripts/vla_process_session.sh`。
 **动机**：对抗性审查 start→stop→start→stop 边界时序（逐拍验证端头/端尾/接缝均干净：
 尾部先 drain 后 close 不丢帧、头部清缓冲+门控不收旧数据、缝内帧按段独立对齐零伪影），
 真正毒化通路在别处——①一条龙 validate **默认不隔离** fail 段（align 的 too-short 阈值
@@ -1709,7 +1709,7 @@ web 新 dist 需同步部署机。
 `homing_track_state` 语义说明同步。
 
 **阻尼/归零/一键就绪"陈旧命令流抢占"修复**——`astral_robot_control` × `astral_arm_teleop`
-× `astral_web_monitor`。**现象**：启动后点「阻尼释放」正常，手动拖臂后再点「一键就绪」，
+× `morla_web_manager`。**现象**：启动后点「阻尼释放」正常，手动拖臂后再点「一键就绪」，
 臂直接回到**阻尼释放前的位姿**；阻尼释放后点「归零」**无效**。**根因**（非重复使能）：
 ① 阻尼 = 板端 motion_mode=0，位置指令被忽略——`~/home` 只发一次性 `set_all_joints_zero`，
 在阻尼态静默无效；② 归零/一键就绪只是**一次性目标**，而 100Hz 控制定时器在
@@ -1727,7 +1727,7 @@ disarm 取消进行中的 homing/park**（`_on_disarm` 中 `_homing=False`，否
 进行中 homing）；reanchor 5 例、web monitor 4 例全绿；前端提示同步并重编 dist。
 
 **HOME 使能修复：~/enable 幂等化 + 板端在线即算下发成功**——`astral_robot_control` ×
-`astral_web_monitor`。**现象**：启动正常到设定位置（电机已使能）后点 web **HOME**，报
+`morla_web_manager`。**现象**：启动正常到设定位置（电机已使能）后点 web **HOME**，报
 "电机未使能"、HOME 不下发。**根因**：HOME 端点先调 driver `~/enable`，而 SDK `enable()`
 靠轮询板端 obs 帧的 `robot_powered` 位确认——该位在此板子常不置位（SDK demo 同款
 "enable 未确认仍继续"）；auto_ready/一键就绪已使能后再 enable = **重复使能 + 确认位失灵**
@@ -1739,7 +1739,7 @@ disarm 取消进行中的 homing/park**（`_on_disarm` 中 `_homing=False`，否
 **验证**：新增 `test_driver_services.py` 7 例全绿（已上电零下发/阻尼补位置/确认 OK/在线未确认
 =成功/离线=失败/dry_run/未连接），arm home-park 回归 12 例、web monitor 4 例全绿。
 
-**web 启动流程回退（急停恢复方案收敛到 HOME 按钮）**——`astral_web_monitor` ×
+**web 启动流程回退（急停恢复方案收敛到 HOME 按钮）**——`morla_web_manager` ×
     `astral_arm_teleop`。**现象**：上一条「启动/重启自动调 `~/enable` + 启动归位贴实测」实机
 验证无效——web「停止→启动」后直接 **503 service** 且臂不动。**根因**：① `/start` `/restart`
 在 launch 起来后同步等 `~/enable` 确认（12s 预算），driver 尚未 ready 时超时抛 503——启动本应
@@ -1763,7 +1763,7 @@ holds_until_robot_moves`（park 模式下实测不动 q_cmd 不空跑，50 tick 
 （`lpf_enable:false` = 全直通）。三处 yaml（左右臂 + `astral_robot.yaml`）同步。
 
 **web 急停后恢复不归位修复 + HOME（归位到零）按钮**——`astral_robot_control` ×
-`astral_arm_teleop` × `astral_web_monitor`。**现象**：web 端急停（真断电 disable）→ 停止 →
+`astral_arm_teleop` × `morla_web_manager`。**现象**：web 端急停（真断电 disable）→ 停止 →
 再启动，机器人不回零，直接锁在当前位置。**原因**：急停后电机失能；重启时 driver `auto_ready`
 的 one_click_ready 未可靠确认上电，且启动仅起节点、无"使能=遥操版一键就绪"步骤，臂节点的
 归位轨迹在电机失能期"内部空跑"领先实体。**做法**：① driver 新增 `~/enable` Trigger 服务
@@ -1784,11 +1784,11 @@ web 启动只拉栈、不再自动 enable，见当日顶部条目）；③ 臂�
 （`api.teleopHome`，purple，与急停区分）。真机流程：急停→停止→启动（拉起栈，不再自动使能）→
 按需点 **HOME**（自动 enable + 收回零位）→ 一键就绪/`/teleop/start` 重新遥操。
 
-**新增推理功能包 `astral_policy_inference`（策略部署 / 数据真机回放 / 人在环路）**。
+**新增推理功能包 `morla_policy_inference`（策略部署 / 数据真机回放 / 人在环路）**。
 本包接遥操数采与训练上游做推理闭环：模型无关后端（openpi 远程 ws `host/port` / lerobot ACT 进程内
 `checkpoint_dir` / stub 冒烟），**换模型=只换后端参数**；三种引擎模式 `queue_sync`（阻塞重填）/
 `queue_async`（后台预取）/ `rtc`（后台滚切+min_tail+延迟补偿跳行）；布局真源
-`astral_data_collect.schema.CollectSchema`——观测订阅/state 向量/`split_action` 指令拆分全自动，
+`morla_data_collect.schema.CollectSchema`——观测订阅/state 向量/`split_action` 指令拆分全自动，
 换机器人配置只改同 schema 参数。回放读 LeRobot v2.1 目录或 `aligned_data.h5`，`PlaybackSession`
 步进 + 中断续播 offset 重锚。HITL：`_cmd_takeover` 先对每个遥操节点调 `~/reanchor`（效应）全部成功
 才提交 HUMAN（仲裁先效应后提交）；暂停→增量 VR 接管→交还策略/回放；release/resume 时策略按实况
@@ -1809,7 +1809,7 @@ resume 策略重建 chunk、回放重锚 offset（防陈旧行跳变）。MuJoCo
 `scripts/run_inference_sim_smoke.py`（astral_mujoco_sim + policy_node stub 全链路：policy 驱动
 arm/gripper→pause 夹持值稳定→resume 恢复变化→h5 回放逐帧一致→播完自动 IDLE）**全部通过**。
 
-**对抗性审查修复（首轮 14 项，本轮全处理）**——`astral_policy_inference` × `astral_arm_teleop`
+**对抗性审查修复（首轮 14 项，本轮全处理）**——`morla_policy_inference` × `astral_arm_teleop`
 × `astral_gripper_teleop`。① **`/teleop/disarm` 电平语义冲突（critical）**：arm/head 遥操
 `_on_disarm` 对任何 Bool 都 disarm，而 policy 进 HUMAN/IDLE 发 disarm=false 开闸，把刚
 re-anchor 武装的遥操又拆掉 → arm/head 只认 `Bool(true)`，与 web/pinch 消费方对齐；② stop→
@@ -1828,7 +1828,7 @@ re-anchor、失败事务性 re-disarm）；⑧ 接管先验新鲜 state，避免
 顺序/接管失败事务性回滚/回放 schema 拒绝/连续回放保持 等 node_flow 回归），
 `astral_arm_teleop/test_reanchor_teleop.py` 5 例全绿。
 
-**LeRobot v2.1→v3.0 升版转换器（现代 lerobot ACT 直接训练）**——`astral_data_collect`
+**LeRobot v2.1→v3.0 升版转换器（现代 lerobot ACT 直接训练）**——`morla_data_collect`
 新增 `convert_to_lerobot_v3.py`：把 openpi 用的 v2.1 数据集**原样升版**为 v3.0，
 供 `VLA/lerobot`（>=0.6，ACT 与其它策略共用读取管线）直接训练——其读取侧对 v2.1
 直接 `raise BackwardCompatibilityError`。布局/数值语义逐字段镜像官方
@@ -1867,22 +1867,22 @@ length、视频合成帧数=各段之和+时间窗首尾相接、stats 原样拷
 
 **label_aliases：auto_scan 换口/重插防漂移落地（别名表方案）**——`quest3_video_streamer`。在昨日「auto_scan: false + 命名块 + by-id」备选写法之上，补上两全方案：保持 `auto_scan: true` 的自动发现，新增 `label_aliases` 参数（字符串数组 `"指纹子串=稳定label"`），扫描完成后按设备指纹（`/dev/v4l/by-id` → `by-path` → sysfs 名，子串匹配，先列先赢）改写 label；改写发生在 per-label 覆盖块查找之前（`video8.preset` 等同名块自动生效）。语义细节：目标名=匹配设备当前内核名 → 合法 no-op（固化现状，且消耗该设备，后续规则不再对其生效）；目标名撞上**其他**设备的内核名 → 拒绝并告警（防止重名）；一条规则匹配多台 → 只改第一台并告警；规则零命中 → 告警（指纹写错或相机未插，开录前看日志一眼）。`scan.py` 新增 `stable_fingerprints()`（纯函数）与 `apply_label_aliases()`（支持预置 fingerprints 注入）；`streamer_node` 声明 `label_aliases` 参数并接入 `_build_sources` 的 auto_scan 分支。新增 `test_label_aliases.py` 12 例（指纹顺序/兜底 mock、命中/未命中/固化现状/多设备/冲突/畸形规则/集成断言——rclpy 缺失自动 skip），streamer 全套 32 例通过。使用：`params.yaml` 加 `label_aliases: ["Intel_R._RealSense=video8", ...]`，换口/重插/重启后 data_collect 与 openpi camera_map 永远零改动。
 
-**VLA 一键脚本 + 相机 label 防漂移 + 默认配置切单左臂**——`scripts/` × `astral_data_collect` × `quest3_video_streamer`。①新增 `vla_process_session.sh`（对齐→校验→转 LeRobot 一条龙，走 openpi uv venv，`--image-size`/`--apply-quarantine` 可选）与 `openpi_train.sh`（norm stats 重算 → 训练，`lora|full` 二选一，前置检查数据集软链与 pi05_base 权重）。②`params.yaml` auto_scan 覆盖块加「换 USB 口防漂移」注释写法：`auto_scan: false` + `/dev/v4l/by-id/` 稳定路径 + label 沿用 `video8/video0/video2`，数据集 key 不变下游零改动。③`data_collect.yaml` 默认切实际采集配置：单左臂 + 左夹爪、`cameras: ["video8", "video0", "video2"]`（auto_scan 节点名，双臂配置注释保留）。回归：转换/schema/web 31 例 + node_guards 9 例 + 对抗配置 8 例（openpi uv 环境跑通）全绿。
+**VLA 一键脚本 + 相机 label 防漂移 + 默认配置切单左臂**——`scripts/` × `morla_data_collect` × `quest3_video_streamer`。①新增 `vla_process_session.sh`（对齐→校验→转 LeRobot 一条龙，走 openpi uv venv，`--image-size`/`--apply-quarantine` 可选）与 `openpi_train.sh`（norm stats 重算 → 训练，`lora|full` 二选一，前置检查数据集软链与 pi05_base 权重）。②`params.yaml` auto_scan 覆盖块加「换 USB 口防漂移」注释写法：`auto_scan: false` + `/dev/v4l/by-id/` 稳定路径 + label 沿用 `video8/video0/video2`，数据集 key 不变下游零改动。③`data_collect.yaml` 默认切实际采集配置：单左臂 + 左夹爪、`cameras: ["video8", "video0", "video2"]`（auto_scan 节点名，双臂配置注释保留）。回归：转换/schema/web 31 例 + node_guards 9 例 + 对抗配置 8 例（openpi uv 环境跑通）全绿。
 
 ## 2026-09-01
 
-**换配置全链路对抗测试 + openpi 侧布局硬编码清除**——`astral_data_collect` × `VLA/openpi`。新增 `test_adversarial_configs.py`（8 例，独立临时 HF_LEROBOT_HOME，不碰真实数据集）：双臂+双夹爪+三相机（16 维）、左臂+wuji 灵巧手+腰+头（31 维，贴近上限）、双臂+腰头+15fps+非对称相机映射（右腕映射/左腕零填充）、NaN 段校验隔离后训练侧只剩健康段、31 维 norm stats 全量计算+归一化回归，以及三个负例（35 维超限必须拒 / camera_map 指向不存在相机必须拒 / 缺 meta 清晰报错）。每例在 openpi 侧逐维验证：delta 掩码与 schema 期望逐位一致、delta 语义为「相对 chunk 起始 state」（含 k≥1 帧）、`AstralOutputs` 截断维=state_dim、相机槽位按 conftest 颜色指纹验证接线正确、空 task 段 default_prompt 兜底分词与正常 task 段不同。同步修复：openpi `LeRobotAstralDataConfig` 原来写死 8 维截断、`(7,-1)` delta 掩码、video8/video0 相机映射——现改为 `create()` 时从数据集 `meta/info.json` 现读（state 维度/names 推导，`_ee_` 保持绝对其余转 delta，相机走 `camera_map`）；并修正环境变量口径：pinned lerobot 0.1.0 只认 `HF_LEROBOT_HOME`（设旧名 `LEROBOT_HOME` 会直接 raise），meta 解析与文档同步对齐。全套 53 例回归通过。
+**换配置全链路对抗测试 + openpi 侧布局硬编码清除**——`morla_data_collect` × `VLA/openpi`。新增 `test_adversarial_configs.py`（8 例，独立临时 HF_LEROBOT_HOME，不碰真实数据集）：双臂+双夹爪+三相机（16 维）、左臂+wuji 灵巧手+腰+头（31 维，贴近上限）、双臂+腰头+15fps+非对称相机映射（右腕映射/左腕零填充）、NaN 段校验隔离后训练侧只剩健康段、31 维 norm stats 全量计算+归一化回归，以及三个负例（35 维超限必须拒 / camera_map 指向不存在相机必须拒 / 缺 meta 清晰报错）。每例在 openpi 侧逐维验证：delta 掩码与 schema 期望逐位一致、delta 语义为「相对 chunk 起始 state」（含 k≥1 帧）、`AstralOutputs` 截断维=state_dim、相机槽位按 conftest 颜色指纹验证接线正确、空 task 段 default_prompt 兜底分词与正常 task 段不同。同步修复：openpi `LeRobotAstralDataConfig` 原来写死 8 维截断、`(7,-1)` delta 掩码、video8/video0 相机映射——现改为 `create()` 时从数据集 `meta/info.json` 现读（state 维度/names 推导，`_ee_` 保持绝对其余转 delta，相机走 `camera_map`）；并修正环境变量口径：pinned lerobot 0.1.0 只认 `HF_LEROBOT_HOME`（设旧名 `LEROBOT_HOME` 会直接 raise），meta 解析与文档同步对齐。全套 53 例回归通过。
 
 
-**转换期图像 letterbox 到 224×224**——`astral_data_collect`。`convert_session` 新增 `image_size`（默认 224，`--image-size 0` 保留原分辨率）：视频落盘前按 openpi `resize_with_pad` 的几何约定等比缩放 + 对称黑边（余数归下/右），训练时 `ResizeImages(224,224)` 变恒等操作，模型输入与"全分辨率入库 + 在线缩放"逐像素一致，但省掉加载侧解码大图 + 缩放的 CPU 开销；图像统计口径同步改为 letterbox 后的帧。存量 3 段重转后数据集 283MB → 20MB（-93%），openpi 管线加载验证通过（原生 224 直入）。新增 2 例测试（letterbox 几何对齐 openpi 约定 / 默认 224 端到端尺寸与黑边断言）。
+**转换期图像 letterbox 到 224×224**——`morla_data_collect`。`convert_session` 新增 `image_size`（默认 224，`--image-size 0` 保留原分辨率）：视频落盘前按 openpi `resize_with_pad` 的几何约定等比缩放 + 对称黑边（余数归下/右），训练时 `ResizeImages(224,224)` 变恒等操作，模型输入与"全分辨率入库 + 在线缩放"逐像素一致，但省掉加载侧解码大图 + 缩放的 CPU 开销；图像统计口径同步改为 letterbox 后的帧。存量 3 段重转后数据集 283MB → 20MB（-93%），openpi 管线加载验证通过（原生 224 直入）。新增 2 例测试（letterbox 几何对齐 openpi 约定 / 默认 224 端到端尺寸与黑边断言）。
 
-**转换产物 parquet 去掉视频 struct 列（OpenPI 下游适配）**——`astral_data_collect`。v2.1 规范的 parquet 只含非视频列（视频帧由读取侧用 `timestamp` 列 + `meta/info.json` 的 `video_path` 模板解析，`get_hf_features_from_features` 对 `dtype=="video"` 直接跳过）；此前为"兼容性"多写的 `struct{path,timestamp}` 列会让 openpi 锁定的 lerobot 0.1.0 在 `hf_transform_to_torch` 的 `torch.tensor(dict)` 处崩溃（`Could not infer dtype of dict`）。转换器删列、存量 3 段 parquet 原地重写（未重编码视频）、schema 测试改为断言**不得**出现 `observation.images.*` 列。修复后 openpi 数据管线端到端验证通过：1828 样本加载、AV1 视频解码、action=next_state 语义保持（max diff 0.0）、pi05 三相机槽位映射 + 空 prompt 兜底分词正确。
+**转换产物 parquet 去掉视频 struct 列（OpenPI 下游适配）**——`morla_data_collect`。v2.1 规范的 parquet 只含非视频列（视频帧由读取侧用 `timestamp` 列 + `meta/info.json` 的 `video_path` 模板解析，`get_hf_features_from_features` 对 `dtype=="video"` 直接跳过）；此前为"兼容性"多写的 `struct{path,timestamp}` 列会让 openpi 锁定的 lerobot 0.1.0 在 `hf_transform_to_torch` 的 `torch.tensor(dict)` 处崩溃（`Could not infer dtype of dict`）。转换器删列、存量 3 段 parquet 原地重写（未重编码视频）、schema 测试改为断言**不得**出现 `observation.images.*` 列。修复后 openpi 数据管线端到端验证通过：1828 样本加载、AV1 视频解码、action=next_state 语义保持（max diff 0.0）、pi05 三相机槽位映射 + 空 prompt 兜底分词正确。
 
-**转换管线 OOM 修复：SVT-AV1 限内存 + 图像统计流式化**——`astral_data_collect`。实机 3 段 1080p 数据转换在小内存机（15GB）上被 OOM 杀掉（exit 137，峰值 RSS 6.3GB，且管道下游静默表现为"只转出 1 段、meta 全空、退出码 0"——教训：该命令勿接 `| tail` 看结果，要看退出码）。两处根因：① SVT-AV1 默认按核数并行 + 深 lookahead，1080p 内部缓冲数 GB → 加 `svtav1-params: lp=2:lookahead=16`（参数不识别则退化无参打开，再不行回退 h264）；② 图像统计 `np.stack(≤100 帧)` ≈620MB/相机 → 改 `ImageStatsAccumulator` 流式累加（每通道 sum/sumsq/min/max，输出与堆叠计算数值等价，新增等价性回归 2 例）。修复后峰值 RSS **6.3GB → 1.14GB**，3 段 1828 帧完整转出。
+**转换管线 OOM 修复：SVT-AV1 限内存 + 图像统计流式化**——`morla_data_collect`。实机 3 段 1080p 数据转换在小内存机（15GB）上被 OOM 杀掉（exit 137，峰值 RSS 6.3GB，且管道下游静默表现为"只转出 1 段、meta 全空、退出码 0"——教训：该命令勿接 `| tail` 看结果，要看退出码）。两处根因：① SVT-AV1 默认按核数并行 + 深 lookahead，1080p 内部缓冲数 GB → 加 `svtav1-params: lp=2:lookahead=16`（参数不识别则退化无参打开，再不行回退 h264）；② 图像统计 `np.stack(≤100 帧)` ≈620MB/相机 → 改 `ImageStatsAccumulator` 流式累加（每通道 sum/sumsq/min/max，输出与堆叠计算数值等价，新增等价性回归 2 例）。修复后峰值 RSS **6.3GB → 1.14GB**，3 段 1828 帧完整转出。
 
-**cmd 流时间戳修复：改用到达时刻**——`astral_data_collect`。validate 对 9/1 上午实机 3 段数据报 F4 全灭：`left_arm_cmd` ~45% 样本戳完全重复（值不同）。根因：teleop `_publish_q` 把 `joint_commands` 的 `header.stamp` 打成上游 VR 输入戳（供 web 延迟面板算 E2E），IK 定时器（~60Hz）比 VR（~30Hz）快时同戳复用。采集端 `*_cmd` 流改为一律用到**达时刻**——指令样本时刻语义本就是「发出时刻」，且 VR 戳比真实发出早一个管线延迟，混用两时钟还会给 command 模式 action 对齐引入交错偏差。state 流仍用 header.stamp（驱动侧时钟）。新增 2 例回归（cmd 用到达时刻严格递增 / state 保留戳）。存量 3 段测试数据的 raw cmd 戳仍是旧的（next_state 模式不消费 cmd，不影响对齐/转换）。
+**cmd 流时间戳修复：改用到达时刻**——`morla_data_collect`。validate 对 9/1 上午实机 3 段数据报 F4 全灭：`left_arm_cmd` ~45% 样本戳完全重复（值不同）。根因：teleop `_publish_q` 把 `joint_commands` 的 `header.stamp` 打成上游 VR 输入戳（供 web 延迟面板算 E2E），IK 定时器（~60Hz）比 VR（~30Hz）快时同戳复用。采集端 `*_cmd` 流改为一律用到**达时刻**——指令样本时刻语义本就是「发出时刻」，且 VR 戳比真实发出早一个管线延迟，混用两时钟还会给 command 模式 action 对齐引入交错偏差。state 流仍用 header.stamp（驱动侧时钟）。新增 2 例回归（cmd 用到达时刻严格递增 / state 保留戳）。存量 3 段测试数据的 raw cmd 戳仍是旧的（next_state 模式不消费 cmd，不影响对齐/转换）。
 
-**采集抽头从推送开关解耦**——`quest3_video_streamer`。此前 `~/collect/{label}` 与 preview 共用运行时门控：`push_enabled=false`（或相机被 `active_cameras` 静音）时采集流也断，「关了推送开关想省 CPU 却采不到图」。改为**唯一准入条件 = 话题有订阅者**（编码本来就按需，无订阅零开销），录不录由 `astral_data_collect` 状态机决定；preview/WebRTC 仍走门控不变。效果：推送开关现在只控制「看」（Quest + web 实时画面），与「录」完全正交。
+**采集抽头从推送开关解耦**——`quest3_video_streamer`。此前 `~/collect/{label}` 与 preview 共用运行时门控：`push_enabled=false`（或相机被 `active_cameras` 静音）时采集流也断，「关了推送开关想省 CPU 却采不到图」。改为**唯一准入条件 = 话题有订阅者**（编码本来就按需，无订阅零开销），录不录由 `morla_data_collect` 状态机决定；preview/WebRTC 仍走门控不变。效果：推送开关现在只控制「看」（Quest + web 实时画面），与「录」完全正交。
 
 **采集抽头限流器换代：令牌桶**——`quest3_video_streamer`。0.8 容差后仍有 2-3/s 误杀（捕获线程调度抖动偶发 20ms 间隔对）；改令牌桶（容量 2、速率=max_fps）：源≈目标时抖动被吸收、长跑 99%+ 透传，源更快仍限 30/s。仿真：30fps±5ms 抖动 99.4% 透传、60fps 源稳态 30.0/s。实机录制 ~28.8/27.6/27.3fps（中位 29-30）→ 修复后 tap 发布 29.8-29.9/s、rate_skip=0，采集支路 30fps 满速透传实锤。
 
@@ -1912,7 +1912,7 @@ length、视频合成帧数=各段之和+时间窗首尾相接、stats 原样拷
 
 **数采段边界速率不为负**——writer 每段新建计数归零；`_prev_counts` 随段清零，delta 再 `max(0, …)`，避免下一段第一秒打出负 Hz。
 
-**数采防护体系 + launch 参数优先级修复**——`astral_data_collect` / `astral_web_monitor`。①launch 参数改空串默认 + OpaqueFunction：**yaml 成为唯一默认来源**，此前 launch 默认值（如 `arms` 默认 `left,right`）静默盖掉 yaml——"改了 yaml 却采出旧 schema"即此机制；CLI/预设显式传参仍可覆盖。②**domain 单例锁**：`/data_collect/control` 谁订阅谁开录是双份数据的根因（残留节点 + 再启动 = 双开同录）；节点对 `/tmp/astral_data_collect_domain{N}.lock` 取排他锁，第二个节点构造即拒绝，session 不同也不放过。③**段号原子占位**：mkdir 抢号撞号让位——老残留进程不持锁，段号互斥由文件系统原子性兜底（此前一个 start 双节点各写 000000/000001）。④**多节点红条**：web 按 `/data_collect/state` 发布者计数 >1 即提示残留。⑤**低帧率告警**：录制中参考相机实率 < dataset_fps/2 → state `low_fps_warning` + 日志节流 WARN + 卡片红条。⑥web 重启端点等旧进程真退出再启（单例锁窗口）。另修：cameras 逗号字符串曾被逐字符拆解；jpeg_quality 参数此前被静默忽略。
+**数采防护体系 + launch 参数优先级修复**——`morla_data_collect` / `morla_web_manager`。①launch 参数改空串默认 + OpaqueFunction：**yaml 成为唯一默认来源**，此前 launch 默认值（如 `arms` 默认 `left,right`）静默盖掉 yaml——"改了 yaml 却采出旧 schema"即此机制；CLI/预设显式传参仍可覆盖。②**domain 单例锁**：`/data_collect/control` 谁订阅谁开录是双份数据的根因（残留节点 + 再启动 = 双开同录）；节点对 `/tmp/morla_data_collect_domain{N}.lock` 取排他锁，第二个节点构造即拒绝，session 不同也不放过。③**段号原子占位**：mkdir 抢号撞号让位——老残留进程不持锁，段号互斥由文件系统原子性兜底（此前一个 start 双节点各写 000000/000001）。④**多节点红条**：web 按 `/data_collect/state` 发布者计数 >1 即提示残留。⑤**低帧率告警**：录制中参考相机实率 < dataset_fps/2 → state `low_fps_warning` + 日志节流 WARN + 卡片红条。⑥web 重启端点等旧进程真退出再启（单例锁窗口）。另修：cameras 逗号字符串曾被逐字符拆解；jpeg_quality 参数此前被静默忽略。
 
 **auto_scan MJPG 确定性优先（非帧率根因，实机已证伪带宽假设）**——`quest3_video_streamer`。MJPG/JPEG 提至 110 分消除平票依赖枚举序的不确定性。**实机验证**：d435i 彩色节点仅播 YUYV（无 MJPG 可优先）、三相机分属不同总线且 1080p YUYV 单跑满 30fps——采集低帧率非带宽问题；双订阅者收到完全相同帧集合证明丢失在 streamer 进程内部（抽头总共只发了那么多）。`test_scan_mjpg.py` 保留作为确定性回归。
 
@@ -1920,7 +1920,7 @@ length、视频合成帧数=各段之和+时间窗首尾相接、stats 原样拷
 
 **Web 预设：单左臂 + 左夹爪**——`presets.yaml`「Left arm + left gripper (no right arm)」。`full_teleop` / `astral_dual_arm_teleop` 新增 `arm_side:=left|right|both`（默认 both）；left 时不启右臂遥操节点，mocap 只发左腕。
 
-**Web 管线延迟面板**——`astral_web_monitor` 系统页。只读：mocap 腕姿 stamp 龄期、`ik_solver_*/ik_status` 求解耗时、`joint_commands` stamp 作为 VR→指令端到端；左右各一列，带 Hz / FAILED / 过期灰显。
+**Web 管线延迟面板**——`morla_web_manager` 系统页。只读：mocap 腕姿 stamp 龄期、`ik_solver_*/ik_status` 求解耗时、`joint_commands` stamp 作为 VR→指令端到端；左右各一列，带 Hz / FAILED / 过期灰显。
 
 **左臂 TCP 偏置**——`astral_arm_teleop_left.yaml` `tcp_offset` Y **−0.147 m**（右腕仍为 0）。
 
@@ -1964,10 +1964,10 @@ length、视频合成帧数=各段之和+时间窗首尾相接、stats 原样拷
 - 彩色节点常是 `VIDEO_CAPTURE_MPLANE`，扫描只 enum 了普通 capture，RGB 格式列表为空；同机红外 GREY 得分更高，推流变成红外。
 - 同时 enum mplane；USB 接口 `1-2:1.0` / `1-2:1.3` 归到同一设备再比分；得分低于彩色阈值的红外/深度组直接丢掉。
 
-**VLA 数据采集包**——新增 `astral_data_collect`；`quest3_video_streamer` 加采集抽头；`astral_web_monitor` 集成录制控制卡片。
+**VLA 数据采集包**——新增 `morla_data_collect`；`quest3_video_streamer` 加采集抽头；`morla_web_manager` 集成录制控制卡片。
 
-- web 集成：`astral_web_monitor` 监控页新增**数据采集卡片**（开始/停止保存/下一段/暂停/丢弃 + 任务文本 + 录制状态徽标与流率/掉帧显示），REST `/api/v1/collect/{control,task}` 桥接 `/data_collect/*` 话题（纯话题接口，CLI 启动的采集节点同样可控）。
-- **数采节点独立泳道（与遥操预设解耦）**：`web_server` 新增第二个 `LaunchManager` 专管数采 launch，`POST /api/v1/collect/launch/{start,stop,restart}` + ui_state `collect_launch`（state/preset/uptime/pid）；数采卡片右上角直接启停节点。数采是纯订阅者，启动跳过孤儿检测（`start(check_orphan=False)`）；`_find_orphan` 对 `astral_data_collect` 命令行对称豁免——两条泳道任意顺序起停互不阻塞。「系统」tab 遥操预设下拉过滤 `astral_data_collect` 条目（避免占用互斥的主泳道），其 presets.yaml 条目保留为泳道启动命令来源。
+- web 集成：`morla_web_manager` 监控页新增**数据采集卡片**（开始/停止保存/下一段/暂停/丢弃 + 任务文本 + 录制状态徽标与流率/掉帧显示），REST `/api/v1/collect/{control,task}` 桥接 `/data_collect/*` 话题（纯话题接口，CLI 启动的采集节点同样可控）。
+- **数采节点独立泳道（与遥操预设解耦）**：`web_server` 新增第二个 `LaunchManager` 专管数采 launch，`POST /api/v1/collect/launch/{start,stop,restart}` + ui_state `collect_launch`（state/preset/uptime/pid）；数采卡片右上角直接启停节点。数采是纯订阅者，启动跳过孤儿检测（`start(check_orphan=False)`）；`_find_orphan` 对 `morla_data_collect` 命令行对称豁免——两条泳道任意顺序起停互不阻塞。「系统」tab 遥操预设下拉过滤 `morla_data_collect` 条目（避免占用互斥的主泳道），其 presets.yaml 条目保留为泳道启动命令来源。
 - 修复：数采节点遥操事件订阅 QoS 由 latched 改为 VOLATILE（DDS 订阅端 durability ≤ 发布端；`/teleop/start` 在 web_monitor 是刻意的 volatile 一次性触发，latched 订阅完全收不到——事件是跃迁语义，仅损失订阅前的历史值）。
 - 修复：`replay_rerun` 适配 rerun ≥0.24 API（`set_time(timestamp=)`）+ h5py 数据集句柄逃逸（文件关闭后逐帧读图必崩，此前被缺包 skip 掩盖）。
 
@@ -2046,11 +2046,11 @@ length、视频合成帧数=各段之和+时间窗首尾相接、stats 原样拷
 
 ## 2026-08-27（前条）
 
-**安全修复：`/teleop/armed` 闸门收紧（审查 C2）**——`astral_arm_teleop` / `astral_web_monitor`。
+**安全修复：`/teleop/armed` 闸门收紧（审查 C2）**——`astral_arm_teleop` / `morla_web_manager`。
 
 - `_on_armed` 不再无视消息内容任意武装：仅 `Bool(true)` 生效；未标定（无 vr_init）拒绝并告警——顺带堵住 web「恢复」latched 残留让新启动节点自动武装的旁路。
 - 新增 disarm 原因区分：操作员「暂停」→「恢复」可直接 armed（零点仍有效，体验不变）；**VR 看门狗超时 disarm（fault）→「恢复」被拒绝**，必须重新 `/teleop/start` 重标定 vr_init——断连后手可能已移动，沿用旧零点会产生计划外快速移动。fault 状态粘性：fault 后点「暂停」不会降级，只有 start 能清除。
-- `astral_web_monitor` README 更新「恢复」按钮的生效条件。
+- `morla_web_manager` README 更新「恢复」按钮的生效条件。
 - 冒烟（状态机桩件测试）：`data=false` 不武装 ✅；未标定拒绝 ✅；暂停→恢复 ✅；fault 拒绝恢复 ✅；fault 后暂停不降级 ✅；start 清除 fault 后暂停/恢复如常 ✅。
 
 **安全修复：VR 断连即 disarm + 全链路 NaN 屏障（审查 C5/C6）**——`astral_arm_teleop`。
@@ -2060,60 +2060,60 @@ length、视频合成帧数=各段之和+时间窗首尾相接、stats 原样拷
 - **NaN 屏障三处**（此前全链路无 isfinite 检查，一帧 NaN 永久污染）：① `_on_wrist` 拒绝非有限 position/四元数——此前 NaN 四元数穿过模长校验（`NaN > 0.1` 为 False）且 `Rotation.from_quat(NaN)` 会在回调里抛 ValueError；② `PoseProcessor.update_vr_pose` 入口拒绝非有限输入——EMA 吃进 NaN 后 `a·NaN+(1-a)·x=NaN` 永不恢复；③ `SafetyFilter.filter` 入口 isfinite 检查——非法帧保持上一合法指令、不更新 `prev_q`（此前 NaN 经 clip/速度门双双放行并写入 prev_q，恢复后第一帧速度限制失效），info 新增 `invalid` 标记。
 - 冒烟：SafetyFilter NaN 保持 / 恢复后限速完好 / Inf 阻断 / 无历史回零 ✅；PoseProcessor 丢弃 NaN 位置与旋转、正常更新仍跟踪 ✅；三文件 py_compile ✅。
 
-**Web 实时相机画面（JPEG 抽帧 + MJPEG 转发）**——`quest3_video_streamer` / `astral_web_monitor`。
+**Web 实时相机画面（JPEG 抽帧 + MJPEG 转发）**——`quest3_video_streamer` / `morla_web_manager`。
 
 - `quest3_video_streamer` 新增 `preview.py` `PreviewPublisher`：每路相机发布 `~/preview/{label}`（CompressedImage，BEST_EFFORT，默认 10fps/640宽/q65）。**延迟隔离设计**：捕获线程只做 gate 检查 + 速率限制 + maxsize=1 队列 `put_nowait`（忙则丢）；JPEG 编码在独立 daemon 线程——不进捕获线程（不拉长采集周期）、不进 asyncio 循环（不干扰 Quest RTP 节奏）；跟随门控（静音路不发）。参数 `web_preview`/`_fps`/`_width`/`_quality`。两个 source 适配器加 `preview_hook` 抽头（webcam 抽原生 BGR 免回转，ros 抽转换后 RGB）。
-- `astral_web_monitor`：按 gate_state 相机列表动态订阅 preview 话题（BEST_EFFORT depth1）；新增 `GET /api/v1/video/feed/{label}`（MJPEG multipart，浏览器 `<img>` 原生支持）与 `GET /api/v1/video/snapshot/{label}`（单帧）；视频卡片新增「实时画面」开关 + 勾选相机的 320px 预览网格，取消勾选即停。
+- `morla_web_manager`：按 gate_state 相机列表动态订阅 preview 话题（BEST_EFFORT depth1）；新增 `GET /api/v1/video/feed/{label}`（MJPEG multipart，浏览器 `<img>` 原生支持）与 `GET /api/v1/video/snapshot/{label}`（单帧）；视频卡片新增「实时画面」开关 + 勾选相机的 320px 预览网格，取消勾选即停。
 - 延迟预算：Quest 链路 ≈0 影响（共享读 + 独立编码线程）；控制链路 ≈0（Jetson 每路 ~2-5% 单核）；DDS ~0.3-0.6MB/s/路；web 预览自身延迟 ~0.2-0.4s（监控用途）。
 - 冒烟：preview 话题建立✅；monitor 动态订阅✅；CLI 发测试 JPEG → snapshot 200 返回原图✅、feed multipart 帧格式正确✅、未知 label 404✅。
 
-**视频设备自动扫描（web 免配置可选）+ 懒打开**——`quest3_video_streamer` / `astral_web_monitor`。
+**视频设备自动扫描（web 免配置可选）+ 懒打开**——`quest3_video_streamer` / `morla_web_manager`。
 
 - `quest3_video_streamer` 新增 `scan.py` + `auto_scan` 参数（默认 true）：启动时枚举 `/dev/video*`（ioctl `VIDIOC_QUERYCAP` 查 `V4L2_CAP_VIDEO_CAPTURE` 跳过 metadata 节点，按物理设备 sysfs 父级去重），label = 节点名（`video0`…），面板一行网格自动排布——**不再写死设备节点/中文名**。同名 yaml 块可覆盖单路字段；一台没扫到回退 `cameras` 列表；`cameras` CLI 覆盖联动 `auto_scan:=false`。D435i 多采集节点取第一个不一定是彩色，需显式块（README 已注）。
 - **懒打开 + 失败黑帧**：sender 启动不再打开全部相机；每轨首个未静音帧才 `source.start()`，打开/读帧失败 → 黑帧 + 1s 退避重试（设备没插/被占用不再拖垮 sender，插上即恢复）。
 - `~/gate_state` JSON 增加 `cameras:[{label,device,source,preset,sysfs_name}]`——web 端不再解析 streamer 的 yaml。
-- `astral_web_monitor`：`/video/status` 在线时改用 gate_state 的相机列表（exists/sysfs 每次轮询实时刷新）；**离线时 monitor 自行扫描主机设备，可预选**（latched `~/active_cameras` 在 streamer 启动后生效；总开关服务仍需在线）；在线判定加 `count_publishers` 活性检查（latched 残留不再误报在线）。VideoCard 离线时勾选/路数可用、仅总开关禁用。
+- `morla_web_manager`：`/video/status` 在线时改用 gate_state 的相机列表（exists/sysfs 每次轮询实时刷新）；**离线时 monitor 自行扫描主机设备，可预选**（latched `~/active_cameras` 在 streamer 启动后生效；总开关服务仍需在线）；在线判定加 `count_publishers` 活性检查（latched 残留不再误报在线）。VideoCard 离线时勾选/路数可用、仅总开关禁用。
 - 冒烟：无相机主机 → auto_scan 回退 wrist 列表✅；gate_state 带 cameras✅；web 在线/离线切换正确✅；离线预选 latched 下发 → streamer 启动拾取并对未知 label 告警过滤✅。
 
 ## 2026-08-26
 
-**视频回传并入完整遥操 + 运行时可门控（web 可选路/开关）**——`quest3_video_streamer` / `astral_teleop` / `astral_web_monitor`。
+**视频回传并入完整遥操 + 运行时可门控（web 可选路/开关）**——`quest3_video_streamer` / `morla_bringup` / `morla_web_manager`。
 
 - `quest3_video_streamer` 新增**运行时推流门控**（`gate.py` `StreamGate`）：服务 `~/set_push_enabled`（SetBool 总开关）、latched 话题 `~/active_cameras`（逗号 label 子集，空=全部）、latched 状态 `~/gate_state`（JSON）。门控在 track 帧级生效：被关的轨改发 2fps 黑帧（Y=16/U=V=128，几乎不占带宽，Quest 面板变黑，恢复即时）——不做 SDP 重协商，相机集合仍在启动时固定。
 - 修复 `StreamGate.set_active` 嵌套取非重入锁死锁（topic 回调卡死 spin 线程，服务也连带无响应）。
 - 默认相机改为实际硬件：`cameras: ["wrist_left","wrist_right"]`（当前两路 USB，无 RealSense）；d435i 配置块保留。`multi_camera.launch.py` 新增 `cameras` CLI 覆盖；仅当 d435i 在列表且 source≠v4l2 才拉 realsense 节点。
 - `full_teleop.launch.py`：`with_video:=true` **默认**带视频回传；启动时自动 `adb reverse tcp:8000/8765`（无 adb/无设备仅 WARN）；`video_cameras:=` 透传。仍需 Quest 端开启 video feed。
-- `astral_web_monitor`：新增 `GET /api/v1/video/status`（配置相机列表 + `/dev/videoN` 在线/sysfs 名 + gate 实时状态）、`POST /video/push`、`POST /video/cameras`；monitor_node 订 `~/gate_state` 镜像进 `ui_state.video_gate`；系统页新增「视频回传」卡片（总开关 + 路数下拉(快捷勾前n路) + 逐路勾选 + 在线点，streamer 离线时禁用）。
+- `morla_web_manager`：新增 `GET /api/v1/video/status`（配置相机列表 + `/dev/videoN` 在线/sysfs 名 + gate 实时状态）、`POST /video/push`、`POST /video/cameras`；monitor_node 订 `~/gate_state` 镜像进 `ui_state.video_gate`；系统页新增「视频回传」卡片（总开关 + 路数下拉(快捷勾前n路) + 逐路勾选 + 在线点，streamer 离线时禁用）。
 - 冒烟：streamer 起 2 源 + gate 初始化✅；`set_push_enabled false`→gate_state push_enabled=false✅；`active_cameras:='wrist_right'`→active=[wrist_right]✅、空串恢复全部✅；web 三端点全通✅、`ui_state.video_gate` 随 WS 下发✅。
 
 **夹爪开度 1.5→2.5 + web 机器人按钮可用时机文档化**：
 
 - `astral_robot.yaml` 左右 `gripper_open_rad` 1.5→**2.5**（真机实测目标全开角；若顶死回弹则回调 ~2.0）。之前"2.0 开到最大马上闭合"实为双流竞态所致（已修），非硬止点过流。sim echo 配置同步 2.5。
-- `astral_web_monitor` README 写清机器人模式按钮（急停/阻尼/位置保持/就绪/归零）可用时机：运行中✅、已暂停✅（driver 还活着）、已停止❌503 属预期（driver 随栈退出）——**先启动栈再点按钮**；运行中仍 503 则查 Jetson driver 是否旧代码（`ros2 service list | grep astral_robot_driver` 应列 5 个 Trigger）。
+- `morla_web_manager` README 写清机器人模式按钮（急停/阻尼/位置保持/就绪/归零）可用时机：运行中✅、已暂停✅（driver 还活着）、已停止❌503 属预期（driver 随栈退出）——**先启动栈再点按钮**；运行中仍 503 则查 Jetson driver 是否旧代码（`ros2 service list | grep astral_robot_driver` 应列 5 个 Trigger）。
 - 文档写明上电瞬态：ready 把夹爪归零(0)→遥操首条指令开到 open_rad，像"抽一下"，正常。
 
-**真机修复：夹爪抽搐 + 开度不到位（双流竞态）**——`astral_gripper_teleop` / `astral_robot_control` / `astral_web_monitor` / `astral_teleop`。
+**真机修复：夹爪抽搐 + 开度不到位（双流竞态）**——`astral_gripper_teleop` / `astral_robot_control` / `morla_web_manager` / `morla_bringup`。
 
 - 根因：`pinch_gripper_node` 同时发 `/command`(Float64) 和 `/joint_commands`(JointState)，driver 两个都订且各自映射 rad（ pinch 节点配置 vs driver 配置），Jetson 上两份配置不一致（0.8 vs 1.5）→ 两路 50Hz 流交替覆盖同一目标 → 夹爪按控制频率抽搐，且 pinch 端旧配置 0.8 导致"张开但不到位"。
 - 修复：pinch 节点**只发 Float64 闭合比**（0=开 1=合），rad 映射唯一权威收敛到 driver `astral_robot.yaml`（1.5/0.0）；`joint_commands` 话题保留给直接发弧度的适配器。`gripper_teleop.yaml` 删 `open_rad/closed_rad`。
-- `astral_web_monitor`：左夹爪指令频率改听 `/left_gripper/command`（Float64），`TopicPair` 加 `cmd_kind`；状态显示仍走 driver 回显的 `/left_gripper/joint_states`（即 driver 实际用的 rad）。
+- `morla_web_manager`：左夹爪指令频率改听 `/left_gripper/command`（Float64），`TopicPair` 加 `cmd_kind`；状态显示仍走 driver 回显的 `/left_gripper/joint_states`（即 driver 实际用的 rad）。
 - `head_teleop_node`/`controller_start_gate` 回退昨日多余的双 QoS 订阅（RELIABLE 发布↔BEST_EFFORT 订阅本就兼容，双订阅只会触发 incompatible QoS 警告噪音）；CLI `echo` BEST_EFFORT 话题用 `--qos-reliability best_effort`。
 - 冒烟：pinch 只发 /command；driver dry_run 全程只见 rad=1.500 单值（无交替）；head 节点 0 条 QoS 警告、start 正确捕获 head_init=[0.1,0.05]、摇杆回中指令=[0.1,0.05]；web monitor 夹爪 cmd 49.4Hz health=ok。
 - ⚠️ Jetson 注意：本修复要求 driver 端 `astral_robot.yaml` 的 `left/right_gripper_open_rad` 正确（1.5）；拉代码后需重新 `colcon build`（非 symlink 构建的 install 里 yaml 是构建时拷贝，旧值会残留）。
 
-`astral_web_monitor`：接入头部通道（配合 `astral_teleop/head_teleop_node`）。
+`morla_web_manager`：接入头部通道（配合 `morla_bringup/head_teleop_node`）。
 
 - `config.py` `TOPICS` 新增 `head`（`/head/joint_states` + `/head/joint_commands`）——snapshot/健康巡检自动携带头部；**不设 cmd 频率下限**（启动前/手柄掉线时头部指令合法为 0Hz，设下限会误报"偏慢"）。
 - 监视 tab 新增「头部 (yaw/pitch)」JointPanel、指令频率序列加"头部"、新增「头部 yaw/pitch」实时折线图；健康巡检面板加 `head→头部` 标签。
 - README 话题表/WS 负载示例/Web UI 功能同步；冒烟：snapshot 含 `head`（values/cmd_hz/state_hz/health=ok, expected_hz=0）。
 
-`quest3_hand_mocap`：README 补手柄 Joy 量程/符号约定（实测）。
+`morla_input`：README 补手柄 Joy 量程/符号约定（实测）。
 
 - 话题表后新增「手柄 Joy 量程与符号约定」小节：`axes=[trigger,grip,stickX,stickY]`，stickX 左−1/右+1、stickY 后−1/前+1，回中 0；buttons 6 位 mask 顺序。实测左右手均达 ±1.0 满量程、回中干净 0.000，建议下游死区 0.05~0.1。
 
-`astral_teleop` / `astral_mujoco_sim`：右手柄摇杆 → 机器人头部（yaw/pitch），绝对位置控制，与臂遥操共用 `/teleop/start` 闸门。
+`morla_bringup` / `astral_mujoco_sim`：右手柄摇杆 → 机器人头部（yaw/pitch），绝对位置控制，与臂遥操共用 `/teleop/start` 闸门。
 
-- 新增 `astral_teleop/head_teleop_node`（`with_head_teleop:=true` 默认）：订 `quest3/right_controller_joy`，`axes[2]`=stickX（左=-1 右=+1）→ yaw、`axes[3]`=stickY（前=+1 后=-1）→ pitch。弹簧回中摇杆用**绝对控制**：`head_target = head_init + stick*scale`，摇杆回中→头回初始位，`/teleop/disarm`→停发由 driver 位置保持。
+- 新增 `morla_bringup/head_teleop_node`（`with_head_teleop:=true` 默认）：订 `quest3/right_controller_joy`，`axes[2]`=stickX（左=-1 右=+1）→ yaw、`axes[3]`=stickY（前=+1 后=-1）→ pitch。弹簧回中摇杆用**绝对控制**：`head_target = head_init + stick*scale`，摇杆回中→头回初始位，`/teleop/disarm`→停发由 driver 位置保持。
 - **启动记 `head_init`**：`require_start_signal:=true`（默认）下等 `/teleop/start`，触发时读 `/head/joint_states`（真机为 OBS 真实头角）记为基准，避免跳变；无该话题回退 `init_head_*`（默认 0,0）。发 `/head/joint_commands` 给 `astral_robot_control`（driver 唯一硬件权威）。配置 `config/head_teleop.yaml`：`yaw_scale`/`pitch_scale`（带符号，方向反了改符号）、限幅、deadzone、publish_rate、input_timeout。
 - 非侵入：只订已有话题、只发 driver 已在订的 `/head/joint_commands`，不动 driver/臂/夹爪/灵巧手。Joy 与 joint_states 改**双 QoS 订阅**（真机 BEST_EFFORT + CLI RELIABLE），`ros2 topic pub` 注入也能测；`controller_start_gate` 同步补 RELIABLE 订阅。
 - sim：`astral_sim_pipeline.launch.py` 加 `with_head_teleop`；`mujoco_sim_node` 新增 head echo（订 `/head/joint_commands`→回显 `/head/joint_states`+每秒日志 `[Head] cmd yaw/pitch`），MJCF 无头关节故 viewer 不动头，用于验证映射。
@@ -2123,18 +2123,18 @@ length、视频合成帧数=各段之和+时间窗首尾相接、stats 原样拷
 
 - 新增 `controller_start_gate`（`with_start_gate:=true` 默认）：左手柄 grip 键 → `/teleop/start`。
 - gripper include 注入 `controller_joy_topic=quest3/left_controller_joy`：左 trigger 模拟量 → 左夹爪（新鲜时优先，否则回退 pinch）。
-- `with_gripper` 描述更新为 pinch/trigger；package.xml 加 `astral_teleop` exec_depend；README 补「手柄集成（sim）」。
+- `with_gripper` 描述更新为 pinch/trigger；package.xml 加 `morla_bringup` exec_depend；README 补「手柄集成（sim）」。
 - 冒烟：sim 启动后 controller_start_gate(grip→/teleop/start)、pinch_gripper_node(joy=...left_controller_joy axis=0)、arm 节点 require_start_signal=true(等待 start) 均正常，无报错。
 
-`astral_teleop` / `astral_gripper_teleop`：手柄接入遥操——左 grip 键作外部启动开关，左右 trigger 模拟量控夹爪。
+`morla_bringup` / `astral_gripper_teleop`：手柄接入遥操——左 grip 键作外部启动开关，左右 trigger 模拟量控夹爪。
 
-- 新增 `astral_teleop/controller_start_gate` 节点：订 `quest3/left_controller_joy`，左手柄 grip 键（mask bit 5 = gripClick）按下沿发 `/teleop/start`（Bool true，RELIABLE+VOLATILE 一次性），等价 web「开始遥操」/CLI `/teleop/start`；再按一次重新记零点。`full_teleop.launch.py` 默认启动它。
+- 新增 `morla_bringup/controller_start_gate` 节点：订 `quest3/left_controller_joy`，左手柄 grip 键（mask bit 5 = gripClick）按下沿发 `/teleop/start`（Bool true，RELIABLE+VOLATILE 一次性），等价 web「开始遥操」/CLI `/teleop/start`；再按一次重新记零点。`full_teleop.launch.py` 默认启动它。
 - `pinch_gripper_node` 新增 trigger 合并：参数 `controller_joy_topic`/`trigger_axis`(0)/`trigger_deadzone`(0.05)/`trigger_invert`。订 `Joy`，`axes[trigger_axis]`(0=开..1=合)作为闭合比；手柄 Joy 新鲜时优先 trigger，否则回退 pinch（同侧手柄/裸手互斥，二者互补）。保持单发布者到 `/{side}_gripper/*`，无冲突。
 - `gripper_teleop.launch.py` 暴露 `controller_joy_topic` 参数；`full_teleop` 为左/右 gripper 分别注入 `quest3/{side}_controller_joy`。
-- `astral_teleop` package.xml 加 `sensor_msgs`/`std_msgs`，setup.py 加 entry_point。
+- `morla_bringup` package.xml 加 `sensor_msgs`/`std_msgs`，setup.py 加 entry_point。
 - 冒烟：左 grip 按下 → `/teleop/start` data:true ✅；trigger=0.8 → `src=trigger close=0.80` ✅。
 
-`quest3_hand_mocap`：接收 Quest 端新增的手柄按键/摇杆推流，发布 `sensor_msgs/Joy`。
+`morla_input`：接收 Quest 端新增的手柄按键/摇杆推流，发布 `sensor_msgs/Joy`。
 
 - 新增 `_process_buttons_line`：解析 ``{Left|Right} buttons:, trigger, grip, stickX, stickY, mask`` → `Joy`。
   - axes=[trigger, grip, stickX, stickY]；buttons=mask 6 位 [primary(X/A), secondary(Y/B), stickPress, menu, triggerClick, gripClick]。
@@ -2143,7 +2143,7 @@ length、视频合成帧数=各段之和+时间窗首尾相接、stats 原样拷
 - **修复 mask 解析 bug**：原 `len(parts) >= 6` 误判（parts 实为 5 字段）导致 mask 恒为 0、按键全丢；改为 `>= 5` 读 `parts[4]`。
 - `package.xml` 加 `sensor_msgs` 依赖；README 话题表补 Joy 说明。
 
-`astral_teleop` / `astral_gripper_teleop`：右手新增「捏合→右夹爪」模式，`right_hand_source` 加 `gripper` 选项。
+`morla_bringup` / `astral_gripper_teleop`：右手新增「捏合→右夹爪」模式，`right_hand_source` 加 `gripper` 选项。
 
 - `full_teleop.launch.py`：`right_hand_source` 增加 `gripper`（右捏合→右夹爪、不起 Wuji）；新增右 `gripper_teleop.launch.py hand_side:=right`（条件 `right_hand_source==gripper`）；`use_wuji` 改为 `right_src in (quest3,glove)`，gripper/none 均不起 Wuji；mocap `publish_landmarks_right` 对 gripper 仍为 true（右 pinch 需要 landmarks）。
 - `astral_gripper_teleop`：`pinch_gripper_node` 本就支持 `hand_side:=right`（订 `hand_landmarks/right`、发 `/right_gripper/*`），无需改节点代码；README 补左/右两侧用法。
@@ -2165,11 +2165,11 @@ length、视频合成帧数=各段之和+时间窗首尾相接、stats 原样拷
 
 ## 2026-08-25（续）
 
-`astral_robot_control` / `astral_web_monitor`：**真急停 + 阻尼释放**。原"急停"实为软 disarm（与暂停同效），改为硬件级断电；并补「阻尼释放」用于遥操收尾手动拖臂回 home。
+`astral_robot_control` / `morla_web_manager`：**真急停 + 阻尼释放**。原"急停"实为软 disarm（与暂停同效），改为硬件级断电；并补「阻尼释放」用于遥操收尾手动拖臂回 home。
 
 - `astral_robot_control` driver 新增服务 `~/damping`（`motion_mode=0`，阻尼可拖拽）与 `~/position`（`motion_mode=1`，位置保持）；`~/estop` 语义明确为真断电（SDK `e_stop`/`disable`，臂失去保持力）。更新 driver docstring 与 README 服务表。
-- `astral_web_monitor` 后端：`monitor_node` 新增 `call_driver_service(name)`（缓存 Trigger 客户端，后台 spin 线程完成 future，web 线程轮询 done）；`config.py` 新增 `DRIVER_NODE` + 5 个 driver 服务名（`ASTRAL_WEB_MONITOR_DRIVER_NODE` 可配）。`web_server` 新增 `POST /api/v1/robot/{ready,home,position,damping,estop}`（`asyncio.to_thread` 调用，driver 未就绪返回 503）；**移除**旧 `POST /api/v1/estop`（软 disarm，与 `/api/v1/pause` 重复）。
-- `astral_web_monitor` 前端：`ControlBar` 急停按钮改为真断电（`api.robotEstop`，确认弹窗文案强调断电）；新增「阻尼释放」按钮（`api.robotDamping`）。`SystemTab` 新增「机器人模式」卡（一键就绪/归零/位置保持/阻尼释放/急停断电）。`client.ts` 移除 `estop`，新增 `robotReady/Home/Estop/Damping/Position`。
+- `morla_web_manager` 后端：`monitor_node` 新增 `call_driver_service(name)`（缓存 Trigger 客户端，后台 spin 线程完成 future，web 线程轮询 done）；`config.py` 新增 `DRIVER_NODE` + 5 个 driver 服务名（`ASTRAL_WEB_MONITOR_DRIVER_NODE` 可配）。`web_server` 新增 `POST /api/v1/robot/{ready,home,position,damping,estop}`（`asyncio.to_thread` 调用，driver 未就绪返回 503）；**移除**旧 `POST /api/v1/estop`（软 disarm，与 `/api/v1/pause` 重复）。
+- `morla_web_manager` 前端：`ControlBar` 急停按钮改为真断电（`api.robotEstop`，确认弹窗文案强调断电）；新增「阻尼释放」按钮（`api.robotDamping`）。`SystemTab` 新增「机器人模式」卡（一键就绪/归零/位置保持/阻尼释放/急停断电）。`client.ts` 移除 `estop`，新增 `robotReady/Home/Estop/Damping/Position`。
 - 典型流程：遥操中 → 停止（臂保持末位姿）→ 阻尼释放（手动拖回 home）→ 位置保持/归零；急停=断电，恢复需重新一键就绪。
 - 非侵入性：机器人模式按钮仅**调用 driver 已暴露的服务**，driver 是硬件权威，monitor 不新增硬件写入路径、不改 driver 逻辑。
 - 冒烟测试：driver `dry_run:=true` + web_monitor 8091，`/api/v1/robot/{damping,position,ready,estop}` 均返回 `dry_run: skipped ...` 成功；旧 `/api/v1/estop` 已 405。
@@ -2177,7 +2177,7 @@ length、视频合成帧数=各段之和+时间窗首尾相接、stats 原样拷
 
 ## 2026-08-25
 
-`astral_web_monitor`：Web UI 大幅增强——急停、Toast 通知、实时图表、健康巡检面板、系统运维 tab。全程非侵入（只读已有话题、只发已有 `/teleop/disarm` 等控制话题、不动其他包）。
+`morla_web_manager`：Web UI 大幅增强——急停、Toast 通知、实时图表、健康巡检面板、系统运维 tab。全程非侵入（只读已有话题、只发已有 `/teleop/disarm` 等控制话题、不动其他包）。
 
 - **急停**：`POST /api/v1/estop` 无条件发 `/teleop/disarm`（软暂停）；前端红色常驻按钮 + 确认弹窗。与 launch 状态无关，CLI 启动的遥操也可急停。
 - **重启**：`POST /api/v1/restart` 停止后重新启动当前预设（仅对经本监控启动的预设有效）。
@@ -2189,7 +2189,7 @@ length、视频合成帧数=各段之和+时间窗首尾相接、stats 原样拷
 - **顶栏状态徽标**：WS / ROS / 数据 三色 pill（`useWsConnected`）。
 - 前端已 `npm run build` 重新生成 `web/dist`。
 
-`astral_web_monitor`：接入 `astral_arm_teleop` 的外部启动闸门，Web 界面可手动发 `/teleop/start`。
+`morla_web_manager`：接入 `astral_arm_teleop` 的外部启动闸门，Web 界面可手动发 `/teleop/start`。
 
 - `config.py` 新增 `TOPIC_START="/teleop/start"`。
 - `monitor_node.py` 新增 `publish_start()`（RELIABLE + VOLATILE，非 latched 一次性触发，避免晚加入臂节点收到旧 start 自动开始）。
@@ -2201,21 +2201,21 @@ length、视频合成帧数=各段之和+时间窗首尾相接、stats 原样拷
 
 - `PoseProcessor`：新增 `auto_calibrate` 开关（默认 true=旧行为，首帧自动记零点）；新增 `calibrate_from_current()` 用当前 pose 记 `vr_init`。
 - 节点：新增 `require_start_signal` 参数（默认 false，不破坏 sim/旧流程）。true 时启动不 arm、不自动记零，只跟踪 `vr_current`；订阅全局 `/teleop/start`（Bool true，双臂同启）+ 服务 `~/start`（Trigger，单臂带反馈）；收到信号时用当前 `vr_current` 记 `vr_init` 并 arm。homing 中或无腕姿时拒绝并告警。重发 start = 重新记零点（re-center）。
-- yaml（left/right）新增 `require_start_signal: false`；`astral_dual_arm_teleop.launch.py` 与 `astral_teleop/full_teleop.launch.py` 暴露 `require_start_signal` launch arg。
+- yaml（left/right）新增 `require_start_signal: false`；`astral_dual_arm_teleop.launch.py` 与 `morla_bringup/full_teleop.launch.py` 暴露 `require_start_signal` launch arg。
 - 真机用法：`require_start_signal:=true` 启动 → 手摆好 → `ros2 topic pub --once /teleop/start std_msgs/msg/Bool '{data: true}'`。
 
 `astral_robot_sdk` / `astral_robot_control`：纠正电机 ID 语义——`0x31/0x32` 是**头部**（head_yaw/head_pitch），不是夹爪；机械夹爪只走专用命令 `0x97/0x98`（`set_gripper_angle`），在 18 轴关节流里没有槽位。
 
 - SDK：`ROBOT_JOINT_NAMES` 末两位改为 `head_yaw/head_pitch`；新增 `HEAD_IDS=[0x31,0x32]`、`move_head_js(yaw,pitch)`、`move_waist_js(front,side)`；`GRIPPER_IDS` 保留为 `HEAD_IDS` 的兼容别名（旧导入不报错，但语义已是头）。
 - `astral_robot_control`：`joint_layout` 末两位改 `head_yaw/head_pitch`，新增 `HEAD_JOINT_NAMES`/`HEAD_NS`（`GRIPPER_JOINT_NAMES` 保留为别名）；driver 新增 `/head/joint_commands`→`move_head_js`、`/head/joint_states`；18-DoF `/astral/joint_states` 末两位改为头；夹爪 `/joint_states` 改发最近一次指令角（夹爪无 OBS 槽位）；`_on_grip_js` 期望名改 `f"{side}_gripper"`。yaml 新增 `head_ns`/`enable_head_cmd`。
-- 下游：`astral_mujoco_sim`（自带 14-DoF 臂名 + 独立夹爪 echo，不碰 18-DoF/头）、`astral_arm_teleop`（仅 14-DoF 臂）、`astral_web_monitor`（仅 launch 预设）、`astral_teleop` bringup 均无需改代码；无包再以 `GRIPPER_IDS/GRIPPER_JOINT_NAMES` 当夹爪电机 ID 下发。
+- 下游：`astral_mujoco_sim`（自带 14-DoF 臂名 + 独立夹爪 echo，不碰 18-DoF/头）、`astral_arm_teleop`（仅 14-DoF 臂）、`morla_web_manager`（仅 launch 预设）、`morla_bringup` bringup 均无需改代码；无包再以 `GRIPPER_IDS/GRIPPER_JOINT_NAMES` 当夹爪电机 ID 下发。
 
 `astral_gripper_teleop` / `astral_robot_control` / `astral_mujoco_sim`：修复夹爪两个问题。
 
 - **极性相反**：真机夹爪电机方向为 0.8=张开、0.0=合拢，原 `open_rad/closed_rad=0.0/0.8` 导致捏合(close_ratio=1)→0.8→夹爪反而张开。翻转为 `0.8/0.0`：捏合→0.0(合)、张开→0.8(开)。`close_ratio` 语义不变(0=开,1=合)，`/left_gripper/command` Float64 仍 0=开 1=合。两条路径(pinch 节点 JointState 弧度 + driver Float64 比例)的 `open/closed_rad` 一并翻转，避免互相覆盖；sim 同步。
 - **行程太小**：原 `open_dist_m/close_dist_m=0.08/0.015` 固定映射常与用户实际捏合距离范围不符，只用到中间一小段。新增 `auto_range`（默认开）：带遗忘地跟踪实测捏合距离 min/max，把当前距离映射到真实范围，用满夹爪行程；`open/close_dist` 退化为先验/回退，关掉则回退固定映射。新增 `close_ratio_from_range`；`_update_envelope` 指数遗忘包络 + `min_span` 兜底；日志加 `range=[lo,hi]mm` 便于观察。
 
-`quest3_hand_mocap`：修复 IOBT 开启后下游遥操 IK 失败（`ik_fail`、`vr_rx`/`vr_age` 延迟爆炸）。根因是 `frame_id` 在 `robot_world`↔`robot_body` 间切换导致 `astral_arm_teleop` 的 `PoseProcessor` 跨系做 delta（零点在世界系、当前在躯干系 → 米级跳变 → 不可达目标）。在源头（mocap）解决，`astral_arm_teleop` 不再需要身体系特判（已回退 `7c77555`）。
+`morla_input`：修复 IOBT 开启后下游遥操 IK 失败（`ik_fail`、`vr_rx`/`vr_age` 延迟爆炸）。根因是 `frame_id` 在 `robot_world`↔`robot_body` 间切换导致 `astral_arm_teleop` 的 `PoseProcessor` 跨系做 delta（零点在世界系、当前在躯干系 → 米级跳变 → 不可达目标）。在源头（mocap）解决，`astral_arm_teleop` 不再需要身体系特判（已回退 `7c77555`）。
 
 - **sticky latch**：`_iobt_active()` 一旦见过 body 包即置 `_body_ever_seen=True`，此后即使 body 包瞬时丢包（>0.4s）也不再回退世界系，消除运行中 `frame_id` 抖动（实测 26 次切换）。
 - **hold gate**：新增 `_pose_frame_settled()` 与 `_WRIST_SETTLE_S=1.0`。启动后 head/wrist/controller 在"帧确定"前不发布：收到首个 body 包 → 躯干系；或 1s 内无 body 包 → 世界系。从源头消除启动期 world→body 翻转，下游第一帧 wrist 即在正确系，`vr_init` 不会被错系污染。landmarks 为腕局部系、与参考系无关，不受闸门影响。
@@ -2223,21 +2223,21 @@ length、视频合成帧数=各段之和+时间窗首尾相接、stats 原样拷
 
 ## 2026-08-24
 
-重命名：`astral_quest_teleop` → **`astral_arm_teleop`**（纯臂遥操 + IK，去掉夹爪 include）；`astral_bringup` → **`astral_teleop`**（整机编排：mocap + 双臂 + 左夹爪 + 右 Wuji）。夹爪 include 从臂包移到 `astral_teleop`。
+重命名：`astral_quest_teleop` → **`astral_arm_teleop`**（纯臂遥操 + IK，去掉夹爪 include）；`astral_bringup` → **`morla_bringup`**（整机编排：mocap + 双臂 + 左夹爪 + 右 Wuji）。夹爪 include 从臂包移到 `morla_bringup`。
 
-`astral_arm_teleop` 内部命名统一：节点 `astral_teleop_arm_node` → `astral_arm_teleop_node`，节点名 `astral_teleop_{left,right}` → `astral_arm_teleop_{left,right}`，配置 `astral_teleop_{left,right}.yaml` → `astral_arm_teleop_{left,right}.yaml`（避免与新 `astral_teleop` 包混淆）。
+`astral_arm_teleop` 内部命名统一：节点 `morla_bringup_arm_node` → `astral_arm_teleop_node`，节点名 `morla_bringup_{left,right}` → `astral_arm_teleop_{left,right}`，配置 `morla_bringup_{left,right}.yaml` → `astral_arm_teleop_{left,right}.yaml`（避免与新 `morla_bringup` 包混淆）。
 
-新增 **`astral_teleop`**（原 `astral_bringup`）：整机遥操只拼现有包（双臂 + 左夹爪 + 右 Wuji）。`right_hand_source:=quest3|glove`；手套时 mocap 不再发 `hand_landmarks/right`。`astral_dual_arm_teleop` 增加 `with_mocap`，避免两份 mocap。
+新增 **`morla_bringup`**（原 `astral_bringup`）：整机遥操只拼现有包（双臂 + 左夹爪 + 右 Wuji）。`right_hand_source:=quest3|glove`；手套时 mocap 不再发 `hand_landmarks/right`。`astral_dual_arm_teleop` 增加 `with_mocap`，避免两份 mocap。
 
 新增 **`astral_gripper_teleop`**：Quest3 左手捏合 → 左夹爪，与 mocap / 臂 IK 解耦。
 
 - `pinch_gripper_node` 订 `hand_landmarks/left`，拇指尖–食指尖距离映射为 `/left_gripper/command`（`Float64`，0=开 1=合）和 `/left_gripper/joint_commands`（弧度）。
 - `astral_robot_control` 收上述话题，调用 SDK `set_gripper_angle`（CMD 0x97/0x98，非电机 ID）；`move_arm_js` 不带动夹爪。
-- 夹爪 include 原在 `astral_dual_arm_teleop.launch.py`（`with_gripper:=true`），现移到 `astral_teleop/full_teleop.launch.py` 编排；臂包不再含夹爪。以后换硬件：新节点发同一 `command` 即可。
+- 夹爪 include 原在 `astral_dual_arm_teleop.launch.py`（`with_gripper:=true`），现移到 `morla_bringup/full_teleop.launch.py` 编排；臂包不再含夹爪。以后换硬件：新节点发同一 `command` 即可。
 
 ## 2026-08-21
 
-`quest3_hand_mocap`：配合 Quest **astral-tracking** 坐标系修复，下游不再二次转换参考系。
+`morla_input`：配合 Quest **astral-tracking** 坐标系修复，下游不再二次转换参考系。
 
 - Quest 端把 `FullBody_Hips` 骨头系（+X下/+Y前/+Z左）用常量四元数 `(-0.5,0.5,0.5,0.5)` 重定向为躯干系（+X右/+Y上/+Z前）；`_lastBodyReferencePose` 与 body 包里的 hips 朝向均用重定向后的值。
 - Quest 端 `BuildAndSendPacket` 对非 hips 关节直接 `ToBodyRelative`，body 包里非 hips 关节已是 hips 相对；hips 仍发世界系。
@@ -2253,7 +2253,7 @@ length、视频合成帧数=各段之和+时间窗首尾相接、stats 原样拷
 - TCP `listen` 提到 8，覆盖手×2 + 头 + 手柄 + 身体多路连接。
 - 独立脚本 `quest3_mocap_standalone.py` 同步解析与可视化。
 
-新增 **`quest3_video_streamer`**：把 PC 相机画面经 WebRTC 推到 Quest 3，遥操时看机器人第一视角。与 `quest3_hand_mocap` 独立（信令 `:8765`，mocap 仍是 `:8000`）。自 `hand-tracking-sdk` 视频部分拆出，不依赖该 SDK、不用 venv。
+新增 **`quest3_video_streamer`**：把 PC 相机画面经 WebRTC 推到 Quest 3，遥操时看机器人第一视角。与 `morla_input` 独立（信令 `:8765`，mocap 仍是 `:8000`）。自 `hand-tracking-sdk` 视频部分拆出，不依赖该 SDK、不用 venv。
 
 - 单条 peer connection 多路 track：默认 D435i 1080p30（v4l2 `/dev/video8`）+ 左右腕 USB 720p30。
 - 可调全在 `config/params.yaml`（相机列表、source/device/preset/fov/layout）；launch 只加载 yaml。
@@ -2285,14 +2285,14 @@ ros2 launch quest3_video_streamer multi_camera.launch.py
 
 ### 配置改走 yaml
 
-- 臂 IK 默认改为 **`urdf_numerical`**（`astral_teleop_{left,right}.yaml`）。
+- 臂 IK 默认改为 **`urdf_numerical`**（`morla_bringup_{left,right}.yaml`）。
 - `protocol` 以 `quest3_mocap.yaml` 为准（默认 `tcp_wired`）。
 - `astral_sim_pipeline` / `astral_dual_arm_teleop` 的 `solver_type` / `protocol` / `convert_to_robot` 留空则**不覆盖** yaml。
 
 ### 删除旧单进程入口
 
-- 去掉 `astral_teleop_node.py`、`astral_teleop.yaml`、`astral_quest_teleop.launch.py`、`astral_real_pipeline.launch.py`。
-- 真机只留 `astral_dual_arm_teleop`（2× `astral_teleop_arm_node`）。
+- 去掉 `morla_bringup_node.py`、`morla_bringup.yaml`、`astral_quest_teleop.launch.py`、`astral_real_pipeline.launch.py`。
+- 真机只留 `astral_dual_arm_teleop`（2× `morla_bringup_arm_node`）。
 - `setup.py` 用 `_existing()` 过滤 glob，避免删 yaml 后 colcon 仍拷已失效的安装链接。
 
 ### 真机启动走到 init_pose
@@ -2305,9 +2305,9 @@ ros2 launch quest3_video_streamer multi_camera.launch.py
 
 此版本使用 Quest3，逆解使用 DH 以及 URDF，双臂遥操成功。
 
-- 输入：Quest3（`quest3_hand_mocap`，`convert_to_robot:=true`）
+- 输入：Quest3（`morla_input`，`convert_to_robot:=true`）
 - 臂 IK：`analytic_dh` 与 `urdf_numerical` 均可
-- 双臂：`astral_teleop_{left,right}` 进程并行 → `/{side}_arm/joint_commands`
+- 双臂：`morla_bringup_{left,right}` 进程并行 → `/{side}_arm/joint_commands`
 
 ### 延迟测量与 150 Hz 控制环
 

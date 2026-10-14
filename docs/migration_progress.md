@@ -8,8 +8,8 @@
 
 | 阶段 | 状态 | 结果/证据 |
 | --- | --- | --- |
-| P0 独立副本与环境 | 进行中 | 新建 MORLA；从 Astral rsync 源码。待哈希与路径检查、进度初始化完成。 |
-| P1 包路径与改名 | 未开始 | |
+| P0 独立副本与环境 | 完成 | 595 个 Astral Git 跟踪文件均存在且 SHA256 一致；源提交匹配 baseline；原工作区未修改；MORLA 独立提交 `f441a3e`。 |
+| P1 包路径与改名 | 完成 | 25 ROS 包可发现且全量 clean build 成功；五个共享包完成改名，入口脚本与Web launch路径适配；前端和指定回归通过。映射见 `docs/package_map.json`。 |
 | P2 core/profile | 未开始 | |
 | P3 description | 未开始 | |
 | P4 unified input | 未开始 | |
@@ -29,3 +29,11 @@
 - 已在 SDK 根目录创建新的 `MORLA/`，运行 `rsync -a` 从 Astral 复制源码，排除build/install/log、缓存、node_modules、egg-info和运行数据。
 - 尚未修改ROS包、description、配置或机器人接口；尚未启动硬件。
 - 本地环境已确认 ROS 2 Humble；后续按系统 Python 3.10构建ROS包。
+- P0校验：`git -C astral_ws ls-files` 共595个文件；逐文件比较MORLA副本SHA256，缺失0、差异0；MORLA初始提交为`f441a3e`。
+- P1：将原Astral包按`common/`、`robots/astral/`、`robots/wuji/`重组；`quest3_hand_mocap`→`morla_input`、`astral_data_collect`→`morla_data_collect`、`astral_policy_inference`→`morla_policy_inference`、`astral_web_monitor`→`morla_web_manager`、`astral_teleop`→`morla_bringup`。同步Python模块/resource/setup/import/launch/脚本路径；新增Astral/Nero/Wuji/XHand组件元包框架；`pi05_standalone`移入`tools/legacy/`并加`COLCON_IGNORE`。
+- 新工作区包列表：`colcon list --base-paths MORLA/src --names-only`为25个包；单独只有一份`morla_input`与`morla_data_collect`。`docs/package_map.json`记录源/目标包、路径和可执行入口。
+- P1 clean build：`source /opt/ros/humble/setup.bash; PATH=/usr/bin:/opt/ros/humble/bin:$PATH /usr/bin/colcon --log-base MORLA/log build --base-paths MORLA/src --build-base MORLA/build --install-base MORLA/install --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3 -DPYTHON_EXECUTABLE=/usr/bin/python3`，退出码0，25/25包完成。要求明确使用系统Python；默认shell的conda Python会导致ROS CMake解析找不到`catkin_pkg`。
+- P1 launch解析：`web_manager.launch.py`、数采、推理和Astral full bringup均以`--show-args`加载成功；没有启动机器人或硬件节点。Python源码`compileall`通过。
+- P1回归：`morla_input/test_packet_guard.py` 3通过；`morla_data_collect/test` 125通过/1跳过；`morla_policy_inference/tests` 143通过；`morla_web_manager/test` 25通过；`morla_bringup/test` 24通过。数采导出测试临时使用Pandas 2.3.3后通过；该测试依赖已清理，P7补齐包运行依赖。Quest全目录的flake8插件会递归扫描SDK根目录，故只执行了包保护逻辑测试，没有把该递归检查记作通过。
+- Web前端`npm ci && npm run build`通过（TypeScript + Vite，52 modules）；npm审计提示锁定依赖有1项moderate和2项high advisories，尚未擅自升级依赖。
+- 源`astral_ws`、`xnero_ws`提交和工作区状态复核无变化；迁移目录中运行时代码不再引用旧工作区路径或五个旧共享包名。尚未运行真机。

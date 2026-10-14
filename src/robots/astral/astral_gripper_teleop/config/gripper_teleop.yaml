@@ -1,0 +1,39 @@
+# Quest3 pinch → /{side}_gripper/command (Float64: 0=open, 1=closed).
+#
+# 本节点只发 0..1 闭合比；弧度映射（open_rad/closed_rad，CMD 0x97/0x98）唯一权威
+# 在 astral_robot_control 的 config/astral_robot.yaml（left/right_gripper_open_rad
+# 当前 2.5）。切勿同时发 joint_commands：driver 两个话题都订，
+# 双流不同 rad 会让夹爪按控制频率来回抽。
+#
+# Swap this node later: another publisher on /left_gripper/command is enough
+# if astral_robot_control is running.
+
+pinch_gripper_node:
+  ros__parameters:
+    hand_side: "left"
+    open_dist_m: 0.08
+    close_dist_m: 0.015
+    ema_alpha: 0.2
+    publish_rate: 50.0
+    input_timeout_s: 0.4
+    on_timeout: "hold"
+    log_interval_s: 0.0  # 0=关状态日志；>0 每 N 秒一条 dist/close
+    # 自适应量程：跟踪真实捏合距离的 min/max（带遗忘），用满夹爪行程。
+    # open_dist_m/close_dist_m 退化为先验/回退。关掉则用固定 open/close 映射。
+    auto_range: true
+    auto_range_forget_s: 8.0
+    auto_range_min_span_m: 0.01
+    # 扳机整形链：死区(trigger_deadzone)重标定到 [0,1] → gamma → EMA。
+    # 1.0 = 线性（当前实机要求：扳机行程与闭合比 1:1）。改 >1 前半程更细（半捏精
+    # 操作）；<1 前半程更灵敏。EMA 去 Joy 抖动（首帧直取）。
+    trigger_gamma: 1.0
+    trigger_ema_alpha: 0.4
+    # 输出限速（ratio/s）：驱动每拍发绝对角度、夹爪伺服全速赴位，不限速时
+    # 快速扣扳机会"啪"地合死。2.5 = 全行程 ≥0.4s；<=0 关闭。trigger/pinch 都生效。
+    max_ratio_rate: 2.5
+    # 仲裁门：策略推理（morla_policy_inference）在 POLICY/PLAYBACK 期间发 disarm=true
+    # 独占夹爪指令话题，避免与真人捏合抢写；进入 HUMAN/IDLE 后发 false 恢复本节点。
+    # 电平语义：只有 true 才禁用；web 恢复发的是 /teleop/armed=true（它从不发 disarm=false），
+    # 故本节点把 fresh armed=true 也当作门开启。留空 = 该方向不监听。
+    disarm_topic: "/teleop/disarm"
+    arm_topic: "/teleop/armed"

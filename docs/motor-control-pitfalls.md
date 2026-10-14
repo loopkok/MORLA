@@ -3,7 +3,7 @@
 > 2026-08~09 真机反复踩、2026-09-22 整理归档。
 > 给新会话/接手者：臂/夹爪/头"突然动一下、回到不该回的位置、该动不动"——**先到这里对症状**，
 > 这类问题根因多数在**板端目标/运动模式/命令流**三层，不在遥操或策略。
-> 母本：`src/astral_robot_control/README.md`、`src/astral_arm_teleop/CLAUDE.md`、`astral_ws/CHANGELOG.md`
+> 母本：`src/robots/astral/astral_robot_control/README.md`、`src/robots/astral/astral_arm_teleop/CLAUDE.md`、`astral_ws/CHANGELOG.md`
 > （08-25~09-17 各条）。诊断资产：driver `driver_log_file`（`cmd`/`send`/`state`/`srv`/`spike` 五类记录，
 > 用 spike 时间对齐 cmd/send/srv 定"谁先跳"）。
 
@@ -20,7 +20,7 @@
 | 夹爪抽搐 + 开度不到位 | `pinch_gripper_node` 同时发 `/command`(Float64) 和 `/joint_commands`(JointState)，driver 两个都订且各自映射 rad（0.8 vs 1.5 不一致）→ 两路 50Hz 交替覆盖同一目标 | pinch 节点**只发 Float64 闭合比**（0=开 1=合），rad 映射唯一权威收敛到 driver yaml；`joint_commands` 留给直接发弧度的适配器 | driver dry_run 全程只见 rad=1.500 单值 |
 | 夹爪"开到最大马上闭合" | `open_rad=2.0`（机械硬止点）持续顶死 → 堵转 → 过流保护 → 电机失力回弹 | `open_rad` 回退 1.5（安全开度）；后按实机全开角升 2.5 | — |
 | 夹爪极性相反（捏合反而张开） | 真机电机方向 0.8=张开、0.0=合拢，原 `open/close_rad=0.0/0.8` 颠倒 | 翻转为 `0.8/0.0`，两条路径（JointState 弧度 + Float64 比例）一并翻转 | — |
-| 慢速平移"停一下走一下" | 电机低速静摩擦粘滑（speed 环 kp=0.04）+ geometric 最小关节速度优化压到死区 | 调 speed 环（⚠ 待验证）；`cmd_deadband_mrad` **实测无效**（硬件层） | 详见 [teleop-stick-slip-investigation.md](teleop-stick-slip-investigation.md) + [ik-solver-comparison](../src/astral_arm_teleop/doc/2026-09-17-ik-solver-comparison.md) |
+| 慢速平移"停一下走一下" | 电机低速静摩擦粘滑（speed 环 kp=0.04）+ geometric 最小关节速度优化压到死区 | 调 speed 环（⚠ 待验证）；`cmd_deadband_mrad` **实测无效**（硬件层） | 详见 [teleop-stick-slip-investigation.md](teleop-stick-slip-investigation.md) + [ik-solver-comparison](../src/robots/astral/astral_arm_teleop/doc/2026-09-17-ik-solver-comparison.md) |
 | 单臂预设下缺席臂被拽向零位 | driver 控制定时器发现"左臂有新鲜指令、右臂 None"时给缺失侧**补零** → 100Hz 零目标持续拽向零 | arm-only 路径改为**只向有新鲜指令的一侧下发**（`_send_arm_side()` 按该侧电机 ID 子集），缺席侧不发命令 = 板端保持原目标 | test_driver_services 16→20 例全绿 |
 | 电机 ID 语义错乱 | 0x31/0x32 是**头部**（head_yaw/head_pitch），不是夹爪；机械夹爪只走 0x97/0x98 | SDK `ROBOT_JOINT_NAMES` 末两位改 head；夹爪 `/joint_states` 改发最近指令角；下游命名同步 | — |
 | 阻尼/急停后恢复路径混乱 | 急停=真断电 disable；重启无"使能"步骤，归位轨迹在电机失能期内部空跑领先实体 | web 收敛到 **HOME 按钮**（先 enable 再 disarm+收回零位）；启动只拉栈、不自动使能（自动使能实机 503/臂不动已回退） | test_home_park 5→7 例 |

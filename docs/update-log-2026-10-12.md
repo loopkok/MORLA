@@ -23,7 +23,7 @@
 
 ## 3. 离线工具统一入口与迁移
 
-实现集中到 `src/astral_data_collect/astral_data_collect/pipeline/`，采集节点、写盘和共享 schema 保留在父包。统一入口包括源码脚本 `scripts/data_pipeline.sh`、安装后的 `data_pipeline` 与 `python -m astral_data_collect.pipeline`。
+实现集中到 `src/common/morla_data_collect/morla_data_collect/pipeline/`，采集节点、写盘和共享 schema 保留在父包。统一入口包括源码脚本 `scripts/data_pipeline.sh`、安装后的 `data_pipeline` 与 `python -m morla_data_collect.pipeline`。
 
 | 命令 | 功能 |
 | --- | --- |

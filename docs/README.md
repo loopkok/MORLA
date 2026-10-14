@@ -9,20 +9,20 @@
 
 | 主题 | 独立文档 | 一句话结论 | 权威源 |
 |---|---|---|---|
-| ACT 推理卡顿 | [act-inference-stutter-investigation.md](act-inference-stutter-investigation.md) | 真机"一卡一卡"= 四层独立原因叠加（参数没生效/换 chunk 断流/收敛拉回尖峰/数据节奏/网络），按层排查 | `src/astral_policy_inference/CLAUDE.md`「推理优化历程」 |
+| ACT 推理卡顿 | [act-inference-stutter-investigation.md](act-inference-stutter-investigation.md) | 真机"一卡一卡"= 四层独立原因叠加（参数没生效/换 chunk 断流/收敛拉回尖峰/数据节奏/网络），按层排查 | `src/common/morla_policy_inference/CLAUDE.md`「推理优化历程」 |
 | pi0.5 推理问题调查（进行中） | [2026-09-21-pi05-inference-investigation.md](2026-09-21-pi05-inference-investigation.md) | 抓偏/误抓/卡顿的 A/B/C/D 轮实验设计与结论；左腕视角变化 + 时间轴定责 | `pi05_infer_test_log/`、CHANGELOG 09-21/22 |
-| 推理部署环境/后端坑 | [inference-deploy-pitfalls.md](inference-deploy-pitfalls.md) | py3.12 lerobot vs py3.10 rclpy 硬墙、ACT 1 行 chunk、锁饥饿、陈旧队列、绝对语义守卫等 | `src/astral_policy_inference/CLAUDE.md` 坑表 |
-| 遥操慢速"抖"（低速粘滑） | [teleop-stick-slip-investigation.md](teleop-stick-slip-investigation.md) | 慢速"停一下走一下"根因在**驱动层**（电机 speed 环 kp=0.04 微弱），与遥操/IK 无关；速度前馈无效 | `src/astral_arm_teleop/CLAUDE.md`「低速粘滑排障全记录」、`inference_test_logs/teleop/SUMMARY.md` |
-| 逆解求解器对比 | [src/astral_arm_teleop/doc/2026-09-17-ik-solver-comparison.md](../src/astral_arm_teleop/doc/2026-09-17-ik-solver-comparison.md) | geometric 慢速一顿一顿 = 电机死区(~1mrad)×最小关节速度优化；`cmd_deadband_mrad` 实测无效 | `astral_test_logs/2026-09-17_ik_solver_comparison/` |
-| 驱动层/电机控制坑 | [motor-control-pitfalls.md](motor-control-pitfalls.md) | 陈旧命令流/板端陈旧目标/使能确认位/HOME 归位/夹爪竞态/死区 一整套"电机突然自己动"的定责路径 | `src/astral_robot_control/README.md`、CHANGELOG 08-09 月 |
-| 数采数据质量（卡点治本） | [data-quality-investigation.md](data-quality-investigation.md) | 训练后真机**固定卡点**= 数据走走停停被模型学走；治本在数据修复（repair_aligned 选帧零错位） | `src/astral_data_collect/CLAUDE.md`「质量优化历程」 |
-| 相机/视频回传性能 | [camera-video-performance-investigation.md](camera-video-performance-investigation.md) | 三路相机拖垮进程=rosidl setter 逐字节校验吃 GIL（630× 加速）；编码器线程/限流/设备指纹各有一串坑 | `src/quest3_video_streamer/README.md`、CHANGELOG 08-09 月 |
+| 推理部署环境/后端坑 | [inference-deploy-pitfalls.md](inference-deploy-pitfalls.md) | py3.12 lerobot vs py3.10 rclpy 硬墙、ACT 1 行 chunk、锁饥饿、陈旧队列、绝对语义守卫等 | `src/common/morla_policy_inference/CLAUDE.md` 坑表 |
+| 遥操慢速"抖"（低速粘滑） | [teleop-stick-slip-investigation.md](teleop-stick-slip-investigation.md) | 慢速"停一下走一下"根因在**驱动层**（电机 speed 环 kp=0.04 微弱），与遥操/IK 无关；速度前馈无效 | `src/robots/astral/astral_arm_teleop/CLAUDE.md`「低速粘滑排障全记录」、`inference_test_logs/teleop/SUMMARY.md` |
+| 逆解求解器对比 | [src/robots/astral/astral_arm_teleop/doc/2026-09-17-ik-solver-comparison.md](../src/robots/astral/astral_arm_teleop/doc/2026-09-17-ik-solver-comparison.md) | geometric 慢速一顿一顿 = 电机死区(~1mrad)×最小关节速度优化；`cmd_deadband_mrad` 实测无效 | `astral_test_logs/2026-09-17_ik_solver_comparison/` |
+| 驱动层/电机控制坑 | [motor-control-pitfalls.md](motor-control-pitfalls.md) | 陈旧命令流/板端陈旧目标/使能确认位/HOME 归位/夹爪竞态/死区 一整套"电机突然自己动"的定责路径 | `src/robots/astral/astral_robot_control/README.md`、CHANGELOG 08-09 月 |
+| 数采数据质量（卡点治本） | [data-quality-investigation.md](data-quality-investigation.md) | 训练后真机**固定卡点**= 数据走走停停被模型学走；治本在数据修复（repair_aligned 选帧零错位） | `src/common/morla_data_collect/CLAUDE.md`「质量优化历程」 |
+| 相机/视频回传性能 | [camera-video-performance-investigation.md](camera-video-performance-investigation.md) | 三路相机拖垮进程=rosidl setter 逐字节校验吃 GIL（630× 加速）；编码器线程/限流/设备指纹各有一串坑 | `src/common/quest3_video_streamer/README.md`、CHANGELOG 08-09 月 |
 | 相机 USB3 坏帧/120fps | [camera-usb3-120fps-corruption-investigation.md](camera-usb3-120fps-corruption-investigation.md) | ffmpeg 三类错误分清真伪；坏帧=SS 120fps 编码器过载（帧率 vs 端口四格表实证）；固件更新+迁 USB2@30 根治；USB2 线强制 HS；`pkill -9` 会脏 xHCI | 本会话 Jetson 实机、CHANGELOG 09-23/24 |
 | 相机 label 语义化/设备指纹 | [camera-label-semanticization.md](camera-label-semanticization.md) | videoN 是"内核号"不是"角色"；label_aliases 按硬件指纹钉死，换口/重插不漂移 | streamer params.yaml、CHANGELOG 09-18 |
 | openpi 训练部署 | [openpi-training-deploy.md](openpi-training-deploy.md) | pi05_base 权重 11.6GB 需 RAM≥32GB（本机 3 次 OOM）；迁移三件套 + 5 个坑 | CHANGELOG 09-11 |
-| NN 臂角 IK（piM-IK）对抗性审查 | [src/astral_pim_ik/docs/adversarial_review.md](../src/astral_pim_ik/docs/adversarial_review.md) | F1-F11 发现：ψ=0 约定一致性、单帧 T_ee 不决定 ψ（训练须时间相干轨迹）、已修 3 个真 bug（9D 行列序/L_elbow 遮蔽/IID 不可学） | `src/astral_pim_ik/CLAUDE.md` §5/§8 |
+| NN 臂角 IK（piM-IK）对抗性审查 | [src/robots/astral/astral_pim_ik/docs/adversarial_review.md](../src/robots/astral/astral_pim_ik/docs/adversarial_review.md) | F1-F11 发现：ψ=0 约定一致性、单帧 T_ee 不决定 ψ（训练须时间相干轨迹）、已修 3 个真 bug（9D 行列序/L_elbow 遮蔽/IID 不可学） | `src/robots/astral/astral_pim_ik/CLAUDE.md` §5/§8 |
 | Quest 3 人在环接管与介入标签 | [审查记录](quest3-hitl-audit-2026-10-12.md) / [修复与验证](quest3-hitl-fixes-2026-10-12.md) | 租约与 ACK 确认、重锚 token、输入限龄、Quest 包防重放及逐帧 HUMAN 标签 | `CHANGELOG.md` 2026-10-12、policy/teleop 与数据管线回归记录 |
-| Quest mocap 坐标系/腕位精度 | 记录在 CHANGELOG 08-25 与 `quest3_hand_mocap/README.md` | IOBT 开启后 frame_id 在 world↔body 间切换 → IK 米级跳变（sticky latch + hold gate 修复）；位姿 F4 0.1mm 量化→F7 | CHANGELOG 08-25、teleop-stick-slip 第 2 步 |
+| Quest mocap 坐标系/腕位精度 | 记录在 CHANGELOG 08-25 与 `morla_input/README.md` | IOBT 开启后 frame_id 在 world↔body 间切换 → IK 米级跳变（sticky latch + hold gate 修复）；位姿 F4 0.1mm 量化→F7 | CHANGELOG 08-25、teleop-stick-slip 第 2 步 |
 
 ## 数据管线近期记录
 

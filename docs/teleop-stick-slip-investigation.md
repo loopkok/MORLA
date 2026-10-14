@@ -3,9 +3,9 @@
 > 2026-09-14~16 真机实测排障，2026-09-22 整理归档。
 > 给新会话/接手者：理解"慢速平移一卡一卡"这类现象**为什么根因在驱动层**，
 > 以及正确的排障顺序（先量化、再逐层排除、最后实锤）。
-> 母本：`src/astral_arm_teleop/CLAUDE.md`「低速粘滑排障全记录」+ `README.md`「遥操不平滑排障全记录」+
+> 母本：`src/robots/astral/astral_arm_teleop/CLAUDE.md`「低速粘滑排障全记录」+ `README.md`「遥操不平滑排障全记录」+
 > `inference_test_logs/teleop/SUMMARY.md`（原始数据）。与
-> `src/astral_arm_teleop/doc/2026-09-17-ik-solver-comparison.md`（求解器对比，死区交互）互补。
+> `src/robots/astral/astral_arm_teleop/doc/2026-09-17-ik-solver-comparison.md`（求解器对比，死区交互）互补。
 
 ## TL;DR（一分钟结论）
 
@@ -92,7 +92,7 @@ kp=0.04 微弱 → 慢速产不出扭矩/阻尼 → 静摩擦粘滑。板卡 CFG
 | `read_gains.py` | 同上 | 读电机四环 PID 级联 + MIT + 摩擦（在线可读） |
 | `set_pid.py` | 同上 | 写 speed/position 环 PID（下电） |
 | `calib_friction.py` | 同上 | 0xC4 静摩擦自测 + set_friction 补偿（下电） |
-| `quantify_cmd_state.py` | `astral_ws/scripts/` | 训练数据"意图 vs 摩擦"量化（raw cmd vs state 分型） |
+| `quantify_cmd_state.py` | `MORLA/scripts/` | 训练数据"意图 vs 摩擦"量化（raw cmd vs state 分型） |
 
 ## 下游影响：训练数据平段以摩擦为主（2026-09-16 实测）
 
@@ -115,8 +115,8 @@ kp=0.04 微弱 → 慢速产不出扭矩/阻尼 → 静摩擦粘滑。板卡 CFG
 
 ## 关联
 
-- **求解器死区交互**：`src/astral_arm_teleop/doc/2026-09-17-ik-solver-comparison.md`——
+- **求解器死区交互**：`src/robots/astral/astral_arm_teleop/doc/2026-09-17-ik-solver-comparison.md`——
   geometric 精确解+最小关节速度优化，慢速时把指令压到电机死区（~1mrad）下 → 停-跳
   （24% 拍整臂 7 关节全 <1mrad）；urdf 的"浪费型"运动反而平滑。`cmd_deadband_mrad` 实测无效。
-- **数据修复**：`astral_ws/src/astral_data_collect/astral_data_collect/pipeline/repair_aligned.py`（保时序摩擦移除 / 弧长匀速化），见
+- **数据修复**：`astral_ws/src/common/morla_data_collect/morla_data_collect/pipeline/repair_aligned.py`（保时序摩擦移除 / 弧长匀速化），见
   [data-quality-investigation.md](data-quality-investigation.md)。

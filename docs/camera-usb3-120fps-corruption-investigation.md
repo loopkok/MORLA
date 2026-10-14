@@ -267,4 +267,4 @@ release 路径（`uvc_video_stop_transfer` 会清理 URB）。整机 USB 卡死�
 | `/tmp/collect_final/{base,left_wrist,right_wrist}/` | 最终全链路 collect 输出各 40 帧（端到端验证） |
 
 > 分析脚本（逐帧 error dc / DQT / 条带检测）为本会话临时脚本，未入库；
-> 需要复用可参考 `astral_ws/scripts/diag_camera_usb3_fps.sh`（S_PARM/对照录制/计数三合一）。
+> 需要复用可参考 `MORLA/scripts/diag_camera_usb3_fps.sh`（S_PARM/对照录制/计数三合一）。

@@ -64,7 +64,7 @@ DEVICE="${DEVICE:-}"
 POLICY_CONFIG="${POLICY_CONFIG:-pi05_astral}"
 LOG_DIR="${LOG_DIR:-/tmp/astral_serve}"
 
-SERVE="$WS_ROOT/src/astral_policy_inference/scripts/serve.py"
+SERVE="$WS_ROOT/src/common/morla_policy_inference/scripts/serve.py"
 PIDFILE="$LOG_DIR/serve_${MODEL}_${PORT}.pid"
 LOGFILE="$LOG_DIR/serve_${MODEL}_${PORT}.log"
 
