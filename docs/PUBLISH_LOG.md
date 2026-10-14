@@ -12,10 +12,11 @@
 | 目标仓库 | <https://github.com/loopkok/MORLA.git> |
 | 分支 | `main` |
 | 本地工作区 | `/home/robot/loopkok/sdk/MORLA` |
-| 发布方式 | 普通 Git push；禁止覆盖远端历史 |
-| 推送前本地 HEAD | `ef32ab174cb7f4caba875d96a79fee2ac97ea1b4` |
+| 发布方式 | 使用已授权的 `loopkok` GitHub 连接器通过 Git Data API 写入；保留本地迁移提交顺序与文件树 |
+| 原始本地集成 HEAD | `ef32ab174cb7f4caba875d96a79fee2ac97ea1b4` |
+| 发布日志初始提交 | `cfd602a78550ba370d75aa4cfe95bca1c603c41c` |
 | 推送前工作区 | 干净 |
-| 推送前远端状态 | `git ls-remote` 成功但没有返回 HEAD 或 `main` 引用；按空仓库处理 |
+| 连接器开始操作前的远端状态 | 仓库 size 0、没有 refs；GitHub API 报告 `Git Repository is empty` |
 
 ### 源码基线与边界
 
@@ -79,9 +80,11 @@
 | 2026-10-13 17:22 CST | HTTPS 首次推送尝试 | 失败：Git 无法读取 GitHub Username，当前环境无可交互终端凭据 |
 | 2026-10-13 17:22 CST | SSH 端口连通性与身份检查 | 22 端口超时；GitHub SSH over 443 可连接，但本机 key 对应账号 `zhongrenjiexing` |
 | 2026-10-13 17:22 CST | SSH 推送尝试 | 失败：GitHub 返回 `Permission to loopkok/MORLA.git denied to zhongrenjiexing`；远端仍为空，未创建或修改任何分支 |
-| 待追加 | 使用对目标仓库有写权限的 Git 凭据推送 `main` | 待执行；远端尚未收到本地提交 |
-| 待追加 | 推送后复核远端分支 SHA 与本地 HEAD | 待执行 |
+| 2026-10-13 17:34 CST | 切换到 `loopkok` GitHub API 身份 | 连接器返回登录用户 `loopkok`；仓库权限为 admin/maintain/push |
+| 2026-10-13 17:34 CST | 初始化远端空仓库 | 以 MORLA `README.md` 创建 `main` 初始提交 `efc2de6a26e909cc25811e0380efe5973c4a4bac`；接下来写入完整 Git 对象和迁移提交树 |
+| 待追加 | 写入 MORLA 完整对象、提交链并更新 `main` | 进行中 |
+| 待追加 | 读取 GitHub `main` 并校验文件树与本地发布树一致 | 待执行 |
 
-### 当前阻塞
+### 身份与传输说明
 
-本机现有 Git 凭据不具备目标仓库写权限；已连接的 GitHub `loopkok` 账号虽具备权限，但该连接器未提供可供本地 `git push` 使用的凭据。完成推送需要使本地 Git 使用 `loopkok` 的已授权凭据，或将 GitHub 用户 `zhongrenjiexing` 加入该仓库并授予写权限。收到可用授权后，应从本地 `main` 推送，确认远端 HEAD 等于最终本地 HEAD，并更新本节日志。
+本机 HTTPS 没有可交互凭据；SSH over 443 的 key 登录为 `zhongrenjiexing`，对目标仓库无写权。按用户指示改用已认证且有管理员/push 权限的 GitHub `loopkok` 连接器执行 Git Data API 上传。API 创建的远端提交由 `loopkok` 签署身份、SHA 与本地对象不同；迁移提交标题和每个版本的完整文件树将按本地提交顺序保留。完成后读取远端 branch/tree 校验，再追加远端 SHA 与结果。
