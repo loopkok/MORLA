@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>astral_data_collect</name>
+  <version>0.1.0</version>
+  <description>
+    Astral VLA data collection: raw HDF5 capture alongside teleop, offline
+    alignment to a fixed fps grid, validation/quarantine, LeRobot v2.1 export
+    (OpenPI pi0.5 compatible), and Rerun visual replay.
+  </description>
+  <maintainer email="loopkok@todo.todo">loopkok</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>ament_index_python</depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

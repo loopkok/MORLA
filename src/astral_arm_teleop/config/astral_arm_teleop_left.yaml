@@ -1,0 +1,113 @@
+# Astral left arm — IK in left_base_link
+# Quest wrist: robot_world (convert_to_robot:=true). Default vr_to_arm_rot=I.
+astral_arm_teleop_left:
+  ros__parameters:
+    arm_side: "left"
+    control_rate: 150.0
+    # analytic_dh | geometric | urdf_numerical  — launch 不覆盖；改这里即可
+    # geometric: 免 DH 臂角解析 IK（S/E/W 空间几何 + POE/Paden-Kahan，URDF 提取）
+    solver_type: "geometric"
+    urdf_path: ""  # empty → astral_robot.pin.urdf
+    # URDF LM (ignored by DH; hot-tunable)
+    ik_max_iter: 20
+    ik_tol: 0.00000001
+    ik_w_pos: 1.0
+    # Temporarily back to pre stick-to-prev-frame. Restore:
+    # ik_w_ori 0.40 / ik_w_reg 0.02 / ik_dq_max 0.30 / ik_w_pref 0.004
+    ik_w_ori: 0.3
+    ik_w_reg: 0.0001
+    # Joint4 URDF upper=0 is fully stretched (elbow singularity → 卡死).
+    # Keep more bend than -0.25 so J3 still has a lever for inward reach.
+    ik_q4_max: -0.45
+    ik_w_limit: 0.12  # soft hinge; short-side travel is not fully eaten
+    ik_dq_max: 0.0    # rad per IK solve; 0=off
+    ik_w_pref: 0.0    # pull toward init_pose when redundant; 0=off
+    # One-sided fold: penalize q4 straighter than ik_q4_fold (0=off).
+    ik_w_fold: 0.015
+    ik_q4_fold: -1.20
+
+    vr_to_arm_rot: [1.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0,
+                    0.0, 0.0, 1.0]
+    # 0.25 ≈ τ14ms（0=无滤波 1=几乎不跟；可热改 tune 滑条）。真机配板卡
+    # lpf_alpha=0.85 近直通，噪声抑制以这一级为主（避免两级串联"小动作先顿后冲"）。
+    # 静止发颤回 0.35~0.4；大动作仍觉肉再降到 0.15~0.2。
+    pos_smoothing: 0.25
+    rot_smoothing: 0.35
+    motion_scale: 1.0 #0.65
+    flip_pitch: false
+    tcp_offset: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+    max_joint_vel: 6.0  # rad/s  (0.08 rad/tick @ 50 Hz)
+    # Sphere around left_base_link origin (IK frame). <=0 off.
+    # init_pose |p|~0.44 m; q=0 hang ~0.49 m; max reach ~0.59 m.
+    workspace_radius: 0.65
+    # 肘伸直奇异软墙（geometric）：腕目标钳制在肩心 l_se+l_ew-margin 内，
+    # 防止全伸展时 q4 撞限位 → IK 无解 → 臂"卡一下"。<=0 关闭。
+    reach_margin: 0.001
+    # VR 看门狗：超时即 disarm（需重新 /teleop/start 恢复）。1.5s 容忍 VR
+    # 链路短暂抖动；超时前 teleop 持续发冻结目标（driver 跟随），teleop 停发
+    # 后 driver 自身的 command_timeout_s(1.5) 才接管保持。<=0 关闭（不推荐）。
+    data_timeout: 1.5
+    dry_run: false
+    require_clench_to_start: false
+    auto_arm_on_start: true
+    # require_start_signal: true → 不在首帧自动记 vr_init / arm；
+    # 等外部 /teleop/start（Bool true，双臂同启）或 ~/start 服务，
+    # 用当前 pose 记零点并 arm。真机推荐 true（启动推流后手摆好再开始）。
+    require_start_signal: true
+    use_joint_state_seed: true
+    # 启动**不**自动走 init_waypoints → init_pose（web「工作位」按钮 / /teleop/init /
+    # ~/init 服务手动触发，见 astral_arm_teleop README）。置 true 恢复启动自动归位
+    # （或 CLI launch 透传 move_to_init_pose:=true 覆盖）。
+    move_to_init_pose: false
+    init_speed_percent: 10  # of max_joint_vel
+    init_arrive_tol: 0.05
+    init_timeout: 40.0
+    # HOME park 与启动 init 一样纯开环匀速推进；反馈只做"跟随便用"：
+    # 实测落后指令超过 homing_follow_tol（电机失能/堵转没在跟随）→ 冻结轨迹
+    # 不空跑，领先钳在 tol 内，恢复跟随后自动继续（防猛扑）。正常跟随不介入。
+    homing_track_state: true
+    homing_follow_tol: 0.25
+    # park（HOME）途经点"实体到位门限"：命令到 waypoint ≠ 实体到 waypoint——
+    # 纯开环命令领先实测（跟踪误差+延迟），命令一到点立即反向会把实体切角在
+    # waypoint 之前（臂"出了但没到就掉头"）。命令钉在途经点重发，等实测进入
+    # homing_via_tol 且连续稳定 homing_via_settle_s（实体真到位停下）才走下一段；
+    # homing_via_hold_s 为总等待上限（防负载静差长期不到位卡死归零）。
+    homing_via_tol: 0.12
+    homing_via_settle_s: 0.5
+    homing_via_hold_s: 2.0
+    # 工作位（含直达终点）须由关节实测确认到位；超时停在当前途经点，不跳段。
+    homing_init_arrive_timeout: 12.0
+    print_latency: true
+    latency_print_interval: 2.0
+    publish_tune: true
+    # 遥操诊断 JSONL 日志（空=关）：loop/wrist/state/body/metrics 记录，kind 区分。
+    # web 预设启动勾选「记录遥操日志」自动注入 /tmp/teleop_teleop_left.jsonl。
+    teleop_log_file: ""
+    # 电机指令最小步长地板（mrad/拍，0=关）：**实测无效（2026-09-17 真机 A/B）——指令层
+    # 把步长抬到 ≥1mrad 但实测关节无改善（j3 平段反升，地板硬抬造成过冲振荡）；且 1mrad
+    # 测量分辨不出 geometric/urdf 差异。电机硬件间隙问题暂无法解决。保留默认关。**
+    cmd_deadband_mrad: 0.0
+    cmd_deadband_min_vel: 10.0   # mm/s；VR 目标速度低于此不抬（避免静止蠕）
+
+    # 人臂肘先验（仅 geometric 求解器）：订阅 quest3/body_joints 的
+    # {side}-arm-upper/-lower（Quest IOBT 推算的肩/肘），把人的大臂方向
+    # 映射成臂角 psi_ref，机器人肘平面跟随人臂。数据超时/缺失自动回退
+    # 纯连续性。weight 越大越贴近人姿态（相对 w_vel=1.0）。
+    use_human_elbow: true
+    # "soft": psi_ref 软先验（weight 与连续性混合）；"hard": 人肘方向新鲜时
+    # 精确解在 psi_human 上（肘严格贴人臂，录数据的前提——执行的 q 的臂角
+    # == 人臂角）；不可行/奇异/超龄期自动回退软路径（hard_fallback 计数）。
+    human_elbow_mode: "hard"
+    human_elbow_weight: 2.0
+    human_elbow_timeout: 0.3        # s；body_joints 超过此龄期则不用
+    human_elbow_smoothing_tau: 0.15 # s；肘方向 EMA 时间常数
+    # 伸直度门控：人臂接近伸直时 ψ 不可观测（IOBT 肘偏置会把机器人肘拧到
+    # 错误角度），低于此 sin 值关闭先验回退纯连续性。0.15 ≈ 肘尖离线 4cm。
+    human_elbow_min_sin: 0.15
+
+    # Via point (hardware convention): lift / fold before extending to the table.
+    init_waypoints: [-1.6, 0.2, 0.0, -1.92, -0.2, 0.0, 0.00]
+    # init_pose: [0.32, 0.11, -0.53, -0.80, 0.28, 0.00, 0.00]
+    init_pose: [-0.35, 0.2, 0.0, -1.92, -0.2, 0.0, 0.00]

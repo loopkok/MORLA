@@ -1,0 +1,32 @@
+# Wuji Glove mocap parameters.
+# Names aligned with rob_station where applicable (see README in package comments).
+#
+# Env overrides (same as rob_station):
+#   GLOVE_HAND_SIDE  → hand_side default (left|right; both also supported here)
+#   GLOVE_HAND_SN    → sn default (single-hand SN; empty = auto UDP scan)
+
+wuji_glove_mocap:
+  ros__parameters:
+    # left | right | both  (rob_station GLOVE_HAND_SIDE defaults to right)
+    hand_side: "right"
+
+    # Single-hand SN (rob_station GLOVE_HAND_SN). Empty = scan first UDP glove.
+    sn: ""
+
+    # rob_station / glove_qpos_test default device_name
+    device_name: "glove"
+
+    # both 模式建议分别填写（避免两只手套抢同一 auto-scan）
+    left_sn: ""
+    right_sn: ""
+    left_device_name: "left_glove"
+    right_device_name: "right_glove"
+
+    # Align with rob_station glove_qpos_test --loop-fps default (50)
+    publish_rate: 50.0
+
+    # Same as quest3_hand_mocap ema_alpha
+    ema_alpha: 0.7
+
+    viz: false
+    output_topic: "hand_landmarks"

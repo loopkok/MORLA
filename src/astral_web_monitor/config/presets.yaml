@@ -1,0 +1,74 @@
+# Launch presets for astral_web_monitor.
+# Each preset maps to a `ros2 launch <package> <launch> <args>` invocation.
+# Add or edit presets here without touching code.
+
+presets:
+  - name: "Arms only (sim, no driver)"
+    package: astral_arm_teleop
+    launch: astral_dual_arm_teleop.launch.py
+    args:
+      with_mocap: "true"
+      with_driver: "false"
+    description: "双臂遥操作 + Quest mocap，无真机驱动（仿真/调试）"
+
+  - name: "Dual arms + left gripper (no right hand)"
+    package: astral_teleop
+    launch: full_teleop.launch.py
+    args:
+      with_arm_driver: "true"
+      with_hand_driver: "false"
+      right_hand_source: "none"
+      with_gripper: "true"
+    description: "真机双臂 + 左夹爪，无右灵巧手（right_hand_source=none）"
+
+  - name: "Left arm + left gripper (no right arm)"
+    package: astral_teleop
+    launch: full_teleop.launch.py
+    args:
+      with_arm_driver: "true"
+      with_hand_driver: "false"
+      right_hand_source: "none"
+      with_gripper: "true"
+      arm_side: "left"
+    description: "真机单左臂 + 左夹爪，不启动右臂遥操（arm_side=left）"
+
+  - name: "Dual arms + dual grippers (no dexterous hand)"
+    package: astral_teleop
+    launch: full_teleop.launch.py
+    args:
+      with_arm_driver: "true"
+      with_hand_driver: "false"
+      right_hand_source: "gripper"
+      with_gripper: "true"
+    description: "真机双臂 + 双夹爪：左/右捏合 → 左/右夹爪，无灵巧手（right_hand_source=gripper）"
+
+  - name: "Full real (Quest right hand)"
+    package: astral_teleop
+    launch: full_teleop.launch.py
+    args:
+      with_arm_driver: "true"
+      with_hand_driver: "true"
+      right_hand_source: "quest3"
+    description: "完整真机：双臂 + 左夹爪 + 右灵巧手，右手来自 Quest"
+
+  - name: "Full real (Glove right hand)"
+    package: astral_teleop
+    launch: full_teleop.launch.py
+    args:
+      with_arm_driver: "true"
+      with_hand_driver: "true"
+      right_hand_source: "glove"
+    description: "完整真机：双臂 + 左夹爪 + 右灵巧手，右手来自 Wuji Glove"
+
+  - name: "MuJoCo sim pipeline"
+    package: astral_mujoco_sim
+    launch: astral_sim_pipeline.launch.py
+    args: {}
+    description: "MuJoCo 仿真全链路：mocap + 双臂 + 左夹爪"
+
+  - name: "Data collect (VLA recording)"
+    package: astral_data_collect
+    launch: data_collect.launch.py
+    args:
+      session: "default_task"
+    description: "VLA 数据采集节点（raw HDF5 录制）；录制按钮在「监控」tab 顶部的数据采集卡片"

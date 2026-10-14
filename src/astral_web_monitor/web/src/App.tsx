@@ -1,0 +1,142 @@
+import { useEffect, useState } from 'react'
+import { useRealtime, useWsConnected } from './hooks/useRealtime'
+import { usePresets } from './hooks/usePresets'
+import { ControlBar } from './components/ControlBar'
+import { Tabs } from './components/Tabs'
+import { MonitorTab } from './components/MonitorTab'
+import { HealthPanel } from './components/HealthPanel'
+import { SystemTab } from './components/SystemTab'
+import { DataProcessTab } from './components/DataProcessTab'
+import { ToastHost } from './components/ToastHost'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { api } from './api/client'
+import { pushSample } from './hooks/historyStore'
+
+const TABS = [
+  { id: 'monitor', label: '监控' },
+  { id: 'health', label: '健康' },
+  { id: 'data', label: '数据处理' },
+  { id: 'system', label: '系统' },
+]
+
+export default function App() {
+  const state = useRealtime()
+  const wsConnected = useWsConnected()
+  const { presets } = usePresets()
+  const [active, setActive] = useState('monitor')
+
+  // Feed the chart ring buffer on every telemetry frame.
+  useEffect(() => {
+    if (!state) return
+    pushSample({
+      ts: state.ts,
+      ratesHz: state.ratesHz,
+      joints: Object.fromEntries(
+        Object.entries(state.joints).map(([k, v]) => [k, v.values]),
+      ),
+    })
+  }, [state])
+
+  return (
+    <ErrorBoundary>
+      <div style={appStyle}>
+        <ToastHost />
+
+        <header style={headerStyle}>
+        <h1 style={titleStyle}>Astral Web Monitor</h1>
+        <span style={subStyle}>非侵入式遥操作监控</span>
+        <div style={spacer} />
+        <StatusPill ok={wsConnected} okLabel="WS" badLabel="WS 断" colorOk="#22c55e" />
+        <StatusPill ok={!!state} okLabel="ROS" badLabel="ROS 断" colorOk="#3b82f6" />
+        <StatusPill
+          ok={state?.health?.overall === 'ok'}
+          okLabel="数据正常"
+          badLabel={state?.health?.overall ? `数据${state.health.overall === 'stale' ? '陈旧' : '偏慢'}` : '无数据'}
+          colorOk="#22c55e"
+          warn={state?.health?.overall === 'slow' || state?.health?.overall === 'stale'}
+        />
+      </header>
+
+      <ControlBar state={state} onAction={() => void api.health()} />
+
+      <Tabs tabs={TABS} active={active} onChange={setActive} />
+
+      <main style={mainStyle}>
+        {active === 'monitor' && <MonitorTab state={state} />}
+        {active === 'health' && <HealthPanel state={state} />}
+        {active === 'data' && <DataProcessTab state={state} connected={wsConnected} />}
+        {active === 'system' && <SystemTab state={state} presets={presets} onAction={() => void api.health()} />}
+      </main>
+      </div>
+    </ErrorBoundary>
+  )
+}
+
+function StatusPill({
+  ok,
+  okLabel,
+  badLabel,
+  colorOk,
+  warn,
+}: {
+  ok: boolean
+  okLabel: string
+  badLabel: string
+  colorOk: string
+  warn?: boolean
+}) {
+  const color = ok && !warn ? colorOk : warn ? '#f59e0b' : '#ef4444'
+  return (
+    <span style={pillStyle(color)}>
+      <span style={dotStyle(color)} />
+      {ok ? okLabel : badLabel}
+    </span>
+  )
+}
+
+const appStyle: React.CSSProperties = {
+  minHeight: '100vh',
+  background: '#0b0f17',
+  color: '#e5e7eb',
+  fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+  display: 'flex',
+  flexDirection: 'column',
+}
+const headerStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+  padding: '14px 20px',
+  borderBottom: '1px solid #1f2937',
+  flexWrap: 'wrap',
+}
+const titleStyle: React.CSSProperties = { margin: 0, fontSize: '20px', fontWeight: 700 }
+const subStyle: React.CSSProperties = { color: '#6b7280', fontSize: '13px' }
+const spacer: React.CSSProperties = { flex: 1 }
+const mainStyle: React.CSSProperties = {
+  flex: 1,
+  padding: '20px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '16px',
+  maxWidth: '1400px',
+  width: '100%',
+  margin: '0 auto',
+}
+function pillStyle(color: string): React.CSSProperties {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '3px 10px',
+    borderRadius: '9999px',
+    background: color + '22',
+    color,
+    fontSize: '12px',
+    fontWeight: 600,
+  border: `1px solid ${color}44`,
+  }
+}
+function dotStyle(color: string): React.CSSProperties {
+  return { width: '7px', height: '7px', borderRadius: '50%', background: color }
+}

@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>astral_pim_ik</name>
+  <version>0.1.0</version>
+  <description>
+    PiM-IK-style two-stage inverse kinematics for the Astral arm: a neural
+    network predicts the arm angle psi from the end-effector pose, then the
+    DH-free geometric closed-form IK (astral_arm_teleop.ik.geometric) resolves
+    the 7 joints. Standalone library + tests; no ROS node.
+  </description>
+  <maintainer email="loopkok@todo.todo">loopkok</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+  <exec_depend>astral_arm_teleop</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

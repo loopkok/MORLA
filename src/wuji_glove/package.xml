@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>wuji_glove</name>
+  <version>0.1.0</version>
+  <description>
+    Wuji Glove hand landmark publisher for astral_ws.
+    Connects via wuji-sdk (UDP) and publishes PoseArray on hand_landmarks/{left,right},
+    matching quest3_hand_mocap output contract. Parameters align with rob_station GLOVE_HAND_*.
+  </description>
+  <maintainer email="loopkok@todo.todo">loopkok</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>visualization_msgs</depend>
+  <depend>ament_index_python</depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

@@ -1,0 +1,50 @@
+# Quest3 → Wuji Hand (RIGHT) for open-source AdaptiveOptimizerAnalytical.
+#
+# Differs from retarget_wuji_lib_right.yaml (glove-tuned):
+#   - mediapipe_rotation cleared (glove used x/y/z ≈ -5/-5/-20)
+#   - snap_mcp_to_robot: align human MCP to URDF link1 (Quest palm ≠ glove)
+#   - pinky segment_scaling nearer 1.0 (less over-stretch than glove)
+#
+# Requires quest3_udp_mocap landmark_preprocess:=raw (launch default).
+
+optimizer:
+  type: "AdaptiveOptimizerAnalytical"
+
+retarget:
+  huber_delta: 2.0
+  huber_delta_dir: 0.5
+  norm_delta: 0.04
+  w_pos: 1.0
+  w_dir: 2.0
+  scaling: 1.0
+  w_full_hand: 1.0
+  thumb_skip_pip: true
+  w_hyper: 1.0
+  soft_min: 0.0
+  w_couple: 0.1
+  couple_ratio: 0.7
+  lp_alpha: 0.2
+
+  # Align orange MCP with white finger*_link1 (Quest palm width ≠ robot).
+  snap_mcp_to_robot: true
+
+  segment_scaling:
+    thumb:  [1.0, 1.0, 1.0]
+    index:  [1.0, 1.0, 1.0]
+    middle: [1.0, 1.0, 1.0]
+    ring:   [1.0, 1.0, 1.0]
+    pinky:  [1.05, 1.05, 1.1]
+
+  pinch_thresholds:
+    index:  { d1: 2.0, d2: 4.0 }
+    middle: { d1: 2.0, d2: 4.0 }
+    ring:   { d1: 2.0, d2: 4.0 }
+    pinky:  { d1: 2.0, d2: 4.0 }
+
+  # Quest3 raw → MANO already; glove rotation bias does not apply.
+  mediapipe_rotation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  wrist_offset_cm: [0.0, 0.0, 0.0]
+  thumb_offset_cm: [0.0, 0.0, 0.0]

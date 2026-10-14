@@ -1,0 +1,65 @@
+# Astral RobotMain ROS2 driver parameters
+#
+# Joint contract (aligned with astral_robot_sdk ROBOT_JOINT_NAMES):
+#   left_arm  [7]: left_shoulder_pitch … left_wrist_roll
+#   right_arm [7]: right_shoulder_pitch … right_wrist_roll
+#   astral   [18]: left(7)+right(7)+waist(2)+head(2)   # 0x31/0x32 = head
+#   head      [2]: head_yaw / head_pitch → move_head_js (0x90)
+#   grippers: CMD 0x97/0x98 via set_gripper_angle (not motor 0x31/0x32)
+#
+# Topics:
+#   /left_arm/joint_commands   → move_arm_js (with right hold)
+#   /right_arm/joint_commands  → move_arm_js (with left hold)
+#   /astral/joint_commands     → move_js (18-DoF, takes priority while fresh)
+#   /head/joint_commands       → move_head_js
+#   /left_gripper/command      → Float64 0=open 1=closed → set_gripper_angle
+#   /left_gripper/joint_commands → JointState radians → set_gripper_angle
+#   /{left_arm,right_arm,astral,head,left_gripper,right_gripper}/joint_states
+#
+# QoS: BEST_EFFORT (SensorData) on all joint streams.
+
+astral_robot_driver:
+  ros__parameters:
+    control_board_ip: "192.168.10.2"
+    board_cmd_port: 5001
+    local_ip: "0.0.0.0"
+    local_port: 8081
+    # 板卡 SESSION + ROS 定时器建议同档。遥操 IK 默认 150 Hz。
+    #   50  = SDK/板卡出厂，跟手会丢掉大量 IK 帧
+    #   100 = 建议起步（本文件）：带宽约 2×，仍低于遥操，稳妥
+    #   150 = 与 teleop 1:1；UDP 稳再升
+    obs_hz: 100
+    ctrl_hz: 100
+    state_publish_rate: 100.0
+    control_rate: 100.0
+    # 板卡 SESSION 目标低通（SDK set_lpf）。y += alpha*(x-y)，alpha 越大越跟手。
+    # 真机遥操：teleop pos/rot_smoothing=0.25 滤手势噪声，这里 0.85≈近直通
+    # (~2ms)，避免两级串联低通导致小动作"先顿一下再冲上去"。
+    #   0.2 = ~40ms  0.35 = ~19ms（出厂，发肉）  0.85 = ~2ms（当前）
+    # 静止发颤回 0.6~0.7；大动作仍肉升 0.95；切 lpf_enable:false 全直通。
+    lpf_enable: true
+    lpf_alpha: 0.85
+    auto_ready: true
+    dry_run: false
+    enable_full_body_cmd: true
+    command_timeout_s: 1.5
+    # 驱动层诊断 JSONL 日志（空=关）：cmd/send/state/srv/spike 记录，抓"电机抽一下"
+    # （谁先跳、是否陈旧重发/服务重播种触发）。web 勾选「记录遥操日志」时经
+    # log_dir 自动落 {run_dir}/driver.jsonl；也可显式 driver_log_file:= 指定。
+    driver_log_file: ""
+    driver_spike_mrad: 30.0  # 命令/实测单拍跳变超此值(mrad)落一条 spike
+    left_arm_ns: "left_arm"
+    right_arm_ns: "right_arm"
+    astral_ns: "astral"
+    head_ns: "head"
+    enable_head_cmd: true
+    left_gripper_ns: "left_gripper"
+    right_gripper_ns: "right_gripper"
+    enable_gripper_cmd: true
+    # 真机夹爪方向：2.5=全张开, 0.0=合拢（遥操侧只发 0..1 闭合比，rad 映射以此为准）。
+    # 2.5 为真机实测目标全开角；若出现顶死回弹（开到最大又弹回），说明超过机械
+    # 行程，回调到 2.0 左右。
+    left_gripper_open_rad: 2.5
+    left_gripper_closed_rad: 0.0
+    right_gripper_open_rad: 2.5
+    right_gripper_closed_rad: 0.0

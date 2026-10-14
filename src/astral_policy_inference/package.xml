@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>astral_policy_inference</name>
+  <version>0.1.0</version>
+  <description>
+    Astral policy inference/replay with human-in-the-loop takeover. Deploys
+    openpi pi0.5 checkpoints (remote websocket server) and lerobot ACT
+    checkpoints (in-process); sync/async/RTC action-chunk engines; replays
+    recorded LeRobot v2.1 / aligned episodes on the real robot or MuJoCo sim;
+    VR takeover re-anchors robot origin + VR zero via astral_arm_teleop
+    ~/reanchor.
+  </description>
+  <maintainer email="loopkok@todo.todo">loopkok</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>astral_data_collect</depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

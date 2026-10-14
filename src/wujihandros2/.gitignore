@@ -1,0 +1,29 @@
+# Build artifacts
+build/
+install/
+log/
+debian/
+.deb_build/
+*.deb
+compile_commands.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+.venv
+
+# Environment setup script (local only)
+env.sh
+
+# Claude-mem generated files (keep root CLAUDE.md)
+**/CLAUDE.md
+!/CLAUDE.md
+.claude/
+
+# Local config files (environment-specific)
+*.local.*

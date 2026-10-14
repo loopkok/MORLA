@@ -1,0 +1,33 @@
+/**:
+  head_teleop_node:
+    ros__parameters:
+      # Right Touch thumbstick Joy (axes=[trigger, grip, stickX, stickY])
+      joy_topic: "quest3/right_controller_joy"
+      head_state_topic: "/head/joint_states"
+      head_command_topic: "/head/joint_commands"
+      start_topic: "/teleop/start"
+      disarm_topic: "/teleop/disarm"
+
+      # Stick axes: stickX=2 → yaw, stickY=3 → pitch
+      yaw_axis: 2
+      pitch_axis: 3
+
+      # Signed rad per unit stick. Flip the sign if a direction is reversed on
+      # the real head motors (摇杆右推头应右转；反了就把 yaw_scale 变负).
+      yaw_scale: 0.8
+      pitch_scale: 0.4
+
+      # Absolute clamps on commanded head angle (rad) — tune to head limits.
+      yaw_min: -0.9
+      yaw_max: 0.9
+      pitch_min: -0.5
+      pitch_max: 0.5
+
+      stick_deadzone: 0.05
+      publish_rate: 50.0
+      input_timeout_s: 0.4
+      require_start_signal: true
+
+      # Fallback head_init when /head/joint_states is unavailable (sim).
+      init_head_yaw: 0.0
+      init_head_pitch: 0.0

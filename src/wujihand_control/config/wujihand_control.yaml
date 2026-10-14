@@ -1,0 +1,22 @@
+# Wuji Hand hardware + driver parameters for astral_ws.
+#
+# Namespace contract (must match wujihand_retargeting):
+#   /{left,right}_hand/joint_commands  ← retarget publishes
+#   /{left,right}_hand/joint_states    ← driver publishes (~1000 Hz)
+#
+# List USB serials:
+#   ros2 run wujihand_driver wujihand_list
+#   # or: lsusb -v -d 0483:2000 | grep iSerial
+
+left_hand:
+  serial_number: ""          # empty → use hand_side / auto-detect
+  name: "left_hand"
+
+right_hand:
+  serial_number: ""
+  name: "right_hand"
+
+driver:
+  publish_rate: 1000.0       # joint_states Hz
+  filter_cutoff_freq: 10.0   # low-pass on command path (Hz)
+  diagnostics_rate: 10.0

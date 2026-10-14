@@ -1,0 +1,131 @@
+# astral_policy_inference 推理参数（与 astral_data_collect/data_collect.yaml 同构的 robot 段 +
+# 策略/后端/引擎/回放/人在环路段落）。
+#
+#   ros2 run astral_policy_inference policy_node \
+#       --ros-args --params-file <this file>
+#
+# ── 换模型 = 只改 policy 段 ──
+#   backend_type: "remote" → GPU 主机起 `scripts/serve.py --model <act|pi05> --checkpoint-dir <ckpt>`
+#                            （该 server 加载 checkpoint），这里只填 host/port；机器人端零改动
+#   backend_type: "inproc" → checkpoint_dir 指向本地 checkpoint（node 与模型同解释器时）
+# ⚠️ 顶层键必须 = 节点名（policy_node）。rclpy 按节点名匹配 --params-file 的
+# 段，键不匹配整份参数被静默丢弃（曾导致 yaml 全失效、节点按代码默认值跑）。
+policy_node:
+  ros__parameters:
+    # ---------------- robot：必须与数采当时一致（schema 真源） ----------------
+    arms: ["left"]            # ["left"] | ["left", "right"]
+    end_effector_left: "gripper"
+    end_effector_right: "none"
+    include_waist: false
+    include_head: false
+    cameras: ["base", "left_wrist"]   # 与数采 schema 一致（语义名：streamer label_aliases 钉的）
+    # 模型槽位 → 相机 label（label 与 quest3_video_streamer collect tap 一致）
+    # rclpy 无 struct 参数，故用 JSON 字符串（空格随 json.loads 解析无碍）
+    camera_map: '{"base_0_rgb": "base", "left_wrist_0_rgb": "left_wrist"}'
+    #   ⚠ 当前部署的是 2 相机模型，故只发 2 槽；right_wrist_0_rgb 缺省 → serve 端零填充。
+    #   待 3 相机模型（pi05_astral_*_3cam）部署后，cameras 加 right_wrist、camera_map 加
+    #   "right_wrist_0_rgb": "right_wrist"。
+    dataset_fps: 30           # 策略/回放节奏（= 采集对齐 fps）
+
+    # ---------------- policy / backend / engine --------------------------------
+    # backend_type = 传输方式：remote(连 serve.py) | inproc(进程内) | stub(冒烟)。
+    # model = 模型族：act(lerobot) | pi05(openpi) | ...（决定 serve/inproc 加载路径）。
+    # ⚠️ 本机（ROS Humble py3.10）无法进程内跑 ACT（lerobot 0.6.2 要求 py3.12）。
+    #    部署 ACT：① py3.12 环境起 `scripts/serve.py --model act --checkpoint-dir <ckpt>`；
+    #    ② 本节点 backend_type="remote" + host/port 指向它。backend_type="inproc" 只适用于
+    #    node 与模型同解释器（如 ROS 2 Jazzy py3.12、或非 ROS 直连）的环境。
+    backend_type: "remote"    # remote | inproc | stub
+    model: "act"              # act | pi05 | ...（模型族）
+    # 上行 JPEG 传输：true 时 camera 槽位编码成 JPEG 字节（载荷 1.38MB→~0.2MB，
+    # WiFi 上行 ~106ms→~15ms），serve 端 image_codec 解码还原；像素 = 节点 letterbox
+    # 后 RGB 再编码（有损，quality 92，训练数据本身是 JPEG-90 解码，模型鲁棒）。
+    # false = 现状发原始 RGB（兼容直连 openpi 官方 serve 的退路）。A/B 可切。
+    jpeg_transport: true
+    checkpoint_dir: ""        # inproc：InprocBackend 加载目录
+    host: "127.0.0.1"         # remote：serve.py 主机
+    port: 8000                # remote：serve.py 端口
+    server_connect_timeout_s: 5.0  # 服务未启动/握手失败时有界报错，避免一直卡在连接
+    server_infer_timeout_s: 3.0    # 单次推理响应超时；超时后关闭该连接并报错
+    engine_mode: "queue_async"  # queue_sync | queue_async | rtc
+    action_chunk: 50          # 每个 chunk 消费的行数（openpi action_horizon=50）
+    # 当 model=pi05、backend_type=remote、engine_mode=rtc 时，启用 LeRobot 式
+    # guided RTC：旧块未执行前缀进入 OpenPI 去噪过程。serve.py 须加 --rtc-guided。
+    rtc_execution_horizon: 10     # 与 serve.py --rtc-execution-horizon 一致
+    rtc_queue_threshold: 30        # guided RTC：剩余动作 <=30 行时启动下一次推理
+    rtc_max_guidance_weight: 10.0  # 去噪引导强度上限
+    rtc_prefix_schedule: "linear" # zeros | ones | linear | exp
+    rtc_replan_interval_s: 0.0     # 仅非 pi05 的旧 rtc 生效；0=自动
+    rtc_min_tail: 0                # 仅非 pi05 的旧 rtc 生效；0=自动
+    # ACT 时序融合系数（借鉴 lerobot ACTTemporalEnsembler，ACT 论文 Algorithm 2）：
+    # >0 时引擎换 chunk 把旧尾段与新头部按 exp(-coeff*i) 权重平均，消除切换跳变
+    # （缓解真机"一卡一卡"）。ACT 推荐 0.01；0 = 关闭（硬切换）。开/关可 A/B 对比。
+    temporal_ensemble_coeff: 0.05
+    # 换 chunk 切换平滑：安装时续播起点（融合后 chunk[i0]）偏离"正在执行的旧 command"
+    # >tol rad 时，前 chunk_anchor_blend 行从旧值平滑过渡到新轨迹——消除收敛拉回
+    # （旧 command 漂移、换 chunk 一步追向实测）与模型突变两类切换尖峰（0.1-0.2rad）。
+    # 0 = 关闭（硬切换）；0.05 ≈ 稳态跟随差，正常不触发、尖峰前捕获。A/B 可关。
+    chunk_anchor_tol: 0.05
+    chunk_anchor_blend: 4      # 过渡行数（@30Hz 每行 33ms；4 ≈ 0.13s 平滑追回 chunk）
+    # 重规划/融合的重叠行数（剩余多少行时重规划，与旧尾段融合）。
+    # 每 (action_chunk − async_prefetch_ahead) 步融合一次：
+    #   = 25 → 每 50−25=25 步融合（默认，重叠 25 行）
+    #   = 40 → 每 10 步融合（当前设置：重规划更勤、观测更新鲜、重叠 40 行更平滑，
+    #          代价是推理频率 1.2Hz→3Hz，直连网线下无压力）
+    # 0 = 自动 (action_chunk//2)。仅 queue_async 生效（rtc 用 rtc_* 参数）。
+    async_prefetch_ahead: 25
+    control_interp: 1         # 控制率 = dataset_fps × N（2=60Hz 插值下发，把 30Hz 大步拆半；
+                              #   1=每策略步发一次）。真机快动作"卡一下"用 2 拆小。
+    # 绝对动作语义守卫：chunk 首行在 |state|>1.0 的维上离当前 state 超过该值即拒绝
+    # （检测后端把 delta 当绝对返回，如 openpi server 漏 AbsoluteActions）。<=0 关闭。
+    abs_action_min_scale: 0.5
+    # ⚠️ 必须与模型 preprocessor 输入一致（本机 pickup_act_480 = 480；默认 224 会 shape 崩）
+    camera_image_size: 224    # collect JPEG 解码后 letterbox 边长（与转换期一致）
+    # pi0/pi05 相机消融：这些 collect label 不发送；服务端对对应固定槽补零并设置
+    # image_mask=False。例：["left_wrist"]；空 = 全部相机原样发送。
+    mute_cameras: "[]"       # A/B 第一轮基线；第二轮只改成 '["left_wrist"]'
+    default_prompt: ""        # policy 缺省语言指令（运行中可用 /policy_inference/task 改）
+    # 指标调试：非空时把 state JSON（含 latency_ms/engine/exec_events，1Hz + 状态变化）
+    # 追加写入该文件，并在节点终端打印一行摘要。真机排障推荐：/tmp/pi_metrics.jsonl
+    metrics_log_file: ""
+    # 关节指令流：非空时每次实际下发（30Hz）把带时间戳的各话题指令值（JointState 位置 /
+    # 夹爪比值）追加写该文件（JSON 行）。分析卡顿的指令步长/节奏用，推荐：/tmp/pi_cmds.jsonl
+    joint_stream_log_file: ""
+    # 控制定时器逐 tick 诊断：调度间隔/回调耗时、state/image 龄期、state gate 拒绝原因、
+    # resend_last 原因和 engine 队列快照。log_dir 模式会自动写 pi_control.jsonl。
+    control_diagnostics_log_file: ""
+    camera_diagnostics_log_file: ""
+    # 每次 server 请求/完整返回 chunk/本地续播对齐；log_dir 会自动设置该路径。
+    plan_trace_log_file: ""
+
+    # ---------------- replay（真机回放） ---------------------------------------
+    replay_source: ""         # LeRobot v2.1 数据集目录 或 aligned_data.h5 文件
+    replay_episode: 0
+    replay_hold_s: 1.0        # 播完后保持末帧的时间，之后自动 IDLE
+
+    # ---------------- safety ----------------------------------------------------
+    max_joint_vel: 6.0        # rad/s 指令限速；<=0 关闭
+    obs_timeout_s: 0.5        # state 反馈超过此龄期视为缺失（拒绝进入策略）
+    obs_stale_stop_s: 1.0     # POLICY 运行中 state 连续缺失超过此秒 → 自动暂停(保持)
+    image_timeout_s: 1.0      # 相机无帧超过此时间 → state JSON 告警（不阻断策略）
+    image_required: false     # true 时无图也拒绝进入策略（建议 pi0 保持 false，
+                              #   缺槽位由 server 零填充降级）
+    # 夹爪 rad↔ratio 线性映射，**必须与 driver 的 *_gripper_open/closed_rad 一致**
+    # （本机 astral_robot.yaml 为 2.5/0.0）。用途：首次进 POLICY 且
+    # /{side}_gripper/command 从未出现（无遥操在发）时，用 driver
+    # /{side}_gripper/joint_states 的 last-commanded 回显换算 ratio 作状态种子，
+    # 避免"没命令过 → obs 永远缺夹爪 → policy blocked"。
+    gripper_open_rad: 2.5
+    gripper_closed_rad: 0.0
+
+    # ---------------- HITL / teleop 仲裁 ----------------------------------------
+    # 接管时对每个启用臂侧 teleop 节点调用 ~/reanchor（服务名按 launch/remap 填绝对名）
+    teleop_reanchor_services:
+      - "/astral_arm_teleop_left/reanchor"
+    teleop_disarm_topic: "/teleop/disarm"
+    teleop_start_topic: "/teleop/start"
+
+    # ---------------- 通讯 --------------------------------------------------------
+    cmd_topic: "/policy_inference/cmd"    # 控制话题（keyboard/web 发布）
+    state_topic: "/policy_inference/state"
+    task_topic: "/policy_inference/task"  # 语言指令（latched String，随时可改）
+    joint_commands_qos: "sensor"

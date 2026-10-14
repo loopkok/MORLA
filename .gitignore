@@ -1,0 +1,35 @@
+# ==================== ROS 2 colcon ====================
+build/
+install/
+log/
+CMakeFiles/
+
+# ==================== Python ====================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+
+# ==================== IDE / OS ====================
+.vscode/
+.idea/
+.DS_Store
+*~
+*.swp
+
+# ==================== venv / conda ====================
+venv/
+.venv/
+.env/
+.conda/
+
+# ==================== 运行时产物 ====================
+# policy_inference metrics_log_file 写出的指标日志（yaml 注释推荐 /tmp，误落工作区根时勿提交）
+pi_metrics.jsonl
+*.jsonl
+
+# 真机测试归档（日志+分析图+汇总，全部可复现、不入库）
+inference_test_logs/
+pi05_infer_test_log/

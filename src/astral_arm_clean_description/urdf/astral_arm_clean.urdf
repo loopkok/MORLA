@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="astral_arm_clean">
+  <!-- single clean arm (left) — positive-MDH joints, meshes re-positioned -->
+  <link name="body_link"/>
+  <joint name="shoulder_mount" type="fixed">
+    <origin xyz="0.09495 0.0 0.412" rpy="3.14159 -1.57079 -3.14159"/>
+    <parent link="body_link"/><child link="left_base_link"/>
+  </joint>
+  <link name="left_base_link"/>
+  <link name="left_link1">
+    <inertial>
+      <origin xyz="3.13242e-05 -0.00413701 0.0135973" rpy="0 0 -1.5708"/>
+      <mass value="0.42514393"/>
+      <inertia ixx="0.00044603372" ixy="8.7983418e-07" ixz="5.25095e-07" iyy="0.00040079554" iyz="-5.5533145e-05" izz="0.00037515957"/>
+    </inertial>
+    <visual>
+      <origin xyz="5.62591e-23 7.48515e-23 0.11655" rpy="1.11022e-16 0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://astral_arm_description/meshes/link1.STL"/>
+      </geometry>
+      <material name=""><color rgba="0.898039215686275 0.917647058823529 0.929411764705882 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="5.62591e-23 7.48515e-23 0.11655" rpy="1.11022e-16 0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://astral_arm_description/meshes/link1.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_link2">
+    <inertial>
+      <origin xyz="-2.02098e-07 -0.0515368 0.0257897" rpy="-3.14159 3.67321e-06 -3.14159"/>
+      <mass value="0.17039715"/>
+      <inertia ixx="0.00017663293" ixy="8.6777047e-11" ixz="8.4043449e-12" iyy="0.00012422282" iyz="-5.0535861e-05" izz="0.00015484256"/>
+    </inertial>
+    <visual>
+      <origin xyz="1.38778e-17 -2.26821e-17 0.00245" rpy="-3.14159 3.67321e-06 -3.14159"/>
+      <geometry>
+        <mesh filename="package://astral_arm_description/meshes/link2.STL"/>
+      </geometry>
+      <material name=""><color rgba="0.898039215686275 0.917647058823529 0.929411764705882 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="1.38778e-17 -2.26821e-17 0.00245" rpy="-3.14159 3.67321e-06 -3.14159"/>
+      <geometry>
+        <mesh filename="package://astral_arm_description/meshes/link2.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_link3">
+    <inertial>
+      <origin xyz="0.000542082 0.00527332 -0.0739358" rpy="-3.14159 0 1.5708"/>
+      <mass value="0.82819752"/>
+      <inertia ixx="0.001489869" ixy="-4.7065559e-06" ixz="-1.9878592e-05" iyy="0.001465124" iyz="-0.00017105246" izz="0.0006413192"/>
+    </inertial>
+    <visual>
+      <origin xyz="8.52551e-07 -8.99622e-09 -0.12995" rpy="-3.14159 0 1.5708"/>
+      <geometry>
+        <mesh filename="package://astral_arm_description/meshes/link3.STL"/>
+      </geometry>
+      <material name=""><color rgba="0.898039215686275 0.917647058823529 0.929411764705882 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="8.52551e-07 -8.99622e-09 -0.12995" rpy="-3.14159 0 1.5708"/>
+      <geometry>
+        <mesh filename="package://astral_arm_description/meshes/link3.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_link4">
+    <inertial>
+      <origin xyz="-1.66812e-06 -0.0305679 -0.0269253" rpy="-3.14159 0 3.14159"/>
+      <mass value="0.073287179"/>
+      <inertia ixx="6.1153384e-05" ixy="-1.9967372e-10" ixz="2.818663e-09" iyy="3.97927e-05" iyz="1.6775908e-05" izz="5.3300851e-05"/>
+    </inertial>
+    <visual>
+      <origin xyz="-1.33007e-06 -1.79947e-08 5.0009e-05" rpy="-3.14159 0 3.14159"/>
+      <geometry>
+        <mesh filename="package://astral_arm_description/meshes/link4.STL"/>
+      </geometry>
+      <material name=""><color rgba="0.898039215686275 0.917647058823529 0.929411764705882 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-1.33007e-06 -1.79947e-08 5.0009e-05" rpy="-3.14159 0 3.14159"/>
+      <geometry>
+        <mesh filename="package://astral_arm_description/meshes/link4.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_link5">
+    <inertial>
+      <origin xyz="0.00172649 0.000917268 -0.103295" rpy="7.3464e-06 -3.67321e-06 1.5708"/>
+      <mass value="0.35747963"/>
+      <inertia ixx="0.00024554352" ixy="-3.26533e-07" ixz="-2.004814e-06" iyy="0.00023855009" iyz="-2.2637367e-07" izz="0.00014874829"/>
+    </inertial>
+    <visual>
+      <origin xyz="1.6309e-06 -3.09829e-07 -0.1446" rpy="7.3464e-06 -3.67321e-06 1.5708"/>
+      <geometry>
+        <mesh filename="package://astral_arm_description/meshes/link5.STL"/>
+      </geometry>
+      <material name=""><color rgba="1 1 1 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="1.6309e-06 -3.09829e-07 -0.1446" rpy="7.3464e-06 -3.67321e-06 1.5708"/>
+      <geometry>
+        <mesh filename="package://astral_arm_description/meshes/link5.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_link6">
+    <inertial>
+      <origin xyz="7.58827e-05 -0.00209334 1.39388e-05" rpy="7.34638e-06 1.34923e-11 1.57079"/>
+      <mass value="0.2233261"/>
+      <inertia ixx="0.00012507521" ixy="-5.1107819e-07" ixz="1.4489751e-09" iyy="0.00011919168" iyz="5.4472443e-09" izz="0.00011688215"/>
+    </inertial>
+    <visual>
+      <origin xyz="1.08921e-07 2.82029e-06 0.0346008" rpy="7.34638e-06 1.34923e-11 1.57079"/>
+      <geometry>
+        <mesh filename="package://astral_arm_description/meshes/link6.STL"/>
+      </geometry>
+      <material name=""><color rgba="0.866666666666667 0.866666666666667 0.890196078431372 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="1.08921e-07 2.82029e-06 0.0346008" rpy="7.34638e-06 1.34923e-11 1.57079"/>
+      <geometry>
+        <mesh filename="package://astral_arm_description/meshes/link6.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_link7">
+    <inertial>
+      <origin xyz="-5.11057e-05 -0.0259945 0.019984" rpy="1.46928e-05 -3.67316e-06 -7.34641e-06"/>
+      <mass value="0.015413107"/>
+      <inertia ixx="8.042906e-06" ixy="-9.9996338e-12" ixz="-9.6024397e-12" iyy="5.6512939e-06" iyz="-2.0667749e-06" izz="6.483251e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="-5.0841e-05 -1.71344e-07 -2.82029e-06" rpy="1.46928e-05 -3.67316e-06 -7.34641e-06"/>
+      <geometry>
+        <mesh filename="package://astral_arm_description/meshes/link7.STL"/>
+      </geometry>
+      <material name=""><color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-5.0841e-05 -1.71344e-07 -2.82029e-06" rpy="1.46928e-05 -3.67316e-06 -7.34641e-06"/>
+      <geometry>
+        <mesh filename="package://astral_arm_description/meshes/link7.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_joint1" type="revolute">
+    <origin xyz="0 0 -0.11655" rpy="0 0 3.14159"/>
+    <parent link="left_base_link"/>
+    <child link="left_link1"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.15" upper="3.15" effort="100" velocity="10"/>
+  </joint>
+  <joint name="left_joint2" type="revolute">
+    <origin xyz="0 -0 0" rpy="1.5708 -1.5708 0"/>
+    <parent link="left_link1"/>
+    <child link="left_link2"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.15" upper="3.15" effort="100" velocity="10"/>
+  </joint>
+  <joint name="left_joint3" type="revolute">
+    <origin xyz="0 -0.246 1.50632e-17" rpy="1.5708 -1.5708 0"/>
+    <parent link="left_link2"/>
+    <child link="left_link3"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.15" upper="3.15" effort="100" velocity="10"/>
+  </joint>
+  <joint name="left_joint4" type="revolute">
+    <origin xyz="0 -0 0" rpy="-1.5708 0 3.14159"/>
+    <parent link="left_link3"/>
+    <child link="left_link4"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.15" upper="3.15" effort="100" velocity="10"/>
+  </joint>
+  <joint name="left_joint5" type="revolute">
+    <origin xyz="0 -0.2265 1.38691e-17" rpy="-1.5708 0 3.14159"/>
+    <parent link="left_link4"/>
+    <child link="left_link5"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.15" upper="3.15" effort="100" velocity="10"/>
+  </joint>
+  <joint name="left_joint6" type="revolute">
+    <origin xyz="0 -0 0" rpy="1.5708 1.5708 0"/>
+    <parent link="left_link5"/>
+    <child link="left_link6"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.15" upper="3.15" effort="100" velocity="10"/>
+  </joint>
+  <joint name="left_joint7" type="revolute">
+    <origin xyz="0 -0.0036 2.20436e-19" rpy="1.5708 1.5708 0"/>
+    <parent link="left_link6"/>
+    <child link="left_link7"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.15" upper="3.15" effort="100" velocity="10"/>
+  </joint>
+</robot>

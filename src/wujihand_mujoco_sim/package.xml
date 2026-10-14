@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>wujihand_mujoco_sim</name>
+  <version>0.1.0</version>
+  <description>
+    MuJoCo visualization for Wuji Hand — drop-in stand-in for real hand driver.
+    Subscribes to /{hand}/joint_commands (JointState, 20-DoF) and drives MJCF
+    actuators, following wuji-retargeting/example/teleop_sim.py.
+  </description>
+  <maintainer email="loopkok@todo.todo">loopkok</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>ament_index_python</depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <!-- Pipeline / tuning launch optionally includes these: -->
+  <exec_depend>wuji_glove</exec_depend>
+  <exec_depend>quest3_hand_mocap</exec_depend>
+  <exec_depend>wujihand_retargeting</exec_depend>
+  <!-- pip: mujoco, wuji-retargeting (TuningViewer), dex-retargeting (optional) -->
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>quest3_video_streamer</name>
+  <version>0.1.0</version>
+  <description>Push USB camera and Intel RealSense D435i video to Quest 3 over WebRTC (self-contained, no virtual env).</description>
+  <maintainer email="loopkok@todo.todo">loopkok</maintainer>
+  <license>Apache-2.0</license>
+
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+
+  <!-- Camera drivers used by the launch files (optional at runtime). -->
+  <exec_depend>realsense2_camera</exec_depend>
+  <exec_depend>usb_cam</exec_depend>
+
+  <!-- Launch-time deps: yaml loading + package share lookup. -->
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+
+  <!-- Python (pip) deps required at runtime. aiortc / av / numpy / opencv /
+       websockets are NOT rosdep-resolvable; install them with pip into the
+       system interpreter (no virtual environment):
+           python3 -m pip install aiortc av numpy opencv-python websockets
+  -->
+  <exec_depend>python3-aiortc</exec_depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

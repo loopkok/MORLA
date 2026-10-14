@@ -1,0 +1,31 @@
+# astral_pim_ik — PiM-IK two-stage arm-angle IK defaults.
+# These mirror the PiM-IK reference hyperparameters, adapted to the Astral arm.
+astral_pim_ik:
+  ros__parameters:
+    arm_side: "left"        # left | right
+    urdf_path: ""           # empty -> astral_robot.pin.urdf
+
+    # Stage 1 network (PiM_IK_Net)
+    backbone: "transformer" # transformer (default) | mamba | lstm
+    d_model: 256
+    num_layers: 4
+    dropout: 0.1
+    window_size: 30
+
+    # Physics-informed loss weights
+    w_psi: 1.0
+    w_elbow: 1.0
+    w_smooth: 0.01
+    elbow_loss_type: "rmse"
+
+    # Dataset generation
+    dataset_n: 20000
+    dataset_seed: 0
+    min_sin_alpha: 0.05    # elbow-straight singularity gate (is_valid)
+
+    # Training
+    epochs: 50
+    batch_size: 2048
+    lr: 0.001
+    weight_decay: 0.0001
+    train_stride: 5

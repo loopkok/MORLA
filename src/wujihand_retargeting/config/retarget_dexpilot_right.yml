@@ -1,0 +1,41 @@
+# Wuji Hand DexPilot retarget — RIGHT
+# Adapted from xhand_retargeting/config/xhand_right_dexpilot.yml for 20-DoF Wuji URDF.
+#
+# Key changes vs XHand:
+#   - wrist: palm_link (not base_link / right_hand_link)
+#   - 20 target joints: finger{1..5}_joint{1..4}  (thumb=finger1)
+#   - 5 tip links: finger{1..5}_tip_link
+#   - No index_bend sign flip in code
+#
+# Tuning notes:
+#   - glove input (SDK MediaPipe): start with low_pass_alpha≈0.4–0.6
+#   - quest3 input (already EMA'd): may use 0.6–0.7; if laggy raise alpha
+#   - project/escape_dist keep 0.03 as xhand baseline; increase if finger collision
+
+retargeting:
+  type: DexPilot
+  urdf_path: wujihand_right.urdf
+
+  wrist_link_name: "palm_link"
+  target_joint_names:
+    [
+      "finger1_joint1", "finger1_joint2", "finger1_joint3", "finger1_joint4",
+      "finger2_joint1", "finger2_joint2", "finger2_joint3", "finger2_joint4",
+      "finger3_joint1", "finger3_joint2", "finger3_joint3", "finger3_joint4",
+      "finger4_joint1", "finger4_joint2", "finger4_joint3", "finger4_joint4",
+      "finger5_joint1", "finger5_joint2", "finger5_joint3", "finger5_joint4",
+    ]
+  finger_tip_link_names:
+    [
+      "finger1_tip_link",
+      "finger2_tip_link",
+      "finger3_tip_link",
+      "finger4_tip_link",
+      "finger5_tip_link",
+    ]
+
+  # Smaller alpha = stronger filter / more latency (dex-retargeting convention)
+  low_pass_alpha: 0.5
+
+  project_dist: 0.03
+  escape_dist: 0.03

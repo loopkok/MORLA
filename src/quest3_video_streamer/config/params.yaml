@@ -1,0 +1,197 @@
+# quest3_video_streamer 默认参数（单一可调来源）。
+#
+# 加载方式（launch 会自动加载本文件）：
+#   ros2 run quest3_video_streamer quest3_video_streamer \
+#       --ros-args --params-file <this file>
+#
+# 所有相机可调项都在这里。launch 文件不再写死 preset/fov/layout/device，
+# 只负责加载本 yaml 并按需覆盖个别参数。
+#
+# auto_scan: true（默认）= 启动时自动扫描主机所有可采集的 /dev/video* 设备
+#            （按物理设备去重，label = video0/video2/...），不写死设备节点。
+#            扫描到的相机用下面的 scan_defaults 参数；想覆盖某一路的字段，
+#            新增一个以 label 命名的块（如 video0: {preset: "1080p30"}）。
+#            false = 用下面 cameras 列表 + 每相机块（固定配置，老方式）。
+# 运行时想临时关掉某一路不必改这里——用门控接口（web 或 CLI）：
+#   ros2 service call /quest3_video_streamer/set_push_enabled std_srvs/srv/SetBool "{data: false}"
+#   ros2 topic pub --once --qos-durability transient_local \
+#     /quest3_video_streamer/active_cameras std_msgs/msg/String "{data: 'video0'}"
+quest3_video_streamer:
+  ros__parameters:
+    auto_scan: true
+
+    # cameras: auto_scan=false 时的固定相机名列表（顺序 = WebRTC track 顺序）。
+    #          也是 auto_scan 一台设备都没扫到时的回退。语义名（与 label_aliases 一致）。
+    cameras: ["base", "left_wrist", "right_wrist"]
+
+    # 每个相机块的字段：
+    #   source      : "v4l2"（cv2 直连，低延迟）/ "ros"（订阅 sensor_msgs/Image）
+    #   device      : v4l2 模式的设备节点，如 /dev/video8（ros 模式忽略）
+    #   topic       : ros 模式的图像话题（v4l2 模式忽略）
+    #   preset      : 480p30 / 720p30 / 1080p30（采集分辨率+帧率）
+    #   fov_h_deg   : 水平视场角，Quest 用它按真实尺度缩放面板（修 2x 放大）
+    #   label       : track 标签，用于 Quest 端识别和统计
+    #   force_mjpg  : 是否强制 MJPG（USB 腕部相机 true；D435i UVC 彩色是 YUYV 用 false）
+    #   layout      : Quest 端 3D 布局
+    #     position        : [x, y, z] 米，相对眼睛（z=1.8 为面板距离）
+    #     distance       : 面板距离（米）
+    #     size_multiplier: 面板缩放系数（1.0 = 按 fov 自然尺度）
+
+    d435i:
+      source: "v4l2"
+      device: "/dev/video8"
+      topic: "/camera/camera/color/image_raw"
+      preset: "1080p30"
+      fov_h_deg: 69.0
+      label: "d435i"
+      force_mjpg: false
+      layout:
+        # 居中放大(x=0.05, size=0.88)会把左侧腕部面板挡住一半；
+        # 半宽≈1.09 m vs 腕部右缘≈-0.66 m。靠右、缩回 0.6 与腕部错开。
+        position: [0.50, 0.0, 1.8]
+        distance: 1.8
+        size_multiplier: 0.60
+
+    left_wrist:
+      source: "webcam"
+      device: "/dev/v4l/by-path/platform-3610000.usb-usb-0:2.2:1.0-video-index0"
+      topic: ""
+      preset: "720p30"
+      fov_h_deg: 60.0
+      label: "left_wrist"
+      force_mjpg: true
+      layout:
+        position: [-0.95, 0.32, 1.8]
+        distance: 1.8
+        size_multiplier: 0.28
+
+    right_wrist:
+      source: "webcam"
+      device: "/dev/v4l/by-path/platform-3610000.usb-usb-0:1.3:1.0-video-index0"
+      topic: ""
+      preset: "720p30"
+      fov_h_deg: 60.0
+      label: "right_wrist"
+      force_mjpg: true
+      layout:
+        position: [-0.95, -0.42, 1.8]
+        distance: 1.8
+        size_multiplier: 0.28
+
+    # base（realsense 彩色）。每个相机**一个合并块**：auto_scan=true 时 label_aliases 按
+    # 指纹钉 base 后，本块提供 preset/布局覆盖（device 被扫描值取代）；auto_scan=false 或
+    # 兜底时用固定 by-path 设备路径（by-id 对复合 D435i 不可靠——index 串位指向深度节点，
+    # 彩色节点无 by-id 条目，见下方 label_aliases 注释）。
+    base:
+      source: "v4l2"
+      device: "/dev/v4l/by-path/platform-3610000.usb-usb-0:2.1:1.3-video-index0"
+      topic: ""
+      preset: "1080p30"
+      fov_h_deg: 69.0
+      label: "base"
+      force_mjpg: false   # YUYV 彩色，非 MJPG
+      layout:
+        position: [0.50, 0.0, 1.8]
+        distance: 1.8
+        size_multiplier: 0.60
+
+    # --- auto_scan 覆盖块：label = 节点名。换口后编号变了会走代码里按
+    # fourcc 的默认（腕部左侧缩小上下叠，YUYV RealSense 靠右 size=0.60）。
+    #
+    # 【换 USB 口/重插后的防漂移】推荐 label_aliases（见下方注释），保留
+    # auto_scan 的自动发现能力，同时把 label 钉死在相机硬件指纹上；改写
+    # 发生在扫描之后，同名 yaml 覆盖块（如 video8.preset）随之自动生效。
+    # 备选写法是 auto_scan: false + 命名块 + by-id 稳定路径（失去自动发现）：
+    #   auto_scan: false
+    #   cameras: ["video8", "video0", "video2"]
+    #   video8:  {source: "v4l2",  device: "/dev/v4l/by-id/usb-Intel_R._RealSense...-video-index2",
+    #             preset: "1080p30", label: "video8", force_mjpg: false}
+    #   video0:  {source: "webcam", device: "/dev/v4l/by-id/usb-...左腕...-video-index0",
+    #             preset: "720p30",  label: "video0", force_mjpg: true}
+    #   video2:  {source: "webcam", device: "/dev/v4l/by-id/usb-...右腕...-video-index0",
+    #             preset: "720p30",  label: "video2", force_mjpg: true}
+    # by-id 路径在机器人上 `ls /dev/v4l/by-id/` 查看（D435i 有多个节点，选彩色那个）。
+    # 若更想钉物理口位而非相机个体，用 /dev/v4l/by-path/ 同理。
+
+    # 【label_aliases：auto_scan 的稳定名映射】保持 auto_scan: true。
+    # 语义：扫描完成后按设备指纹（优先 by-id → by-path → sysfs，子串匹配）
+    # 改写 label；先列先赢，未命中的设备保留 videoN 名。目标名撞上扫描里
+    # 另一台设备的内核名会被拒绝；与"匹配设备自己的当前名"相同则是合法
+    # no-op（固化现状）。规则没匹配到任何设备会在节点日志里告警——通常是
+    # 指纹写错，或相机没插。改写后 data_collect.cameras / openpi camera_map
+    # 里的 video8/video0 永远不用跟着内核编号变。
+    #
+    # 2026-09-18 启用（realsense 换口后内核编号 video8→video6）。**混合策略**：
+    #   * realsense（base）→ **by-path 物理口位**（2026-09-20 从 by-id 序列号改来，见下）：
+    #     D435i 是复合 USB 设备（彩色+IR+depth 多接口），内核把多接口节点编成 by-id 时
+    #     **index 会串位**——实测 by-id 的 video-index0 落到 0:2.1:1.0 的深度节点（scan 用
+    #     不了的 /dev/video2），而真正的彩色（YUYV，0:2.1:1.3）在 by-id 里**没有条目**。
+    #     结果 by-id 序列号 alias 钉不上彩色 → realsense 以内核名裸奔。by-id 序列号对这种
+    #     复合相机不可靠，只能按口位钉；换口后按实机 scan 重填这行。
+    #   * USB 相机（左腕等）→ **by-path 物理口位**：廉价 USB 相机 by-id 序列号是假的
+    #     （Generic_USB_Camera_200901010001 所有同款一样，再插同款只显示后插那台）→ 序列号
+    #     不可靠，只能按端口钉；端口路径换口会变，但相机是固定角色的（左腕/右腕），那本来
+    #     就要重配。
+    label_aliases:
+      - "platform-3610000.usb-usb-0:1.4:1.3-video-index0=base"  # base：realsense 彩色（YUYV），by-path 口位+index0
+      - "platform-3610000.usb-usb-0:2.2.3:1.0-video-index0=left_wrist"   # 左腕 USB：by-path 端口+index0
+      - "platform-3610000.usb-usb-0:2.2.2:1.0-video-index0=right_wrist"  # 右腕 USB：by-path 端口+index0（2026-09-20 实机 scan 填）
+    # 注意：两个 USB 相机 sysfs 名都是 "WN Camera"（且 video0 无 by-id）→ 只能用 by-path 钉；
+    # -video-index0 必须带（多节点相机不带 index 会命中错节点）。
+    # 每个相机的 preset/布局等覆盖已并入上方同名命名块（合并，无重复键）。
+
+    # --- 公共参数 ---
+    # WebSocket 信令服务器（Quest 连这里）。
+    signaling_host: "0.0.0.0"
+    signaling_port: 8765
+
+    # Quest mocap 遥测 TCP sink。默认不启用：与 quest3_hand_mocap 同时运行时让
+    # hand_mocap 独占 8000 接收 mocap 数据；本包只负责视频信令 8765。
+    # 仅在单独运行本包（不跑 hand_mocap）且需要 Quest app 进入 streaming 阶段时设为 true。
+    mocap_tcp_host: "0.0.0.0"
+    mocap_tcp_port: 8000
+    enable_mocap_tcp: false
+
+    # --- 运行时推流门控（gate）---
+    # push_enabled: 总开关（false = 所有轨发 2fps 黑帧，几乎不占带宽）。
+    # active_cameras: 初始生效的子集（逗号分隔 label，空 = 全部）。
+    # 两者运行时可改：~/set_push_enabled 服务、~/active_cameras latched 话题，
+    # 当前状态见 ~/gate_state（latched JSON，含每路 label/device/preset）。
+    push_enabled: true
+    active_cameras: ""
+
+    # --- 回传降载（WebRTC 软编码是嵌入式 CPU 最大负载，实测会把同进程的
+    # 采集抽头/捕获线程挤到个位数 fps）。只影响 Quest 看到的画面；
+    # 采集抽头（collect tap）仍在捕获线程侧拿全帧全速，录进数据集的内容不变。
+    # push_max_width: 回传分辨率宽度上限（等比缩放，0 = 不降载）。
+    #   1080p→960 宽(540p) ≈ 编码像素 -59%；→640 宽(360p) ≈ -82%。
+    # push_fps: 回传帧率上限（0 = 不降载）。30→15 再省一半编码。
+    # 实机调参记录：960/30 时 Quest 端 10-13fps（x264 veryfast threads=2
+    # 在 Jetson 的编码上限）；改 640/30 后预期 20-25fps。采集抽头不受影响。
+    # 另：x264 preset 已固定打补丁为 veryfast（aiortc 默认 medium，ARM 上过重）。
+    push_max_width: 640
+    push_fps: 30
+
+    # --- 启动即开相机（不等 Quest 视频连接）---
+    # true：streamer 一起动三路相机就开采，采集/web 预览不再依赖 Quest
+    # 视频会话——Quest 不开 video feed 也能采集；Quest 连上后 track 直接
+    # 复用已开的源（start 已幂等）。代价：无人看/无人录时相机也常驻
+    # （约 2 核 CPU 的读取+色彩转换开销）。
+    eager_start_sources: true
+
+    # --- Web 实时预览（astral_web_monitor 视频卡片画面）---
+    # 抽帧 → 独立线程 JPEG 编码 → ~/preview/{label}（CompressedImage, BEST_EFFORT）。
+    # 跟随门控：被静音的路不发。编码不在捕获线程/asyncio 循环里，不影响 Quest 链路。
+    web_preview: true
+    web_preview_fps: 10.0      # 每路预览帧率（抽帧）
+    web_preview_width: 640     # 预览宽度（等比缩放）
+    web_preview_quality: 65    # JPEG 质量
+
+    # --- 数据采集抽头（astral_data_collect 训练数据采集）---
+    # 全分辨率 JPEG → ~/collect/{label}（CompressedImage, BEST_EFFORT）。
+    # 按需编码：仅当话题有订阅者时才编码，纯遥操作运行时零开销。
+    collect_tap: true
+    collect_tap_fps: 30.0      # 每路采集帧率上限（跟随数据集网格）
+    collect_tap_quality: 90    # JPEG 质量（像素即训练数据）
+
+    verbose: false

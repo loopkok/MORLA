@@ -1,0 +1,41 @@
+# wujihand_retarget_node parameters
+#
+# retarget_backend:
+#   official         — wuji_sdk RetargetSession (rob_station GLOVE_HAND_MODEL)
+#   wuji_retargeting — open-source AdaptiveOptimizer (teleop yaml)
+#   dexpilot         — dex-retargeting on Wuji URDF
+
+wujihand_retarget_node:
+  ros__parameters:
+    hand_side: "right"
+    retarget_backend: "official"
+    hand_model: "wuji_hand"
+
+    input_topic: "hand_landmarks"
+    left_hand_name: "left_hand"
+    right_hand_name: "right_hand"
+
+    # 1.0 = disabled. For dexpilot you may set 0.7; wuji_retargeting yaml already has lp_alpha.
+    smoothing_alpha: 1.0
+
+    viz: false
+
+    # --- wuji_retargeting backend ---
+    wuji_lib_config_left: ""
+    wuji_lib_config_right: ""
+    nlopt_max_eval: 25          # teleop-style speed knob; 0 = library default (~50)
+    wuji_lib_disable_timing: true
+
+    # --- dexpilot backend ---
+    dexpilot_config_left: ""
+    dexpilot_config_right: ""
+    dexpilot_urdf_left: ""
+    dexpilot_urdf_right: ""
+
+    home_position: [
+      0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0
+    ]

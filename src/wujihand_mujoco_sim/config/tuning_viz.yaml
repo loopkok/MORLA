@@ -1,0 +1,52 @@
+# Tuning Visualization Configuration
+# Controls the appearance and behavior of the tuning viewer.
+# Retargeting parameters live in wujihand_retargeting config
+# (retarget_wuji_lib_{left,right}.yaml) — edit that file while the viewer runs.
+
+# === Skeleton layer display ===
+skeleton:
+  # Layer 1: Raw MediaPipe input keypoints (orange)
+  mediapipe_input:
+    enabled: true
+    color: [1.0, 0.5, 0.0, 0.6]
+    line_color: [1.0, 0.6, 0.2, 0.5]
+    point_size: 0.004
+    line_width: 0.002
+
+  # Layer 2: Scaled target keypoints (cyan)
+  scaled_target:
+    enabled: true
+    color: [0.0, 0.8, 0.8, 0.8]
+    line_color: [0.2, 0.8, 1.0, 0.7]
+    point_size: 0.004
+    line_width: 0.002
+
+  # Layer 3: Robot FK keypoints (white)
+  robot_fk:
+    enabled: true
+    color: [1.0, 1.0, 1.0, 0.95]
+    line_color: [1.0, 1.0, 1.0, 0.8]
+    point_size: 0.005
+    line_width: 0.003
+
+  draw_lines: true
+  highlight_color: [1.0, 0.0, 0.0, 1.0]
+  highlight_duration: 1.0
+
+robot_mesh:
+  alpha: 0.1
+
+camera:
+  azimuth: 135
+  elevation: -20
+  distance: 0.5
+  lookat: [0.0, 0.0, 0.05]
+
+hud:
+  show_params: true
+  show_frame_info: true
+  show_cost: true
+  show_pinch_alpha: true
+
+hot_reload:
+  poll_interval: 0.5

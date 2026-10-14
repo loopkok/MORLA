@@ -1,0 +1,12 @@
+# Frontend deps (npm install regenerates)
+web/node_modules/
+
+# TypeScript incremental build cache
+web/tsconfig.tsbuildinfo
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs
+*.log

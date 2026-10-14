@@ -1,0 +1,109 @@
+name: Release
+
+on:
+    push:
+        tags:
+            - "v*"
+    workflow_dispatch:
+        inputs:
+            version:
+                description: "Version to release (e.g., 0.1.0 or 0.2.0-rc0)"
+                required: true
+
+jobs:
+    build-debs:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                include:
+                    - ros_distro: humble
+                      os_version: "22.04"
+                    - ros_distro: kilted
+                      os_version: "24.04"
+
+        container:
+            image: ros:${{ matrix.ros_distro }}-ros-base
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+                submodules: recursive
+
+            - name: Extract version
+              id: version
+              run: |
+                  if [ -n "${{ github.event.inputs.version }}" ]; then
+                    VERSION="${{ github.event.inputs.version }}"
+                  else
+                    # Remove 'v' prefix from tag name
+                    VERSION="${GITHUB_REF_NAME#v}"
+                  fi
+                  echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+                  echo "Building version: ${VERSION}"
+
+            - name: Install dependencies
+              run: |
+                  apt-get update
+                  apt-get install -y wget dpkg-dev
+
+                  # Install wujihandcpp SDK (latest release including pre-release)
+                  # Use grep to extract URL directly, avoiding jq parse issues with control chars
+                  DEB_URL=$(curl -sH "Accept: application/vnd.github+json" \
+                    https://api.github.com/repos/wuji-technology/wujihandpy/releases | \
+                    grep -oP '"browser_download_url":\s*"\K[^"]*wujihandcpp[^"]*-amd64\.deb' | head -1)
+
+                  if [ -z "$DEB_URL" ]; then
+                    echo "Error: Failed to get wujihandcpp deb URL from GitHub releases"
+                    exit 1
+                  fi
+
+                  echo "Installing wujihandcpp from: $DEB_URL"
+                  wget -q "$DEB_URL" || { echo "Error: Failed to download $DEB_URL"; exit 1; }
+                  dpkg -i --force-overwrite wujihandcpp-*.deb || true
+                  apt-get install -f -y
+
+                  # Install ROS dependencies
+                  apt-get install -y \
+                    ros-${{ matrix.ros_distro }}-sensor-msgs \
+                    ros-${{ matrix.ros_distro }}-std-msgs \
+                    ros-${{ matrix.ros_distro }}-robot-state-publisher
+
+            - name: Build deb package
+              run: |
+                  # Fix git dubious ownership error in CI
+                  git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+                  chmod +x build_deb.sh
+                  ./build_deb.sh ${{ matrix.ros_distro }} ${{ steps.version.outputs.version }}
+
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ros-${{ matrix.ros_distro }}-wujihand-deb
+                  path: ros-${{ matrix.ros_distro }}-wujihand_*.deb
+
+    release:
+        needs: build-debs
+        runs-on: ubuntu-latest
+        if: startsWith(github.ref, 'refs/tags/')
+
+        steps:
+            - name: Download all artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  path: artifacts
+
+            - name: List artifacts
+              run: find artifacts -name "*.deb" -type f
+
+            - name: Create Release
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: artifacts/**/*.deb
+                  generate_release_notes: true
+                  draft: false
+                  prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-alpha') || contains(github.ref, '-beta') }}
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

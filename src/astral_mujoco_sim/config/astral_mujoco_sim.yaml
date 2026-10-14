@@ -1,0 +1,23 @@
+astral_mujoco_sim_node:
+  ros__parameters:
+    mjcf_path: ""
+    enable_viewer: true
+    realtime: true
+    publish_joint_states: true
+    state_rate: 50.0
+    fps_print_interval: 5.0
+    print_latency: true
+    latency_print_interval: 2.0
+    # Viewer start pose. Zeros so sim homing is visible: rest → via → init_pose.
+    # Restore the work pose here if you want the model to boot already at init.
+    init_pose_left:  [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]
+    init_pose_right: [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]
+    # Gripper (echo only — no MJCF gripper joint). Mirror astral_robot_control.
+    enable_gripper_cmd: true
+    left_gripper_ns: "left_gripper"
+    right_gripper_ns: "right_gripper"
+    # 仅用于 echo 显示；与真机 driver 配置保持一致（2.5=全开, 0.0=合拢）。
+    left_gripper_open_rad: 2.5
+    left_gripper_closed_rad: 0.0
+    right_gripper_open_rad: 2.5
+    right_gripper_closed_rad: 0.0

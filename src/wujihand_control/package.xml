@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>wujihand_control</name>
+  <version>0.1.0</version>
+  <description>
+    Thin launch/config layer for real Wuji Hand control in astral_ws.
+    Spawns wujihand_driver (from vendored wujihandros2) under /{left,right}_hand
+    namespaces matching wujihand_retargeting joint_commands topics.
+  </description>
+  <maintainer email="loopkok@todo.todo">loopkok</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>ament_index_python</depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>wujihand_driver</exec_depend>
+  <exec_depend>wujihand_msgs</exec_depend>
+  <exec_depend>wuji_glove</exec_depend>
+  <exec_depend>quest3_hand_mocap</exec_depend>
+  <exec_depend>wujihand_retargeting</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

@@ -1,0 +1,9 @@
+# Wuji Hand MuJoCo sim node defaults
+wujihand_mujoco_sim_node:
+  ros__parameters:
+    hand_side: "right"          # left | right
+    hand_name: ""               # empty → {hand_side}_hand
+    mjcf_path: ""               # empty → package assets/mjcf/{side}.xml
+    cmd_topic: ""               # empty → /{hand_name}/joint_commands
+    enable_viewer: true
+    realtime: true
