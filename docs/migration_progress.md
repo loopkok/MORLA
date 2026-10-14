@@ -10,8 +10,8 @@
 | --- | --- | --- |
 | P0 独立副本与环境 | 完成 | 595 个 Astral Git 跟踪文件均存在且 SHA256 一致；源提交匹配 baseline；原工作区未修改；MORLA 独立提交 `f441a3e`。 |
 | P1 包路径与改名 | 完成 | 25 ROS 包可发现且全量 clean build 成功；五个共享包完成改名，入口脚本与Web launch路径适配；前端和指定回归通过。映射见 `docs/package_map.json`。 |
-| P2 core/profile | 未开始 | |
-| P3 description | 未开始 | |
+| P2 core/profile | 完成 | 新增`morla_core`共享schema/lease/资源/关节映射/profile registry；12个profile固定布局并从已安装ament share验证，见本次日志。消费者运行时接入仍在P7-P9完成。 |
+| P3 description | 进行中 | 正在把Astral/Wuji/XNero模型与mesh归集到`robot_description`并迁移所有资源引用。 |
 | P4 unified input | 未开始 | |
 | P5 Nero driver/teleop | 未开始 | |
 | P6 XHand adapter/sim | 未开始 | |
@@ -37,3 +37,8 @@
 - P1回归：`morla_input/test_packet_guard.py` 3通过；`morla_data_collect/test` 125通过/1跳过；`morla_policy_inference/tests` 143通过；`morla_web_manager/test` 25通过；`morla_bringup/test` 24通过。数采导出测试临时使用Pandas 2.3.3后通过；该测试依赖已清理，P7补齐包运行依赖。Quest全目录的flake8插件会递归扫描SDK根目录，故只执行了包保护逻辑测试，没有把该递归检查记作通过。
 - Web前端`npm ci && npm run build`通过（TypeScript + Vite，52 modules）；npm审计提示锁定依赖有1项moderate和2项high advisories，尚未擅自升级依赖。
 - 源`astral_ws`、`xnero_ws`提交和工作区状态复核无变化；迁移目录中运行时代码不再引用旧工作区路径或五个旧共享包名。尚未运行真机。
+- P2：新增ROS-free `morla_core`，将schema/lease移出collector并将ROS lease bind放入惰性`ros_ownership`；policy、collector、Astral臂/夹爪、Wuji retargeting改依赖`morla_core`。严格关节映射、schema v2/hash/v1升级、资源路径保护和profile registry均有黄金/负例测试。
+- P2 profiles：注册12种 Astral/Nero 布局：Astral 8/16/27/35/54，Nero 14/19/38；`nero_dual_xhand`严格按左臂、右臂、左手、右手 `[0,7),[7,14),[14,26),[26,38)`。从Astral URDF、Wuji/XHand URDF及XNero Nero IK提取limits/标准名字；保留原Astral臂与夹爪参数引用；增加左右组件模板、相机slot与XHand触觉sidecar定义。
+- P2 回归：纯逻辑10通过；profile CLI从已安装ROS包索引解析12项并生成`resolved_profile.json`/`frozen_schema.json`；单独安装空间可见所有MORLA包。全量clean build 26/26通过。Input 3通过、policy 143通过、Web 25通过、bringup 24通过；统一采集125通过/1跳过。测试使用临时Pandas 2.3.3以满足v3导出；依赖已登记为`python3-pandas`，临时用户级包在最终清理时卸载。
+- P2发现并修正5个新Python包的无效maintainer邮箱：否则colcon会将其识别为普通Python包，虽能编译但不会进入ROS包索引。重建后`colcon list`显示`ros.ament_python`，`ros2 pkg list`和已安装profile CLI验证通过。
+- P2修复`data_pipeline.sh`在重命名后缺少`morla_core`的源码路径，并新增`MORLA_DATA_PYTHON`优先级与旧`ASTRAL_DATA_PYTHON`弃用提示；原兼容路径测试通过。

@@ -22,7 +22,7 @@ from geometry_msgs.msg import PoseArray
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import Float64
-from morla_data_collect.ownership import PolicyLease, fresh_header
+from morla_core.ownership import PolicyLease, fresh_header
 
 from astral_gripper_teleop.pinch import (
     close_ratio_from_range,

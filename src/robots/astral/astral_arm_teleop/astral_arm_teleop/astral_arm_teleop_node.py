@@ -41,7 +41,7 @@ from astral_arm_teleop.latency_meter import LatencyMeter, stamp_age_ms
 from astral_arm_teleop.pose_processor import PoseProcessor
 from astral_arm_teleop.safety_filter import SafetyFilter
 from astral_arm_teleop.teleop_log import TeleopJsonlLog, teleop_event_record
-from morla_data_collect.ownership import PolicyLease, fresh_header
+from morla_core.ownership import PolicyLease, fresh_header
 
 _LEFT_NAMES = [
     "left_shoulder_pitch",

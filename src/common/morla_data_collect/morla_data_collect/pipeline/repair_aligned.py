@@ -58,7 +58,7 @@ from morla_data_collect.pipeline.artifacts import (
     require_source_signature,
     source_signature,
 )
-from morla_data_collect.schema import CollectSchema
+from morla_core.schema import CollectSchema
 
 
 CAM_KEYS = None  # 运行时探测 aligned 里的 camera 组名（left_wrist/base/...）

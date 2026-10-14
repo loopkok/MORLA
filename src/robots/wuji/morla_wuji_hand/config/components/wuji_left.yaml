@@ -1,0 +1,71 @@
+component_id: left_ee
+type: wuji_hand
+side: left
+joint_names:
+- finger1_joint1
+- finger1_joint2
+- finger1_joint3
+- finger1_joint4
+- finger2_joint1
+- finger2_joint2
+- finger2_joint3
+- finger2_joint4
+- finger3_joint1
+- finger3_joint2
+- finger3_joint3
+- finger3_joint4
+- finger4_joint1
+- finger4_joint2
+- finger4_joint3
+- finger4_joint4
+- finger5_joint1
+- finger5_joint2
+- finger5_joint3
+- finger5_joint4
+limits:
+- - -0.0448
+  - 1.6508
+- - -0.1659
+  - 0.9339
+- - -0.4932
+  - 1.6272
+- - -0.4932
+  - 1.6272
+- - -0.32695
+  - 1.63595
+- - -0.495
+  - 0.495
+- - -0.4932
+  - 1.6272
+- - -0.4932
+  - 1.6272
+- - -0.32695
+  - 1.63595
+- - -0.495
+  - 0.495
+- - -0.4932
+  - 1.6272
+- - -0.4932
+  - 1.6272
+- - -0.32695
+  - 1.63595
+- - -0.495
+  - 0.495
+- - -0.4932
+  - 1.6272
+- - -0.4932
+  - 1.6272
+- - -0.32695
+  - 1.63595
+- - -0.495
+  - 0.495
+- - -0.4932
+  - 1.6272
+- - -0.4932
+  - 1.6272
+unit: rad
+command_topic: /left_hand/joint_commands
+state_topic: /left_hand/joint_states
+retarget_config_package: wujihand_retargeting
+retarget_params_file: config/retarget_dexpilot_left.yml
+description_model_id: wuji_left_hand

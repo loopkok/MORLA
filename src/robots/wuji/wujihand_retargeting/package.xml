@@ -21,5 +21,5 @@
   <export>
     <build_type>ament_python</build_type>
   </export>
-  <exec_depend>morla_data_collect</exec_depend>
+  <exec_depend>morla_core</exec_depend>
 </package>

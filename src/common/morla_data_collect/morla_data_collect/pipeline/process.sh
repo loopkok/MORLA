@@ -15,7 +15,10 @@ if [ "${1:-}" = --help ] || [ "${1:-}" = -h ]; then usage; exit 0; fi
 if [ "$#" -lt 2 ]; then usage >&2; exit 2; fi
 SESSION="$1" OUTPUT="$2"
 shift 2
-PY="${ASTRAL_DATA_PYTHON:-python3}"
+PY="${MORLA_DATA_PYTHON:-${ASTRAL_DATA_PYTHON:-python3}}"
+if [ -n "${ASTRAL_DATA_PYTHON:-}" ] && [ -z "${MORLA_DATA_PYTHON:-}" ]; then
+    echo "ASTRAL_DATA_PYTHON 已弃用；当前使用其兼容值：$PY" >&2
+fi
 ALIGN_ARGS=() VALIDATE_ARGS=() EXPORT_ARGS=() FORCE_ACT=()
 IMAGE_SIZE=224
 while [ "$#" -gt 0 ]; do

@@ -35,7 +35,7 @@ from morla_data_collect.vr_collect_logic import (
     decide_release_or_collect,
     decide_vr_command,
 )
-from morla_data_collect.ownership import PolicyLease
+from morla_core.ownership import PolicyLease
 
 _CONTROL_QOS = QoSProfile(
     reliability=ReliabilityPolicy.RELIABLE,

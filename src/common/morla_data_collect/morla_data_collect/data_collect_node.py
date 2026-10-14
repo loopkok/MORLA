@@ -41,7 +41,7 @@ from morla_data_collect.data_writer import (
     CameraDataWriter,
     StreamDataWriter,
 )
-from morla_data_collect.schema import (
+from morla_core.schema import (
     EE_GRIPPER,
     STREAM_TOPICS,
     CollectSchema,
@@ -294,7 +294,7 @@ class DataCollectNode(Node):
             self.create_subscription(
                 Bool, topic, self._mk_event_cb(event), _EVENT_QOS
             )
-        from morla_data_collect.ownership import PolicyLease
+        from morla_core.ownership import PolicyLease
         self._policy_lease = PolicyLease()
         self.create_subscription(String, '/policy_inference/state', self._on_policy_state, _EVENT_QOS)
 

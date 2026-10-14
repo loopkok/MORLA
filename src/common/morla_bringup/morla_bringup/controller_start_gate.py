@@ -27,7 +27,7 @@ from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool, String
 
 from morla_bringup.start_gate_logic import decide_release_action, decide_start_action
-from morla_data_collect.ownership import PolicyLease, fresh_header
+from morla_core.ownership import PolicyLease, fresh_header
 
 
 def _sensor_qos() -> QoSProfile:

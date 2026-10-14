@@ -26,7 +26,7 @@ from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import JointState, Joy
 from std_msgs.msg import Bool
-from morla_data_collect.ownership import PolicyLease, fresh_header
+from morla_core.ownership import PolicyLease, fresh_header
 
 
 def _sensor_qos() -> QoSProfile:

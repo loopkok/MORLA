@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import os
 import time
-from morla_data_collect.ownership import PolicyLease, fresh_header
+from morla_core.ownership import PolicyLease, fresh_header
 from typing import Dict, List, Optional
 
 import numpy as np

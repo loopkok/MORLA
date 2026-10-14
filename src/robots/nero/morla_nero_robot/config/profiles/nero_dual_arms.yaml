@@ -1,0 +1,390 @@
+profile_version: 1
+profile_id: nero_dual_arms
+robot_id: nero
+title: Nero Dual Arms
+components:
+- component_id: left_arm
+  enabled: true
+  side: left
+  type: nero_arm
+  package: morla_nero_robot
+  params_file: config/components/nero_left.yaml
+  driver_package: nero_robot_control
+  driver_params_file: config/nero_driver_left.yaml
+  teleop_package: nero_arm_teleop
+  teleop_params_file: config/nero_teleop_left.yaml
+  joint_names:
+  - left_joint1
+  - left_joint2
+  - left_joint3
+  - left_joint4
+  - left_joint5
+  - left_joint6
+  - left_joint7
+  limits: &id001
+  - - -2.705261
+    - 2.705261
+  - - -1.74533
+    - 1.74533
+  - - -2.757621
+    - 2.757621
+  - - -1.012291
+    - 2.146755
+  - - -2.757621
+    - 2.757621
+  - - -0.733039
+    - 0.959932
+  - - -1.570797
+    - 1.570797
+  unit: rad
+  max_joint_velocity_rad_s: 1.0
+  state_topic: /left_arm/joint_states
+  command_topic: /left_arm/joint_commands
+  can_channel: can_nero_left
+  can_interface: socketcan
+  firmware_version: default
+  control_rate_hz: 125.0
+  init_pose:
+  - -0.405
+  - 1.281
+  - -0.957
+  - 1.311
+  - 2.682
+  - -0.314
+  - -0.163
+  vr_to_arm_rot_after_unity_to_robot:
+  - 0
+  - 0
+  - 1
+  - 0
+  - -1
+  - 0
+  - 1
+  - 0
+  - 0
+  flip_pitch: false
+  description_model_id: nero_left_arm
+- component_id: right_arm
+  enabled: true
+  side: right
+  type: nero_arm
+  package: morla_nero_robot
+  params_file: config/components/nero_right.yaml
+  driver_package: nero_robot_control
+  driver_params_file: config/nero_driver_right.yaml
+  teleop_package: nero_arm_teleop
+  teleop_params_file: config/nero_teleop_right.yaml
+  joint_names:
+  - right_joint1
+  - right_joint2
+  - right_joint3
+  - right_joint4
+  - right_joint5
+  - right_joint6
+  - right_joint7
+  limits: *id001
+  unit: rad
+  max_joint_velocity_rad_s: 1.0
+  state_topic: /right_arm/joint_states
+  command_topic: /right_arm/joint_commands
+  can_channel: can_nero_right
+  can_interface: socketcan
+  firmware_version: default
+  control_rate_hz: 125.0
+  init_pose:
+  - 0.405
+  - 1.281
+  - 0.957
+  - 1.311
+  - -2.682
+  - 0.314
+  - -0.163
+  vr_to_arm_rot_after_unity_to_robot:
+  - 0
+  - 0
+  - 1
+  - 0
+  - 1
+  - 0
+  - -1
+  - 0
+  - 0
+  flip_pitch: false
+  description_model_id: nero_right_arm
+streams:
+- stream_key: left_arm_state
+  topic: /left_arm/joint_states
+  message_type: sensor_msgs/msg/JointState
+  shape:
+  - 7
+  dtype: float32
+  unit: rad
+  qos: best_effort_keep_last_1
+  timestamp_mode: source_header
+  required: true
+  source_kind: state
+  joint_names: &id002
+  - left_joint1
+  - left_joint2
+  - left_joint3
+  - left_joint4
+  - left_joint5
+  - left_joint6
+  - left_joint7
+- stream_key: left_arm_cmd
+  topic: /left_arm/joint_commands
+  message_type: sensor_msgs/msg/JointState
+  shape:
+  - 7
+  dtype: float32
+  unit: rad
+  qos: best_effort_keep_last_1
+  timestamp_mode: arrival
+  required: true
+  source_kind: command
+  joint_names: *id002
+- stream_key: right_arm_state
+  topic: /right_arm/joint_states
+  message_type: sensor_msgs/msg/JointState
+  shape:
+  - 7
+  dtype: float32
+  unit: rad
+  qos: best_effort_keep_last_1
+  timestamp_mode: source_header
+  required: true
+  source_kind: state
+  joint_names: &id003
+  - right_joint1
+  - right_joint2
+  - right_joint3
+  - right_joint4
+  - right_joint5
+  - right_joint6
+  - right_joint7
+- stream_key: right_arm_cmd
+  topic: /right_arm/joint_commands
+  message_type: sensor_msgs/msg/JointState
+  shape:
+  - 7
+  dtype: float32
+  unit: rad
+  qos: best_effort_keep_last_1
+  timestamp_mode: arrival
+  required: true
+  source_kind: command
+  joint_names: *id003
+- stream_key: camera:base
+  topic: /quest3_video_streamer/collect/base
+  message_type: sensor_msgs/msg/CompressedImage
+  shape:
+  - null
+  - null
+  - 3
+  dtype: uint8
+  unit: rgb
+  qos: best_effort_keep_last_1
+  timestamp_mode: source_header
+  required: true
+  source_kind: camera
+- stream_key: camera:left_wrist
+  topic: /quest3_video_streamer/collect/left_wrist
+  message_type: sensor_msgs/msg/CompressedImage
+  shape:
+  - null
+  - null
+  - 3
+  dtype: uint8
+  unit: rgb
+  qos: best_effort_keep_last_1
+  timestamp_mode: source_header
+  required: true
+  source_kind: camera
+- stream_key: camera:right_wrist
+  topic: /quest3_video_streamer/collect/right_wrist
+  message_type: sensor_msgs/msg/CompressedImage
+  shape:
+  - null
+  - null
+  - 3
+  dtype: uint8
+  unit: rgb
+  qos: best_effort_keep_last_1
+  timestamp_mode: source_header
+  required: true
+  source_kind: camera
+state_blocks:
+- block_id: left_arm
+  stream_key: left_arm_state
+  dim: 7
+  feature_names: &id004
+  - left_arm_0
+  - left_arm_1
+  - left_arm_2
+  - left_arm_3
+  - left_arm_4
+  - left_arm_5
+  - left_arm_6
+  unit: rad
+  state_indices:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  physical_joint_names: *id002
+  limits: *id001
+  stream_indices:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+- block_id: right_arm
+  stream_key: right_arm_state
+  dim: 7
+  feature_names: &id005
+  - right_arm_0
+  - right_arm_1
+  - right_arm_2
+  - right_arm_3
+  - right_arm_4
+  - right_arm_5
+  - right_arm_6
+  unit: rad
+  state_indices:
+  - 7
+  - 8
+  - 9
+  - 10
+  - 11
+  - 12
+  - 13
+  physical_joint_names: *id003
+  limits: *id001
+  stream_indices:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+action_blocks:
+- block_id: left_arm
+  dim: 7
+  feature_names: *id004
+  unit: rad
+  action_indices:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  semantics: next_state
+  writable: true
+  command_stream: left_arm_cmd
+  writer_id: left_arm_writer
+  limits: *id001
+- block_id: right_arm
+  dim: 7
+  feature_names: *id005
+  unit: rad
+  action_indices:
+  - 7
+  - 8
+  - 9
+  - 10
+  - 11
+  - 12
+  - 13
+  semantics: next_state
+  writable: true
+  command_stream: right_arm_cmd
+  writer_id: right_arm_writer
+  limits: *id001
+cameras:
+- base
+- left_wrist
+- right_wrist
+camera_specs:
+- label: base
+  slot: 0
+  device_fingerprint: null
+  image_size: null
+- label: left_wrist
+  slot: 1
+  device_fingerprint: null
+  image_size: null
+- label: right_wrist
+  slot: 2
+  device_fingerprint: null
+  image_size: null
+sensors: []
+capabilities:
+  ready: true
+  enable: true
+  position: true
+  damping: false
+  estop: true
+  home: false
+  workpos: true
+  reanchor: true
+  tactile: false
+  head: false
+  waist: false
+  grippers: false
+  hands: false
+writers:
+- writer_id: left_arm_writer
+  component_id: left_arm
+  command_stream: left_arm_cmd
+  ack_topic: /teleop/ownership_ack
+  prepare_reanchor_service: /left_arm/prepare_reanchor
+- writer_id: right_arm_writer
+  component_id: right_arm
+  command_stream: right_arm_cmd
+  ack_topic: /teleop/ownership_ack
+  prepare_reanchor_service: /right_arm/prepare_reanchor
+backend_requirements:
+  model_layout_id: nero_dual_arms_v1
+  action_semantics: absolute_position
+  model_capacity: 32
+  requires_named_features: true
+  camera_map:
+    base: base
+    left_wrist: left_wrist
+    right_wrist: right_wrist
+  optional_sensors: []
+  requires_model_layout_handshake: true
+data:
+  dataset_fps: 30
+  action_source: next_state
+  hold_frames: 10
+  max_gap_ms: 100.0
+  data_root: ${MORLA_DATA_ROOT:-${SDK_ROOT}/morla_data}
+  legacy_validity_unknown: false
+hardware:
+  arms:
+    left:
+      can_channel: can_nero_left
+      can_interface: socketcan
+      firmware_version: default
+    right:
+      can_channel: can_nero_right
+      can_interface: socketcan
+      firmware_version: default
+  xhand: {}
+description_revision: pending_robot_description_migration
+mode_default: sim
+input:
+  source: quest
+  strict_packets: true
+  legacy_packets_allowed: false
+  landmark_preprocess: raw

@@ -35,7 +35,7 @@ import numpy as np
 
 from morla_data_collect.pipeline.align_data import ALIGNED_H5
 from morla_data_collect.data_writer import CAMERA_H5, META_JSON, ROBOT_H5
-from morla_data_collect.schema import CollectSchema
+from morla_core.schema import CollectSchema
 
 QUARANTINE_DIR = "quarantine"
 REPORT_JSON = "validation_report.json"

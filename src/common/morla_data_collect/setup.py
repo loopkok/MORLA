@@ -22,7 +22,7 @@ setup(
         (os.path.join("share", package_name, "config"), _existing(glob("config/*"))),
         (os.path.join("share", package_name, "launch"), _existing(glob("launch/*.launch.py"))),
     ],
-    install_requires=["setuptools", "numpy", "h5py"],
+    install_requires=["setuptools", "numpy", "h5py", "pandas"],
     zip_safe=False,
     maintainer="loopkok",
     maintainer_email="loopkok@todo.todo",

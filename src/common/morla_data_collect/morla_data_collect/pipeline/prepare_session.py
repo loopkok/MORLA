@@ -7,7 +7,7 @@ import shutil
 import h5py
 
 from .artifacts import atomic_directory, reject_overlap, require_source_signature, source_signature
-from morla_data_collect.schema import CollectSchema
+from morla_core.schema import CollectSchema
 
 
 def prepare_session(source, output, *, camera_map=None, episodes=None, include_aligned=False):

@@ -1,0 +1,74 @@
+component_id: left_ee
+type: xhand
+side: left
+joint_names:
+- thumb_bend_joint
+- thumb_rota_joint1
+- thumb_rota_joint2
+- index_bend_joint
+- index_joint1
+- index_joint2
+- mid_joint1
+- mid_joint2
+- ring_joint1
+- ring_joint2
+- pinky_joint1
+- pinky_joint2
+urdf_joint_names:
+- left_hand_thumb_bend_joint
+- left_hand_thumb_rota_joint1
+- left_hand_thumb_rota_joint2
+- left_hand_index_bend_joint
+- left_hand_index_joint1
+- left_hand_index_joint2
+- left_hand_mid_joint1
+- left_hand_mid_joint2
+- left_hand_ring_joint1
+- left_hand_ring_joint2
+- left_hand_pinky_joint1
+- left_hand_pinky_joint2
+limits:
+- - 0.0
+  - 1.832
+- - -0.698
+  - 1.57
+- - 0.0
+  - 1.57
+- - -0.174
+  - 0.174
+- - 0.0
+  - 1.919
+- - 0.0
+  - 1.919
+- - 0.0
+  - 1.919
+- - 0.0
+  - 1.919
+- - 0.0
+  - 1.919
+- - 0.0
+  - 1.919
+- - 0.0
+  - 1.919
+- - 0.0
+  - 1.919
+unit: rad
+command_topic: /left_hand/joint_commands
+state_topic: /left_hand/joint_states
+retarget_config_package: xhand_retargeting
+retarget_params_file: config/xhand_left_dexpilot.yml
+adapter_package: xhand_adapter
+adapter_params_file: config/xhand_adapter_left.yaml
+native_command_topic: /left_hand/driver/xhand_command
+native_state_topic: /left_hand/driver/xhand_state
+hand_id: 0
+native_command:
+  mode: 3
+  kp: 80.0
+  ki: 0.0
+  kd: 0.0
+  effort_limit_ma: 400
+retarget_compatibility:
+  landmark_preprocess: legacy_xhand_pinky
+  index_bend_right_sign: 1
+description_model_id: xhand_left

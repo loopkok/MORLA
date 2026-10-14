@@ -1,6 +1,6 @@
 """Schema-driven observation/action layout for policy inference & replay.
 
-The single source of truth is ``morla_data_collect.schema.CollectSchema``:
+The single source of truth is ``morla_core.schema.CollectSchema``:
 the same layout that teleop data collection froze into ``meta.json``. Feeding
 that schema here yields:
 
@@ -21,7 +21,7 @@ import dataclasses
 import cv2
 import numpy as np
 
-from morla_data_collect.schema import (
+from morla_core.schema import (
     EE_GRIPPER,
     EE_WUJI,
     ARM_DIM,

@@ -1,0 +1,61 @@
+component_id: right_arm
+type: nero_arm
+side: right
+joint_names:
+- right_joint1
+- right_joint2
+- right_joint3
+- right_joint4
+- right_joint5
+- right_joint6
+- right_joint7
+limits:
+- - -2.705261
+  - 2.705261
+- - -1.74533
+  - 1.74533
+- - -2.757621
+  - 2.757621
+- - -1.012291
+  - 2.146755
+- - -2.757621
+  - 2.757621
+- - -0.733039
+  - 0.959932
+- - -1.570797
+  - 1.570797
+unit: rad
+state_topic: /right_arm/joint_states
+command_topic: /right_arm/joint_commands
+driver_package: nero_robot_control
+driver_params_file: config/nero_driver_right.yaml
+teleop_package: nero_arm_teleop
+teleop_params_file: config/nero_teleop_right.yaml
+can_channel: can_nero_right
+can_interface: socketcan
+firmware_version: default
+control_rate_hz: 125.0
+legacy_max_joint_delta_rad_per_step: 0.065
+max_joint_velocity_rad_s: 1.0
+command_timeout_s: 0.5
+init_pose:
+- 0.405
+- 1.281
+- 0.957
+- 1.311
+- -2.682
+- 0.314
+- -0.163
+vr_to_arm_rot_after_unity_to_robot:
+- 0
+- 0
+- 1
+- 0
+- 1
+- 0
+- -1
+- 0
+- 0
+flip_pitch: false
+description_model_id: nero_right_arm
+asset_status: pending_robot_description_migration

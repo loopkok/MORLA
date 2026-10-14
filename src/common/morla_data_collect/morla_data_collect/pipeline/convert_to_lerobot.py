@@ -33,7 +33,7 @@ import h5py
 import numpy as np
 
 from morla_data_collect.pipeline.align_data import ALIGNED_H5
-from morla_data_collect.schema import CollectSchema
+from morla_core.schema import CollectSchema
 
 CODEBASE_VERSION = "v2.1"
 CHUNK_SIZE = 1000  # 与上游 DEFAULT_CHUNK_SIZE 一致

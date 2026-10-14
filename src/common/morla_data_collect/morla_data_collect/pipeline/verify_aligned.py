@@ -7,7 +7,7 @@ import h5py
 import numpy as np
 
 from .artifacts import require_source_signature
-from morla_data_collect.schema import CollectSchema
+from morla_core.schema import CollectSchema
 
 
 def verify_session(source: str, session: str) -> dict:

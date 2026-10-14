@@ -1,0 +1,18 @@
+pinch_gripper_node:
+  ros__parameters:
+    hand_side: right
+    open_dist_m: 0.08
+    close_dist_m: 0.015
+    ema_alpha: 0.2
+    publish_rate: 50.0
+    input_timeout_s: 0.4
+    on_timeout: hold
+    log_interval_s: 0.0
+    auto_range: true
+    auto_range_forget_s: 8.0
+    auto_range_min_span_m: 0.01
+    trigger_gamma: 1.0
+    trigger_ema_alpha: 0.4
+    max_ratio_rate: 2.5
+    disarm_topic: /teleop/disarm
+    arm_topic: /teleop/armed

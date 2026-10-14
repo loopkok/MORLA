@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>morla_core</name>
+  <version>0.1.0</version>
+  <description>ROS-free shared schemas, profile validation, resource lookup, joint mapping and ownership leases.</description>
+  <maintainer email="maintainers@morla.dev">MORLA maintainers</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <test_depend>python3-pytest</test_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

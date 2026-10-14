@@ -1,0 +1,477 @@
+profile_version: 1
+profile_id: astral_dual_gripper
+robot_id: astral
+title: Astral Dual Gripper
+components:
+- component_id: left_arm
+  enabled: true
+  side: left
+  type: arm
+  package: astral_arm_teleop
+  params_file: config/astral_arm_teleop_left.yaml
+  driver_package: astral_robot_control
+  driver_params_file: config/astral_robot.yaml
+  joint_names: &id001
+  - left_shoulder_pitch
+  - left_shoulder_roll
+  - left_elbow_roll
+  - left_elbow_pitch
+  - left_forearm_roll
+  - left_wrist_pitch
+  - left_wrist_roll
+  limits: &id005
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  unit: rad
+  max_joint_velocity_rad_s: 6.0
+  state_topic: /left_arm/joint_states
+  command_topic: /left_arm/joint_commands
+  description_model_id: astral_left_arm
+- component_id: right_arm
+  enabled: true
+  side: right
+  type: arm
+  package: astral_arm_teleop
+  params_file: config/astral_arm_teleop_right.yaml
+  driver_package: astral_robot_control
+  driver_params_file: config/astral_robot.yaml
+  joint_names: &id002
+  - right_shoulder_pitch
+  - right_shoulder_roll
+  - right_elbow_roll
+  - right_elbow_pitch
+  - right_forearm_roll
+  - right_wrist_pitch
+  - right_wrist_roll
+  limits: &id006
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  unit: rad
+  max_joint_velocity_rad_s: 6.0
+  state_topic: /right_arm/joint_states
+  command_topic: /right_arm/joint_commands
+  description_model_id: astral_right_arm
+- component_id: left_ee
+  enabled: true
+  side: left
+  type: gripper
+  package: astral_gripper_teleop
+  params_file: config/gripper_teleop.yaml
+  driver_package: astral_robot_control
+  driver_params_file: config/astral_robot.yaml
+  joint_names:
+  - left_gripper_joint
+  unit: ratio
+  state_topic: /left_gripper/command
+  command_topic: /left_gripper/command
+  command_semantics: closure_ratio
+  open_rad: 2.5
+  closed_rad: 0.0
+  max_ratio_rate_per_s: 2.5
+  description_model_id: astral_left_gripper
+- component_id: right_ee
+  enabled: true
+  side: right
+  type: gripper
+  package: astral_gripper_teleop
+  params_file: config/gripper_teleop_right.yaml
+  driver_package: astral_robot_control
+  driver_params_file: config/astral_robot.yaml
+  joint_names:
+  - right_gripper_joint
+  unit: ratio
+  state_topic: /right_gripper/command
+  command_topic: /right_gripper/command
+  command_semantics: closure_ratio
+  open_rad: 2.5
+  closed_rad: 0.0
+  max_ratio_rate_per_s: 2.5
+  description_model_id: astral_right_gripper
+streams:
+- stream_key: left_arm_state
+  topic: /left_arm/joint_states
+  message_type: sensor_msgs/msg/JointState
+  shape:
+  - 7
+  dtype: float32
+  unit: rad
+  qos: best_effort_keep_last_1
+  timestamp_mode: source_header
+  required: true
+  source_kind: state
+  joint_names: *id001
+- stream_key: left_arm_cmd
+  topic: /left_arm/joint_commands
+  message_type: sensor_msgs/msg/JointState
+  shape:
+  - 7
+  dtype: float32
+  unit: rad
+  qos: best_effort_keep_last_1
+  timestamp_mode: arrival
+  required: true
+  source_kind: command
+  joint_names: *id001
+- stream_key: right_arm_state
+  topic: /right_arm/joint_states
+  message_type: sensor_msgs/msg/JointState
+  shape:
+  - 7
+  dtype: float32
+  unit: rad
+  qos: best_effort_keep_last_1
+  timestamp_mode: source_header
+  required: true
+  source_kind: state
+  joint_names: *id002
+- stream_key: right_arm_cmd
+  topic: /right_arm/joint_commands
+  message_type: sensor_msgs/msg/JointState
+  shape:
+  - 7
+  dtype: float32
+  unit: rad
+  qos: best_effort_keep_last_1
+  timestamp_mode: arrival
+  required: true
+  source_kind: command
+  joint_names: *id002
+- stream_key: left_gripper_ratio
+  topic: /left_gripper/command
+  message_type: std_msgs/msg/Float64
+  shape:
+  - 1
+  dtype: float32
+  unit: ratio
+  qos: best_effort_keep_last_1
+  timestamp_mode: arrival
+  required: true
+  source_kind: command
+  joint_names: &id003
+  - left_gripper_joint
+- stream_key: left_gripper_rad
+  topic: /left_gripper/joint_states
+  message_type: sensor_msgs/msg/JointState
+  shape:
+  - 1
+  dtype: float32
+  unit: rad
+  qos: best_effort_keep_last_1
+  timestamp_mode: source_header
+  required: false
+  source_kind: command_echo
+  joint_names: *id003
+- stream_key: right_gripper_ratio
+  topic: /right_gripper/command
+  message_type: std_msgs/msg/Float64
+  shape:
+  - 1
+  dtype: float32
+  unit: ratio
+  qos: best_effort_keep_last_1
+  timestamp_mode: arrival
+  required: true
+  source_kind: command
+  joint_names: &id004
+  - right_gripper_joint
+- stream_key: right_gripper_rad
+  topic: /right_gripper/joint_states
+  message_type: sensor_msgs/msg/JointState
+  shape:
+  - 1
+  dtype: float32
+  unit: rad
+  qos: best_effort_keep_last_1
+  timestamp_mode: source_header
+  required: false
+  source_kind: command_echo
+  joint_names: *id004
+- stream_key: camera:base
+  topic: /quest3_video_streamer/collect/base
+  message_type: sensor_msgs/msg/CompressedImage
+  shape:
+  - null
+  - null
+  - 3
+  dtype: uint8
+  unit: rgb
+  qos: best_effort_keep_last_1
+  timestamp_mode: source_header
+  required: true
+  source_kind: camera
+- stream_key: camera:left_wrist
+  topic: /quest3_video_streamer/collect/left_wrist
+  message_type: sensor_msgs/msg/CompressedImage
+  shape:
+  - null
+  - null
+  - 3
+  dtype: uint8
+  unit: rgb
+  qos: best_effort_keep_last_1
+  timestamp_mode: source_header
+  required: true
+  source_kind: camera
+- stream_key: camera:right_wrist
+  topic: /quest3_video_streamer/collect/right_wrist
+  message_type: sensor_msgs/msg/CompressedImage
+  shape:
+  - null
+  - null
+  - 3
+  dtype: uint8
+  unit: rgb
+  qos: best_effort_keep_last_1
+  timestamp_mode: source_header
+  required: true
+  source_kind: camera
+state_blocks:
+- block_id: left_arm
+  stream_key: left_arm_state
+  dim: 7
+  feature_names: &id007
+  - left_arm_0
+  - left_arm_1
+  - left_arm_2
+  - left_arm_3
+  - left_arm_4
+  - left_arm_5
+  - left_arm_6
+  unit: rad
+  state_indices:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  physical_joint_names: *id001
+  limits: *id005
+  stream_indices:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+- block_id: right_arm
+  stream_key: right_arm_state
+  dim: 7
+  feature_names: &id008
+  - right_arm_0
+  - right_arm_1
+  - right_arm_2
+  - right_arm_3
+  - right_arm_4
+  - right_arm_5
+  - right_arm_6
+  unit: rad
+  state_indices:
+  - 7
+  - 8
+  - 9
+  - 10
+  - 11
+  - 12
+  - 13
+  physical_joint_names: *id002
+  limits: *id006
+  stream_indices:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+- block_id: left_ee
+  stream_key: left_gripper_ratio
+  dim: 1
+  feature_names: &id009
+  - left_ee_0
+  unit: ratio
+  state_indices:
+  - 14
+  physical_joint_names: []
+  limits: &id010
+  - - 0.0
+    - 1.0
+  stream_indices:
+  - 0
+- block_id: right_ee
+  stream_key: right_gripper_ratio
+  dim: 1
+  feature_names: &id011
+  - right_ee_0
+  unit: ratio
+  state_indices:
+  - 15
+  physical_joint_names: []
+  limits: &id012
+  - - 0.0
+    - 1.0
+  stream_indices:
+  - 0
+action_blocks:
+- block_id: left_arm
+  dim: 7
+  feature_names: *id007
+  unit: rad
+  action_indices:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  semantics: next_state
+  writable: true
+  command_stream: left_arm_cmd
+  writer_id: left_arm_writer
+  limits: *id005
+- block_id: right_arm
+  dim: 7
+  feature_names: *id008
+  unit: rad
+  action_indices:
+  - 7
+  - 8
+  - 9
+  - 10
+  - 11
+  - 12
+  - 13
+  semantics: next_state
+  writable: true
+  command_stream: right_arm_cmd
+  writer_id: right_arm_writer
+  limits: *id006
+- block_id: left_ee
+  dim: 1
+  feature_names: *id009
+  unit: ratio
+  action_indices:
+  - 14
+  semantics: next_state
+  writable: true
+  command_stream: left_gripper_ratio
+  writer_id: left_ee_writer
+  limits: *id010
+- block_id: right_ee
+  dim: 1
+  feature_names: *id011
+  unit: ratio
+  action_indices:
+  - 15
+  semantics: next_state
+  writable: true
+  command_stream: right_gripper_ratio
+  writer_id: right_ee_writer
+  limits: *id012
+cameras:
+- base
+- left_wrist
+- right_wrist
+camera_specs:
+- label: base
+  slot: 0
+  device_fingerprint: null
+  image_size: null
+- label: left_wrist
+  slot: 1
+  device_fingerprint: null
+  image_size: null
+- label: right_wrist
+  slot: 2
+  device_fingerprint: null
+  image_size: null
+sensors: []
+capabilities:
+  ready: false
+  enable: false
+  position: false
+  damping: false
+  estop: false
+  home: false
+  workpos: true
+  reanchor: true
+  tactile: false
+  head: false
+  waist: false
+  grippers: true
+  hands: false
+writers:
+- writer_id: left_arm_writer
+  component_id: left_arm
+  command_stream: left_arm_cmd
+  ack_topic: /teleop/ownership_ack
+  prepare_reanchor_service: /left_arm/prepare_reanchor
+- writer_id: right_arm_writer
+  component_id: right_arm
+  command_stream: right_arm_cmd
+  ack_topic: /teleop/ownership_ack
+  prepare_reanchor_service: /right_arm/prepare_reanchor
+- writer_id: left_ee_writer
+  component_id: left_ee
+  command_stream: left_gripper_ratio
+  ack_topic: /teleop/ownership_ack
+- writer_id: right_ee_writer
+  component_id: right_ee
+  command_stream: right_gripper_ratio
+  ack_topic: /teleop/ownership_ack
+backend_requirements:
+  model_layout_id: astral_dual_gripper_v1
+  action_semantics: absolute_position
+  model_capacity: 32
+  requires_named_features: true
+  camera_map:
+    base: base
+    left_wrist: left_wrist
+    right_wrist: right_wrist
+  optional_sensors: []
+  requires_model_layout_handshake: true
+data:
+  dataset_fps: 30
+  action_source: next_state
+  hold_frames: 10
+  max_gap_ms: 100.0
+  data_root: ${MORLA_DATA_ROOT:-${SDK_ROOT}/morla_data}
+  legacy_validity_unknown: false
+hardware:
+  astral_driver_package: astral_robot_control
+  driver_params_file: config/astral_robot.yaml
+  board_id: local_profile
+description_revision: pending_robot_description_migration
+mode_default: sim
+input:
+  source: quest
+  strict_packets: true
+  legacy_packets_allowed: false
+  landmark_preprocess: raw

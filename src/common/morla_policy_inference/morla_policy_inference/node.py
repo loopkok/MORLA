@@ -23,7 +23,7 @@ resume | takeover | release | stop, optionally ``playback:<source>:<episode>``.
 The same verbs are sent by :mod:`keyboard`.
 
 Robot schema parameters mirror ``morla_data_collect/data_collect.yaml`` and
-build the shared :class:`~morla_data_collect.schema.CollectSchema`, so any
+build the shared :class:`~morla_core.schema.CollectSchema`, so any
 upstream robot-config change propagates here with no code edits.
 """
 
@@ -52,7 +52,7 @@ from sensor_msgs.msg import CompressedImage, JointState
 from std_msgs.msg import Bool, Float64, String
 from std_srvs.srv import Trigger
 
-from morla_data_collect.schema import CollectSchema
+from morla_core.schema import CollectSchema
 from morla_policy_inference.backend import ObsBatch, make_backend
 from morla_policy_inference.controller import Controller, InvalidTransition
 from morla_policy_inference.engine import ActionEngine, EngineStateError

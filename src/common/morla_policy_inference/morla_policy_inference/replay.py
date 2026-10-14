@@ -19,7 +19,7 @@ import os
 
 import numpy as np
 
-from morla_data_collect.schema import CollectSchema
+from morla_core.schema import CollectSchema
 
 INFO_JSON = "info.json"
 CHUNK_SIZE = 1000  # must match morla_data_collect.pipeline.convert_to_lerobot.CHUNK_SIZE

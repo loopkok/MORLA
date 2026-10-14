@@ -3,7 +3,7 @@
   <name>morla_astral_robot</name>
   <version>0.1.0</version>
   <description>Astral robot component and profile package</description>
-  <maintainer email="robot@localhost">MORLA maintainers</maintainer>
+  <maintainer email="maintainers@morla.dev">MORLA maintainers</maintainer>
   <license>Apache-2.0</license>
   <buildtool_depend>ament_python</buildtool_depend>
   <exec_depend>ament_index_python</exec_depend>

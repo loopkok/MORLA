@@ -23,9 +23,13 @@
   <exec_depend>wuji_glove</exec_depend>
   <exec_depend>wujihand_retargeting</exec_depend>
   <exec_depend>wujihand_control</exec_depend>
+  <exec_depend>morla_astral_robot</exec_depend>
+  <exec_depend>morla_nero_robot</exec_depend>
+  <exec_depend>morla_wuji_hand</exec_depend>
+  <exec_depend>morla_xhand_hand</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>
   </export>
-  <exec_depend>morla_data_collect</exec_depend>
+  <exec_depend>morla_core</exec_depend>
 </package>

@@ -1,0 +1,403 @@
+profile_version: 1
+profile_id: astral_right_wuji
+robot_id: astral
+title: Astral Right Wuji
+components:
+- component_id: right_arm
+  enabled: true
+  side: right
+  type: arm
+  package: astral_arm_teleop
+  params_file: config/astral_arm_teleop_right.yaml
+  driver_package: astral_robot_control
+  driver_params_file: config/astral_robot.yaml
+  joint_names: &id001
+  - right_shoulder_pitch
+  - right_shoulder_roll
+  - right_elbow_roll
+  - right_elbow_pitch
+  - right_forearm_roll
+  - right_wrist_pitch
+  - right_wrist_roll
+  limits: &id003
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  - - -3.141593
+    - 3.141593
+  unit: rad
+  max_joint_velocity_rad_s: 6.0
+  state_topic: /right_arm/joint_states
+  command_topic: /right_arm/joint_commands
+  description_model_id: astral_right_arm
+- component_id: right_ee
+  enabled: true
+  side: right
+  type: wuji_hand
+  package: morla_wuji_hand
+  params_file: config/components/wuji_right.yaml
+  retarget_package: wujihand_retargeting
+  retarget_params_file: config/retarget_dexpilot_right.yml
+  joint_names: &id002
+  - finger1_joint1
+  - finger1_joint2
+  - finger1_joint3
+  - finger1_joint4
+  - finger2_joint1
+  - finger2_joint2
+  - finger2_joint3
+  - finger2_joint4
+  - finger3_joint1
+  - finger3_joint2
+  - finger3_joint3
+  - finger3_joint4
+  - finger4_joint1
+  - finger4_joint2
+  - finger4_joint3
+  - finger4_joint4
+  - finger5_joint1
+  - finger5_joint2
+  - finger5_joint3
+  - finger5_joint4
+  limits: &id004
+  - - -0.0448
+    - 1.6508
+  - - -0.1659
+    - 0.9339
+  - - -0.4932
+    - 1.6272
+  - - -0.4932
+    - 1.6272
+  - - -0.32695
+    - 1.63595
+  - - -0.495
+    - 0.495
+  - - -0.4932
+    - 1.6272
+  - - -0.4932
+    - 1.6272
+  - - -0.32695
+    - 1.63595
+  - - -0.495
+    - 0.495
+  - - -0.4932
+    - 1.6272
+  - - -0.4932
+    - 1.6272
+  - - -0.32695
+    - 1.63595
+  - - -0.495
+    - 0.495
+  - - -0.4932
+    - 1.6272
+  - - -0.4932
+    - 1.6272
+  - - -0.32695
+    - 1.63595
+  - - -0.495
+    - 0.495
+  - - -0.4932
+    - 1.6272
+  - - -0.4932
+    - 1.6272
+  unit: rad
+  state_topic: /right_hand/joint_states
+  command_topic: /right_hand/joint_commands
+  description_model_id: wuji_right_hand
+streams:
+- stream_key: right_arm_state
+  topic: /right_arm/joint_states
+  message_type: sensor_msgs/msg/JointState
+  shape:
+  - 7
+  dtype: float32
+  unit: rad
+  qos: best_effort_keep_last_1
+  timestamp_mode: source_header
+  required: true
+  source_kind: state
+  joint_names: *id001
+- stream_key: right_arm_cmd
+  topic: /right_arm/joint_commands
+  message_type: sensor_msgs/msg/JointState
+  shape:
+  - 7
+  dtype: float32
+  unit: rad
+  qos: best_effort_keep_last_1
+  timestamp_mode: arrival
+  required: true
+  source_kind: command
+  joint_names: *id001
+- stream_key: right_hand_state
+  topic: /right_hand/joint_states
+  message_type: sensor_msgs/msg/JointState
+  shape:
+  - 20
+  dtype: float32
+  unit: rad
+  qos: best_effort_keep_last_1
+  timestamp_mode: source_header
+  required: true
+  source_kind: state
+  joint_names: *id002
+- stream_key: right_hand_cmd
+  topic: /right_hand/joint_commands
+  message_type: sensor_msgs/msg/JointState
+  shape:
+  - 20
+  dtype: float32
+  unit: rad
+  qos: best_effort_keep_last_1
+  timestamp_mode: arrival
+  required: true
+  source_kind: command
+  joint_names: *id002
+- stream_key: camera:base
+  topic: /quest3_video_streamer/collect/base
+  message_type: sensor_msgs/msg/CompressedImage
+  shape:
+  - null
+  - null
+  - 3
+  dtype: uint8
+  unit: rgb
+  qos: best_effort_keep_last_1
+  timestamp_mode: source_header
+  required: true
+  source_kind: camera
+- stream_key: camera:right_wrist
+  topic: /quest3_video_streamer/collect/right_wrist
+  message_type: sensor_msgs/msg/CompressedImage
+  shape:
+  - null
+  - null
+  - 3
+  dtype: uint8
+  unit: rgb
+  qos: best_effort_keep_last_1
+  timestamp_mode: source_header
+  required: true
+  source_kind: camera
+state_blocks:
+- block_id: right_arm
+  stream_key: right_arm_state
+  dim: 7
+  feature_names: &id005
+  - right_arm_0
+  - right_arm_1
+  - right_arm_2
+  - right_arm_3
+  - right_arm_4
+  - right_arm_5
+  - right_arm_6
+  unit: rad
+  state_indices:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  physical_joint_names: *id001
+  limits: *id003
+  stream_indices:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+- block_id: right_ee
+  stream_key: right_hand_state
+  dim: 20
+  feature_names: &id006
+  - right_ee_0
+  - right_ee_1
+  - right_ee_2
+  - right_ee_3
+  - right_ee_4
+  - right_ee_5
+  - right_ee_6
+  - right_ee_7
+  - right_ee_8
+  - right_ee_9
+  - right_ee_10
+  - right_ee_11
+  - right_ee_12
+  - right_ee_13
+  - right_ee_14
+  - right_ee_15
+  - right_ee_16
+  - right_ee_17
+  - right_ee_18
+  - right_ee_19
+  unit: rad
+  state_indices:
+  - 7
+  - 8
+  - 9
+  - 10
+  - 11
+  - 12
+  - 13
+  - 14
+  - 15
+  - 16
+  - 17
+  - 18
+  - 19
+  - 20
+  - 21
+  - 22
+  - 23
+  - 24
+  - 25
+  - 26
+  physical_joint_names: *id002
+  limits: *id004
+  stream_indices:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+  - 10
+  - 11
+  - 12
+  - 13
+  - 14
+  - 15
+  - 16
+  - 17
+  - 18
+  - 19
+action_blocks:
+- block_id: right_arm
+  dim: 7
+  feature_names: *id005
+  unit: rad
+  action_indices:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  semantics: next_state
+  writable: true
+  command_stream: right_arm_cmd
+  writer_id: right_arm_writer
+  limits: *id003
+- block_id: right_ee
+  dim: 20
+  feature_names: *id006
+  unit: rad
+  action_indices:
+  - 7
+  - 8
+  - 9
+  - 10
+  - 11
+  - 12
+  - 13
+  - 14
+  - 15
+  - 16
+  - 17
+  - 18
+  - 19
+  - 20
+  - 21
+  - 22
+  - 23
+  - 24
+  - 25
+  - 26
+  semantics: next_state
+  writable: true
+  command_stream: right_hand_cmd
+  writer_id: right_ee_writer
+  limits: *id004
+cameras:
+- base
+- right_wrist
+camera_specs:
+- label: base
+  slot: 0
+  device_fingerprint: null
+  image_size: null
+- label: right_wrist
+  slot: 1
+  device_fingerprint: null
+  image_size: null
+sensors: []
+capabilities:
+  ready: false
+  enable: false
+  position: false
+  damping: false
+  estop: false
+  home: false
+  workpos: true
+  reanchor: true
+  tactile: false
+  head: false
+  waist: false
+  grippers: false
+  hands: true
+writers:
+- writer_id: right_arm_writer
+  component_id: right_arm
+  command_stream: right_arm_cmd
+  ack_topic: /teleop/ownership_ack
+  prepare_reanchor_service: /right_arm/prepare_reanchor
+- writer_id: right_ee_writer
+  component_id: right_ee
+  command_stream: right_hand_cmd
+  ack_topic: /teleop/ownership_ack
+backend_requirements:
+  model_layout_id: astral_right_wuji_v1
+  action_semantics: absolute_position
+  model_capacity: 32
+  requires_named_features: true
+  camera_map:
+    base: base
+    right_wrist: right_wrist
+  optional_sensors: []
+  requires_model_layout_handshake: true
+data:
+  dataset_fps: 30
+  action_source: next_state
+  hold_frames: 10
+  max_gap_ms: 100.0
+  data_root: ${MORLA_DATA_ROOT:-${SDK_ROOT}/morla_data}
+  legacy_validity_unknown: false
+hardware:
+  astral_driver_package: astral_robot_control
+  driver_params_file: config/astral_robot.yaml
+  board_id: local_profile
+description_revision: pending_robot_description_migration
+mode_default: sim
+input:
+  source: quest
+  strict_packets: true
+  legacy_packets_allowed: false
+  landmark_preprocess: raw

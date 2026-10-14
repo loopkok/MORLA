@@ -29,7 +29,7 @@ from morla_bringup.controller_workpos_logic import (
     BUTTON_X,
     decide_workpos,
 )
-from morla_data_collect.ownership import PolicyLease, fresh_header
+from morla_core.ownership import PolicyLease, fresh_header
 
 # /teleop/disarm 用 latched（对齐 monitor_node：晚启动臂节点也能收到）；
 # /teleop/init 用 VOLATILE 一次性（对齐 monitor_node：晚启动节点不得被历史

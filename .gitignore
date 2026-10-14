@@ -23,6 +23,7 @@ __pycache__/
 # ==================== venv / conda ====================
 venv/
 .venv/
+.data_deps/
 .env/
 .conda/
 

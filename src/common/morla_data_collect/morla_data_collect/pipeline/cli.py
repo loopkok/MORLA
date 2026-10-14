@@ -41,7 +41,7 @@ def main(argv=None):
         return 0
     module, _ = COMMANDS[parsed.command]
     if module is None:
-        env = {**os.environ, "ASTRAL_DATA_PYTHON": sys.executable}
+        env = {**os.environ, "MORLA_DATA_PYTHON": sys.executable}
         return subprocess.run(["bash", str(Path(__file__).with_name("process.sh")),
                                parsed.command, *args[1:]], env=env).returncode
     tool = importlib.import_module(f"morla_data_collect.pipeline.{module}")

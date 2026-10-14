@@ -1,0 +1,49 @@
+profiles:
+  astral_left_gripper:
+    package: morla_astral_robot
+    path: config/profiles/astral_left_gripper.yaml
+    title: Astral Left Gripper
+  astral_left_gripper_3cam:
+    package: morla_astral_robot
+    path: config/profiles/astral_left_gripper_3cam.yaml
+    title: Astral Left Gripper 3Cam
+  astral_right_gripper:
+    package: morla_astral_robot
+    path: config/profiles/astral_right_gripper.yaml
+    title: Astral Right Gripper
+  astral_dual_gripper:
+    package: morla_astral_robot
+    path: config/profiles/astral_dual_gripper.yaml
+    title: Astral Dual Gripper
+  astral_dual_gripper_wuji:
+    package: morla_astral_robot
+    path: config/profiles/astral_dual_gripper_wuji.yaml
+    title: Astral Dual Gripper Wuji
+  astral_left_wuji:
+    package: morla_astral_robot
+    path: config/profiles/astral_left_wuji.yaml
+    title: Astral Left Wuji
+  astral_right_wuji:
+    package: morla_astral_robot
+    path: config/profiles/astral_right_wuji.yaml
+    title: Astral Right Wuji
+  astral_dual_wuji:
+    package: morla_astral_robot
+    path: config/profiles/astral_dual_wuji.yaml
+    title: Astral Dual Wuji
+  nero_left_xhand:
+    package: morla_nero_robot
+    path: config/profiles/nero_left_xhand.yaml
+    title: Nero Left Xhand
+  nero_right_xhand:
+    package: morla_nero_robot
+    path: config/profiles/nero_right_xhand.yaml
+    title: Nero Right Xhand
+  nero_dual_xhand:
+    package: morla_nero_robot
+    path: config/profiles/nero_dual_xhand.yaml
+    title: Nero Dual Xhand
+  nero_dual_arms:
+    package: morla_nero_robot
+    path: config/profiles/nero_dual_arms.yaml
+    title: Nero Dual Arms

@@ -30,7 +30,7 @@ from morla_data_collect.pipeline.artifacts import (
     source_signature,
 )
 from morla_data_collect.data_writer import CAMERA_H5, META_JSON, ROBOT_H5
-from morla_data_collect.schema import ACTION_COMMAND, CollectSchema
+from morla_core.schema import ACTION_COMMAND, CollectSchema
 
 ALIGNED_H5 = "aligned_data.h5"
 
