@@ -17,8 +17,11 @@ xnero_mujoco_sim_node:
 
     # 臂：运动学覆盖。超时未收到命令则保持最后值
     arm_command_timeout: 0.5
-    init_pose_left:  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    init_pose_right: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    # Hardware-coordinate ready pose: positive J2 reproduces the historical
+    # hanging visual posture while the true hardware/model zero stays level.
+    # This value is simulation-only and is never sent to a physical driver.
+    init_pose_left:  [0.0, 1.57079632679, 0.0, 0.0, 0.0, 0.0, 0.0]
+    init_pose_right: [0.0, 1.57079632679, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     fps_print_interval: 5.0
     print_latency: true

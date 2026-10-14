@@ -4,7 +4,6 @@
     wrist_topic: /quest3/right_wrist_pose
     control_rate_hz: 125.0
     require_start_signal: true
-    vr_to_arm_rot_after_unity_to_robot: [0.0, 0.0, 1.0, 0.0, 1.0, 0.0, -1.0, 0.0, 0.0]
     pos_smoothing: 0.8
     rot_smoothing: 0.8
     motion_scale: 0.65
@@ -17,6 +16,5 @@
     workspace_y_max: .inf
     workspace_z_min: -.inf
     workspace_z_max: .inf
-    tcp_offset: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     data_timeout_s: 5.0
     description_model_id: nero_right_arm

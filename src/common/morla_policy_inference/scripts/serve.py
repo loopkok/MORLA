@@ -234,7 +234,7 @@ def _warmup_policy(
 async def _handle(
     websocket, infer_fn, reset_fn, packer, model: str, action_dim: int,
     rtc_guided: bool, rtc_horizon: int, layout_id: str,
-    layout_hash: str, model_capacity: int,
+    layout_hash: str, model_capacity: int, kinematics_hash: str,
 ) -> None:
     import websockets.exceptions
 
@@ -252,6 +252,7 @@ async def _handle(
             "rtc_guided": rtc_guided, "rtc_horizon": rtc_horizon if rtc_guided else 0,
             "layout_id": layout_id, "layout_hash": layout_hash,
             "model_capacity": model_capacity,
+            "kinematics_hash": kinematics_hash,
         }))
         while True:
             data = await websocket.recv()
@@ -277,6 +278,7 @@ async def _serve(
     infer_fn, reset_fn, host: str, port: int, model: str, action_dim: int,
     rtc_guided: bool = False, rtc_horizon: int = 10, layout_id: str = "",
     layout_hash: str = "", model_capacity: int | None = None,
+    kinematics_hash: str = "",
 ) -> None:
     from websockets.asyncio.server import serve
 
@@ -286,7 +288,8 @@ async def _serve(
         raise ValueError(f"action_dim {action_dim} exceeds model_capacity {capacity}")
     async with serve(
         lambda ws: _handle(ws, infer_fn, reset_fn, packer, model, action_dim,
-                            rtc_guided, rtc_horizon, layout_id, layout_hash, capacity),
+                            rtc_guided, rtc_horizon, layout_id, layout_hash, capacity,
+                            kinematics_hash),
         host,
         port,
         compression=None,
@@ -307,6 +310,7 @@ def main() -> None:
     parser.add_argument("--action-dim", type=int, default=8, help="act 用")
     parser.add_argument("--layout-id", default="", help="冻结 action layout 的稳定 ID")
     parser.add_argument("--layout-hash", default="", help="profile FrozenSchema.layout_hash")
+    parser.add_argument("--kinematics-hash", default="", help="profile resolved coordinate/kinematics contract hash")
     parser.add_argument("--model-capacity", type=int, default=0,
                         help="模型可输出的最大动作维度；默认等于 --action-dim")
     parser.add_argument("--policy-config", default="pi05_astral", help="pi05 用：openpi 训练配置名")
@@ -384,7 +388,7 @@ def main() -> None:
         asyncio.run(_serve(
             infer_fn, reset_fn, args.host, args.port, args.model, args.action_dim,
             args.rtc_guided, args.rtc_execution_horizon, args.layout_id,
-            args.layout_hash, args.model_capacity,
+            args.layout_hash, args.model_capacity, args.kinematics_hash,
         ))
     except KeyboardInterrupt:
         print(f"serve[{args.model}] stopped")

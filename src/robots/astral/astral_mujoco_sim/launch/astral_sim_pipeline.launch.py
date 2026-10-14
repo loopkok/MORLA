@@ -2,9 +2,11 @@
 
 Do NOT start astral_robot_control alongside this launch.
 
-Nodes: quest3_udp_mocap + 2× astral_arm_teleop_node + mujoco_sim_node
+Nodes: quest3_udp_mocap + selected astral_arm_teleop_node(s) + mujoco_sim_node
       + optional astral_gripper_teleop (left pinch → /left_gripper/command;
         sim echoes to /left_gripper/joint_states, no MJCF gripper joint yet).
+Profile launches also add the measured-state bridge and robot_state_publisher;
+the Profile supplies input, solver and tool transforms to the selected arms.
 
 Node config lives in yaml (not launch defaults):
   astral_arm_teleop_{left,right}.yaml  — solver_type, smoothing, …
@@ -27,6 +29,8 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from morla_core.resource_locator import resolve_robot_asset
 from morla_core.profile import ProfileRegistry
+from morla_core.coordinate_contract import build_coordinate_contract
+from morla_bringup.profile_state import profile_description_actions
 
 
 def _resolve_astral_urdf() -> str:
@@ -67,8 +71,13 @@ def _launch_setup(context, *args, **kwargs):
     gripper_sides_arg = _opt(context, "gripper_sides")
     gripper_sides = [side for side in gripper_sides_arg.split(",") if side]
     coordinator = []
+    description_actions = []
     profile_hands = []
     profile_has_head = True
+    quest_basis_id = "quest3_canonical_legacy_v1"
+    quest_kinematics_hash = ""
+    quest_coordinate_version = 0
+    side_coordinate_extra = {}
     if control_profile_id:
         profile = ProfileRegistry.from_index().load(control_profile_id)
         if profile.robot_id != "astral":
@@ -92,6 +101,45 @@ def _launch_setup(context, *args, **kwargs):
                 "Astral MuJoCo profile grippers must match gripper_sides and only "
                 "Wuji Hand is supported as a simulated dexterous hand"
             )
+        coordinate_contract = build_coordinate_contract(profile.values)
+        description_actions = profile_description_actions(profile)
+        quest_basis_id = coordinate_contract.input_basis_id
+        quest_kinematics_hash = coordinate_contract.kinematics_hash
+        quest_coordinate_version = coordinate_contract.version
+        solver_type_value = (solver_type or "geometric").strip().lower()
+        expected_adapters = {
+            "geometric": "astral_geometric_poe_link7_v1",
+            "urdf_numerical": "astral_urdf_link7_v1",
+            "urdf": "astral_urdf_link7_v1",
+            "numerical": "astral_urdf_link7_v1",
+            "analytic_dh": "astral_analytic_dh_legacy_v1",
+            "analytic": "astral_analytic_dh_legacy_v1",
+            "dh": "astral_analytic_dh_legacy_v1",
+        }
+        for component in profile.values.get("components", []):
+            if not component.get("enabled") or component.get("type") != "arm":
+                continue
+            side = component["side"]
+            model_path = str(resolve_robot_asset(str(component["description_model_id"])))
+            arm_contract = coordinate_contract.arm(side)
+            if expected_adapters.get(solver_type_value) != arm_contract["solver_adapter_id"]:
+                raise RuntimeError(
+                    f"solver_type={solver_type_value!r} does not match Profile adapter "
+                    f"{arm_contract['solver_adapter_id']!r} for {side}"
+                )
+            input_rotation = coordinate_contract.resolve_arm_input_rotation(side, model_path)
+            tool_transform = coordinate_contract.resolve_arm_tool_transform(side, model_path)
+            side_coordinate_extra[side] = {
+                "vr_to_arm_rot": input_rotation.reshape(-1).tolist(),
+                "solver_tip_to_tcp_transform": tool_transform.reshape(-1).tolist(),
+                "use_solver_tip_to_tcp_transform": True,
+                "coordinate_contract_version": coordinate_contract.version,
+                "kinematics_hash": coordinate_contract.kinematics_hash,
+                "solver_base_frame": arm_contract["solver_base_frame"],
+                "solver_tip_frame": arm_contract["solver_tip_frame"],
+                "solver_adapter_id": arm_contract["solver_adapter_id"],
+                "tool_frame": arm_contract["tool"]["frame"],
+            }
         coordinator.append(Node(
             package="morla_bringup", executable="control_coordinator_node",
             name="morla_control_coordinator", output="screen",
@@ -101,6 +149,9 @@ def _launch_setup(context, *args, **kwargs):
         gripper_sides = ["left"]
     mocap_extra = {
         "arm_side": arm_side,
+        "coordinate_basis_id": quest_basis_id,
+        "coordinate_contract_version": quest_coordinate_version,
+        "kinematics_hash": quest_kinematics_hash,
         "landmark_preprocess": "raw",
         "allow_legacy_packets": _opt(context, "allow_legacy_packets").lower()
         in ("true", "1", "yes"),
@@ -241,13 +292,17 @@ def _launch_setup(context, *args, **kwargs):
 
     arm_nodes = []
     for side in arm_sides:
+        parameters = [cfg_l if side == "left" else cfg_r, teleop_extra]
+        if side in side_coordinate_extra:
+            parameters.append(side_coordinate_extra[side])
         arm_nodes.append(Node(
             package="astral_arm_teleop", executable="astral_arm_teleop_node",
             name=f"astral_arm_teleop_{side}", output="screen",
-            parameters=[cfg_l if side == "left" else cfg_r, teleop_extra],
+            parameters=parameters,
         ))
 
     return [
+        *description_actions,
         *([mocap] if with_input else []),
         start_gate,
         workpos_gate,

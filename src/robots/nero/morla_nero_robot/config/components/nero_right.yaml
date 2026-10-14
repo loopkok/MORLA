@@ -46,16 +46,6 @@ init_pose:
 - -2.682
 - 0.314
 - -0.163
-vr_to_arm_rot_after_unity_to_robot:
-- 0
-- 0
-- 1
-- 0
-- 1
-- 0
-- -1
-- 0
-- 0
 flip_pitch: false
 description_model_id: nero_right_arm
 asset_status: pending_robot_description_migration

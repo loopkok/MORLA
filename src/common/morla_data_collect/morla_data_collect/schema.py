@@ -58,6 +58,14 @@ class FrozenPipelineSchema:
     def layout_hash(self) -> str:
         return self.frozen.layout_hash
 
+    @property
+    def kinematics_hash(self) -> str | None:
+        return self.frozen.kinematics_hash
+
+    @property
+    def metadata(self) -> dict[str, Any]:
+        return self.frozen.metadata
+
     def state_blocks(self) -> list[PipelineBlock]:
         return [
             PipelineBlock(

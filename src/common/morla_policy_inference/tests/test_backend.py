@@ -137,6 +137,22 @@ class TestPayloadMapping(unittest.TestCase):
                 require_layout_handshake=True,
             )
 
+    def test_profile_handshake_rejects_same_layout_with_different_kinematics(self):
+        client = FakeClient("h", 8000)
+        client.get_server_metadata = lambda: {
+            "model": "act", "action_dim": ACT_DIM,
+            "kinematics_hash": "server-old-j2-tool-contract",
+        }
+        bk = RemoteBackend(
+            host="h", port=8000, action_dim=ACT_DIM, slot_keys=CAM_MAP,
+            kinematics_hash="robot-current-j2-tool-contract",
+            require_kinematics_handshake=True,
+            client_factory=lambda *a, **k: client,
+        )
+        with self.assertRaisesRegex(PolicyError, "kinematics_hash mismatch"):
+            bk.open()
+        self.assertTrue(client.closed)
+
     def test_close_resets_client(self):
         client = FakeClient("h", 8000)
         bk = self._make(client)

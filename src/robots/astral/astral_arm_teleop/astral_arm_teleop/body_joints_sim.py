@@ -49,7 +49,7 @@ class BodyJointsSim(Node):
             "scenario", "elbow_circle"
         )  # elbow_circle | wrist_spin | combined
         self.declare_parameter("sweep_rate", 0.5)  # rad/s elbow plane / wrist roll
-        # Fake human in robot_body (≈ base_link with default vr_to_arm_rot=I).
+        # Fake human in Quest's operator-body frame, not the physical robot body.
         self.declare_parameter("shoulder_xyz", [-0.15, -0.05, -0.05])
         self.declare_parameter("wrist_xyz", [-0.42, -0.28, -0.30])
         self.declare_parameter("upper_arm_len", 0.28)
@@ -220,7 +220,7 @@ class BodyJointsSim(Node):
 
         body = PoseArray()
         body.header.stamp = stamp
-        body.header.frame_id = "robot_body"
+        body.header.frame_id = "quest3_operator_body_canonical"
         chest = self.Sh * 0.5  # plausible midpoint; only arm joints are used
         body.poses = [
             self._pose(np.zeros(3)),  # hips = frame root
@@ -232,7 +232,7 @@ class BodyJointsSim(Node):
 
         wrist = PoseStamped()
         wrist.header.stamp = stamp
-        wrist.header.frame_id = "robot_body"
+        wrist.header.frame_id = "quest3_operator_body_canonical"
         q = Rotation.from_euler("x", roll).as_quat()
         wrist.pose = self._pose(self.Wh, tuple(float(v) for v in q))
         self.wrist_pub.publish(wrist)

@@ -1,5 +1,5 @@
 # Astral right arm — IK in right_base_link
-# Quest wrist: robot_world (convert_to_robot:=true). Default vr_to_arm_rot=I.
+# Quest basis and arm alignment are resolved from the selected MORLA Profile.
 astral_arm_teleop_right:
   ros__parameters:
     arm_side: "right"
@@ -26,9 +26,6 @@ astral_arm_teleop_right:
     ik_w_fold: 0.015
     ik_q4_fold: -1.20
 
-    vr_to_arm_rot: [1.0, 0.0, 0.0,
-                    0.0, 1.0, 0.0,
-                    0.0, 0.0, 1.0]
     # 0.25 ≈ τ14ms（0=无滤波 1=几乎不跟；可热改 tune 滑条）。真机配板卡
     # lpf_alpha=0.85 近直通，噪声抑制以这一级为主（避免两级串联"小动作先顿后冲"）。
     # 静止发颤回 0.35~0.4；大动作仍觉肉再降到 0.15~0.2。
@@ -36,7 +33,6 @@ astral_arm_teleop_right:
     rot_smoothing: 0.35
     motion_scale: 1.0 #0.65
     flip_pitch: false
-    tcp_offset: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     max_joint_vel: 6.0  # rad/s  (0.08 rad/tick @ 50 Hz)
     # Sphere around right_base_link origin (IK frame). <=0 off.

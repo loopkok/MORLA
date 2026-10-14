@@ -7,8 +7,8 @@ Verifies that hand movements in VR produce correct arm movements:
   - Hand downward (VR Z+)  → Arm downward
   - Hand rotation preserved through IK chain
 
-Also verifies TCP offset compensation:
-  gripper target → flange target → IK → joint angles → FK → flange → gripper
+Also verifies the configured Nero arm end:
+  link7 target → analytic IK → joints → link7 FK
 
 Usage:
   python3 nero_arm_teleop/scripts/nero_vr_mapping_regression.py
@@ -16,9 +16,8 @@ Usage:
 
 import sys
 import numpy as np
-from scipy.spatial.transform import Rotation
 
-from nero_arm_teleop.ik_solver import IKSolver, fk as raw_fk
+from nero_arm_teleop.ik_solver import IKSolver
 
 
 # ==============================================================================
@@ -44,21 +43,6 @@ R_RIGHT = np.array([
     [-1, 0,  0],
     [0,  1,  0],
 ])
-
-# TCP offset: [x, y, z, roll, pitch, yaw] — flange → gripper
-TCP_OFFSET = [0.175, 0.0, -0.0235, 0, 0, 0]
-
-
-def build_tcp_to_flange():
-    """Build T_tcp_to_flange = inv(T_flange_to_tcp)."""
-    T_ft = np.eye(4)
-    T_ft[:3, :3] = Rotation.from_euler("xyz", TCP_OFFSET[3:]).as_matrix()
-    T_ft[:3, 3] = np.array(TCP_OFFSET[:3])
-    return np.linalg.inv(T_ft)
-
-
-T_TCP_TO_FLANGE = build_tcp_to_flange()
-
 
 def test_vr_to_arm_position(side, R_expected):
     """Test that VR position deltas map correctly to arm frame."""
@@ -109,47 +93,35 @@ def test_vr_to_arm_position(side, R_expected):
     return all_ok
 
 
-def test_tcp_offset_roundtrip():
-    """Verify gripper→flange→gripper round-trip with TCP offset."""
+def test_link7_roundtrip(side):
+    """Verify the analytic IK/FK loop uses link7 as its target frame."""
     print(f"\n{'='*60}")
-    print("TEST: TCP offset gripper→flange→gripper round-trip")
+    print(f"TEST: {side} link7 FK→IK→FK round-trip")
     print(f"{'='*60}")
-    print(f"  TCP offset: {TCP_OFFSET}")
+    solver = IKSolver(fast_mode=True)
+    q = np.array([-2.16, 1.15, 0.38, 1.43, -2.21, 1.02, 0.29])
+    if side == "right":
+        q = np.array([2.16, 1.15, -0.38, 1.43, -2.21, 1.02, -0.29])
+    solver.sync_state(q)
+    T_link7 = solver.fk(q)
+    solution = solver.solve(T_link7)
+    if solution is None:
+        print("  FAIL: IK did not converge")
+        return False
+    T_link7_rt = solver.fk(solution)
+    pos_err = np.linalg.norm(T_link7[:3, 3] - T_link7_rt[:3, 3])
+    rot_err = np.linalg.norm(T_link7[:3, :3] - T_link7_rt[:3, :3])
 
-    # Build flange→TCP transform
-    T_ft = np.eye(4)
-    T_ft[:3, :3] = Rotation.from_euler("xyz", TCP_OFFSET[3:]).as_matrix()
-    T_ft[:3, 3] = np.array(TCP_OFFSET[:3])
-    T_tf = np.linalg.inv(T_ft)
-
-    # Create a sample gripper pose
-    T_gripper = np.eye(4)
-    T_gripper[:3, :3] = Rotation.from_euler("xyz", [0.5, -1.2, -3.1]).as_matrix()
-    T_gripper[:3, 3] = [-0.3, 0.2, 0.4]
-
-    # Gripper → flange
-    T_flange = T_gripper @ T_tf
-
-    # Flange → gripper (round-trip)
-    T_gripper_rt = T_flange @ T_ft
-
-    pos_err = np.linalg.norm(T_gripper[:3, 3] - T_gripper_rt[:3, 3])
-    rot_err = np.linalg.norm(T_gripper[:3, :3] - T_gripper_rt[:3, :3])
-
-    ok = pos_err < 1e-10 and rot_err < 1e-10
+    ok = pos_err < 0.01 and rot_err < 0.20
     status = "PASS" if ok else "FAIL"
-    print(f"  Round-trip: pos_err={pos_err:.2e}m, rot_err={rot_err:.2e} → {status}")
+    print(f"  Link7 round-trip: pos_err={pos_err*1000:.2f}mm, rot_err={rot_err:.4f} → {status}")
     return ok
 
 
-def test_ik_with_tcp_offset():
-    """Verify IK solves correctly when TCP offset is applied.
-
-    Given a gripper target pose, apply TCP→flange conversion, solve IK,
-    then FK the solution and apply flange→TCP to get the achieved gripper pose.
-    """
+def test_ik_with_link7_target(side):
+    """Verify link7 targets are sent directly to the analytic IK solver."""
     print(f"\n{'='*60}")
-    print("TEST: IK chain with TCP offset compensation")
+    print(f"TEST: {side} IK chain with link7 target")
     print(f"{'='*60}")
 
     solver = IKSolver(fast_mode=True)
@@ -159,41 +131,28 @@ def test_ik_with_tcp_offset():
     solver.sync_state(q_init)
 
     # Warm-up
-    T_flange_init = solver.fk(q_init)
-    solver.solve(T_flange_init)
+    T_link7_init = solver.fk(q_init)
+    solver.solve(T_link7_init)
 
-    # Target gripper pose: same as init but shifted forward 0.05m
-    # Gripper init = flange_init @ T_flange_to_tcp
-    T_ft = np.eye(4)
-    T_ft[:3, :3] = Rotation.from_euler("xyz", TCP_OFFSET[3:]).as_matrix()
-    T_ft[:3, 3] = np.array(TCP_OFFSET[:3])
-
-    T_gripper_init = T_flange_init @ T_ft
-    T_gripper_target = T_gripper_init.copy()
-    T_gripper_target[0, 3] += 0.05  # Shift in gripper X (physical direction depends on orientation)
-
-    # Convert to flange target for IK
-    T_tf = np.linalg.inv(T_ft)
-    T_flange_target = T_gripper_target @ T_tf
+    # Target link7 pose: same as init but shifted forward 0.05m.
+    T_link7_target = T_link7_init.copy()
+    T_link7_target[0, 3] += 0.05
 
     # Solve IK
-    sol = solver.solve(T_flange_target)
+    sol = solver.solve(T_link7_target)
     if sol is None:
         print("  FAIL: IK did not converge")
         return False
 
-    # FK → flange → gripper
-    T_flange_achieved = solver.fk(sol)
-    T_gripper_achieved = T_flange_achieved @ T_ft
-
-    pos_err = np.linalg.norm(T_gripper_target[:3, 3] - T_gripper_achieved[:3, 3])
+    T_link7_achieved = solver.fk(sol)
+    pos_err = np.linalg.norm(T_link7_target[:3, 3] - T_link7_achieved[:3, 3])
     rot_err = np.linalg.norm(
-        T_gripper_target[:3, :3] - T_gripper_achieved[:3, :3]
+        T_link7_target[:3, :3] - T_link7_achieved[:3, :3]
     )
 
     ok = pos_err < 0.01 and rot_err < 0.20
     status = "PASS" if ok else "FAIL"
-    print(f"  Gripper FK check: pos_err={pos_err*1000:.2f}mm, rot_err={rot_err:.4f}")
+    print(f"  Link7 FK check: pos_err={pos_err*1000:.2f}mm, rot_err={rot_err:.4f}")
     print(f"  Joints (deg): {np.degrees(sol).round(1).tolist()}")
     print(f"  Result: {status}")
     return ok
@@ -211,16 +170,8 @@ def test_end_to_end_mapping(side, R):
         q_init = np.array([2.16, 1.15, -0.38, 1.43, -2.21, 1.02, -0.29])
 
     solver.sync_state(q_init)
-    T_flange_init = solver.fk(q_init)
-    solver.solve(T_flange_init)
-
-    # TCP transforms
-    T_ft = np.eye(4)
-    T_ft[:3, :3] = Rotation.from_euler("xyz", TCP_OFFSET[3:]).as_matrix()
-    T_ft[:3, 3] = np.array(TCP_OFFSET[:3])
-    T_tf = np.linalg.inv(T_ft)
-
-    T_gripper_init = T_flange_init @ T_ft
+    T_link7_init = solver.fk(q_init)
+    solver.solve(T_link7_init)
 
     # Simulate several VR hand movements
     tests = [
@@ -234,28 +185,22 @@ def test_end_to_end_mapping(side, R):
         # VR delta → arm delta
         arm_delta = R @ vr_delta
 
-        # Arm delta → gripper target
-        T_gripper_target = T_gripper_init.copy()
-        T_gripper_target[:3, 3] += arm_delta
-
-        # Gripper → flange → IK
-        T_flange_target = T_gripper_target @ T_tf
-        sol = solver.solve(T_flange_target)
+        # Arm delta → link7 target → IK.
+        T_link7_target = T_link7_init.copy()
+        T_link7_target[:3, 3] += arm_delta
+        sol = solver.solve(T_link7_target)
 
         if sol is None:
             print(f"  {name}: FAIL — IK did not converge")
             all_ok = False
             continue
 
-        # FK verification
-        T_flange_achieved = solver.fk(sol)
-        T_gripper_achieved = T_flange_achieved @ T_ft
-
+        T_link7_achieved = solver.fk(sol)
         pos_err = np.linalg.norm(
-            T_gripper_target[:3, 3] - T_gripper_achieved[:3, 3]
+            T_link7_target[:3, 3] - T_link7_achieved[:3, 3]
         )
         rot_err = np.linalg.norm(
-            T_gripper_target[:3, :3] - T_gripper_achieved[:3, :3]
+            T_link7_target[:3, :3] - T_link7_achieved[:3, :3]
         )
 
         ok = pos_err < 0.01 and rot_err < 0.20
@@ -263,7 +208,7 @@ def test_end_to_end_mapping(side, R):
         if not ok:
             all_ok = False
 
-        print(f"  {name:15s}: gripper_pos_err={pos_err*1000:.2f}mm "
+        print(f"  {name:15s}: link7_pos_err={pos_err*1000:.2f}mm "
               f"rot_err={rot_err:.4f} → {status}")
 
     print(f"  Overall: {'PASS' if all_ok else 'FAIL'}")
@@ -273,14 +218,14 @@ def test_end_to_end_mapping(side, R):
 def main():
     print("Nero Teleop — VR-to-Arm Coordinate Mapping Validation")
     print("=" * 60)
-    print(f"TCP offset: {TCP_OFFSET}")
-
     results = {}
 
     results["left_position_map"] = test_vr_to_arm_position("left", R_LEFT)
     results["right_position_map"] = test_vr_to_arm_position("right", R_RIGHT)
-    results["tcp_roundtrip"] = test_tcp_offset_roundtrip()
-    results["ik_tcp_chain"] = test_ik_with_tcp_offset()
+    results["left_link7_roundtrip"] = test_link7_roundtrip("left")
+    results["right_link7_roundtrip"] = test_link7_roundtrip("right")
+    results["left_ik_link7_chain"] = test_ik_with_link7_target("left")
+    results["right_ik_link7_chain"] = test_ik_with_link7_target("right")
     results["e2e_left"] = test_end_to_end_mapping("left", R_LEFT)
     results["e2e_right"] = test_end_to_end_mapping("right", R_RIGHT)
 

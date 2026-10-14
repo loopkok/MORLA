@@ -352,6 +352,7 @@ class PolicyNode(Node):
             "profile_id": "",
             "model_capacity": 0,
             "require_layout_handshake": False,
+            "require_kinematics_handshake": False,
             "arms": ["left"],
             "end_effector_left": "gripper",
             "end_effector_right": "none",
@@ -505,11 +506,16 @@ class PolicyNode(Node):
             "default_prompt": str(self.get_parameter("default_prompt").value),
             "action_dim": schema.action_dim,
             "layout_hash": schema.layout_hash,
+            "kinematics_hash": schema.kinematics_hash or "",
             "layout_id": str(requirements.get("model_layout_id", schema.profile_id)),
             "model_capacity": int(self.get_parameter("model_capacity").value or requirements.get("model_capacity", 0)),
             "require_layout_handshake": bool(
                 self.get_parameter("require_layout_handshake").value
                 or requirements.get("requires_model_layout_handshake", False)
+            ),
+            "require_kinematics_handshake": bool(
+                self.get_parameter("require_kinematics_handshake").value
+                or requirements.get("requires_model_kinematics_handshake", False)
             ),
             "camera_map": self._camera_map,
             "jpeg_transport": bool(self.get_parameter("jpeg_transport").value),
@@ -857,6 +863,8 @@ class PolicyNode(Node):
                 for label in active_labels
             },
             "muted_cameras": sorted(self._mute_cameras),
+            "kinematics_hash": self._schema.kinematics_hash,
+            "coordinate_contract": self._schema.metadata.get("coordinate_contract", {}),
         }
         return ObsBatch(state=state, images=images, prompt=self._prompt, metadata=metadata)
 
@@ -1158,6 +1166,22 @@ class PolicyNode(Node):
                     "replay state layout mismatch (same total dim, different "
                     "blocks/order): recorded "
                     f"{recorded} != robot {robot}; refusing to replay"
+                )
+                return
+            expected_kinematics = self._schema.kinematics_hash
+            recorded_kinematics = ep.schema.kinematics_hash
+            require_kinematics = bool(
+                self._profile
+                and self._profile.values.get("backend_requirements", {}).get(
+                    "requires_model_kinematics_handshake", False
+                )
+            )
+            if require_kinematics and (
+                not expected_kinematics or recorded_kinematics != expected_kinematics
+            ):
+                self.get_logger().error(
+                    "replay kinematics mismatch or unknown: recorded "
+                    f"{recorded_kinematics!r} != robot {expected_kinematics!r}; refusing to replay"
                 )
                 return
         ep_fps = int(ep.fps)
@@ -1827,6 +1851,8 @@ class PolicyNode(Node):
             "prompt": self._prompt,
             "profile_id": self._schema.profile_id,
             "layout_hash": self._schema.layout_hash,
+            "kinematics_hash": self._schema.kinematics_hash,
+            "coordinate_contract": self._schema.metadata.get("coordinate_contract", {}),
             "state_dim": self._schema.state_dim,
             "action_dim": self._schema.action_dim,
             "engine": engine_stats,

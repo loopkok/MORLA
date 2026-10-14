@@ -9,8 +9,8 @@ Quest3 腕部 → 双臂 IK（DH / 几何闭式 / URDF 数值）→ `/left_arm|/
 
 ```text
 quest3_udp_mocap (convert_to_robot:=true)
-  Mixed → robot_world (X left, Y back, Z up)
-  IOBT  → robot_body  (hips 系；+X右/+Y上/+Z前)
+  Mixed → quest3_tracking_world_canonical (X left, Y back, Z up)
+  IOBT  → quest3_operator_body_canonical (操作者 hips 相对系)
   # mocap 保证整段流 frame_id 稳定（sticky latch + hold gate）：
   # 见过 body 包即不回退世界系；启动后 head/wrist/controller 在帧确定前不发布。
   # 本节点按 "当前 - vr_init" 算增量；稳定系下增量有界、IK 可达。
@@ -73,7 +73,7 @@ astral_arm_teleop/
 ### 人臂肘先验（`use_human_elbow`，仅 `geometric`）
 
 Quest IOBT 身体追踪经 `quest3/body_joints` 发布 `{side}-arm-upper`（肩球头）/
-`{side}-arm-lower`（肘）关节位置（`robot_body` 系，推算但可用）。节点取大臂
+`{side}-arm-lower`（肘）关节位置（`quest3_operator_body_canonical` 系，推算但可用）。节点取大臂
 方向 `d = elbow − shoulder`，用与腕部增量相同的 `vr_to_arm_rot` 旋到机械臂基座系
 （纯方向，与 zero point / motion_scale / 人臂长无关），投影到机器人 S–W 轴垂面
 得到人臂角 `psi_ref`，作为软先验传入 `solve(T, psi_ref)`：

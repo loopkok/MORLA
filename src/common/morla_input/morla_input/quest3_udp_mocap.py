@@ -9,6 +9,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 from builtin_interfaces.msg import Time as RosTime
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import String
+from morla_core.coordinates import UNITY_TO_QUEST3_CANONICAL
 
 import json
 import socket
@@ -25,7 +26,7 @@ _TCP_LISTEN_BACKLOG = 8
 # No body packet for this long → head/wrist/controller are world again.
 _IOBT_TIMEOUT_S = 0.4
 # Hold head/wrist/controller publish until the frame is known: either a body
-# packet arrives (→ robot_body) or this many seconds pass with none (→ world).
+# packet arrives (→ operator body) or this many seconds pass with none (→ tracking world).
 # Stops the startup world→body flip from reaching downstream (arm IK would
 # capture its zero point in world then receive body-frame poses → cross-frame
 # delta). Landmarks are wrist-local and not gated.
@@ -153,14 +154,8 @@ def pose_in_parent_frame(
 
 # Unity LH (X right, Y up, Z forward) → robot (X left, Y back, Z up):
 #   (x, y, z)_r = (-x_u, -z_u, y_u)
-UNITY_TO_ROBOT = np.array(
-    [
-        [-1.0, 0.0, 0.0],
-        [0.0, 0.0, -1.0],
-        [0.0, 1.0, 0.0],
-    ],
-    dtype=float,
-)
+# Compatibility alias; this is a handedness-changing basis conversion, not TF.
+UNITY_TO_ROBOT = UNITY_TO_QUEST3_CANONICAL
 
 
 def _quat_to_matrix(q: np.ndarray) -> np.ndarray:
@@ -249,6 +244,9 @@ class Quest3UDPMocap(Node):
         # Unity LH → robot (X left, Y back, Z up). If false: keep Unity axes
         # (landmarks only apply legacy X flip).
         self.declare_parameter("convert_to_robot", True)
+        self.declare_parameter("coordinate_basis_id", "quest3_canonical_legacy_v1")
+        self.declare_parameter("coordinate_contract_version", 0)
+        self.declare_parameter("kinematics_hash", "")
         # Mixed/IOBT: Touch 6DoF also published on quest3/{side}_wrist_pose so
         # existing arm IK keeps tracking the held controller.
         self.declare_parameter("controller_as_wrist", True)
@@ -274,6 +272,17 @@ class Quest3UDPMocap(Node):
                 "preprocessing in the robot-specific retargeter"
             )
         self.convert_to_robot = bool(self.get_parameter("convert_to_robot").value)
+        self.coordinate_basis_id = str(self.get_parameter("coordinate_basis_id").value).strip()
+        self.coordinate_contract_version = int(self.get_parameter("coordinate_contract_version").value)
+        self.kinematics_hash = str(self.get_parameter("kinematics_hash").value)
+        expected_basis = (
+            "quest3_canonical_legacy_v1" if self.convert_to_robot else "unity_left_handed_v1"
+        )
+        if self.coordinate_basis_id != expected_basis:
+            raise ValueError(
+                f"coordinate_basis_id={self.coordinate_basis_id!r} conflicts with "
+                f"convert_to_robot={self.convert_to_robot}; expected {expected_basis!r}"
+            )
         from morla_input.packet_guard import PacketGuard
         self._packet_guard = PacketGuard(float(self.get_parameter("max_packet_age_s").value),
                                          bool(self.get_parameter("allow_legacy_packets").value))
@@ -304,7 +313,8 @@ class Quest3UDPMocap(Node):
             f"Quest 3 Hand Mocap: side=[{self.arm_side.upper()}], "
             f"protocol={self.protocol}, "
             f"preprocess={self.landmark_preprocess}, "
-            f"convert_to_robot={self.convert_to_robot}, "
+            f"convert_to_robot={self.convert_to_robot}, basis={self.coordinate_basis_id}, "
+            f"contract={self.coordinate_contract_version}, kinematics={self.kinematics_hash[:12]}, "
             f"controller_as_wrist={self.controller_as_wrist}, "
             f"landmarks_L={self.publish_landmarks_left}, "
             f"landmarks_R={self.publish_landmarks_right}"
@@ -316,9 +326,15 @@ class Quest3UDPMocap(Node):
 
         # World frame for hips / (head,wrist,controller when IOBT is off).
         # When IOBT is on, Quest already expressed head/hand/controller in the
-        # hips frame — those use robot_body|vr_body instead.
-        self._world_frame_id = "robot_world" if self.convert_to_robot else "vr_world"
-        self._body_frame_id = "robot_body" if self.convert_to_robot else "vr_body"
+        # hips frame — those use quest3_operator_body_* instead.
+        self._world_frame_id = (
+            "quest3_tracking_world_canonical" if self.convert_to_robot
+            else "quest3_tracking_world_unity"
+        )
+        self._body_frame_id = (
+            "quest3_operator_body_canonical" if self.convert_to_robot
+            else "quest3_operator_body_unity"
+        )
         self._iobt_lock = threading.Lock()
         self._last_iobt_time = 0.0
         # Sticky body-frame latch: once a body packet has been seen, head/wrist/
@@ -335,10 +351,10 @@ class Quest3UDPMocap(Node):
 
         # 发布者：始终按左右分 topic
         # Frame tree (IOBT off):
-        #   robot_world|vr_world ── head / wrist|controller
+        #   quest3_tracking_world_* ── head / wrist|controller
         # Frame tree (IOBT on):
-        #   robot_world|vr_world ── hips
-        #   robot_body|vr_body   ── head / wrist|controller / body_joints
+        #   quest3_tracking_world_* ── hips
+        #   quest3_operator_body_* ── head / wrist|controller / body_joints
         #                                └── landmarks (wrist-local, unchanged)
         stream_qos = _stream_qos()
         self.mocap_pub_right = self.create_publisher(
@@ -572,7 +588,7 @@ class Quest3UDPMocap(Node):
         """True once the head/wrist/controller frame is known.
 
         Suppresses pose publish until either a body packet has arrived (frame is
-        robot_body) or _WRIST_SETTLE_S has elapsed with no body packet (frame is
+        quest3_operator_body_*) or _WRIST_SETTLE_S has elapsed with no body packet (frame is
         world). Prevents the startup world→body flip from reaching downstream.
         """
         with self._iobt_lock:
@@ -662,7 +678,12 @@ class Quest3UDPMocap(Node):
         if self._published_pose_frame and frame_id != self._published_pose_frame:
             old_frame = self._published_pose_frame
             self._signal_input_epoch(
-                "coordinate_frame_changed", {"old_frame": old_frame, "new_frame": frame_id}
+                "coordinate_frame_changed", {
+                    "old_frame": old_frame, "new_frame": frame_id,
+                    "coordinate_basis_id": self.coordinate_basis_id,
+                    "coordinate_contract_version": self.coordinate_contract_version,
+                    "kinematics_hash": self.kinematics_hash,
+                }
             )
             # Drop the transition sample; a fresh sample must follow the event.
             return
@@ -724,7 +745,7 @@ class Quest3UDPMocap(Node):
         Quest streams hips in Unity world (re-axed torso frame) and every other
         joint already expressed in the hips frame — matching the body-relative
         head / hand / controller packets. Hips is published in world; the
-        PoseArray (hips as identity root + body joints) shares ``robot_body``.
+        PoseArray (hips as identity root + body joints) shares the Quest operator-body frame.
         """
         self._mark_iobt()
         prefix, _, rest = line.partition(":")

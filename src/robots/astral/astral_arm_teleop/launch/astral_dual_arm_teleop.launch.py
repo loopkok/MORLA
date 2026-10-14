@@ -16,6 +16,7 @@ Usage:
 from __future__ import annotations
 
 import os
+import json
 import time
 
 from ament_index_python.packages import get_package_share_directory
@@ -70,6 +71,31 @@ def _launch_setup(context, *args, **kwargs):
     teleop_extra = {
         "dry_run": _opt(context, "dry_run").lower() in ("true", "1", "yes"),
     }
+    contract_hash = _opt(context, "kinematics_hash")
+    contract_version = _opt(context, "coordinate_contract_version")
+    side_coordinate_extra = {}
+    for side in ("left", "right"):
+        alignment_text = _opt(context, f"input_alignment_{side}")
+        if alignment_text:
+            alignment = json.loads(alignment_text)
+            if not isinstance(alignment, list) or len(alignment) != 9:
+                raise RuntimeError(f"input_alignment_{side} must be a JSON array of 9 values")
+            side_coordinate_extra[side] = {"vr_to_arm_rot": alignment}
+        tool_text = _opt(context, f"tool_transform_{side}")
+        if tool_text:
+            tool = json.loads(tool_text)
+            if not isinstance(tool, list) or len(tool) != 16:
+                raise RuntimeError(f"tool_transform_{side} must be a JSON array of 16 values")
+            side_coordinate_extra.setdefault(side, {})["solver_tip_to_tcp_transform"] = tool
+            side_coordinate_extra[side]["use_solver_tip_to_tcp_transform"] = True
+        if contract_hash:
+            side_coordinate_extra.setdefault(side, {})["kinematics_hash"] = contract_hash
+        if contract_version:
+            side_coordinate_extra.setdefault(side, {})["coordinate_contract_version"] = int(contract_version)
+        for suffix in ("solver_base_frame", "solver_tip_frame", "solver_adapter_id", "tool_frame"):
+            value = _opt(context, f"{suffix}_{side}")
+            if value:
+                side_coordinate_extra.setdefault(side, {})[suffix] = value
     rsig = _opt(context, "require_start_signal")
     if rsig:
         teleop_extra["require_start_signal"] = rsig.lower() in ("true", "1", "yes")
@@ -128,6 +154,7 @@ def _launch_setup(context, *args, **kwargs):
 
     if want_l:
         left_extra = dict(teleop_extra)
+        left_extra.update(side_coordinate_extra.get("left", {}))
         if tlog:
             left_extra["teleop_log_file"] = side_log_path(tlog, "left")
         actions.extend(
@@ -150,6 +177,7 @@ def _launch_setup(context, *args, **kwargs):
         )
     if want_r:
         right_extra = dict(teleop_extra)
+        right_extra.update(side_coordinate_extra.get("right", {}))
         if tlog:
             right_extra["teleop_log_file"] = side_log_path(tlog, "right")
         actions.extend(
@@ -235,6 +263,20 @@ def generate_launch_description() -> LaunchDescription:
                 default_value="",
                 description="empty → yaml / astral_robot.pin.urdf",
             ),
+            DeclareLaunchArgument("input_alignment_left", default_value=""),
+            DeclareLaunchArgument("input_alignment_right", default_value=""),
+            DeclareLaunchArgument("tool_transform_left", default_value=""),
+            DeclareLaunchArgument("tool_transform_right", default_value=""),
+            DeclareLaunchArgument("kinematics_hash", default_value=""),
+            DeclareLaunchArgument("coordinate_contract_version", default_value=""),
+            DeclareLaunchArgument("solver_base_frame_left", default_value=""),
+            DeclareLaunchArgument("solver_base_frame_right", default_value=""),
+            DeclareLaunchArgument("solver_tip_frame_left", default_value=""),
+            DeclareLaunchArgument("solver_tip_frame_right", default_value=""),
+            DeclareLaunchArgument("solver_adapter_id_left", default_value=""),
+            DeclareLaunchArgument("solver_adapter_id_right", default_value=""),
+            DeclareLaunchArgument("tool_frame_left", default_value=""),
+            DeclareLaunchArgument("tool_frame_right", default_value=""),
             DeclareLaunchArgument(
                 "require_start_signal",
                 default_value="",

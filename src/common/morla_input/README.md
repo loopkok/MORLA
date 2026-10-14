@@ -30,25 +30,25 @@ Quest3 VR 手部 / 手柄 / 头部 / IOBT 身体数据接收节点。支持 UDP 
 
 ```text
 IOBT 关：
-  robot_world|vr_world
+  quest3_tracking_world_canonical|quest3_tracking_world_unity
    ├── head                 ← quest3/head_pose
    └── wrist | controller   ← quest3/{side}_wrist_pose（手柄默认也写这里）
         └── landmarks       ← hand_landmarks/{side}（腕局部 robot axes + raw + EMA）
 
 IOBT 开（Quest 已把头/手/手柄及 body 关节变到 hips 躯干系；hips 仍为世界系）：
-  robot_world|vr_world
+  quest3_tracking_world_canonical|quest3_tracking_world_unity
    └── hips                 ← quest3/hips_pose（人在房间里的位置）
-  robot_body|vr_body        ← hips 为原点（+X右/+Y上/+Z前）
+  quest3_operator_body_canonical|quest3_operator_body_unity ← hips 为原点
    ├── head / wrist|controller / body_joints   ← 均已 hips 相对，本节点只做轴约定转换
    └── landmarks            ← 仍是腕局部
 ```
 
 `frame_id` 由 IOBT 状态决定，且做了两道稳定性处理，避免下游（`astral_arm_teleop` 的 `PoseProcessor`）跨系做 delta 导致 IK 失败：
 
-- **sticky latch**：一旦收到过 body 包（`_body_ever_seen`），即使 body 包瞬时丢包（>0.4 s）也保持 `robot_body`，不再回退世界系——消除运行中 `frame_id` 抖动。
+- **sticky latch**：一旦收到过 body 包（`_body_ever_seen`），即使 body 包瞬时丢包（>0.4 s）也保持 `quest3_operator_body_*`，不再回退世界系——消除运行中 `frame_id` 抖动。
 - **hold gate**：启动后 head/wrist/controller 在"帧确定"前不发布——收到首个 body 包即定躯干系；1 s 内无 body 包即定世界系（`_WRIST_SETTLE_S`）。从源头消除启动期 world→body 翻转，下游第一帧 wrist 即在正确系，`vr_init` 不会被错系污染。landmarks 为腕局部系、与参考系无关，不受闸门影响。
 
-臂 IK 若仍把 `wrist_pose` 当世界目标：IOBT 开启后实际是相对躯干，走路不会把整条臂拖走。
+`quest3_operator_body_*` 是操作者 hips 参考系，不是机器人本体。遥操作把其中的增量经 Profile 坐标契约映射到机器人安装/求解器坐标系；IOBT 开启后手腕相对操作者躯干，走路不会把整条臂拖走。
 
 **Unity → 机器人轴（`convert_to_robot:=true` 时）：**
 
@@ -92,9 +92,9 @@ IOBT 开（Quest 已把头/手/手柄及 body 关节变到 hips 躯干系；hips
 
 | 数据 | VR 原始 | 本节点处理 | 最终 `frame_id` |
 |------|---------|------------|-----------------|
-| hips | Unity 世界（Quest 已重定向为躯干系朝向） | 可选 Unity→机器人轴 | `robot_world` / `vr_world` |
-| body joints | Quest 已转 hips 相对（非 hips 关节） | 可选 Unity→机器人轴（不再做 pose_in_parent_frame） | `robot_body` / `vr_body` |
-| head / wrist / controller | IOBT 关：世界；开：hips 系（Quest 已转） | 可选 Unity→机器人轴 | 关=`robot_world`；开=`robot_body` |
+| hips | Unity 世界（Quest 已重定向为躯干系朝向） | 可选 Unity→canonical Quest basis | `quest3_tracking_world_*` |
+| body joints | Quest 已转 hips 相对（非 hips 关节） | 可选 Unity→canonical Quest basis（不再做 pose_in_parent_frame） | `quest3_operator_body_*` |
+| head / wrist / controller | IOBT 关：世界；开：hips 系（Quest 已转） | 可选 Unity→canonical Quest basis | 关=`quest3_tracking_world_*`；开=`quest3_operator_body_*` |
 | landmarks | Unity 腕局部 21×3 | Unity→机器人轴、wrist-local raw、EMA | `hand_{side}` |
 
 ## 数据流
@@ -125,8 +125,8 @@ Mixed：左右可一边 `controller` 一边 `hand`。同侧 Quest 只发一种�
 | `quest3/left_controller_joy` | Joy | 世界或身体 | 左手柄按键/摇杆：axes=[trigger,grip,stickX,stickY]，buttons=[primary,secondary,stickPress,menu,triggerClick,gripClick] |
 | `quest3/right_controller_joy` | Joy | 世界或身体 | 右手柄按键/摇杆（同上） |
 | `quest3/head_pose` | PoseStamped | 世界或身体 | HMD |
-| `quest3/hips_pose` | PoseStamped | `robot_world`/`vr_world` | IOBT hips，房间系 |
-| `quest3/body_joints` | PoseArray | `robot_body`/`vr_body` | IOBT 关节，hips 系，顺序见 names |
+| `quest3/hips_pose` | PoseStamped | `quest3_tracking_world_*` | IOBT hips，房间系 |
+| `quest3/body_joints` | PoseArray | `quest3_operator_body_*` | IOBT 关节，操作者 hips 系，顺序见 names |
 | `quest3/body_joint_names` | String | latch | JSON 字符串数组，与 PoseArray 对齐 |
 | `quest3/input_mix` | String | latch | 如 `left=ctrl right=hand` |
 | `quest3/{side}_hand_markers` | MarkerArray | `world` | RViz（可选） |

@@ -16,6 +16,10 @@ from std_msgs.msg import Bool, String
 from std_srvs.srv import Trigger
 from scipy.spatial.transform import Rotation
 
+from morla_core.coordinates import (
+    fixed_transform_between_urdf, solver_tip_to_tcp, tcp_to_solver_tip,
+    validate_rotation, validate_transform,
+)
 from morla_core.ownership import PolicyLease
 from morla_core.resource_locator import resolve_robot_asset
 from .fps_counter import FPSCounter
@@ -51,8 +55,22 @@ class NeroArmTeleopNode(Node):
         self.declare_parameter("workspace_z_min", float("-inf"))
         self.declare_parameter("workspace_z_max", float("inf"))
         self.declare_parameter("tcp_offset", [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        self.declare_parameter(
+            "solver_tip_to_tcp_transform",
+            [1.0, 0.0, 0.0, 0.0,
+             0.0, 1.0, 0.0, 0.0,
+             0.0, 0.0, 1.0, 0.0,
+             0.0, 0.0, 0.0, 1.0],
+        )
+        self.declare_parameter("use_solver_tip_to_tcp_transform", False)
         self.declare_parameter("data_timeout_s", 1.5)
         self.declare_parameter("description_model_id", "nero_left_arm")
+        self.declare_parameter("coordinate_contract_version", 0)
+        self.declare_parameter("kinematics_hash", "")
+        self.declare_parameter("solver_base_frame", "")
+        self.declare_parameter("solver_tip_frame", "")
+        self.declare_parameter("tool_frame", "")
+        self.declare_parameter("solver_adapter_id", "nero_analytic_mdh_link7_v1")
 
         self.side = str(self.get_parameter("arm_side").value).strip().lower()
         if self.side not in ("left", "right"):
@@ -75,12 +93,10 @@ class NeroArmTeleopNode(Node):
         )
         if matrix.shape != (9,):
             raise ValueError("vr_to_arm_rot_after_unity_to_robot must have 9 values")
-        self.rotation_to_arm = matrix.reshape(3, 3)
-        if not np.allclose(self.rotation_to_arm.T @ self.rotation_to_arm, np.eye(3), atol=1e-8):
-            raise ValueError("Nero input rotation must be orthonormal")
+        self.rotation_to_arm = validate_rotation(matrix.reshape(3, 3))
 
         model_id = str(self.get_parameter("description_model_id").value).strip()
-        resolve_robot_asset(model_id)
+        model_path = resolve_robot_asset(model_id)
         params = NeroParams.default()
         self.ik = IKSolver(nero_params=params)
         self.pose_processor = PoseProcessor(
@@ -93,10 +109,38 @@ class NeroArmTeleopNode(Node):
         tcp = np.asarray(self.get_parameter("tcp_offset").value, dtype=float)
         if tcp.shape != (6,) or not np.isfinite(tcp).all():
             raise ValueError("tcp_offset must contain [x,y,z,roll,pitch,yaw]")
-        self._T_flange_to_tcp = np.eye(4)
-        self._T_flange_to_tcp[:3, :3] = Rotation.from_euler("xyz", tcp[3:]).as_matrix()
-        self._T_flange_to_tcp[:3, 3] = tcp[:3]
-        self._T_tcp_to_flange = np.linalg.inv(self._T_flange_to_tcp)
+        self.solver_base_frame = str(self.get_parameter("solver_base_frame").value).strip() or f"{self.side}_base_link"
+        self.solver_tip_frame = str(self.get_parameter("solver_tip_frame").value).strip() or f"{self.side}_link7"
+        configured_tool_frame = str(self.get_parameter("tool_frame").value).strip()
+        self.tool_frame = configured_tool_frame or self.solver_tip_frame
+        # Profile launches pass the full fixed transform resolved from URDF.
+        # Direct node launches default to the solver tip (link7). A named
+        # physical flange/tool frame can still be selected explicitly.
+        # ``tcp_offset`` remains an explicit legacy override.
+        tool_transform = np.asarray(
+            self.get_parameter("solver_tip_to_tcp_transform").value, dtype=float
+        )
+        if bool(self.get_parameter("use_solver_tip_to_tcp_transform").value):
+            if tool_transform.size != 16:
+                raise ValueError("solver_tip_to_tcp_transform must contain 16 row-major values")
+            self._T_solver_tip_to_tcp = validate_transform(tool_transform.reshape(4, 4))
+        elif not np.allclose(tcp, np.zeros(6), atol=1e-12, rtol=0.0):
+            self._T_solver_tip_to_tcp = np.eye(4)
+            self._T_solver_tip_to_tcp[:3, :3] = Rotation.from_euler("xyz", tcp[3:]).as_matrix()
+            self._T_solver_tip_to_tcp[:3, 3] = tcp[:3]
+        else:
+            try:
+                self._T_solver_tip_to_tcp = fixed_transform_between_urdf(
+                    model_path, self.solver_tip_frame, self.tool_frame
+                )
+            except ValueError as exc:
+                raise ValueError(
+                    f"cannot resolve default/configured tool frame {self.tool_frame!r} "
+                    f"from solver tip {self.solver_tip_frame!r}: {exc}"
+                ) from exc
+        self.coordinate_contract_version = int(self.get_parameter("coordinate_contract_version").value)
+        self.kinematics_hash = str(self.get_parameter("kinematics_hash").value)
+        self.solver_adapter_id = str(self.get_parameter("solver_adapter_id").value)
 
         self.data_timeout_s = float(self.get_parameter("data_timeout_s").value)
         self._require_start = bool(self.get_parameter("require_start_signal").value)
@@ -236,7 +280,9 @@ class NeroArmTeleopNode(Node):
         if np.linalg.norm(quat) < 1e-8:
             return False
         self.ik.sync_state(self._q)
-        reference = self.ik.fk(self._q)
+        reference = solver_tip_to_tcp(
+            self.ik.fk(self._q), self._T_solver_tip_to_tcp
+        )
         self.pose_processor.reset()
         self.pose_processor.set_vr_zero_point(pos, Rotation.from_quat(quat / np.linalg.norm(quat)))
         self.robot_init_pos = reference[:3, 3].copy()
@@ -340,9 +386,12 @@ class NeroArmTeleopNode(Node):
         target_tcp = self.pose_processor.compute_target_pose(
             delta_pos, delta_rot, self.robot_init_pos, self.robot_init_rot
         )
-        target_flange = target_tcp @ self._T_tcp_to_flange
-        target_flange[:3, 3] = self.safety.check_workspace(target_flange[:3, 3])
-        solution = self.ik.solve(target_flange)
+        # SafetyFilter's radial workspace is centered at the solver base, so
+        # evaluate it on the solver-tip pose after removing the tool transform.
+        target_solver_tip = tcp_to_solver_tip(target_tcp, self._T_solver_tip_to_tcp)
+        target_solver_tip[:3, 3] = self.safety.check_workspace(target_solver_tip[:3, 3])
+        target_tcp = solver_tip_to_tcp(target_solver_tip, self._T_solver_tip_to_tcp)
+        solution = self.ik.solve(target_solver_tip)
         if solution is None:
             self.get_logger().warning("Nero analytic IK did not converge", throttle_duration_sec=1.0)
             return
@@ -383,6 +432,12 @@ class NeroArmTeleopNode(Node):
             "frame_id": self._active_frame,
             "command_topic": self.topics["command_topic"],
             "solver": "analytic_dh",
+            "coordinate_contract_version": self.coordinate_contract_version,
+            "kinematics_hash": self.kinematics_hash,
+            "solver_base_frame": self.solver_base_frame,
+            "solver_tip_frame": self.solver_tip_frame,
+            "solver_adapter_id": self.solver_adapter_id,
+            "tool_frame": self.tool_frame,
         }
         self._status_pub.publish(String(data=json.dumps(payload, sort_keys=True)))
 

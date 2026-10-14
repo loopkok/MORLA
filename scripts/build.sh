@@ -16,8 +16,9 @@ while (($#)); do
 Usage: scripts/build.sh [--mode symlink|regular] [colcon build options...]
 
 Build the complete MORLA workspace with the ROS Humble system Python.
-The default symlink mode is convenient for development; regular mode checks
-that installed assets do not depend on source-tree symlinks.
+The default symlink mode installs to install/ for development; regular mode
+installs to install_regular/ so its resource tree stays independent of an
+existing symlink install.
 EOF
       exit 0
       ;;
@@ -32,6 +33,22 @@ case "$MODE" in
   *) echo "unsupported build mode: $MODE (expected symlink or regular)" >&2; exit 2 ;;
 esac
 
+# CMake caches the install prefix and AMENT_CMAKE_SYMLINK_INSTALL, so changing
+# colcon flags alone does not switch an existing build tree between modes.
+# Reconfigure CMake when either the mode or install base changes.
+INSTALL_BASE="$WS/install"
+if [[ "$MODE" == regular ]]; then
+  INSTALL_BASE="$WS/install_regular"
+fi
+MODE_STAMP="$WS/build/.morla_build_mode"
+STAMP_VALUE="$MODE:$INSTALL_BASE"
+CLEAN_CMAKE_CACHE=()
+if [[ ! -f "$MODE_STAMP" ]] || [[ "$(cat "$MODE_STAMP")" != "$STAMP_VALUE" ]]; then
+  CLEAN_CMAKE_CACHE+=(--cmake-clean-cache)
+fi
+mkdir -p "$WS/build"
+printf '%s\n' "$STAMP_VALUE" > "$MODE_STAMP"
+
 ROS_SETUP=/opt/ros/humble/setup.bash
 [[ -r "$ROS_SETUP" ]] || { echo "ROS Humble setup not found: $ROS_SETUP" >&2; exit 1; }
 set +u
@@ -43,8 +60,9 @@ COLCON_ARGS=(
   build
   --base-paths "$WS/src"
   --build-base "$WS/build"
-  --install-base "$WS/install"
+  --install-base "$INSTALL_BASE"
   --event-handlers console_direct+
+  "${CLEAN_CMAKE_CACHE[@]}"
   --cmake-args
   -DPython3_EXECUTABLE=/usr/bin/python3
   -DPYTHON_EXECUTABLE=/usr/bin/python3

@@ -16,6 +16,7 @@
   <depend>std_srvs</depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>morla_input</exec_depend>
   <exec_depend>quest3_video_streamer</exec_depend>
   <exec_depend>astral_arm_teleop</exec_depend>

@@ -775,10 +775,16 @@ class DataCollectNode(Node):
                 "robot_id": getattr(self._schema, "robot_id", "astral"),
                 "schema_hash": getattr(self._schema, "schema_hash", None),
                 "layout_hash": getattr(self._schema, "layout_hash", None),
+                "kinematics_hash": getattr(getattr(self._schema, "frozen", None), "kinematics_hash", None),
+                "coordinate_contract": (
+                    getattr(self._schema, "frozen", None).metadata.get("coordinate_contract", {})
+                    if getattr(self._schema, "frozen", None) is not None else {}
+                ),
                 "recording_mode": self._runtime_mode,
                 "source_revisions": {
                     "description_revision": getattr(self._schema, "frozen", None).metadata.get("description_revision")
                     if getattr(self._schema, "frozen", None) is not None else None,
+                    "kinematics_hash": getattr(getattr(self._schema, "frozen", None), "kinematics_hash", None),
                 },
                 "episode_index": ep_idx,
                 "start_time_wall": self._episode_start_wall,

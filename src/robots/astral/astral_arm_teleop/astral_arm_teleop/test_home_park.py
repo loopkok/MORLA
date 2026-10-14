@@ -121,6 +121,7 @@ def _make_node():
     node.q_cmd = np.array([0.40, 0.30, -0.90, -1.20, 0.60, 0.00, 0.00])
     node.robot_init_pos = np.array([0.30, 0.10, -0.40])
     node.robot_init_rot = np.eye(3)
+    node._T_solver_tip_to_tcp = np.eye(4)
     node.state_q = node.q_cmd.copy()
     node._state_t = time.monotonic()
     node._got_state = False  # 具体用例按需置 True（如 park 途经点门限测试）

@@ -74,6 +74,20 @@ export interface RobotProfileInfo {
   action_dim: number
   arms: { side: string; type: string }[]
   hands: { side: string; type: string; dim: number }[]
+  kinematics_hash?: string | null
+  coordinate_contract?: {
+    version?: number
+    input_basis_id?: string
+    robot_body_frame?: string
+    arms?: Record<string, {
+      solver_base_frame?: string
+      solver_tip_frame?: string
+      physical_flange_frame?: string
+      sdk_flange_frame?: string
+      joint_convention?: string
+      tool?: { id?: string; frame?: string; source?: string; calibration_status?: string }
+    }>
+  }
   capabilities: Record<string, boolean>
   launch_modes: ('sim' | 'real')[]
 }

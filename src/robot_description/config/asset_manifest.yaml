@@ -1756,7 +1756,7 @@ models:
   side: left
   source_path: xnero_ws/src/xhand_nero_description/urdf/xhand_nero_description.urdf
   source_sha256: 4ae7ac42ab0b2606022e59e4c0128d2f5aaf39597e3020bf746d307cdffb9a63
-  target_sha256: 531682dbd23613d0f0d079488aa97f3ef2d409ed9e349390ec62b0e5ce858f22
+  target_sha256: c0d063752ce433c437befc6c0e0e0552f5927980666ae621d602930d8eb06961
   base_link: world
   end_links:
   - world
@@ -3572,7 +3572,7 @@ models:
   side: right
   source_path: xnero_ws/src/xhand_nero_description/urdf/xhand_nero_description.urdf
   source_sha256: 4ae7ac42ab0b2606022e59e4c0128d2f5aaf39597e3020bf746d307cdffb9a63
-  target_sha256: 531682dbd23613d0f0d079488aa97f3ef2d409ed9e349390ec62b0e5ce858f22
+  target_sha256: c0d063752ce433c437befc6c0e0e0552f5927980666ae621d602930d8eb06961
   base_link: world
   end_links:
   - world
@@ -5388,7 +5388,7 @@ models:
   side: both
   source_path: xnero_ws/src/xhand_nero_description/urdf/xhand_nero_description.urdf
   source_sha256: 4ae7ac42ab0b2606022e59e4c0128d2f5aaf39597e3020bf746d307cdffb9a63
-  target_sha256: 531682dbd23613d0f0d079488aa97f3ef2d409ed9e349390ec62b0e5ce858f22
+  target_sha256: c0d063752ce433c437befc6c0e0e0552f5927980666ae621d602930d8eb06961
   base_link: world
   end_links:
   - world
@@ -8753,7 +8753,7 @@ models:
   side: both
   source_path: xnero_ws/src/xnero_mujoco_sim/assets/mjcf/xnero_dual.xml
   source_sha256: b79e8538012131a83b9baac9a804fb5af9233a565d59b86778088e253dbfcc06
-  target_sha256: 9520b440b5da70c61408e60951fad9f693961f43e1f3c52444fcc47dfa9d340c
+  target_sha256: c04624ca95abfb530891d9fd68115ce0e0a6d72ba12e7acce7db645f960f0890
   base_link: xhand_nero
   end_links: []
   movable_joints:
@@ -10201,7 +10201,7 @@ assets:
 - path: mjcf/xnero/xnero_dual.xml
   source_path: xnero_ws/src/xnero_mujoco_sim/assets/mjcf/xnero_dual.xml
   source_sha256: b79e8538012131a83b9baac9a804fb5af9233a565d59b86778088e253dbfcc06
-  target_sha256: 9520b440b5da70c61408e60951fad9f693961f43e1f3c52444fcc47dfa9d340c
+  target_sha256: c04624ca95abfb530891d9fd68115ce0e0a6d72ba12e7acce7db645f960f0890
 - path: urdf/astral/arm/astral_arm.pin.urdf
   source_path: astral_ws/src/astral_arm_description/urdf/astral_arm.pin.urdf
   source_sha256: fe596486fd5c54eea63c48382022b37d10cf4b9e8106dd509b5b94d9cd88e59a
@@ -10233,7 +10233,7 @@ assets:
 - path: urdf/nero/xhand_nero_description.urdf
   source_path: xnero_ws/src/xhand_nero_description/urdf/xhand_nero_description.urdf
   source_sha256: 4ae7ac42ab0b2606022e59e4c0128d2f5aaf39597e3020bf746d307cdffb9a63
-  target_sha256: 531682dbd23613d0f0d079488aa97f3ef2d409ed9e349390ec62b0e5ce858f22
+  target_sha256: c0d063752ce433c437befc6c0e0e0552f5927980666ae621d602930d8eb06961
 - path: urdf/wuji/wujihand_left.urdf
   source_path: astral_ws/src/wujihand_retargeting/urdf/wujihand_left.urdf
   source_sha256: 88617ad60afbc344a4d9282418d00ecebba4ee5d37070859438d7ecac23a1cf8

@@ -24,6 +24,7 @@ except ImportError:
     sys.exit(0)
 
 from astral_arm_teleop.astral_arm_teleop_node import AstralTeleopArmNode  # noqa: E402
+from morla_core.coordinates import tcp_to_solver_tip
 
 
 class _FakePose:
@@ -95,6 +96,7 @@ def _make_node():
     t0 = np.eye(4)
     t0[:3, 3] = [0.30, 0.10, -0.40]
     node.ik = _FakeIk(t0)
+    node._T_solver_tip_to_tcp = np.eye(4)
     node.pose = _FakePose()
     node.safety = _FakeSafety()
     node._armed = False
@@ -148,6 +150,26 @@ def test_reanchor_uses_fresh_measured_state():
     assert node._disarm_reason is None
     assert np.allclose(node.q_cmd, node.state_q)
     assert node.safety.initial[0] is not None
+
+
+def test_reanchor_anchor_uses_nonzero_tool_transform_without_zero_motion_jump():
+    node = _make_node()
+    node._T_solver_tip_to_tcp[:3, :3] = Rotation.from_euler(
+        "xyz", [0.3, -0.2, 0.4]
+    ).as_matrix()
+    node._T_solver_tip_to_tcp[:3, 3] = [0.06, -0.01, 0.025]
+    solver_pose = node.ik.fk(node.state_q)
+
+    ok, _ = node._reanchor_teleop()
+
+    assert ok is True
+    expected_tcp = solver_pose @ node._T_solver_tip_to_tcp
+    np.testing.assert_allclose(node.robot_init_pos, expected_tcp[:3, 3])
+    np.testing.assert_allclose(node.robot_init_rot, expected_tcp[:3, :3])
+    np.testing.assert_allclose(
+        tcp_to_solver_tip(expected_tcp, node._T_solver_tip_to_tcp), solver_pose,
+        atol=1e-12,
+    )
 
 
 def test_reanchor_rejects_missing_state():

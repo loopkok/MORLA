@@ -118,9 +118,11 @@ class RemoteBackend(PolicyBackend):
         rtc_guided: bool = False,
         rtc_horizon: int = 10,
         layout_hash: str = "",
+        kinematics_hash: str = "",
         layout_id: str = "",
         model_capacity: int = 0,
         require_layout_handshake: bool = False,
+        require_kinematics_handshake: bool = False,
     ):
         self.host = host
         self.port = int(port)
@@ -142,9 +144,11 @@ class RemoteBackend(PolicyBackend):
         self.rtc_guided = bool(rtc_guided)
         self.rtc_horizon = int(rtc_horizon)
         self.layout_hash = str(layout_hash or "")
+        self.kinematics_hash = str(kinematics_hash or "")
         self.layout_id = str(layout_id or "")
         self.model_capacity = int(model_capacity or 0)
         self.require_layout_handshake = bool(require_layout_handshake)
+        self.require_kinematics_handshake = bool(require_kinematics_handshake)
         if self.model_capacity and self.action_dim > self.model_capacity:
             raise PolicyError(
                 f"robot action_dim {self.action_dim} exceeds model capacity "
@@ -203,6 +207,14 @@ class RemoteBackend(PolicyBackend):
                     raise PolicyError(
                         f"model_capacity mismatch: server={server_capacity}, "
                         f"profile={self.model_capacity}"
+                    )
+            if self.require_kinematics_handshake:
+                if not self.kinematics_hash:
+                    raise PolicyError("robot profile requires a kinematics hash")
+                if metadata.get("kinematics_hash") != self.kinematics_hash:
+                    raise PolicyError(
+                        f"kinematics_hash mismatch: server={metadata.get('kinematics_hash')!r}, "
+                        f"robot={self.kinematics_hash!r}"
                     )
             if self.rtc_guided:
                 if metadata.get("model") != "pi05" or not metadata.get("rtc_guided"):
@@ -495,9 +507,11 @@ def make_backend(
     rtc_guided: bool = False,
     rtc_horizon: int = 10,
     layout_hash: str = "",
+    kinematics_hash: str = "",
     layout_id: str = "",
     model_capacity: int = 0,
     require_layout_handshake: bool = False,
+    require_kinematics_handshake: bool = False,
 ) -> PolicyBackend:
     """Backend factory. ``backend_type`` = transport: remote | inproc | stub.
 
@@ -525,9 +539,11 @@ def make_backend(
             rtc_guided=rtc_guided,
             rtc_horizon=rtc_horizon,
             layout_hash=layout_hash,
+            kinematics_hash=kinematics_hash,
             layout_id=layout_id,
             model_capacity=model_capacity,
             require_layout_handshake=require_layout_handshake,
+            require_kinematics_handshake=require_kinematics_handshake,
         )
     if bt == "inproc":
         if not checkpoint_dir:

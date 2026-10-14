@@ -110,14 +110,14 @@
       </geometry>
     </collision>
   </link>
-  <!-- J2 offset: origin rotated +90deg around joint Z so arm hangs down at J2=0.
-       Original rpy="1.5707963 3.1415926 0", limits -1.74/1.74 -->
+  <!-- Hardware-coordinate J2 origin. The historical sim-only +90deg offset is
+       preserved at urdf/nero/legacy/xhand_nero_description_j2_offset.urdf. -->
   <joint name="left_joint2" type="revolute">
-    <origin xyz="0 0 0" rpy="0 1.5708 -1.5708"/>
+    <origin xyz="0 0 0" rpy="1.5707963 3.1415926 0"/>
     <parent link="left_link1"/>
     <child link="left_link2"/>
     <axis xyz="0 0 1"/>
-    <limit lower="-3.3108" upper="0.1692" effort="100" velocity="5"/>
+    <limit lower="-1.74533" upper="1.74533" effort="100" velocity="5"/>
   </joint>
 
   <link name="left_link3">
@@ -1309,11 +1309,11 @@
     </collision>
   </link>
   <joint name="right_joint2" type="revolute">
-    <origin xyz="0 0 0" rpy="0 1.5708 -1.5708"/>
+    <origin xyz="0 0 0" rpy="1.5707963 3.1415926 0"/>
     <parent link="right_link1"/>
     <child link="right_link2"/>
     <axis xyz="0 0 1"/>
-    <limit lower="-3.3108" upper="0.1692" effort="100" velocity="5"/>
+    <limit lower="-1.74533" upper="1.74533" effort="100" velocity="5"/>
   </joint>
 
   <link name="right_link3">

@@ -496,6 +496,12 @@ class FrozenSchema:
         value.pop("metadata", None)
         return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
 
+    @property
+    def kinematics_hash(self) -> str | None:
+        """Identity of geometry, joint convention, tool and coordinate alignment."""
+        value = self.metadata.get("kinematics_hash")
+        return str(value) if value else None
+
     def to_dict(self, include_hashes: bool = True) -> dict[str, Any]:
         value = {
             "schema_version": self.schema_version, "profile_version": self.profile_version,
@@ -509,6 +515,8 @@ class FrozenSchema:
             "metadata": dict(self.metadata), "state_dim": self.state_dim,
             "action_dim": self.action_dim,
         }
+        if self.kinematics_hash:
+            value["kinematics_hash"] = self.kinematics_hash
         if include_hashes:
             value["schema_hash"] = self.schema_hash
             value["layout_hash"] = self.layout_hash
@@ -522,7 +530,7 @@ class FrozenSchema:
         allowed = {"schema_version", "profile_version", "profile_id", "robot_id", "streams",
                    "state_blocks", "action_blocks", "cameras", "dataset_fps", "action_source",
                    "hold_frames", "max_gap_ms", "sensor_specs", "metadata", "state_dim", "action_dim",
-                   "schema_hash", "layout_hash"}
+                   "schema_hash", "layout_hash", "kinematics_hash"}
         required = {"schema_version", "profile_version", "profile_id", "robot_id", "streams",
                     "state_blocks", "action_blocks", "cameras", "dataset_fps", "action_source"}
         if set(value) - allowed or not required <= set(value):
@@ -547,6 +555,8 @@ class FrozenSchema:
             raise ValueError("layout_hash does not match frozen layout")
         if "schema_hash" in value and value["schema_hash"] != schema.schema_hash:
             raise ValueError("schema_hash does not match frozen schema")
+        if "kinematics_hash" in value and value["kinematics_hash"] != schema.kinematics_hash:
+            raise ValueError("kinematics_hash does not match frozen contract metadata")
         return schema
 
 

@@ -8,6 +8,7 @@ measurements from zero-filled arrays.
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 import hashlib
 import json
 import os
@@ -108,7 +109,14 @@ def import_xnero(source: str, out: str, *, profile_id: str, camera_map: str | di
 
     registry = ProfileRegistry.from_index(index_path)
     profile = registry.load(profile_id)
-    schema = profile.frozen_schema
+    # The importer's target Profile defines the new layout, but XNero episodes
+    # do not identify the URDF/J2/tool revision that produced their poses.
+    # Preserve that uncertainty instead of stamping today's kinematics on old data.
+    schema_metadata = dict(profile.frozen_schema.metadata)
+    target_coordinate_contract = schema_metadata.pop("coordinate_contract", None)
+    schema_metadata.pop("kinematics_hash", None)
+    schema_metadata["legacy_kinematics_status"] = "unknown"
+    schema = replace(profile.frozen_schema, metadata=schema_metadata)
     mapping = _parse_camera_map(camera_map) if isinstance(camera_map, str) else dict(camera_map)
     sides = _parse_sides(active_sides) if isinstance(active_sides, str) else tuple(active_sides)
     profile_sides = tuple(side for side in ("left", "right")
@@ -207,6 +215,9 @@ def import_xnero(source: str, out: str, *, profile_id: str, camera_map: str | di
             "profile_id": profile_id, "robot_id": profile.robot_id,
             "schema": schema.to_dict(), "schema_hash": schema.schema_hash,
             "layout_hash": schema.layout_hash,
+            "kinematics_hash": None,
+            "kinematics_status": "unknown",
+            "target_coordinate_contract": target_coordinate_contract,
             "task": task.strip(), "episode_index": 0,
             "start_time_wall": float(timestamps[0]), "end_time_wall": float(timestamps[-1]),
             "duration_s": duration, "timestamp_mode": "legacy_host_tick",
@@ -225,6 +236,7 @@ def import_xnero(source: str, out: str, *, profile_id: str, camera_map: str | di
                        "source_sha256": before_hashes, "legacy_validity_unknown": True,
                        "profile_id": profile_id, "schema_hash": schema.schema_hash,
                        "layout_hash": schema.layout_hash, "camera_map": mapping,
+                       "kinematics_status": "unknown",
                        "task": task.strip(), "active_sides": list(sides)},
                       stream, ensure_ascii=False, indent=2)
 

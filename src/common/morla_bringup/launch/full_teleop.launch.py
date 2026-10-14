@@ -39,6 +39,7 @@ Usage:
 from __future__ import annotations
 
 import os
+import json
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -49,6 +50,9 @@ from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 from morla_core.profile import ProfileRegistry
+from morla_core.coordinate_contract import build_coordinate_contract
+from morla_core.resource_locator import resolve_robot_asset
+from morla_bringup.profile_state import profile_description_actions
 
 
 def _opt(context, name: str) -> str:
@@ -115,6 +119,11 @@ def _setup(context, *args, **kwargs):
 
     control_profile_id = _opt(context, "control_profile_id")
     coordinator = []
+    description_actions = []
+    arm_contract_args = {}
+    quest_basis_id = "quest3_canonical_legacy_v1"
+    quest_kinematics_hash = ""
+    quest_coordinate_version = 0
     if control_profile_id:
         profile = ProfileRegistry.from_index().load(control_profile_id)
         if profile.robot_id != "astral":
@@ -128,6 +137,46 @@ def _setup(context, *args, **kwargs):
             raise RuntimeError(
                 f"control profile arms {sorted(profile_sides)} do not match arm_side {arm_side!r}"
             )
+        coordinate_contract = build_coordinate_contract(profile.values)
+        description_actions = profile_description_actions(profile)
+        quest_basis_id = coordinate_contract.input_basis_id
+        quest_kinematics_hash = coordinate_contract.kinematics_hash
+        quest_coordinate_version = coordinate_contract.version
+        for component in profile.values.get("components", []):
+            if not component.get("enabled") or component.get("type") != "arm":
+                continue
+            side = component["side"]
+            model_path = resolve_robot_asset(str(component.get("description_model_id", "")))
+            alignment = coordinate_contract.resolve_arm_input_rotation(side, str(model_path))
+            tool = coordinate_contract.arm(side)["tool"]
+            solver_type = (_opt(context, "solver_type") or "geometric").strip().lower()
+            adapter = coordinate_contract.arm(side)["solver_adapter_id"]
+            expected_adapters = {
+                "geometric": "astral_geometric_poe_link7_v1",
+                "urdf_numerical": "astral_urdf_link7_v1",
+                "urdf": "astral_urdf_link7_v1",
+                "numerical": "astral_urdf_link7_v1",
+                "analytic_dh": "astral_analytic_dh_legacy_v1",
+                "analytic": "astral_analytic_dh_legacy_v1",
+                "dh": "astral_analytic_dh_legacy_v1",
+            }
+            if expected_adapters.get(solver_type) != adapter:
+                raise RuntimeError(
+                    f"solver_type={solver_type!r} resolves to adapter "
+                    f"{expected_adapters.get(solver_type)!r}, but Profile declares {adapter!r}; "
+                    "update the coordinate contract and kinematics hash with the solver change"
+                )
+            tool_transform = coordinate_contract.resolve_arm_tool_transform(side, str(model_path))
+            arm_contract_args[f"input_alignment_{side}"] = json.dumps(alignment.reshape(-1).tolist())
+            arm_contract_args[f"tool_transform_{side}"] = json.dumps(
+                tool_transform.reshape(-1).tolist()
+            )
+            arm_contract_args[f"solver_base_frame_{side}"] = coordinate_contract.arm(side)["solver_base_frame"]
+            arm_contract_args[f"solver_tip_frame_{side}"] = coordinate_contract.arm(side)["solver_tip_frame"]
+            arm_contract_args[f"solver_adapter_id_{side}"] = adapter
+            arm_contract_args[f"tool_frame_{side}"] = tool["frame"]
+        arm_contract_args["kinematics_hash"] = coordinate_contract.kinematics_hash
+        arm_contract_args["coordinate_contract_version"] = str(coordinate_contract.version)
         with_driver = _opt(context, "with_arm_driver").lower() in ("true", "1", "yes")
         dry_run = _opt(context, "dry_run").lower() in ("true", "1", "yes")
         coordinator.append(
@@ -145,6 +194,9 @@ def _setup(context, *args, **kwargs):
 
     mocap_extra = {
         "arm_side": arm_side,
+        "coordinate_basis_id": quest_basis_id,
+        "coordinate_contract_version": quest_coordinate_version,
+        "kinematics_hash": quest_kinematics_hash,
         "viz": False,
         "landmark_preprocess": "raw",
         "allow_legacy_packets": _opt(context, "allow_legacy_packets").lower()
@@ -238,6 +290,7 @@ def _setup(context, *args, **kwargs):
             "log_dir": _opt(context, "log_dir"),
             "log_tag": _opt(context, "log_tag"),
             "driver_log_file": _opt(context, "driver_log_file"),
+            **arm_contract_args,
         }.items(),
     )
 
@@ -347,8 +400,9 @@ def _setup(context, *args, **kwargs):
             )
         )
 
-    return [*([mocap] if with_input else []), start_gate, workpos_gate, head_teleop, arms, gripper,
-            right_gripper, glove, *video, *wuji, *coordinator]
+    return [*description_actions, *([mocap] if with_input else []), start_gate,
+            workpos_gate, head_teleop, arms, gripper, right_gripper, glove,
+            *video, *wuji, *coordinator]
 
 
 def generate_launch_description() -> LaunchDescription:

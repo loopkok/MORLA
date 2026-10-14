@@ -381,6 +381,8 @@ async def list_robot_profiles() -> ApiEnvelope:
             "robot_id": profile.robot_id,
             "state_dim": profile.frozen_schema.state_dim,
             "action_dim": profile.frozen_schema.action_dim,
+            "kinematics_hash": profile.frozen_schema.kinematics_hash,
+            "coordinate_contract": profile.frozen_schema.metadata.get("coordinate_contract", {}),
             "arms": [{"side": row["side"], "type": row["type"]} for row in arms],
             "hands": [{"side": row["side"], "type": row["type"],
                        "dim": len(row.get("joint_names", []))} for row in hands],

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .coordinate_contract import build_coordinate_contract
 from .resource_locator import ResourceLookupError, morla_source_root, package_share
 from .schema import ActionBlockSpec, FrozenSchema, StateBlockSpec, StreamSpec
 
@@ -48,8 +49,11 @@ class RobotProfile:
         return self.values["robot_id"]
 
     def resolved(self) -> dict[str, Any]:
+        coordinates = build_coordinate_contract(self.values)
         return {
             **self.values,
+            "coordinate_contract": coordinates.to_dict(),
+            "kinematics_hash": coordinates.kinematics_hash,
             "frozen_schema": self.frozen_schema.to_dict(),
             "schema_hash": self.frozen_schema.schema_hash,
             "layout_hash": self.frozen_schema.layout_hash,
@@ -236,6 +240,14 @@ def validate_profile(value: dict[str, Any]) -> RobotProfile:
     camera_streams = {s.stream_key.removeprefix("camera:") for s in streams if s.source_kind == "camera"}
     if set(value["cameras"]) != camera_streams:
         raise ProfileValidationError("camera labels must match the registered camera streams exactly")
+    try:
+        coordinates = build_coordinate_contract(value)
+    except ValueError as exc:
+        raise ProfileValidationError(str(exc)) from exc
+    schema.metadata.update({
+        "coordinate_contract": coordinates.to_dict(),
+        "kinematics_hash": coordinates.kinematics_hash,
+    })
     return RobotProfile(values=value, frozen_schema=schema)
 
 

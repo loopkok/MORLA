@@ -63,6 +63,7 @@ class NeroRobotDriverNode(Node):
         self.declare_parameter("state_rate_hz", 20.0)
         self.declare_parameter("max_command_age_s", 0.5)
         self.declare_parameter("sdk_timeout_s", 2.0)
+        self.declare_parameter("flange_frame_id", "")
 
         self.side = str(self.get_parameter("arm_side").value).strip().lower()
         self.backend = str(self.get_parameter("sdk_backend").value).strip().lower()
@@ -72,8 +73,15 @@ class NeroRobotDriverNode(Node):
             raise ValueError("sdk_backend must be fake or hardware")
         self.joint_names = [f"{self.side}_joint{i}" for i in range(1, 8)]
         self.base_frame = f"{self.side}_base_link"
+        self.flange_frame_id = (
+            str(self.get_parameter("flange_frame_id").value).strip()
+            or f"{self.side}_gripper_flange"
+        )
         self.command_topic = f"/{self.side}_arm/joint_commands"
         self.state_topic = f"/{self.side}_arm/joint_states"
+        self.flange_topic = f"/{self.side}_arm/flange_pose"
+        # Compatibility alias: historical topic name, but its payload is the
+        # SDK's flange pose (not a separately calibrated hand/task TCP).
         self.tcp_topic = f"/{self.side}_arm/tcp_pose"
         self.position_pose = np.asarray(
             self.get_parameter("position_pose").value, dtype=float
@@ -134,7 +142,8 @@ class NeroRobotDriverNode(Node):
 
         qos = _latest_qos()
         self._state_pub = self.create_publisher(JointState, self.state_topic, qos)
-        self._tcp_pub = self.create_publisher(PoseStamped, self.tcp_topic, qos)
+        self._flange_pub = self.create_publisher(PoseStamped, self.flange_topic, qos)
+        self._legacy_tcp_pub = self.create_publisher(PoseStamped, self.tcp_topic, qos)
         self._status_pub = self.create_publisher(String, "~/status", qos)
         self.create_subscription(
             JointState, self.command_topic, self._on_command, qos
@@ -150,7 +159,9 @@ class NeroRobotDriverNode(Node):
         self._status_timer = self.create_timer(0.2, self._publish_status)
         self.get_logger().info(
             f"Nero driver side={self.side} backend={self.backend} "
-            f"command={self.command_topic} state_rate={state_hz:g}Hz; "
+            f"command={self.command_topic} flange={self.flange_topic} "
+            f"(frame={self.flange_frame_id}; legacy alias={self.tcp_topic}) "
+            f"state_rate={state_hz:g}Hz; "
             "SDK enable is explicit and no home/position move starts automatically"
         )
 
@@ -457,13 +468,19 @@ class NeroRobotDriverNode(Node):
             pose.pose.orientation.z,
             pose.pose.orientation.w,
         ) = map(float, quat)
-        self._tcp_pub.publish(pose)
+        self._flange_pub.publish(pose)
+        self._legacy_tcp_pub.publish(pose)
 
     def _publish_status(self) -> None:
         age = self.core.feedback_age()
         payload = {
             "side": self.side,
             "backend": self.backend,
+            "flange_topic": self.flange_topic,
+            "flange_frame_id": self.flange_frame_id,
+            "flange_pose_source": "sdk_get_flange_pose_frame_mapping_unverified",
+            "legacy_tcp_topic": self.tcp_topic,
+            "legacy_tcp_topic_deprecated": True,
             "connected": self.core.connected,
             "enabled": self.core.enabled,
             "feedback_fresh": age is not None and age <= self.core.max_feedback_age_s,

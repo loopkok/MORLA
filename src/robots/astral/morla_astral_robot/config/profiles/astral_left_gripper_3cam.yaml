@@ -1,6 +1,35 @@
 profile_version: 1
 profile_id: astral_left_gripper_3cam
 robot_id: astral
+coordinate_contract:
+  version: 1
+  input_basis_id: quest3_canonical_legacy_v1
+  input_frame_policy: incremental_operator_aligned
+  robot_body_frame: body_link
+  input_rotation_to_robot_body:
+  - 1.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 1.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 1.0
+  input_rotation_source: legacy_astral_identity_axis_alignment
+  arms:
+    left:
+      solver_base_frame: left_base_link
+      solver_tip_frame: left_link7
+      solver_adapter_id: astral_geometric_poe_link7_v1
+      physical_flange_frame: left_link7
+      sdk_flange_frame: unverified_vendor_sdk_frame
+      joint_convention: hardware
+      tool:
+        id: legacy_solver_tip
+        frame: left_link7
+        source: urdf_named_frame
+        calibration_status: physical_tool_unverified
 title: Astral Left Gripper 3Cam
 components:
 - component_id: left_arm
@@ -263,6 +292,7 @@ writers:
   command_stream: left_gripper_ratio
   ack_topic: /teleop/ownership_ack
 backend_requirements:
+  requires_model_kinematics_handshake: true
   model_layout_id: astral_left_gripper_3cam_v1
   action_semantics: absolute_position
   model_capacity: 32
@@ -284,7 +314,7 @@ hardware:
   astral_driver_package: astral_robot_control
   driver_params_file: config/astral_robot.yaml
   board_id: local_profile
-description_revision: sha256:9c77a86685ff7d24749b50ae18e26b833ad905077c40ce480fa4560ca4f919bf
+description_revision: sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6
 mode_default: sim
 input:
   source: quest

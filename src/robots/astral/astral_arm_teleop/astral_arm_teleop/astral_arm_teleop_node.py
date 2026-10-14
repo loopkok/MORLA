@@ -41,6 +41,9 @@ from astral_arm_teleop.latency_meter import LatencyMeter, stamp_age_ms
 from astral_arm_teleop.pose_processor import PoseProcessor
 from astral_arm_teleop.safety_filter import SafetyFilter
 from astral_arm_teleop.teleop_log import TeleopJsonlLog, teleop_event_record
+from morla_core.coordinates import (
+    solver_tip_to_tcp, tcp_to_solver_tip, validate_rotation, validate_transform,
+)
 from morla_core.ownership import PolicyLease, fresh_header
 
 _LEFT_NAMES = [
@@ -128,6 +131,20 @@ class AstralTeleopArmNode(Node):
         self.declare_parameter("motion_scale", 0.65)
         self.declare_parameter("flip_pitch", False)
         self.declare_parameter("tcp_offset", [0.0] * 6)
+        self.declare_parameter(
+            "solver_tip_to_tcp_transform",
+            [1.0, 0.0, 0.0, 0.0,
+             0.0, 1.0, 0.0, 0.0,
+             0.0, 0.0, 1.0, 0.0,
+             0.0, 0.0, 0.0, 1.0],
+        )
+        self.declare_parameter("use_solver_tip_to_tcp_transform", False)
+        self.declare_parameter("coordinate_contract_version", 0)
+        self.declare_parameter("kinematics_hash", "")
+        self.declare_parameter("solver_base_frame", "")
+        self.declare_parameter("solver_tip_frame", "")
+        self.declare_parameter("tool_frame", "")
+        self.declare_parameter("solver_adapter_id", "astral_geometric_poe_link7_v1")
         self.declare_parameter("max_joint_vel", 4.0)
         self.declare_parameter("workspace_radius", 0.0)
         # Radial soft wall at the elbow-straight singularity (geometric
@@ -230,6 +247,12 @@ class AstralTeleopArmNode(Node):
         if self.side not in ("left", "right"):
             raise ValueError("arm_side must be left|right")
         self.names = _LEFT_NAMES if self.side == "left" else _RIGHT_NAMES
+        self.coordinate_contract_version = int(self.get_parameter("coordinate_contract_version").value)
+        self.kinematics_hash = str(self.get_parameter("kinematics_hash").value)
+        self.solver_base_frame = str(self.get_parameter("solver_base_frame").value).strip() or f"{self.side}_base_link"
+        self.solver_tip_frame = str(self.get_parameter("solver_tip_frame").value).strip() or f"{self.side}_link7"
+        self.tool_frame = str(self.get_parameter("tool_frame").value).strip() or self.solver_tip_frame
+        self.solver_adapter_id = str(self.get_parameter("solver_adapter_id").value)
         self.dry_run = bool(self.get_parameter("dry_run").value)
         self.data_timeout = float(self.get_parameter("data_timeout").value)
         rate = float(self.get_parameter("control_rate").value)
@@ -244,6 +267,7 @@ class AstralTeleopArmNode(Node):
         self._vr_to_arm_yaml = np.asarray(
             self.get_parameter("vr_to_arm_rot").value, dtype=float
         ).reshape(3, 3)
+        self._vr_to_arm_yaml = validate_rotation(self._vr_to_arm_yaml)
         self.ik = make_single_arm_ik(
             self.side,
             st,
@@ -285,7 +309,7 @@ class AstralTeleopArmNode(Node):
             self.get_parameter("human_elbow_min_sin").value
         )
         self._apply_human_elbow_cfg()
-        # Body-tracking prior state (Quest IOBT, robot_body/hips frame).
+        # Body-tracking prior state (Quest IOBT operator hips frame, not robot body).
         self._body_names: Optional[List[str]] = None
         self._elbow_dir_vr: Optional[np.ndarray] = None  # EMA-smoothed unit dir
         self._elbow_dir_t: float = 0.0
@@ -311,8 +335,22 @@ class AstralTeleopArmNode(Node):
         if hasattr(self.ik, "set_lm_params"):
             self.ik.set_lm_params(q_pref=init_q)
         self.ik.sync_state(init_q)
-        T0 = self.ik.fk(init_q)
-        _ = self.ik.solve(T0)
+        tcp = np.asarray(self.get_parameter("tcp_offset").value, dtype=float)
+        if tcp.shape != (6,) or not np.isfinite(tcp).all():
+            raise ValueError("tcp_offset must contain [x,y,z,roll,pitch,yaw]")
+        tool_transform = np.asarray(
+            self.get_parameter("solver_tip_to_tcp_transform").value, dtype=float
+        )
+        if bool(self.get_parameter("use_solver_tip_to_tcp_transform").value):
+            if tool_transform.size != 16:
+                raise ValueError("solver_tip_to_tcp_transform must contain 16 row-major values")
+            self._T_solver_tip_to_tcp = validate_transform(tool_transform.reshape(4, 4))
+        else:
+            self._T_solver_tip_to_tcp = np.eye(4)
+            self._T_solver_tip_to_tcp[:3, :3] = Rotation.from_euler("xyz", tcp[3:]).as_matrix()
+            self._T_solver_tip_to_tcp[:3, 3] = tcp[:3]
+        T0 = self._fk_tcp(init_q)
+        _ = self.ik.solve(tcp_to_solver_tip(T0, self._T_solver_tip_to_tcp))
         self.robot_init_pos = T0[:3, 3].copy()
         self.robot_init_rot = T0[:3, :3].copy()
         self.q_cmd = self._flip_q(init_q)  # back to hardware convention
@@ -374,13 +412,6 @@ class AstralTeleopArmNode(Node):
             flip_pitch=bool(self.get_parameter("flip_pitch").value),
             auto_calibrate=not self._require_start,
         )
-        tcp = list(self.get_parameter("tcp_offset").value)
-        T_ft = np.eye(4)
-        T_ft[:3, :3] = Rotation.from_euler("xyz", tcp[3:]).as_matrix()
-        T_ft[:3, 3] = tcp[:3]
-        self._T_flange_to_tcp = T_ft
-        self._T_tcp_to_flange = np.linalg.inv(T_ft)
-
         self.safety = SafetyFilter(
             joint_lower_limits=self.ik.lower_limits,
             joint_upper_limits=self.ik.upper_limits,
@@ -691,7 +722,7 @@ class AstralTeleopArmNode(Node):
         if hasattr(self.ik, "set_lm_params"):
             self.ik.set_lm_params(q_pref=self._flip_q(self._init_q_hw))
         self.ik.sync_state(q_ik)
-        T0 = self.ik.fk(q_ik)
+        T0 = self._fk_tcp(q_ik)
         self.robot_init_pos = T0[:3, 3].copy()
         self.robot_init_rot = T0[:3, :3].copy()
         self.q_cmd = q_hw
@@ -724,6 +755,12 @@ class AstralTeleopArmNode(Node):
             if f:
                 out[i] = -out[i]
         return out
+
+    def _fk_tcp(self, q_solver: np.ndarray) -> np.ndarray:
+        """Return the configured TCP pose from the active solver-tip FK."""
+        return solver_tip_to_tcp(
+            self.ik.fk(np.asarray(q_solver, dtype=float)), self._T_solver_tip_to_tcp
+        )
 
     def _parse_init_waypoints(self) -> list:
         """Hardware-convention via points from the flat ``init_waypoints`` array."""
@@ -762,7 +799,16 @@ class AstralTeleopArmNode(Node):
         """
         tlog = getattr(self, "_tlog", None)
         if tlog is not None and tlog.enabled:
-            tlog.write(teleop_event_record(event, self.side, **fields))
+            tlog.write(teleop_event_record(
+                event, self.side,
+                coordinate_contract_version=self.coordinate_contract_version,
+                kinematics_hash=self.kinematics_hash,
+                solver_base_frame=self.solver_base_frame,
+                solver_tip_frame=self.solver_tip_frame,
+                solver_adapter_id=self.solver_adapter_id,
+                tool_frame=self.tool_frame,
+                **fields,
+            ))
 
     def _on_armed(self, msg: Bool) -> None:
         # Only Bool(true) arms; a stray/default Bool(false) must not arm.
@@ -1029,7 +1075,7 @@ class AstralTeleopArmNode(Node):
             self._flip_q(q_hw), self.ik.lower_limits + 0.02, self.ik.upper_limits - 0.02
         )
         self.ik.sync_state(q_ik)
-        T0 = self.ik.fk(q_ik)
+        T0 = self._fk_tcp(q_ik)
         self.robot_init_pos = T0[:3, 3].copy()
         self.robot_init_rot = T0[:3, :3].copy()
         self.q_cmd = q_hw
@@ -1404,8 +1450,9 @@ class AstralTeleopArmNode(Node):
         T_tcp = self.pose.compute_target_pose(
             dp, dr, self.robot_init_pos, self.robot_init_rot
         )
-        T_flange = T_tcp @ self._T_tcp_to_flange
-        # Sphere in the IK frame (*_base_link origin). radius<=0 disables.
+        # SafetyFilter's radial workspace is centered at the solver base and
+        # has historically constrained the solver-tip position.
+        T_flange = tcp_to_solver_tip(T_tcp, self._T_solver_tip_to_tcp)
         p_req = T_flange[:3, 3].copy()
         r_req = float(np.linalg.norm(p_req))
         if self._print_latency:
@@ -1414,7 +1461,8 @@ class AstralTeleopArmNode(Node):
         p_ws = self.safety.check_workspace(p_req)
         if not np.allclose(p_ws, p_req, atol=1e-9):
             T_flange[:3, 3] = p_ws
-            T_tcp = T_flange @ self._T_flange_to_tcp
+            T_tcp = solver_tip_to_tcp(T_flange, self._T_solver_tip_to_tcp)
+            p_req = p_ws.copy()
             clip["ws_clip"] = 1
             if self._print_latency:
                 self._lat.count("ws_clip")
@@ -1427,7 +1475,7 @@ class AstralTeleopArmNode(Node):
             p_clamped, clipped = clamp_reach(p_req, self.reach_margin)
             if clipped:
                 T_flange[:3, 3] = p_clamped
-                T_tcp = T_flange @ self._T_flange_to_tcp
+                T_tcp = solver_tip_to_tcp(T_flange, self._T_solver_tip_to_tcp)
                 p_req = p_clamped
                 clip["reach_clip"] = 1
                 if self._print_latency:
@@ -1545,7 +1593,7 @@ class AstralTeleopArmNode(Node):
         if self._print_latency:
             self._lat.add("loop", (time.perf_counter() - t_loop) * 1000.0)
         if rec is not None:
-            T_cmd = self.ik.fk(self._flip_q(self.q_cmd)) @ self._T_flange_to_tcp
+            T_cmd = self._fk_tcp(self._flip_q(self.q_cmd))
             rec["cmd"] = T_cmd[:3, 3].tolist()
             rec["q"] = self.q_cmd.tolist()
             rec["ik_fail"] = 0
@@ -1599,7 +1647,7 @@ class AstralTeleopArmNode(Node):
                 # 到零位：终态 q=0，并把机器人原点锚到零位 FK（后续 start/
                 # re-anchor 从实际位姿重新标定前不会用旧 init 目标）
                 self.q_cmd = np.zeros(7, dtype=float)
-                T0 = self.ik.fk(self._flip_q(self.q_cmd))
+                T0 = self._fk_tcp(self._flip_q(self.q_cmd))
                 self.robot_init_pos = T0[:3, 3].copy()
                 self.robot_init_rot = T0[:3, :3].copy()
             # reason=timeout → 保持当前 q_cmd（未到零位绝不能硬发零目标）
@@ -1878,7 +1926,7 @@ class AstralTeleopArmNode(Node):
                     f"[{self.side}] Init pose timeout ({self._init_timeout:.0f}s), "
                     f"error={max_abs:.3f} rad — VR zero uses current q"
                 )
-            T0 = self.ik.fk(self._flip_q(self.q_cmd))
+            T0 = self._fk_tcp(self._flip_q(self.q_cmd))
             self.robot_init_pos = T0[:3, 3].copy()
             self.robot_init_rot = T0[:3, :3].copy()
             self._init_q_hw = self.q_cmd.copy()
@@ -1927,7 +1975,7 @@ class AstralTeleopArmNode(Node):
             self.robot_init_pos,
             self.robot_init_rot,
         )
-        T_cmd = self.ik.fk(self._flip_q(self.q_cmd)) @ self._T_flange_to_tcp
+        T_cmd = self._fk_tcp(self._flip_q(self.q_cmd))
         self._tune_pubs["vr"].publish(self._pose_msg(T_vr, stamp))
         self._tune_pubs["filt"].publish(self._pose_msg(T_tcp, stamp))
         self._tune_pubs["cmd"].publish(self._pose_msg(T_cmd, stamp))

@@ -13,7 +13,7 @@ setup(
         *[(f"share/{package_name}/{Path(path).parent}", [path])
           for path in glob("config/**/*", recursive=True) if Path(path).is_file()],
     ],
-    install_requires=["setuptools"],
+    install_requires=["setuptools", "numpy"],
     zip_safe=True,
     maintainer="MORLA maintainers",
     maintainer_email="robot@localhost",

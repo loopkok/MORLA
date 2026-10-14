@@ -1,5 +1,10 @@
 import numpy as np
+import yaml
+from pathlib import Path
 from scipy.spatial.transform import Rotation
+
+from morla_core.coordinate_contract import build_coordinate_contract
+from morla_core.coordinates import UNITY_TO_QUEST3_CANONICAL
 
 M = np.array([[-1.0, 0, 0], [0, 0, -1.0], [0, 1.0, 0]])
 OLD = {
@@ -17,6 +22,7 @@ def _tcp_transform(seed):
 
 
 def test_six_translation_directions_match_the_legacy_unity_mapping():
+    np.testing.assert_array_equal(UNITY_TO_QUEST3_CANONICAL, M)
     directions = [sign * np.eye(3)[axis] for axis in range(3) for sign in (-1, 1)]
     for side, old_matrix in OLD.items():
         new_matrix = old_matrix @ M.T
@@ -66,3 +72,15 @@ def test_nonzero_tcp_offset_and_initial_tool_pose_are_unchanged():
                 new_target @ tcp_to_flange,
                 atol=1e-13,
             )
+
+
+def test_profile_alignment_is_derived_from_common_body_frame_and_urdf_mounts():
+    root = Path(__file__).resolve().parents[4]
+    profile_path = root / "src/robots/nero/morla_nero_robot/config/profiles/nero_dual_xhand.yaml"
+    profile = yaml.safe_load(profile_path.read_text())
+    contract = build_coordinate_contract(profile)
+    urdf_path = root / "src/robot_description/urdf/nero/xhand_nero_description.urdf"
+    assert set(contract.arms) == {"left", "right"}
+    for side, legacy_matrix in OLD.items():
+        effective = contract.resolve_arm_input_rotation(side, str(urdf_path))
+        np.testing.assert_allclose(effective, legacy_matrix @ M.T, atol=4e-6)

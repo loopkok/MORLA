@@ -6,11 +6,11 @@ Mirrors ``morla_input.quest3_udp_mocap`` processing:
 Frame tree (Unity LH → optional robot: X left, Y back, Z up)::
 
     IOBT off:
-        robot_world|vr_world ── head / wrist|controller
+        quest3_tracking_world_* ── head / wrist|controller
                                      └── landmarks  (wrist-local + raw|mano + EMA)
     IOBT on:
-        robot_world|vr_world ── hips
-        robot_body|vr_body   ── head / wrist|controller / body joints
+        quest3_tracking_world_* ── hips
+        quest3_operator_body_* ── head / wrist|controller / body joints
                                      └── landmarks  (still wrist-local)
 
 Examples::
@@ -35,6 +35,8 @@ from pathlib import Path
 from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
+
+from morla_core.coordinates import UNITY_TO_QUEST3_CANONICAL
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from morla_input.packet_guard import PacketGuard
@@ -149,14 +151,7 @@ def pose_in_parent_frame(
 
 # Unity LH (X right, Y up, Z forward) → robot (X left, Y back, Z up):
 #   (x, y, z)_r = (-x_u, -z_u, y_u)
-UNITY_TO_ROBOT = np.array(
-    [
-        [-1.0, 0.0, 0.0],
-        [0.0, 0.0, -1.0],
-        [0.0, 1.0, 0.0],
-    ],
-    dtype=float,
-)
+UNITY_TO_ROBOT = UNITY_TO_QUEST3_CANONICAL
 
 
 def _quat_to_matrix(q: np.ndarray) -> np.ndarray:
@@ -414,8 +409,14 @@ class Quest3MocapStandalone:
         self.landmark_cache_right = np.zeros((21, 3), dtype=float)
         self.landmark_cache_left = np.zeros((21, 3), dtype=float)
 
-        self.world_frame_id = "robot_world" if self.convert_to_robot else "vr_world"
-        self.body_frame_id = "robot_body" if self.convert_to_robot else "vr_body"
+        self.world_frame_id = (
+            "quest3_tracking_world_canonical" if self.convert_to_robot
+            else "quest3_tracking_world_unity"
+        )
+        self.body_frame_id = (
+            "quest3_operator_body_canonical" if self.convert_to_robot
+            else "quest3_operator_body_unity"
+        )
         self.head_frame_id = self.world_frame_id
         self.wrist_frame_id = self.world_frame_id
         self._last_iobt_time = 0.0
@@ -1204,7 +1205,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     print(
         "Running. Mixed: controller+hand; IOBT: body + head/hand in hips frame. "
         f"convert_to_robot={args.convert_to_robot} "
-        f"({'robot_world X=left Y=back Z=up' if args.convert_to_robot else 'vr_world Unity axes'}). "
+        f"({'quest3_tracking_world_canonical X=left Y=back Z=up' if args.convert_to_robot else 'quest3_tracking_world_unity'}). "
         "Ctrl+C to stop.",
         flush=True,
     )

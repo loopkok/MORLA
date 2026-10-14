@@ -114,7 +114,7 @@ def _load_frozen_schema(path: str) -> FrozenSchema | None:
     if "schema_version" not in value:
         return None
     schema = FrozenSchema.from_dict(value)
-    for key in ("schema_hash", "layout_hash"):
+    for key in ("schema_hash", "layout_hash", "kinematics_hash"):
         declared = envelope.get(key)
         actual = getattr(schema, key)
         if declared and declared != actual:

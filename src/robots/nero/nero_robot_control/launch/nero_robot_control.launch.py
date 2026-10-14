@@ -26,7 +26,10 @@ def _setup(context, *args, **kwargs):
             output="screen",
             parameters=[
                 config,
-                {"sdk_backend": LaunchConfiguration("sdk_backend")},
+                {
+                    "sdk_backend": LaunchConfiguration("sdk_backend"),
+                    "flange_frame_id": LaunchConfiguration("flange_frame_id"),
+                },
             ],
         )
     ]
@@ -37,6 +40,7 @@ def generate_launch_description():
         [
             DeclareLaunchArgument("arm_side", default_value="left"),
             DeclareLaunchArgument("params_file", default_value=""),
+            DeclareLaunchArgument("flange_frame_id", default_value=""),
             DeclareLaunchArgument(
                 "sdk_backend",
                 default_value="fake",

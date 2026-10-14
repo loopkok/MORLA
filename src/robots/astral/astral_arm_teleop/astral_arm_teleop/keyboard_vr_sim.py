@@ -174,7 +174,7 @@ class KeyboardVRSim(Node):
     def _build_msg(self, side: str) -> PoseStamped:
         msg = PoseStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = "robot_world"
+        msg.header.frame_id = "quest3_tracking_world_canonical"
 
         p = self.pos[side]
         r = self.rot[side]

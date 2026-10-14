@@ -945,11 +945,12 @@ class IKSolver:
     # ---- Core methods ----
 
     def solve(self, T_target: np.ndarray) -> Optional[np.ndarray]:
-        """Solve IK for a 4x4 flange target pose.
+        """Solve IK for a 4x4 analytic solver-tip target pose.
 
         Args:
-            T_target: 4x4 homogeneous matrix — flange pose in base frame
-                      (T07 with post_transform_d8, matching what fk() returns).
+            T_target: 4x4 homogeneous matrix — ``link7`` pose in the solver
+                      base frame (T07 with post_transform_d8, matching ``fk``).
+                      Convert a flange/tool target to this frame before calling.
 
         Returns:
             7-element joint angle array (rad), or None if no solution found.
@@ -971,13 +972,13 @@ class IKSolver:
         return q_best.reshape(7).copy()
 
     def fk(self, q: np.ndarray) -> np.ndarray:
-        """Forward kinematics: 7 joint angles -> 4x4 flange pose matrix.
+        """Forward kinematics: 7 joint angles -> 4x4 analytic solver-tip pose.
 
         Args:
             q: 7-element joint angle array (rad).
 
         Returns:
-            4x4 homogeneous transformation matrix (T07 with post_transform_d8).
+            4x4 homogeneous ``link7`` pose matrix (T07 with post_transform_d8).
         """
         return fk(np.array(q, dtype=float).reshape(7), self.params)
 

@@ -7,6 +7,7 @@ components join through the standard adapter in the later XHand integration.
 from __future__ import annotations
 
 import os
+import json
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -17,6 +18,9 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from morla_core.profile import ProfileRegistry
+from morla_core.coordinate_contract import build_coordinate_contract
+from morla_core.resource_locator import resolve_robot_asset
+from morla_bringup.profile_state import profile_description_actions
 
 
 def _setup(context, *args, **kwargs):
@@ -32,6 +36,7 @@ def _setup(context, *args, **kwargs):
     if not arms:
         raise RuntimeError(f"profile_id {profile_id!r} has no enabled Nero arm")
     sides = sorted({component["side"] for component in arms})
+    coordinate_contract = build_coordinate_contract(profile.values)
 
     input_nodes = []
     if LaunchConfiguration("with_input").perform(context).lower() in ("true", "1", "yes"):
@@ -53,6 +58,9 @@ def _setup(context, *args, **kwargs):
                         "arm_side": "both" if len(sides) == 2 else sides[0],
                         "landmark_preprocess": "raw",
                         "allow_legacy_packets": allow_legacy,
+                        "coordinate_basis_id": coordinate_contract.input_basis_id,
+                        "coordinate_contract_version": coordinate_contract.version,
+                        "kinematics_hash": coordinate_contract.kinematics_hash,
                     },
                 ],
             )
@@ -86,6 +94,11 @@ def _setup(context, *args, **kwargs):
     teleops = []
     for component in arms:
         side = component["side"]
+        model_path = resolve_robot_asset(str(component.get("description_model_id", "")))
+        alignment = coordinate_contract.resolve_arm_input_rotation(side, str(model_path))
+        tool_transform = coordinate_contract.resolve_arm_tool_transform(side, str(model_path))
+        arm_coordinates = coordinate_contract.arm(side)
+        tool = arm_coordinates["tool"]
         driver_config = os.path.join(
             get_package_share_directory(component["driver_package"]),
             component["driver_params_file"],
@@ -103,6 +116,7 @@ def _setup(context, *args, **kwargs):
                     "arm_side": side,
                     "sdk_backend": LaunchConfiguration("sdk_backend"),
                     "params_file": driver_config,
+                    "flange_frame_id": arm_coordinates["physical_flange_frame"],
                 }.items(),
             )
         )
@@ -114,6 +128,16 @@ def _setup(context, *args, **kwargs):
                 launch_arguments={
                     "arm_side": side,
                     "params_file": teleop_config,
+                    "input_alignment": json.dumps(alignment.reshape(-1).tolist()),
+                    "kinematics_hash": coordinate_contract.kinematics_hash,
+                    "coordinate_contract_version": str(coordinate_contract.version),
+                    "solver_tip_to_tcp_transform": json.dumps(
+                        tool_transform.reshape(-1).tolist()
+                    ),
+                    "solver_base_frame": arm_coordinates["solver_base_frame"],
+                    "solver_tip_frame": arm_coordinates["solver_tip_frame"],
+                    "solver_adapter_id": arm_coordinates["solver_adapter_id"],
+                    "tool_frame": tool["frame"],
                 }.items(),
             )
         )
@@ -138,7 +162,13 @@ def _setup(context, *args, **kwargs):
             else "sim",
         }],
     )
-    return [*input_nodes, start_gate, workpos_gate, *drivers, *teleops, coordinator]
+    arm_only_profile = dict(profile.values)
+    arm_only_profile["components"] = [component for component in profile.values["components"]
+                                     if component.get("enabled")
+                                     and component.get("type") == "nero_arm"]
+    description_actions = profile_description_actions(arm_only_profile)
+    return [*description_actions, *input_nodes, start_gate, workpos_gate,
+            *drivers, *teleops, coordinator]
 
 
 def generate_launch_description():

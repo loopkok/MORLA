@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 本文件由 robot_description/scripts/make_xnero_mjcf.py 生成，勿手改。
-     生成时间 : 2026-10-13T11:21:49
-     源 URDF  : xhand_nero_description.urdf (md5 cb63a7a887de)
+     生成时间 : 2026-10-14T12:38:43
+     源 URDF  : xhand_nero_description.urdf (md5 7dff58ce3e5f)
      重新生成 : python3 scripts/make_mjcf.py
      meshdir 为相对路径（源码树可直接加载）；ROS 节点加载时会覆盖为
      robot_description share 下的相对 mesh 路径。 -->
@@ -79,9 +79,9 @@
       <inertial pos="-0.000768106 -5.71803e-05 -0.00686373" quat="0.998496 0.0243284 -0.0474034 0.0129308" mass="0.767105" diaginertia="0.000668361 0.000545022 0.000513619" />
       <joint name="left_joint1" pos="0 0 0" axis="0 0 1" range="-2.70526 2.70526" actuatorfrcrange="-100 100" />
       <geom type="mesh" mesh="link1" />
-      <body name="left_link2" quat="0.499998 0.500002 0.5 -0.5">
+      <body name="left_link2" quat="1.89469e-08 1.89469e-08 0.707107 -0.707107">
         <inertial pos="0.000796867 -0.0789033 0.00111849" quat="0.724173 0.689546 -0.00281155 -0.00963045" mass="0.693819" diaginertia="0.00201137 0.00182229 0.000632162" />
-        <joint name="left_joint2" pos="0 0 0" axis="0 0 1" range="-3.3108 0.1692" actuatorfrcrange="-100 100" />
+        <joint name="left_joint2" pos="0 0 0" axis="0 0 1" range="-1.74533 1.74533" actuatorfrcrange="-100 100" />
         <geom type="mesh" mesh="link2" />
         <body name="left_link3" pos="0 -0.31 0" quat="-1.37922e-08 1.37922e-08 -0.707107 0.707107">
           <inertial pos="0.000145134 -0.00121379 -0.0486114" quat="0.999978 -0.00572699 -0.000503892 -0.00336231" mass="0.672465" diaginertia="0.0034323 0.00338703 0.000288126" />
@@ -789,9 +789,9 @@
       <inertial pos="-0.000768106 -5.71803e-05 -0.00686373" quat="0.998496 0.0243284 -0.0474034 0.0129308" mass="0.767105" diaginertia="0.000668361 0.000545022 0.000513619" />
       <joint name="right_joint1" pos="0 0 0" axis="0 0 1" range="-2.70526 2.70526" actuatorfrcrange="-100 100" />
       <geom type="mesh" mesh="link1" />
-      <body name="right_link2" quat="0.499998 0.500002 0.5 -0.5">
+      <body name="right_link2" quat="1.89469e-08 1.89469e-08 0.707107 -0.707107">
         <inertial pos="0.000796867 -0.0789033 0.00111849" quat="0.724173 0.689546 -0.00281155 -0.00963045" mass="0.693819" diaginertia="0.00201137 0.00182229 0.000632162" />
-        <joint name="right_joint2" pos="0 0 0" axis="0 0 1" range="-3.3108 0.1692" actuatorfrcrange="-100 100" />
+        <joint name="right_joint2" pos="0 0 0" axis="0 0 1" range="-1.74533 1.74533" actuatorfrcrange="-100 100" />
         <geom type="mesh" mesh="link2" />
         <body name="right_link3" pos="0 -0.31 0" quat="-1.37922e-08 1.37922e-08 -0.707107 0.707107">
           <inertial pos="0.000145134 -0.00121379 -0.0486114" quat="0.999978 -0.00572699 -0.000503892 -0.00336231" mass="0.672465" diaginertia="0.0034323 0.00338703 0.000288126" />

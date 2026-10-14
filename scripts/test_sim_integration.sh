@@ -14,6 +14,10 @@ export PATH="/usr/bin:/opt/ros/humble/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 export ROS_LOCALHOST_ONLY=1
 export PYTHONPATH="$WS/src/common/morla_core:$WS/src/common/morla_data_collect:$WS/src/robots/xhand/xhand_retargeting${PYTHONPATH:+:$PYTHONPATH}"
 
+echo "Checking centralized model closure and Nero FK convention"
+/usr/bin/python3 "$WS/src/robot_description/scripts/check_assets.py" --loaders
+/usr/bin/python3 "$WS/src/robot_description/scripts/audit_nero_kinematics.py"
+
 DOMAIN_ID="${MORLA_TEST_ROS_DOMAIN_ID:-97}"
 [[ "$DOMAIN_ID" =~ ^[0-9]+$ ]] || { echo "MORLA_TEST_ROS_DOMAIN_ID must be numeric" >&2; exit 2; }
 ((DOMAIN_ID <= 220)) || { echo "MORLA_TEST_ROS_DOMAIN_ID must be <= 220" >&2; exit 2; }

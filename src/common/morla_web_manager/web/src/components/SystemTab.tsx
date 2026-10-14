@@ -99,6 +99,20 @@ export function SystemTab({ state, presets, onAction }: Props) {
           <div style={hintStyle}>
             当前选择 <b>{chosenProfile.robot_id}</b> · state/action {chosenProfile.state_dim}/{chosenProfile.action_dim} 维
             {chosenProfile.hands.map((h) => ` · ${h.side} ${h.type} ${h.dim} 维`)}。
+            {chosenProfile.coordinate_contract && (
+              <>
+                <br />坐标契约 v{chosenProfile.coordinate_contract.version} · 输入 {chosenProfile.coordinate_contract.input_basis_id}
+                {' · '}机器人参考系 {chosenProfile.coordinate_contract.robot_body_frame}
+                {' · '}运动学 {chosenProfile.kinematics_hash?.slice(0, 12) || '未解析'}
+                {Object.entries(chosenProfile.coordinate_contract.arms ?? {}).map(([side, arm]) => (
+                  <span key={side}>
+                    {' · '}{side}: {arm.solver_base_frame} → {arm.solver_tip_frame} → {arm.tool?.frame}
+                    {' ('}{arm.tool?.calibration_status || '未标定'}{')'}
+                  </span>
+                ))}
+              </>
+            )}
+            {' '}
             数据采集和策略泳道会沿用活动 coordinator 的 Profile；CLI 节点在线或任一泳道运行时，后端拒绝切换配置。
             {state?.profileSelection?.active_profile_id && ` 活动 Profile：${state.profileSelection.active_profile_id}。`}
           </div>

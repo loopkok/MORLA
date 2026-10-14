@@ -10,7 +10,10 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
+from morla_core.coordinate_contract import build_coordinate_contract
 from morla_core.profile import ProfileRegistry
+from morla_core.resource_locator import resolve_robot_asset
+from morla_bringup.profile_state import profile_description_actions
 
 
 def _bool(context, name, default="false"):
@@ -33,10 +36,12 @@ def _setup(context, *args, **kwargs):
     components = [item for item in profile.values.get("components", []) if item.get("enabled")]
     arms = [item for item in components if item.get("type") == "nero_arm"]
     hands = [item for item in components if item.get("type") == "xhand"]
+    coordinate_contract = build_coordinate_contract(profile.values)
     if not arms and not hands:
         raise RuntimeError(f"profile {profile_id!r} has no enabled Nero/XHand components")
 
     actions = []
+    actions.extend(profile_description_actions(profile))
     if _bool(context, "with_input", "true"):
         allow_legacy = _bool(context, "allow_legacy_packets", "false")
         actions.append(
@@ -50,6 +55,9 @@ def _setup(context, *args, **kwargs):
                     else (arms[0]["side"] if arms else "both"),
                     "landmark_preprocess": "raw",
                     "allow_legacy_packets": allow_legacy,
+                    "coordinate_basis_id": coordinate_contract.input_basis_id,
+                    "coordinate_contract_version": coordinate_contract.version,
+                    "kinematics_hash": coordinate_contract.kinematics_hash,
                 }],
             )
         )
@@ -84,6 +92,12 @@ def _setup(context, *args, **kwargs):
 
     for item in arms:
         side = item["side"]
+        model_id = str(item.get("description_model_id", ""))
+        model_path = resolve_robot_asset(model_id)
+        input_rotation = coordinate_contract.resolve_arm_input_rotation(side, str(model_path))
+        tool_transform = coordinate_contract.resolve_arm_tool_transform(side, str(model_path))
+        arm_coordinates = coordinate_contract.arm(side)
+        tool = arm_coordinates["tool"]
         teleop_config = os.path.join(
             get_package_share_directory(item["teleop_package"]), item["teleop_params_file"]
         )
@@ -94,7 +108,17 @@ def _setup(context, *args, **kwargs):
                 name="nero_arm_teleop",
                 namespace=f"/{side}_arm",
                 output="screen",
-                parameters=[teleop_config],
+                parameters=[teleop_config, {
+                    "vr_to_arm_rot_after_unity_to_robot": input_rotation.reshape(-1).tolist(),
+                    "solver_tip_to_tcp_transform": tool_transform.reshape(-1).tolist(),
+                    "use_solver_tip_to_tcp_transform": True,
+                    "coordinate_contract_version": coordinate_contract.version,
+                    "kinematics_hash": coordinate_contract.kinematics_hash,
+                    "solver_base_frame": arm_coordinates["solver_base_frame"],
+                    "solver_tip_frame": arm_coordinates["solver_tip_frame"],
+                    "solver_adapter_id": arm_coordinates["solver_adapter_id"],
+                    "tool_frame": tool["frame"],
+                }],
             )
         )
         if mode == "real":
@@ -110,7 +134,11 @@ def _setup(context, *args, **kwargs):
                     output="screen",
                     parameters=[
                         driver_config,
-                        {"arm_side": side, "sdk_backend": "hardware"},
+                        {
+                            "arm_side": side,
+                            "sdk_backend": "hardware",
+                            "flange_frame_id": arm_coordinates["physical_flange_frame"],
+                        },
                     ],
                 )
             )

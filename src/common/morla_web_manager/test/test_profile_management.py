@@ -35,6 +35,10 @@ def test_profile_catalog_reports_action_dimensions_and_supported_launch_modes():
     data = result.data
     by_id = {row["profile_id"]: row for row in data["profiles"]}
     assert by_id["nero_left_xhand"]["action_dim"] == 19
+    assert len(by_id["nero_left_xhand"]["kinematics_hash"]) == 64
+    nero_coords = by_id["nero_left_xhand"]["coordinate_contract"]
+    assert nero_coords["robot_body_frame"] == "t_bracket_base"
+    assert nero_coords["arms"]["left"]["solver_base_frame"] == "left_base_link"
     assert by_id["nero_left_xhand"]["hands"] == [
         {"side": "left", "type": "xhand", "dim": 12}
     ]
