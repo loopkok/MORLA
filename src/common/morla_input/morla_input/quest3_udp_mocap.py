@@ -42,6 +42,15 @@ def _stream_qos() -> QoSProfile:
     )
 
 
+def _latched_event_qos() -> QoSProfile:
+    return QoSProfile(
+        reliability=ReliabilityPolicy.RELIABLE,
+        history=HistoryPolicy.KEEP_LAST,
+        depth=1,
+        durability=DurabilityPolicy.TRANSIENT_LOCAL,
+    )
+
+
 class FPSCounter:
     """Simple sliding-window FPS counter."""
     def __init__(self, window=100, print_interval=5.0):
@@ -88,19 +97,6 @@ class BandwidthMeter:
         self._bytes = 0
         self._last_print = now
         return kbps
-
-
-OPERATOR2MANO_RIGHT = np.array([
-    [0, 0, -1],
-    [-1, 0, 0],
-    [0, 1, 0],
-])
-
-OPERATOR2MANO_LEFT = np.array([
-    [0, 0, -1],
-    [1, 0, 0],
-    [0, -1, 0],
-])
 
 
 def _quat_normalize(q: np.ndarray) -> np.ndarray:
@@ -235,42 +231,6 @@ def unity_landmarks_to_robot(points: np.ndarray) -> np.ndarray:
     return (UNITY_TO_ROBOT @ np.asarray(points, dtype=float).T).T
 
 
-def adaptive_retargeting_xhand(landmarks):
-    """XHand-only pinky length hack (NOT for Wuji Hand).
-
-    Sequentially stretches MCP→PIP→DIP→TIP. Because each step uses the
-    already-moved proximal joint, large scales fold the finger into a
-    zigzag / Z shape. Keep disabled for Wuji / general MediaPipe consumers.
-    """
-    landmarks = landmarks.copy()
-
-    pinky_mcp = 17
-    pinky_pip = 18
-    pinky_dip = 19
-    pinky_tip = 20
-
-    pinky_extension = np.linalg.norm(landmarks[pinky_tip] - landmarks[pinky_mcp])
-
-    max_extension = 0.10
-    min_extension = 0.03
-    extension_ratio = np.clip((pinky_extension - min_extension) / (max_extension - min_extension), 0.0, 1.0)
-
-    base_scale = 1.2
-    max_scale = 2.2
-    adaptive_scale = base_scale + (max_scale - base_scale) * extension_ratio
-
-    mcp_to_pip_vector = landmarks[pinky_pip] - landmarks[pinky_mcp]
-    landmarks[pinky_pip] = landmarks[pinky_mcp] + mcp_to_pip_vector * adaptive_scale
-
-    pip_to_dip_vector = landmarks[pinky_dip] - landmarks[pinky_pip]
-    landmarks[pinky_dip] = landmarks[pinky_pip] + pip_to_dip_vector * adaptive_scale
-
-    dip_to_tip_vector = landmarks[pinky_tip] - landmarks[pinky_dip]
-    landmarks[pinky_tip] = landmarks[pinky_dip] + dip_to_tip_vector * adaptive_scale
-
-    return landmarks
-
-
 class Quest3UDPMocap(Node):
     def __init__(self):
         super().__init__("quest3_udp_mocap")
@@ -283,13 +243,9 @@ class Quest3UDPMocap(Node):
         self.declare_parameter("ema_alpha", 0.7)
         self.declare_parameter("viz", True)
         self.declare_parameter("arm_side", "right")
-        # XHand pinky stretch — causes Z-shaped pinky if left on for Wuji.
-        self.declare_parameter("enable_xhand_pinky_adapt", False)
-        # landmark_preprocess:
-        #   mano — wrist frame + OPERATOR2MANO (legacy XHand / nero path)
-        #   raw  — only Quest→ROS X flip; leave MANO to wuji_retargeting
-        #          (required for glove-compatible Wuji retarget / tuning)
-        self.declare_parameter("landmark_preprocess", "mano")
+        # Unified input is wrist-local raw in robot axes. Robot-specific MANO
+        # and finger-length adaptation belongs in that robot's retargeter.
+        self.declare_parameter("landmark_preprocess", "raw")
         # Unity LH → robot (X left, Y back, Z up). If false: keep Unity axes
         # (landmarks only apply legacy X flip).
         self.declare_parameter("convert_to_robot", True)
@@ -309,21 +265,23 @@ class Quest3UDPMocap(Node):
         self.viz = self.get_parameter("viz").value
         self.arm_side = self.get_parameter("arm_side").value.lower()
         self.both = self.arm_side == "both"
-        self.enable_xhand_pinky_adapt = bool(
-            self.get_parameter("enable_xhand_pinky_adapt").value
-        )
         self.landmark_preprocess = str(
             self.get_parameter("landmark_preprocess").value
         ).strip().lower()
-        if self.landmark_preprocess not in ("mano", "raw"):
+        if self.landmark_preprocess != "raw":
             raise ValueError(
-                "landmark_preprocess must be 'mano' or 'raw', "
-                f"got {self.landmark_preprocess}"
+                "morla_input publishes only unified raw landmarks; run MANO "
+                "preprocessing in the robot-specific retargeter"
             )
         self.convert_to_robot = bool(self.get_parameter("convert_to_robot").value)
         from morla_input.packet_guard import PacketGuard
         self._packet_guard = PacketGuard(float(self.get_parameter("max_packet_age_s").value),
                                          bool(self.get_parameter("allow_legacy_packets").value))
+        if self._packet_guard.allow_legacy:
+            self.get_logger().warning(
+                "LEGACY QUEST PACKETS ENABLED: source age, sequence and session "
+                "checks are bypassed for unwrapped packets"
+            )
         self.controller_as_wrist = bool(self.get_parameter("controller_as_wrist").value)
         self.publish_landmarks_left = bool(
             self.get_parameter("publish_landmarks_left").value
@@ -346,7 +304,6 @@ class Quest3UDPMocap(Node):
             f"Quest 3 Hand Mocap: side=[{self.arm_side.upper()}], "
             f"protocol={self.protocol}, "
             f"preprocess={self.landmark_preprocess}, "
-            f"xhand_pinky_adapt={self.enable_xhand_pinky_adapt}, "
             f"convert_to_robot={self.convert_to_robot}, "
             f"controller_as_wrist={self.controller_as_wrist}, "
             f"landmarks_L={self.publish_landmarks_left}, "
@@ -370,6 +327,7 @@ class Quest3UDPMocap(Node):
         self._body_ever_seen = False
         self._logged_iobt_fidelity = ""
         self._wrist_src = {"left": "none", "right": "none"}
+        self._published_pose_frame = None
         # Hold gate: 0 until the first head/wrist/controller packet, then the
         # wall-clock time of that first packet. Pose publish is suppressed until
         # _pose_frame_settled() is True (body seen, or _WRIST_SETTLE_S elapsed).
@@ -417,6 +375,10 @@ class Quest3UDPMocap(Node):
             PoseStamped, "quest3/hips_pose", stream_qos
         )
         self.mix_pub = self.create_publisher(String, "quest3/input_mix", latch_qos)
+        # A session/frame change invalidates motion anchors in all consumers.
+        self.input_epoch_pub = self.create_publisher(
+            String, "quest3/input_epoch", _latched_event_qos()
+        )
         # Touch controller button/thumbstick state (sensor_msgs/Joy).
         # axes = [trigger, grip, stickX, stickY]; buttons = [primary, secondary,
         # stickPress, menu, triggerClick, gripClick].
@@ -476,57 +438,19 @@ class Quest3UDPMocap(Node):
         self.thread = threading.Thread(target=self.tcp_listener, daemon=True)
         self.thread.start()
 
-    @staticmethod
-    def estimate_frame_from_hand_points(keypoint_3d_array: np.ndarray) -> np.ndarray:
-        """
-        Compute the 3D coordinate frame (orientation only) from detected 3d key points.
-        :param keypoint_3d_array: (21, 3) keypoints in the order: [wrist, index_mcp, middle_mcp, ...]
-        :return: the coordinate frame of wrist in MANO convention (3x3 rotation matrix)
-        """
-        assert keypoint_3d_array.shape == (21, 3)
-        points = keypoint_3d_array[[0, 5, 9], :]
-
-        x_vector = points[0] - points[2]
-        points = points - np.mean(points, axis=0, keepdims=True)
-        _, _, v = np.linalg.svd(points)
-        normal = v[2, :]
-
-        x = x_vector - np.sum(x_vector * normal) * normal
-        x = x / np.linalg.norm(x)
-        z = np.cross(x, normal)
-
-        if np.sum(z * (points[1] - points[2])) < 0:
-            normal *= -1
-            z *= -1
-        frame = np.stack([x, normal, z], axis=1)
-        return frame
-
     def process_landmarks(self, landmarks, hand_label):
-        """Convert landmarks already in robot axes for downstream consumers.
-
-        Input points are wrist-local after Unity→robot (X left, Y back, Z up).
-        ``raw``: center on wrist. ``mano``: scale + SVD wrist frame + OPERATOR2MANO.
-        """
-        keypoint_3d_array = landmarks.copy()
-
-        if self.landmark_preprocess == "raw":
-            # Still center on wrist for stable EMA / viz; Retargeter re-centers.
-            return keypoint_3d_array - keypoint_3d_array[0:1, :]
-
-        operator2mano = OPERATOR2MANO_RIGHT if hand_label == "right" else OPERATOR2MANO_LEFT
-        keypoint_3d_array *= 1.05
-        keypoint_3d_array = keypoint_3d_array - keypoint_3d_array[0:1, :]
-        wrist_rot = self.estimate_frame_from_hand_points(keypoint_3d_array)
-        joint_pos = keypoint_3d_array @ wrist_rot @ operator2mano
-
-        if self.enable_xhand_pinky_adapt:
-            joint_pos = adaptive_retargeting_xhand(joint_pos)
-
-        return joint_pos
+        """Center the one unified raw 21-point stream on its wrist."""
+        points = np.asarray(landmarks, dtype=float)
+        if points.shape != (21, 3) or not np.isfinite(points).all():
+            raise ValueError("Quest landmarks must be finite with shape (21, 3)")
+        return points - points[0:1, :]
 
     def _process_network_line(self, line, arrival_time):
         accepted = self._packet_guard.accept(line, arrival_time)
         if accepted:
+            changed = self._packet_guard.last_session_change
+            if changed:
+                self._signal_input_epoch("session_changed", changed)
             self.process_line(*accepted)
         elif time.monotonic() - getattr(self, '_last_packet_warning', 0) > 5.0:
             self._last_packet_warning = time.monotonic()
@@ -624,6 +548,26 @@ class Quest3UDPMocap(Node):
             self._last_iobt_time = time.time()
             self._body_ever_seen = True
 
+    def _signal_input_epoch(self, reason: str, details: dict | None = None) -> None:
+        """Invalidate receiver caches and notify the common control gate."""
+        self.landmark_cache_right.fill(0.0)
+        self.landmark_cache_left.fill(0.0)
+        self._last_wrist_arrival = {"left": 0.0, "right": 0.0}
+        self._wrist_src = {"left": "none", "right": "none"}
+        self._published_pose_frame = None
+        with self._iobt_lock:
+            self._last_iobt_time = 0.0
+            self._body_ever_seen = False
+            self._first_pose_time = 0.0
+        payload = {"reason": reason, "time": time.time()}
+        if details:
+            payload.update(details)
+        self.input_epoch_pub.publish(String(data=json.dumps(payload, sort_keys=True)))
+        self.get_logger().warning(
+            f"Quest input epoch changed ({reason}); cleared input caches and "
+            "requested downstream disarm/restart"
+        )
+
     def _pose_frame_settled(self) -> bool:
         """True once the head/wrist/controller frame is known.
 
@@ -714,8 +658,17 @@ class Quest3UDPMocap(Node):
     ) -> None:
         if not self._pose_frame_settled():
             return  # hold until head/wrist/controller frame is known
+        frame_id = self._pose_frame_id()
+        if self._published_pose_frame and frame_id != self._published_pose_frame:
+            old_frame = self._published_pose_frame
+            self._signal_input_epoch(
+                "coordinate_frame_changed", {"old_frame": old_frame, "new_frame": frame_id}
+            )
+            # Drop the transition sample; a fresh sample must follow the event.
+            return
+        self._published_pose_frame = frame_id
         pose_msg = self._make_pose_stamped(
-            pos, quat, arrival_time, self._pose_frame_id()
+            pos, quat, arrival_time, frame_id
         )
         if src == "controller":
             (

@@ -1,7 +1,7 @@
 {
   "source_workspace": "astral_ws",
   "target_workspace": "MORLA",
-  "package_count": 24,
+  "package_count": 25,
   "packages": {
     "astral_arm_clean_description": {
       "source_path": "astral_ws/src/astral_arm_clean_description",
@@ -373,10 +373,19 @@
       "origin": "new P1 framework package",
       "executable_names": [],
       "node_names": []
+    },
+    "xhand_retargeting": {
+      "source_path": "xnero_ws/src/xhand_retargeting",
+      "target_name": "xhand_retargeting",
+      "target_path": "src/robots/xhand/xhand_retargeting",
+      "renamed": false,
+      "migration_kind": "robot_specific_preprocess_then_retarget",
+      "executable_names": [],
+      "node_names": []
     }
   },
   "source_package_count": 25,
-  "active_ros_package_count": 24,
+  "active_ros_package_count": 25,
   "additional_workspace_assets": {
     "source_workspace": "xnero_ws",
     "target_package": "robot_description",

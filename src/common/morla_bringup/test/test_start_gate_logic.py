@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from morla_bringup.start_gate_logic import (  # noqa: E402
     RIGHT_A,
+    RestartRequiredGate,
     decide_release_action,
     decide_start_action,
 )
@@ -69,6 +70,15 @@ def test_other_right_buttons_ignored() -> None:
         cur = _ZERO.copy()
         cur[idx] = 1
         assert decide_release_action("human", _ZERO, cur) is False
+
+
+def test_input_epoch_requires_release_then_a_new_start_press():
+    gate = RestartRequiredGate()
+    gate.reset()
+    assert gate.observe(True) is False  # held grip cannot restart old frame
+    assert gate.observe(True) is False
+    assert gate.observe(False) is False  # release only unlocks the gate
+    assert gate.observe(True) is True  # new rising edge may now start
 
 
 if __name__ == "__main__":

@@ -358,7 +358,7 @@ class MocapConfig:
     tcp_port: int = 8000
     arm_side: str = "both"  # left | right | both
     ema_alpha: float = 0.7
-    landmark_preprocess: str = "mano"  # mano | raw
+    landmark_preprocess: str = "raw"  # raw is the unified default; mano is diagnostics-only
     enable_xhand_pinky_adapt: bool = False
     convert_to_robot: bool = True  # Unity LH → X left, Y back, Z up
     controller_as_wrist: bool = True
@@ -1074,7 +1074,7 @@ def _parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     p.add_argument(
         "--landmark-preprocess",
         choices=("mano", "raw"),
-        default="mano",
+        default="raw",
     )
     p.add_argument(
         "--enable-xhand-pinky-adapt",

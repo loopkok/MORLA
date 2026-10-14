@@ -18,12 +18,13 @@ Quest3 VR 手部 / 手柄 / 头部 / IOBT 身体数据接收节点。支持 UDP 
 | `Head pose:` | 头显 |
 | `body iobt \| fid=...:` | IOBT 全身关节（hips 世界系进包，其余关节已为 hips 系） |
 
-**下游（本工作空间 `astral_ws`）：**
+**下游（MORLA 工作空间）：**
 
 - **Astral 臂**：订 `quest3/{side}_wrist_pose`。默认 `controller_as_wrist:=true`，握柄时手柄位姿会写到同一话题，臂 IK 不用改。
-- **Wuji 手**：Wuji launch 强制 `landmark_preprocess:=raw`（Unity→机器人轴后相对腕心），由 `wuji_retargeting` 再做一次 MANO，避免双重变换。landmark 始终是腕局部，与 IOBT 无关。
+- **Wuji 手**：接收 `raw`（Unity→机器人轴、腕局部、21×3），由 `wujihand_retargeting` 执行自己的 MANO 映射。
+- **XHand**：统一输入不做 MANO/手指补偿；`xhand_retargeting` 从 raw 恢复并执行旧 XNero MANO 与可选 `legacy_xhand_pinky` 兼容处理。
 
-默认 `landmark_preprocess:=mano` 是给旧 XHand 链路用的；本仓库 Wuji pipeline 会覆盖为 `raw`。
+`morla_input` 的 ROS 启动只发布 wrist-local raw landmarks；手型变换只由末端适配包负责。
 
 **坐标系：**
 
@@ -32,7 +33,7 @@ IOBT 关：
   robot_world|vr_world
    ├── head                 ← quest3/head_pose
    └── wrist | controller   ← quest3/{side}_wrist_pose（手柄默认也写这里）
-        └── landmarks       ← hand_landmarks/{side}（腕局部 + raw|mano + EMA）
+        └── landmarks       ← hand_landmarks/{side}（腕局部 robot axes + raw + EMA）
 
 IOBT 开（Quest 已把头/手/手柄及 body 关节变到 hips 躯干系；hips 仍为世界系）：
   robot_world|vr_world
@@ -75,9 +76,10 @@ IOBT 开（Quest 已把头/手/手柄及 body 关节变到 hips 躯干系；hips
 过期、未来时间戳、重复/乱序序号以及已退役 session 的迟到包；默认最大年龄 0.5 秒。Quest 与接收机系统时钟
 需要同步。仓库中的独立脚本使用同一规则。
 
-旧 APK 不带此包头，代码默认会拒绝；需要用 Unity 6000 重建并安装更新后的 `astral-tracking` 才能验证新协议。
-本工作区按当前测试需要临时将 `allow_legacy_packets` 设为 `true`，接收旧 APK 的载荷，但不具备源端时效、序号和
-session 保护。新 APK 安装后应恢复 `false`；临时兼容验证不能替代新协议的时效/防重放验证。
+旧 APK 不带此包头，常规配置默认拒绝。只有明确运行旧设备时才可通过
+`allow_legacy_packets:=true` 开启兼容；此时不具备源端时效、序号和 session 保护。
+收到新 session 或运行中从 world 切换到 IOBT body frame 时，输入发布 `quest3/input_epoch`，清空接收端滤波缓存，
+控制闸门停止活动写入并要求先松开、再按 grip 重新启动。
 
 ### TCP 有线（推荐）
 
@@ -93,7 +95,7 @@ session 保护。新 APK 安装后应恢复 `false`；临时兼容验证不能�
 | hips | Unity 世界（Quest 已重定向为躯干系朝向） | 可选 Unity→机器人轴 | `robot_world` / `vr_world` |
 | body joints | Quest 已转 hips 相对（非 hips 关节） | 可选 Unity→机器人轴（不再做 pose_in_parent_frame） | `robot_body` / `vr_body` |
 | head / wrist / controller | IOBT 关：世界；开：hips 系（Quest 已转） | 可选 Unity→机器人轴 | 关=`robot_world`；开=`robot_body` |
-| landmarks | Unity 腕局部 21×3 | ① Unity→机器人轴或旧版翻 X ② `raw`/`mano` ③ EMA | `hand_{side}` |
+| landmarks | Unity 腕局部 21×3 | Unity→机器人轴、wrist-local raw、EMA | `hand_{side}` |
 
 ## 数据流
 
@@ -104,10 +106,8 @@ Quest3 astral-tracking (Unity LH)
   ├── wrist      → [convert_to_robot?] → quest3/{side}_wrist_pose
   ├── controller → 同上，并默认镜像到 wrist_pose（臂 IK）
   └── landmarks
-        → Unity→robot 或翻 X → process_landmarks()
-             ├── raw  → 相对腕心（Wuji）
-             └── mano → SVD + OPERATOR2MANO (+ 可选小指)
-                        → EMA → hand_landmarks/{left,right}
+        → Unity→robot → wrist-centered raw 21×3
+             → EMA → hand_landmarks/{left,right}
 ```
 
 Mixed：左右可一边 `controller` 一边 `hand`。同侧 Quest 只发一种（手柄优先）。Meta 不支持 IOBT + Mixed 同时开。
@@ -156,13 +156,13 @@ buttons（6 位 mask，0/1）：`[primary(X/A), secondary(Y/B), stickPress, menu
 | `arm_side` | `right` | `left` / `right` / `both` |
 | `ema_alpha` | `0.7` | landmarks EMA 平滑 |
 | `viz` | `true` | RViz markers |
-| `landmark_preprocess` | `mano` | `mano`（XHand）或 `raw`（Wuji） |
-| `enable_xhand_pinky_adapt` | `false` | XHand 小指顺序拉伸；Wuji 必须 `false` |
+| `landmark_preprocess` | `raw` | ROS 接收器只输出 raw；MANO 由机器人末端包处理 |
+| `allow_legacy_packets` | `false` | 明确兼容旧 Quest APK；关闭包时效/序号/session 防护 |
 | `convert_to_robot` | `true` | `true`：Unity→机器人轴（X左 Y后 Z上）；`false`：保留 Unity 轴（landmarks 仅旧版翻 X） |
 | `controller_as_wrist` | `true` | 手柄 6DoF 同时写到 `quest3/{side}_wrist_pose`，臂 IK 跟柄 |
 
-Wuji 相关 launch（`wujihand_tuning` / `sim_pipeline` / `real_pipeline`）已写死：
-`landmark_preprocess:=raw`，`enable_xhand_pinky_adapt:=False`。
+Wuji 与 XHand 可从同一个 Quest 输入并行接收不同侧数据；profile 选择 landmark 来源与末端类型，
+不得让 Quest 与 glove 同时发布同侧 `hand_landmarks/{side}`。
 
 ## 启动
 
@@ -179,7 +179,7 @@ ros2 run morla_input quest3_udp_mocap --ros-args \
 # Wuji 兼容
 ros2 run morla_input quest3_udp_mocap --ros-args \
   -p arm_side:=both -p protocol:=tcp_wired \
-  -p landmark_preprocess:=raw -p enable_xhand_pinky_adapt:=false \
+  -p landmark_preprocess:=raw \
   -p convert_to_robot:=true
 
 # 关闭机器人轴转换（保持 Unity 轴）
@@ -245,7 +245,7 @@ quest3_udp_mocap
   ├── hips_pose (世界系) + body_joints (hips 系)
   ├── head_pose（IOBT 关：世界；开：身体系）
   ├── wrist_pose / controller_pose（同上；默认手柄镜像到 wrist）
-  ├── XHand:  mano landmarks → xhand_retargeting
+  ├── XHand:  raw landmarks → xhand_retargeting (local MANO/pinky profile)
   └── Wuji:   raw landmarks → wujihand_retargeting
 ```
 

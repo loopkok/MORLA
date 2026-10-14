@@ -100,7 +100,9 @@ def _setup(context, *args, **kwargs):
                 "arm_side": "both",
                 "viz": False,
                 "landmark_preprocess": "raw",
-                "enable_xhand_pinky_adapt": False,
+                "allow_legacy_packets": ParameterValue(
+                    LaunchConfiguration("allow_legacy_packets"), value_type=bool
+                ),
             },
         ],
     )
@@ -157,6 +159,11 @@ def generate_launch_description():
         DeclareLaunchArgument("quest3_protocol", default_value="tcp_wired"),
         DeclareLaunchArgument("quest3_udp_port", default_value="9000"),
         DeclareLaunchArgument("quest3_tcp_port", default_value="8000"),
+        DeclareLaunchArgument(
+            "allow_legacy_packets",
+            default_value="false",
+            description="Explicit old-APK compatibility; disables packet age/sequence/session checks.",
+        ),
         DeclareLaunchArgument(
             "wuji_lib_config_left",
             default_value="",

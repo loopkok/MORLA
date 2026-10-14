@@ -12,7 +12,7 @@
 | P1 包路径与改名 | 完成 | 25 ROS 包可发现且全量 clean build 成功；五个共享包完成改名，入口脚本与Web launch路径适配；前端和指定回归通过。映射见 `docs/package_map.json`。 |
 | P2 core/profile | 完成 | 新增`morla_core`共享schema/lease/资源/关节映射/profile registry；12个profile固定布局并从已安装ament share验证，见本次日志。消费者运行时接入仍在P7-P9完成。 |
 | P3 description | 完成 | 新建`robot_description`（ament_cmake），集中27个model ID与358项资产；manifest含来源/目标SHA、关节映射、847个mesh闭包和授权信息。24包干净构建成功；普通安装、colcon symlink-install 均由Pinocchio加载12份URDF、MuJoCo加载5份MJCF；生成器可重跑，Astral FK和sim机械量、XNero sim机械量对照通过。 |
-| P4 unified input | 进行中 | 开始核对输入协议和Nero/XHand局部预处理，统一入口仍保留Astral PacketGuard/frame latch语义。 |
+| P4 unified input | 完成 | `morla_input` 固定输出 robot-axis raw 21点；strict packet 默认拒绝legacy，session/坐标帧变化发epoch并由统一闸门停止策略/遥操、清缓存且要求松开后重新start；XHand旧MANO/小指局部适配和Nero新旧pose链等价验证通过。 |
 | P5 Nero driver/teleop | 未开始 | |
 | P6 XHand adapter/sim | 未开始 | |
 | P7 unified data collection | 未开始 | |
@@ -49,3 +49,7 @@
 - P3构建/安装：24 ROS包clean build通过；普通复制安装运行`check_assets.py --loaders --require-regular-install`通过，symlink安装运行同脚本及12个profile `validate-all`通过。两个安装空间均由Pinocchio实际加载12份URDF（含全部mesh），MuJoCo加载5份MJCF；847个mesh闭包与模型目标hash全通过。
 - P3机械意义回归：7组迁移URDF对原Astral/XNero工作区做随机配置FK、关节名、限位比较均一致；Astral clean MJCF模型维度、body姿态/质量/惯量、joint axis/range、actuator limit完全相同；XNero生成器重跑后对应同一组模型量，`test_xhand_tactile_mujoco.py`验证1200/1200触觉测点、名称完整和测试压入力全部入传感，未启动机器人硬件。Astral Geometric IK、完整IK、VR映射三个原回归脚本均PASS。
 - P3剩余验证限制：DexPilot实际retarget构造因系统Python没有Torch失败（当前只装了`dex_retargeting`代码但其import硬依赖Torch）；URDF本身由Pinocchio加载成功，实际backend将在依赖环境准备后补验。XNero XHand源包license需上游确认后方可外部分发。
+- P4：将Quest ROS receiver统一为`landmark_preprocess=raw`：21点先按Astral Unity→robot矩阵转换、以腕为原点并应用现有EMA；移除全局MANO和小指stretch，Wuji现有raw路径不变。`quest3_mocap.yaml` 的`allow_legacy_packets`从true改为false；full teleop、Astral sim/standalone arm、Wuji sim/tuning/real入口均有显式`allow_legacy_packets:=true`旧APK兼容开关，启用时节点打印降级警告。
+- P4输入epoch：PacketGuard在新session接替时接受首包并暴露线程内session变更事件，同时退役旧session；receiver在新session或已发布pose从world切到IOBT body frame时清空EMA/腕来源/帧锁并发布latched `quest3/input_epoch`。`controller_start_gate` 收到事件后发布latched `/teleop/disarm`、`/teleop/armed=false` 与policy `stop`，清除旧按钮边沿，并要求控制器先松开grip、再重新按下；新session、旧session重放、严格legacy拒绝均有逻辑测试。实际ROS多节点时序仍将在P10集成运行补验。
+- P4坐标/手型：Nero左右`vr_to_arm_rot_after_unity_to_robot`沿用计划推导的`A_new=A_old*M^T`，flip_pitch=false；新增`xhand_retargeting.preprocess_xhand_landmarks()`，先按`F*M^T`恢复旧XNero手输入，再重放1.05缩放、腕心、SVD、左右OPERATOR2MANO及可选原小指顺序stretch。Wuji不再能被XHand全局变换污染；profile把XHand兼容模式显式写为`retarget_compatibility.preprocess_mode=legacy_xhand_pinky`。
+- P4验证：全量增量构建25/25包通过；`morla_core.profile validate-all` 12/12 profiles通过（8/16/19/27/35/38/54维均保留）；输入/闸门/XHand新增与相关回归合计80 tests通过，其中Nero六方向、三轴旋转、500随机四元数与非零TCP各40随机样本/侧在float64容差内等价；XNero MANO+pinky 20组/侧及MANO-only左右参考对照共44用例通过。`colcon list`发现25个ROS包。未连接Quest、Nero或XHand硬件。

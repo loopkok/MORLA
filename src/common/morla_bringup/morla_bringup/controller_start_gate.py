@@ -26,7 +26,11 @@ from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPo
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool, String
 
-from morla_bringup.start_gate_logic import decide_release_action, decide_start_action
+from morla_bringup.start_gate_logic import (
+    RestartRequiredGate,
+    decide_release_action,
+    decide_start_action,
+)
 from morla_core.ownership import PolicyLease, fresh_header
 
 
@@ -64,6 +68,8 @@ class ControllerStartGate(Node):
         self.declare_parameter("policy_cmd_topic", "/policy_inference/cmd")
         # 右手 A 在推理 HUMAN 时 = 释放（本门随遥操栈常驻，HITL 释放不依赖数采栈）。
         self.declare_parameter("right_joy_topic", "quest3/right_controller_joy")
+        self.declare_parameter("input_epoch_topic", "quest3/input_epoch")
+        self.declare_parameter("disarm_topic", "/teleop/disarm")
 
         joy_topic = str(self.get_parameter("joy_topic").value).strip()
         self.button_index = int(self.get_parameter("button_index").value)
@@ -72,11 +78,14 @@ class ControllerStartGate(Node):
         state_topic = str(self.get_parameter("policy_state_topic").value).strip()
         self._policy_cmd_topic = str(self.get_parameter("policy_cmd_topic").value).strip()
         right_joy_topic = str(self.get_parameter("right_joy_topic").value).strip()
+        epoch_topic = str(self.get_parameter("input_epoch_topic").value).strip()
+        disarm_topic = str(self.get_parameter("disarm_topic").value).strip()
 
         # RELIABLE + VOLATILE: one-shot, not latched (match monitor_node).
         self._pub = self.create_publisher(Bool, start_topic, 10)
         self._pub_armed = self.create_publisher(Bool, armed_topic, 10)
         self._policy_cmd_pub = self.create_publisher(String, self._policy_cmd_topic, 10)
+        self._epoch_disarm_pub = self.create_publisher(Bool, disarm_topic, _latched_qos())
         # BEST_EFFORT sub is compatible with the mocap Joy publisher (RELIABLE
         # default) and CLI `ros2 topic pub` — no dual-sub needed.
         self.create_subscription(Joy, joy_topic, self._on_joy, _sensor_qos())
@@ -91,6 +100,8 @@ class ControllerStartGate(Node):
         self._policy_state_topic = state_topic
         self.create_subscription(String, state_topic, self._on_policy_state, _latched_qos())
         self._prev_pressed = False
+        self._restart_gate = RestartRequiredGate()
+        self.create_subscription(String, epoch_topic, self._on_input_epoch, _latched_qos())
 
         self.get_logger().info(
             f"controller_start_gate joy={joy_topic} button={self.button_index} "
@@ -103,6 +114,21 @@ class ControllerStartGate(Node):
         self._policy_lease.update(msg.data)
         self._activity = self._policy_lease.activity
 
+    def _on_input_epoch(self, msg: String) -> None:
+        """A new source session/frame stops writers until a fresh grip press."""
+        self._restart_gate.reset()
+        self._prev_pressed = False
+        self._last_left_joy = 0.0
+        # Stop policy/playback as well as human teleop so no writer can continue
+        # using targets derived from the invalidated frame/session.
+        self._policy_cmd_pub.publish(String(data="stop"))
+        self._epoch_disarm_pub.publish(Bool(data=True))
+        self._pub_armed.publish(Bool(data=False))
+        self.get_logger().warning(
+            f"input epoch changed ({msg.data}); stopped active writers; "
+            "release then press grip to restart"
+        )
+
     def _on_joy(self, msg: Joy) -> None:
         if not fresh_header(msg, self.get_clock().now().nanoseconds * 1e-9):
             return
@@ -110,6 +136,10 @@ class ControllerStartGate(Node):
         if self.button_index < 0 or self.button_index >= len(btns):
             return
         pressed = bool(btns[self.button_index])
+        if not self._restart_gate.observe(pressed):
+            self._prev_pressed = pressed
+            self._last_left_joy = time.monotonic()
+            return
         now = time.monotonic()
         if self._last_left_joy and now - self._last_left_joy > 1.5:
             self._prev_pressed = pressed

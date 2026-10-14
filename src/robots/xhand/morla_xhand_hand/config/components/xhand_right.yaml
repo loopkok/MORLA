@@ -69,6 +69,6 @@ native_command:
   kd: 0.0
   effort_limit_ma: 400
 retarget_compatibility:
-  landmark_preprocess: legacy_xhand_pinky
+  preprocess_mode: legacy_xhand_pinky
   index_bend_right_sign: -1
 description_model_id: xhand_right

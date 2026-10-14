@@ -100,7 +100,12 @@ def _launch_setup(context, *args, **kwargs):
             if not driver_log:
                 driver_log = os.path.join(run_dir, "driver.jsonl")
 
-    mocap_extra = {"arm_side": arm_side}
+    mocap_extra = {
+        "arm_side": arm_side,
+        "landmark_preprocess": "raw",
+        "allow_legacy_packets": _opt(context, "allow_legacy_packets").lower()
+        in ("true", "1", "yes"),
+    }
     protocol = _opt(context, "protocol")
     if protocol:
         mocap_extra["protocol"] = protocol
@@ -202,6 +207,14 @@ def generate_launch_description() -> LaunchDescription:
                 "convert_to_robot",
                 default_value="",
                 description="empty → yaml",
+            ),
+            DeclareLaunchArgument(
+                "allow_legacy_packets",
+                default_value="false",
+                description=(
+                    "Explicit old-APK compatibility; bypasses source timestamp, "
+                    "sequence and session checks."
+                ),
             ),
             DeclareLaunchArgument(
                 "with_driver",

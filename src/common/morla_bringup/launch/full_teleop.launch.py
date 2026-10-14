@@ -115,7 +115,8 @@ def _setup(context, *args, **kwargs):
         "arm_side": arm_side,
         "viz": False,
         "landmark_preprocess": "raw",
-        "enable_xhand_pinky_adapt": False,
+        "allow_legacy_packets": _opt(context, "allow_legacy_packets").lower()
+        in ("true", "1", "yes"),
         "publish_landmarks_left": True,
         "publish_landmarks_right": right_src != "glove",
     }
@@ -363,6 +364,14 @@ def generate_launch_description() -> LaunchDescription:
             ),
             DeclareLaunchArgument("protocol", default_value=""),
             DeclareLaunchArgument("convert_to_robot", default_value=""),
+            DeclareLaunchArgument(
+                "allow_legacy_packets",
+                default_value="false",
+                description=(
+                    "Explicitly accept unwrapped legacy Quest packets; disables "
+                    "source age/sequence/session protection."
+                ),
+            ),
             DeclareLaunchArgument("solver_type", default_value=""),
             DeclareLaunchArgument("urdf_path", default_value=""),
             DeclareLaunchArgument(

@@ -3,21 +3,18 @@ quest3_udp_mocap:
   ros__parameters:
     # udp | tcp_wired | tcp_wireless  — 仿真/遥操 launch 默认不覆盖；改这里即可
     protocol: "tcp_wired"
-    # TEMP: accept the old APK for the requested validation. This bypasses
-    # source age, sequence, and session checks; set false after installing the
-    # timestamped Quest APK.
     max_packet_age_s: 0.5
-    allow_legacy_packets: true
+    # Normal operation requires timestamped @q3 session/sequence envelopes.
+    # Enable only as an explicit compatibility override for old APKs.
+    allow_legacy_packets: false
     udp_port: 9000
     tcp_port: 8000
     arm_side: "both"
     ema_alpha: 0.7
     viz: true
-    # XHand-only pinky stretch; leave false for Wuji (avoids Z-shaped pinky).
-    enable_xhand_pinky_adapt: false
-    # mano = legacy XHand (quest3 does MANO); raw = glove-compatible for Wuji retarget.
-    # Wuji launches override to raw so Retargeter does not double-transform.
-    landmark_preprocess: "mano"
+    # Unified output is wrist-local robot-axis raw; MANO/finger adaptation is
+    # selected by a robot-specific retargeter (XHand or Wuji).
+    landmark_preprocess: "raw"
     # Unity LH → robot (X left, Y back, Z up). false = keep Unity (+ landmarks X flip).
     convert_to_robot: true
     # Mixed/IOBT: also publish Touch 6DoF on quest3/{side}_wrist_pose (arm IK).

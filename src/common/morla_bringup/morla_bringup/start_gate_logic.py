@@ -24,6 +24,24 @@ ACTIVE_ACTIVITIES = frozenset(("policy", "playback"))
 RIGHT_A = 0
 
 
+class RestartRequiredGate:
+    """Require a fresh button release/press after an input epoch change."""
+
+    def __init__(self) -> None:
+        self._waiting_for_release = False
+
+    def reset(self) -> None:
+        self._waiting_for_release = True
+
+    def observe(self, pressed: bool) -> bool:
+        """Return whether this sample may participate in start-edge logic."""
+        if self._waiting_for_release:
+            if not pressed:
+                self._waiting_for_release = False
+            return False
+        return True
+
+
 def decide_start_action(activity: Optional[str]) -> str:
     """Return ``"takeover"`` when policy/playback is active, else
     ``"teleop_start"``.

@@ -58,7 +58,12 @@ def _launch_setup(context, *args, **kwargs):
     if require_start:
         teleop_extra["require_start_signal"] = require_start.lower() in ("true", "1", "yes")
 
-    mocap_extra = {"arm_side": "both"}
+    mocap_extra = {
+        "arm_side": "both",
+        "landmark_preprocess": "raw",
+        "allow_legacy_packets": _opt(context, "allow_legacy_packets").lower()
+        in ("true", "1", "yes"),
+    }
     protocol = _opt(context, "protocol")
     if protocol:
         mocap_extra["protocol"] = protocol
@@ -183,6 +188,14 @@ def generate_launch_description() -> LaunchDescription:
                 "convert_to_robot",
                 default_value="",
                 description="empty → yaml; true=Unity → robot_world",
+            ),
+            DeclareLaunchArgument(
+                "allow_legacy_packets",
+                default_value="false",
+                description=(
+                    "Explicit old-APK compatibility; bypasses source timestamp, "
+                    "sequence and session checks."
+                ),
             ),
             DeclareLaunchArgument(
                 "enable_viewer",

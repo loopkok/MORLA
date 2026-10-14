@@ -26,3 +26,17 @@ def test_debug_frame_counter_is_not_a_new_stream():
     for i in range(1000):
         assert guard.accept(packet(i, payload=f'body iobt | fid={i}:0,0,0'), 100.1)
     assert len(guard._sequences) == 1
+
+
+def test_new_session_is_accepted_with_epoch_change_and_retires_old_session():
+    guard = PacketGuard()
+    assert guard.accept(packet(1, session='old'), 100.1)
+    assert guard.last_session_change is None
+    assert guard.accept(packet(1, session='new'), 100.1)
+    assert guard.last_session_change == {
+        'old_session': 'old', 'new_session': 'new', 'stream': 'left controller'
+    }
+    assert guard.accept(packet(2, session='new'), 100.1)
+    assert guard.last_session_change is None
+    assert guard.accept(packet(2, session='old'), 100.1) is None
+    assert guard.last_session_change is None
