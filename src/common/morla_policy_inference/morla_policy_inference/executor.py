@@ -15,7 +15,7 @@ LPF). ``max_joint_vel<=0`` disables slewing.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 
@@ -35,6 +35,7 @@ class SafeExecutor:
 
     max_joint_vel: float = 6.0        # rad/s; <=0 disables slew limit
     joint_limits: dict[str, tuple[np.ndarray, np.ndarray]] = field(default_factory=dict)
+    max_joint_vel_by_stream: dict[str, float] = field(default_factory=dict)
     # ratio channel is dimensionless: slew limiting is disabled unless nonzero.
     max_gripper_rate: float = 0.0
     _last: dict[str, np.ndarray] = field(default_factory=dict, init=False)
@@ -75,9 +76,7 @@ class SafeExecutor:
                     self._events.append(
                         SafetyEvent(t.stream, "nan", "non-finite dropped, held last")
                     )
-                    out.append(
-                        CmdTarget(t.stream, t.topic, t.kind, last.copy())
-                    )
+                    out.append(replace(t, values=last.copy()))
                 else:
                     self._events.append(
                         SafetyEvent(t.stream, "nan", "non-finite dropped (no last)")
@@ -100,6 +99,9 @@ class SafeExecutor:
                 v = clipped
             else:
                 lo_hi = self.joint_limits.get(t.stream)
+                if t.limits:
+                    bounds = np.asarray(t.limits, dtype=np.float64)
+                    lo_hi = (bounds[:, 0], bounds[:, 1])
                 if lo_hi is not None:
                     lo, hi = lo_hi
                     clipped = np.clip(v, lo, hi)
@@ -109,8 +111,9 @@ class SafeExecutor:
                         )
                     v = clipped
                 prev = self._last.get(t.stream)
-                if self.max_joint_vel > 0.0 and prev is not None:
-                    lim = self.max_joint_vel * dt
+                max_vel = self.max_joint_vel_by_stream.get(t.stream, self.max_joint_vel)
+                if max_vel > 0.0 and prev is not None:
+                    lim = max_vel * dt
                     delta = np.clip(v - prev, -lim, lim)
                     if not np.allclose(v, prev + delta):
                         self._events.append(
@@ -120,5 +123,5 @@ class SafeExecutor:
                         )
                     v = prev + delta
             self._last[t.stream] = v.copy()
-            out.append(CmdTarget(t.stream, t.topic, t.kind, v.copy()))
+            out.append(replace(t, values=v.copy()))
         return out

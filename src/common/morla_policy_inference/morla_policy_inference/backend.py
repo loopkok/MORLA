@@ -117,6 +117,10 @@ class RemoteBackend(PolicyBackend):
         infer_timeout_s: float = 3.0,
         rtc_guided: bool = False,
         rtc_horizon: int = 10,
+        layout_hash: str = "",
+        layout_id: str = "",
+        model_capacity: int = 0,
+        require_layout_handshake: bool = False,
     ):
         self.host = host
         self.port = int(port)
@@ -137,31 +141,69 @@ class RemoteBackend(PolicyBackend):
         self.infer_timeout_s = float(infer_timeout_s)
         self.rtc_guided = bool(rtc_guided)
         self.rtc_horizon = int(rtc_horizon)
+        self.layout_hash = str(layout_hash or "")
+        self.layout_id = str(layout_id or "")
+        self.model_capacity = int(model_capacity or 0)
+        self.require_layout_handshake = bool(require_layout_handshake)
+        if self.model_capacity and self.action_dim > self.model_capacity:
+            raise PolicyError(
+                f"robot action_dim {self.action_dim} exceeds model capacity "
+                f"{self.model_capacity} (layout={self.layout_id or 'unspecified'})"
+            )
 
     def open(self) -> None:
         if self._client is not None:
             return
         if self._client_factory is not None:
-            self._client = self._client_factory(self.host, self.port)
-            return
-        # 自包含 client（vendored __ndarray__ 序列化 + websockets），无需 openpi_client
-        from morla_policy_inference.client import WebsocketClient
-
+            client = self._client_factory(self.host, self.port)
+        else:
+            # 自包含 client（vendored __ndarray__ 序列化 + websockets），无需 openpi_client
+            from morla_policy_inference.client import WebsocketClient
+            try:
+                client = WebsocketClient(
+                    self.host, self.port,
+                    connect_timeout_s=self.connect_timeout_s,
+                    infer_timeout_s=self.infer_timeout_s,
+                )
+            except Exception as exc:
+                raise PolicyError(f"remote server connect failed: {exc}") from exc
         try:
-            client = WebsocketClient(
-                self.host, self.port,
-                connect_timeout_s=self.connect_timeout_s,
-                infer_timeout_s=self.infer_timeout_s,
-            )
-        except Exception as exc:
-            raise PolicyError(f"remote server connect failed: {exc}") from exc
-        try:
-            metadata = client.get_server_metadata()
+            metadata = client.get_server_metadata() if hasattr(client, "get_server_metadata") else {}
+            if not isinstance(metadata, dict):
+                raise PolicyError("server metadata must be a mapping")
             server_dim = metadata.get("action_dim")
             if server_dim is not None and int(server_dim) != self.action_dim:
                 raise PolicyError(
                     f"server action_dim {server_dim} != robot action_dim {self.action_dim}"
                 )
+            if self.require_layout_handshake:
+                if not self.layout_hash or not self.layout_id:
+                    raise PolicyError("robot profile requires a layout hash and layout id")
+                if server_dim is None:
+                    raise PolicyError("server metadata is missing action_dim")
+                if metadata.get("layout_hash") != self.layout_hash:
+                    raise PolicyError(
+                        f"layout_hash mismatch: server={metadata.get('layout_hash')!r}, "
+                        f"robot={self.layout_hash!r}"
+                    )
+                if metadata.get("layout_id") != self.layout_id:
+                    raise PolicyError(
+                        f"layout_id mismatch: server={metadata.get('layout_id')!r}, "
+                        f"robot={self.layout_id!r}"
+                    )
+                server_capacity = metadata.get("model_capacity")
+                if server_capacity is None:
+                    raise PolicyError("server metadata is missing model_capacity")
+                if self.action_dim > int(server_capacity):
+                    raise PolicyError(
+                        f"robot action_dim {self.action_dim} exceeds server model_capacity "
+                        f"{server_capacity}"
+                    )
+                if self.model_capacity and int(server_capacity) != self.model_capacity:
+                    raise PolicyError(
+                        f"model_capacity mismatch: server={server_capacity}, "
+                        f"profile={self.model_capacity}"
+                    )
             if self.rtc_guided:
                 if metadata.get("model") != "pi05" or not metadata.get("rtc_guided"):
                     raise PolicyError("guided RTC requires a pi05 server started with --rtc-guided")
@@ -422,11 +464,17 @@ class StubBackend(PolicyBackend):
     def infer(self, obs: ObsBatch) -> np.ndarray:
         self._n += 1
         self.last_infer_s = 1e-3
-        # a gentle absolute drift so ticks visibly differ (sim smoke checks).
+        # Return absolute targets around the current measured pose. A fixed
+        # near-zero action is not absolute for robots whose non-arm joints
+        # naturally sit beyond one radian (for example a closed XHand).
         phase = float(self._n % 4)
-        out = np.zeros((4, self.action_dim), dtype=np.float64)
-        out[:] = 0.05 * np.cos(phase + np.arange(self.action_dim))
-        return out
+        state = np.asarray(obs.state, dtype=np.float64).reshape(-1)
+        if state.shape != (self.action_dim,):
+            raise PolicyError(
+                f"stub observation state_dim {state.size} != action_dim {self.action_dim}"
+            )
+        drift = 0.01 * np.cos(phase + np.arange(self.action_dim))
+        return np.tile(state, (4, 1)) + drift[None, :]
 
 
 def make_backend(
@@ -446,6 +494,10 @@ def make_backend(
     infer_timeout_s: float = 3.0,
     rtc_guided: bool = False,
     rtc_horizon: int = 10,
+    layout_hash: str = "",
+    layout_id: str = "",
+    model_capacity: int = 0,
+    require_layout_handshake: bool = False,
 ) -> PolicyBackend:
     """Backend factory. ``backend_type`` = transport: remote | inproc | stub.
 
@@ -454,6 +506,11 @@ def make_backend(
     backend is model-agnostic (the server owns the model).
     """
     bt = (backend_type or "remote").strip().lower()
+    if model_capacity and int(action_dim) > int(model_capacity):
+        raise PolicyError(
+            f"robot action_dim {action_dim} exceeds model capacity {model_capacity} "
+            f"(layout={layout_id or 'unspecified'})"
+        )
     if bt == "remote":
         return RemoteBackend(
             host=host,
@@ -467,6 +524,10 @@ def make_backend(
             infer_timeout_s=infer_timeout_s,
             rtc_guided=rtc_guided,
             rtc_horizon=rtc_horizon,
+            layout_hash=layout_hash,
+            layout_id=layout_id,
+            model_capacity=model_capacity,
+            require_layout_handshake=require_layout_handshake,
         )
     if bt == "inproc":
         if not checkpoint_dir:

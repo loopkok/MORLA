@@ -29,21 +29,13 @@ from morla_core.schema import (
     HEAD_DIM,
     WAIST_DIM,
     CollectSchema,
+    FrozenSchema,
     STREAM_TOPICS,
+    upgrade_v1_schema,
 )
+from morla_core.profile import ProfileRegistry
 
 # stream keys whose values we can obtain at inference time as *state feedback*.
-_OBS_STATE_STREAMS = {
-    "left_arm_state",
-    "right_arm_state",
-    "left_hand_state",
-    "right_hand_state",
-    "left_gripper_ratio",
-    "right_gripper_ratio",
-    "body_state",
-    "head_state",
-}
-
 # blocks that do NOT have a standalone command topic we can write (waist is
 # only reachable via the 18-dim /astral/joint_commands full-body stream, which
 # v1 does not write to avoid clobbering arm topics).
@@ -52,6 +44,28 @@ _WRITABLE_BLOCK_PREFIXES = ("arm",)  # handled via side-specific arm topics
 
 class UnsupportedActionBlockError(RuntimeError):
     """A block has no v1 command channel (e.g. waist); refusing to guess."""
+
+
+def reorder_joint_positions(
+    names: list[str] | tuple[str, ...], positions, expected: tuple[str, ...], *, strict: bool,
+) -> np.ndarray | None:
+    """Validate/reorder one named JointState vector into profile joint order."""
+    values = np.asarray(positions, dtype=np.float64).reshape(-1)
+    names = tuple(str(name) for name in names)
+    if strict:
+        if len(names) != len(values) or len(expected) != len(values):
+            return None
+        if len(set(names)) != len(names) or set(names) != set(expected):
+            return None
+        by_name = dict(zip(names, values))
+        values = np.asarray([by_name[name] for name in expected], dtype=np.float64)
+    elif len(values) < len(expected):
+        return None
+    else:
+        values = values[:len(expected)]
+    if not np.isfinite(values).all():
+        return None
+    return values
 
 
 def topic_for(stream_key: str) -> str:
@@ -72,10 +86,12 @@ class ObsSource:
     topic: str          # ROS topic to subscribe
     dim: int            # vector length published on that topic
     kind: str           # 'joints' | 'ratio' | 'body' | 'hand'
+    joint_names: tuple[str, ...] = ()
+    strict_names: bool = False
 
     def __post_init__(self):
-        if self.key not in _OBS_STATE_STREAMS:
-            raise ValueError(f"{self.key} is not an observable state stream")
+        if not self.key or not self.topic.startswith("/") or self.dim < 1:
+            raise ValueError("observation sources need a key, absolute topic, and positive dimension")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -86,6 +102,10 @@ class CmdTarget:
     topic: str
     kind: str     # 'joints' -> JointState position; 'ratio' -> Float64 ratio
     values: np.ndarray  # joints: (7,) rad ; ratio: (1,) in [0,1]
+    joint_names: tuple[str, ...] = ()
+    limits: tuple[tuple[float, float], ...] = ()
+    writer_id: str | None = None
+    semantics: str = "absolute_position"
 
     @property
     def name(self) -> str:
@@ -97,63 +117,45 @@ class CmdTarget:
 
 
 class ObsLayout:
-    """Topics + assembly rules derived once from a frozen CollectSchema."""
+    """Runtime I/O rules derived from a profile's frozen schema.
 
-    def __init__(self, schema: CollectSchema):
-        self.schema = schema
-        self.blocks = schema.state_blocks()
-        self.state_dim = schema.state_dim
-        # stream sources we must keep fresh, in stable key order.
-        sources: dict[str, ObsSource] = {}
-        for side in schema.arms:
-            sources[f"{side}_arm_state"] = ObsSource(
-                f"{side}_arm_state",
-                topic_for(f"{side}_arm_state"),
-                ARM_DIM,
-                "joints",
-            )
-        for side in schema.arms:
-            ee = schema.end_effector_for(side)
-            if ee == EE_GRIPPER:
-                sources[f"{side}_gripper_ratio"] = ObsSource(
-                    f"{side}_gripper_ratio",
-                    topic_for(f"{side}_gripper_ratio"),
-                    1,
-                    "ratio",
-                )
-            elif ee == EE_WUJI:
-                sources[f"{side}_hand_state"] = ObsSource(
-                    f"{side}_hand_state",
-                    topic_for(f"{side}_hand_state"),
-                    HAND_DIM,
-                    "joints",
-                )
-        if schema.include_waist or schema.include_head:
-            sources["body_state"] = ObsSource(
-                "body_state", topic_for("body_state"), dim_for("body_state"), "body"
-            )
-        if schema.include_head:
-            # sim fallback when no 18-dim body_state publisher exists.
-            sources.setdefault(
-                "head_state",
-                ObsSource(
-                    "head_state", topic_for("head_state"), HEAD_DIM, "joints"
-                ),
-            )
-        self.sources = sources
+    ``CollectSchema`` remains accepted for old launch files and is upgraded at
+    this boundary. New robot deployments pass a validated ``FrozenSchema``.
+    """
 
-        # command topics reachable per block (for split_action).
-        self._cmd_topic: dict[str, str] = {}
-        for side in schema.arms:
-            self._cmd_topic[f"{side}_arm"] = topic_for(f"{side}_arm_cmd")
-        for side in schema.arms:
-            ee = schema.end_effector_for(side)
-            if ee == EE_GRIPPER:
-                self._cmd_topic[f"{side}_ee"] = topic_for(f"{side}_gripper_ratio")
-            elif ee == EE_WUJI:
-                self._cmd_topic[f"{side}_ee"] = topic_for(f"{side}_hand_cmd")
-        if schema.include_head:
-            self._cmd_topic["head"] = topic_for("head_cmd")
+    def __init__(self, schema: CollectSchema | FrozenSchema, *, strict_names=False):
+        self.schema = schema if isinstance(schema, FrozenSchema) else upgrade_v1_schema(schema.to_dict())
+        self.blocks = tuple(self.schema.state_blocks)
+        self.action_blocks = tuple(self.schema.action_blocks)
+        self.state_dim = self.schema.state_dim
+        self.action_dim = self.schema.action_dim
+        self.strict_names = bool(strict_names)
+        self.streams = {stream.stream_key: stream for stream in self.schema.streams}
+        self.sources: dict[str, ObsSource] = {}
+        for block in self.blocks:
+            stream = self.streams[block.stream_key]
+            if stream.source_kind not in {"state", "command_echo"}:
+                raise ValueError(f"state block {block.block_id} uses non-state stream {stream.stream_key}")
+            if stream.message_type == "std_msgs/msg/Float64":
+                kind = "ratio"
+            elif stream.message_type == "sensor_msgs/msg/JointState":
+                kind = "joints"
+            else:
+                raise ValueError(f"unsupported policy observation type {stream.message_type!r}")
+            # A stream can back several blocks (e.g. a full-body feedback vector).
+            self.sources.setdefault(stream.stream_key, ObsSource(
+                key=stream.stream_key, topic=stream.topic, dim=int(stream.shape[-1]),
+                kind=kind, joint_names=stream.joint_names,
+                strict_names=self.strict_names and bool(stream.joint_names),
+            ))
+        if self.schema.metadata.get("upgraded_from") and any(b.block_id == "head" for b in self.blocks):
+            fallback = self.streams.get("head_state")
+            if fallback is not None:
+                self.sources.setdefault("head_state", ObsSource(
+                    key="head_state", topic=fallback.topic, dim=int(fallback.shape[-1]),
+                    kind="joints", joint_names=fallback.joint_names, strict_names=False,
+                ))
+        self._cmd_streams = self.streams
 
     # -- obs assembly ------------------------------------------------------
 
@@ -169,63 +171,29 @@ class ObsLayout:
         """
         parts: list[np.ndarray] = []
         missing: list[str] = []
-        body: np.ndarray | None = vectors.get("body_state")
-        for b in self.blocks:
-            if b.name.endswith("_arm"):
-                src = f"{b.name}_state"
-                v = vectors.get(src)
-                if v is None:
-                    missing.append(src)
-                    continue
-                parts.append(np.asarray(v, dtype=np.float32)[: b.dim])
-            elif b.name.endswith("_ee"):
-                side = b.name.split("_")[0]
-                ee = self.schema.end_effector_for(side)
-                if ee == EE_GRIPPER:
-                    src = f"{side}_gripper_ratio"
-                    v = vectors.get(src)
-                    if v is None:
-                        missing.append(src)
-                        continue
-                    parts.append(np.asarray(v, dtype=np.float32).reshape(1))
-                elif ee == EE_WUJI:
-                    src = f"{side}_hand_state"
-                    v = vectors.get(src)
-                    if v is None:
-                        missing.append(src)
-                        continue
-                    parts.append(np.asarray(v, dtype=np.float32)[: b.dim])
-            elif b.name == "waist":
-                if body is not None:
-                    # body_slice is a (start, stop) pair -> a real slice on the
-                    # 1-D body vector (waist 14:16 / head 16:18).
-                    parts.append(
-                        np.asarray(body, dtype=np.float32)[slice(*b.body_slice)]
-                    )
-                else:
-                    missing.append("body_state")
-            elif b.name == "head":
-                if body is not None:
-                    parts.append(
-                        np.asarray(body, dtype=np.float32)[slice(*b.body_slice)]
-                    )
-                elif vectors.get("head_state") is not None:
-                    parts.append(
-                        np.asarray(vectors["head_state"], dtype=np.float32)[: b.dim]
-                    )
-                else:
-                    missing.append("body_state|head_state")
-            else:
-                missing.append(b.name)
+        state = np.empty(self.state_dim, dtype=np.float32)
+        for block in self.blocks:
+            source = block.stream_key
+            value = vectors.get(source)
+            # Compatibility for legacy Astral sim, whose head feedback is a
+            # separate stream while its frozen v1 schema records body_state.
+            if value is None and block.block_id == "head" and self.schema.metadata.get("upgraded_from"):
+                source = "head_state"
+                value = vectors.get(source)
+            if value is None:
+                missing.append(source)
+                continue
+            raw = np.asarray(value, dtype=np.float32).reshape(-1)
+            indices = block.stream_indices
+            if source == "head_state" and source != block.stream_key:
+                indices = tuple(range(block.dim))
+            if len(raw) <= max(indices, default=-1):
+                missing.append(source)
+                continue
+            selected = raw[np.asarray(indices, dtype=int)]
+            state[np.asarray(block.state_indices, dtype=int)] = selected
         if missing:
             return None, missing
-        try:
-            state = np.concatenate(parts)
-        except ValueError as exc:
-            raise RuntimeError(
-                f"obs assembly failed for schema blocks "
-                f"{[b.name for b in self.blocks]}: {exc}"
-            ) from exc
         if state.shape[0] != self.state_dim:
             raise RuntimeError(
                 f"obs dim mismatch: assembled {state.shape[0]} != schema "
@@ -238,53 +206,40 @@ class ObsLayout:
     def split_action(self, action: np.ndarray) -> list[CmdTarget]:
         """Split one absolute action row into per-stream command targets.
 
-        Waist blocks raise ``UnsupportedActionBlockError``; everything else
-        maps to the standalone topics used by the arm driver / sim.
+        Every writable block resolves its own command stream, names, limits,
+        semantics, and writer registration from the frozen profile.
         """
         action = np.asarray(action, dtype=np.float64).reshape(-1)
-        if action.shape[0] != self.state_dim:
+        if action.shape[0] != self.action_dim:
             raise ValueError(
-                f"action dim {action.shape[0]} != schema state_dim "
-                f"{self.state_dim}"
+                f"action dim {action.shape[0]} != schema action_dim "
+                f"{self.action_dim}"
             )
         targets: list[CmdTarget] = []
-        cursor = 0
-        for b in self.blocks:
-            seg = action[cursor : cursor + b.dim]
-            cursor += b.dim
-            if b.name.endswith("_arm"):
-                targets.append(
-                    CmdTarget(
-                        f"{b.name}_cmd",
-                        self._cmd_topic[b.name],
-                        "joints",
-                        seg.copy(),
-                    )
-                )
-            elif b.name.endswith("_ee"):
-                targets.append(
-                    CmdTarget(
-                        f"{b.name}_cmd",
-                        self._cmd_topic[b.name],
-                        "ratio" if seg.size == 1 else "joints",
-                        seg.copy(),
-                    )
-                )
-            elif b.name == "head":
-                targets.append(
-                    CmdTarget(
-                        "head_cmd",
-                        self._cmd_topic["head"],
-                        "joints",
-                        seg.copy(),
-                    )
-                )
-            elif b.name == "waist":
-                raise UnsupportedActionBlockError(
-                    "waist block has no v1 command channel; refuse to guess"
-                )
+        for block in self.action_blocks:
+            if not block.writable or not block.command_stream:
+                raise UnsupportedActionBlockError(f"action block {block.block_id} has no writable command stream")
+            if block.semantics == "delta":
+                raise UnsupportedActionBlockError(f"delta action semantics are not yet enabled for {block.block_id}")
+            stream = self._cmd_streams.get(block.command_stream)
+            if stream is None or stream.source_kind not in {"command", "command_echo"}:
+                raise UnsupportedActionBlockError(f"command stream {block.command_stream!r} is not registered")
+            if stream.message_type == "std_msgs/msg/Float64":
+                kind = "ratio"
+            elif stream.message_type == "sensor_msgs/msg/JointState":
+                kind = "joints"
             else:
-                raise UnsupportedActionBlockError(f"block {b.name} unwritable")
+                raise UnsupportedActionBlockError(f"unsupported command type {stream.message_type!r}")
+            seg = action[np.asarray(block.action_indices, dtype=int)].copy()
+            target_stream = (
+                f"{block.block_id}_cmd"
+                if self.schema.metadata.get("upgraded_from") else stream.stream_key
+            )
+            targets.append(CmdTarget(
+                stream=target_stream, topic=stream.topic, kind=kind, values=seg,
+                joint_names=stream.joint_names, limits=block.limits,
+                writer_id=block.writer_id, semantics=block.semantics,
+            ))
         return targets
 
 

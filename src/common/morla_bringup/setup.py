@@ -27,6 +27,7 @@ setup(
             "controller_start_gate = morla_bringup.controller_start_gate:main",
             "controller_workpos_gate = morla_bringup.controller_workpos_gate:main",
             "head_teleop_node = morla_bringup.head_teleop_node:main",
+            "control_coordinator_node = morla_bringup.control_coordinator_node:main",
         ]
     },
 )

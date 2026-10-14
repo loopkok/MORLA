@@ -52,7 +52,8 @@ from sensor_msgs.msg import CompressedImage, JointState
 from std_msgs.msg import Bool, Float64, String
 from std_srvs.srv import Trigger
 
-from morla_core.schema import CollectSchema
+from morla_core.schema import CollectSchema, upgrade_v1_schema
+from morla_core.profile import ProfileRegistry
 from morla_policy_inference.backend import ObsBatch, make_backend
 from morla_policy_inference.controller import Controller, InvalidTransition
 from morla_policy_inference.engine import ActionEngine, EngineStateError
@@ -62,12 +63,18 @@ from morla_policy_inference.robot_io import (
     ObsLayout,
     decode_jpeg_rgb,
     letterbox,
+    reorder_joint_positions,
 )
 
 _SENSOR_QOS = QoSProfile(
     reliability=ReliabilityPolicy.BEST_EFFORT,
     history=HistoryPolicy.KEEP_LAST,
     depth=1,
+)
+_COMMAND_QOS = QoSProfile(
+    reliability=ReliabilityPolicy.RELIABLE,
+    history=HistoryPolicy.KEEP_LAST,
+    depth=10,
 )
 _LATCHED_QOS = QoSProfile(
     reliability=ReliabilityPolicy.RELIABLE,
@@ -109,8 +116,27 @@ class PolicyNode(Node):
         self._cmd_queue: "queue.Queue[tuple[str, int, float]]" = queue.Queue()
         self._cmd_rx_seq = 0
         self._engine: Optional[ActionEngine] = None
+        max_vel = float(self.get_parameter("max_joint_vel").value)
+        velocity_by_stream = {}
+        limits_by_stream = {}
+        if self._profile is not None:
+            component_by_id = {
+                item["component_id"]: item for item in self._profile.values["components"]
+                if item.get("enabled")
+            }
+            for block in self._schema.action_blocks:
+                if not block.writable or not block.command_stream:
+                    continue
+                component = component_by_id.get(block.block_id, {})
+                velocity_by_stream[block.command_stream] = float(
+                    component.get("max_joint_velocity_rad_s", max_vel)
+                )
+                if block.limits:
+                    bounds = np.asarray(block.limits, dtype=np.float64)
+                    limits_by_stream[block.command_stream] = (bounds[:, 0], bounds[:, 1])
         self._executor = SafeExecutor(
-            max_joint_vel=float(self.get_parameter("max_joint_vel").value),
+            max_joint_vel=max_vel, joint_limits=limits_by_stream,
+            max_joint_vel_by_stream=velocity_by_stream,
         )
         self._exec_events: list[str] = []
         self._playback: Optional[PlaybackSession] = None
@@ -218,10 +244,8 @@ class PolicyNode(Node):
         self._loop_ms: "collections.deque[float]" = collections.deque(maxlen=50)
         self._obs_age_ms: "collections.deque[float]" = collections.deque(maxlen=50)
 
-        self._ctrl_rate = float(
-            self.get_parameter("dataset_fps").value
-        ) * int(self.get_parameter("control_interp").value)
-        self._policy_dt = 1.0 / float(self.get_parameter("dataset_fps").value)
+        self._ctrl_rate = float(self._dataset_fps) * int(self.get_parameter("control_interp").value)
+        self._policy_dt = 1.0 / float(self._dataset_fps)
         self._acc = 0.0
         self._sub = 0
         self._hold_end: Optional[float] = None
@@ -267,9 +291,18 @@ class PolicyNode(Node):
             10,
             callback_group=self._command_callback_group,
         )
+        reanchor_services = [
+            str(row["prepare_reanchor_service"])
+            for row in (self._profile.values.get("writers", []) if self._profile else [])
+            if row.get("prepare_reanchor_service")
+        ]
+        if not reanchor_services:
+            reanchor_services = [
+                str(name).strip().removesuffix("/reanchor") + "/prepare_reanchor"
+                for name in self.get_parameter("teleop_reanchor_services").value
+            ]
         self._reanchor_clients = {
-            name: self.create_client(Trigger, name.rsplit('/', 1)[0] + '/prepare_reanchor')
-            for name in self.get_parameter("teleop_reanchor_services").value
+            name: self.create_client(Trigger, name) for name in reanchor_services
         }
 
         self._timer = self.create_timer(
@@ -288,9 +321,9 @@ class PolicyNode(Node):
             and str(self.get_parameter("model").value) == "pi05"
         )
         self.get_logger().info(
-            f"policy_node up: schema={self._layout.state_dim}D "
-            f"arms={self._schema.arms} ee=({self._schema.end_effector_left},"
-            f"{self._schema.end_effector_right}) fps={self._schema.dataset_fps} "
+            f"policy_node up: profile={self._schema.profile_id} "
+            f"layout={self._schema.layout_hash[:12]} state/action="
+            f"{self._schema.state_dim}/{self._schema.action_dim}D fps={self._dataset_fps} "
             f"ctrl={self._ctrl_rate}Hz mode={self.get_parameter('engine_mode').value}"
             # 生效参数自报（防 yaml 被静默丢弃/launch 覆盖后无感）：
             # yaml 顶层键≠节点名时整份参数被 rclpy 忽略，节点按代码默认值跑。
@@ -316,6 +349,9 @@ class PolicyNode(Node):
     def _declare_params(self) -> None:
         defaults = {
             # robot / schema
+            "profile_id": "",
+            "model_capacity": 0,
+            "require_layout_handshake": False,
             "arms": ["left"],
             "end_effector_left": "gripper",
             "end_effector_right": "none",
@@ -409,17 +445,29 @@ class PolicyNode(Node):
             self.declare_parameter(name, val)
 
     def _load_robot_params(self) -> None:
-        arms = [str(s) for s in self.get_parameter("arms").value]
-        schema = CollectSchema(
-            arms=arms,
-            end_effector_left=str(self.get_parameter("end_effector_left").value),
-            end_effector_right=str(self.get_parameter("end_effector_right").value),
-            include_waist=bool(self.get_parameter("include_waist").value),
-            include_head=bool(self.get_parameter("include_head").value),
-            cameras=[str(c) for c in self.get_parameter("cameras").value],
-            dataset_fps=int(self.get_parameter("dataset_fps").value),
-        )
+        profile_id = str(self.get_parameter("profile_id").value or "").strip()
+        self._profile = ProfileRegistry.from_index().load(profile_id) if profile_id else None
+        if self._profile is None:
+            legacy = CollectSchema(
+                arms=[str(s) for s in self.get_parameter("arms").value],
+                end_effector_left=str(self.get_parameter("end_effector_left").value),
+                end_effector_right=str(self.get_parameter("end_effector_right").value),
+                include_waist=bool(self.get_parameter("include_waist").value),
+                include_head=bool(self.get_parameter("include_head").value),
+                cameras=[str(c) for c in self.get_parameter("cameras").value],
+                dataset_fps=int(self.get_parameter("dataset_fps").value),
+            )
+            self._schema = upgrade_v1_schema(legacy.to_dict())
+            self._legacy_collect_schema = legacy
+        else:
+            self._schema = self._profile.frozen_schema
+            self._legacy_collect_schema = None
+        schema = self._schema
         camera_map = self._parse_camera_map(self.get_parameter("camera_map").value)
+        if self._profile is not None:
+            configured = self._profile.values.get("backend_requirements", {}).get("camera_map", {})
+            if not camera_map or camera_map == {"base_0_rgb": "base", "left_wrist_0_rgb": "left_wrist"}:
+                camera_map = {str(k): str(v) for k, v in configured.items()}
         labels = {str(v) for v in camera_map.values()}
         unknown = labels - set(schema.cameras)
         if unknown:
@@ -427,8 +475,7 @@ class PolicyNode(Node):
                 f"camera_map labels {sorted(unknown)} not in cameras list; "
                 "still subscribing (streamer label may differ from recorded set)"
             )
-        self._schema = schema
-        self._layout = ObsLayout(schema)
+        self._layout = ObsLayout(schema, strict_names=self._profile is not None)
         self._topic_to_key = {src.topic: k for k, src in self._layout.sources.items()}
         self._camera_map = {str(k): str(v) for k, v in camera_map.items()}
         self._mute_cameras = {
@@ -442,9 +489,11 @@ class PolicyNode(Node):
                 f"{sorted(set(self._camera_map.values()))}）"
             )
         self._image_size = int(self.get_parameter("camera_image_size").value)
+        self._dataset_fps = int(schema.dataset_fps)
         self._obs_timeout = float(self.get_parameter("obs_timeout_s").value)
         self._image_timeout = float(self.get_parameter("image_timeout_s").value)
         self._image_required = bool(self.get_parameter("image_required").value)
+        requirements = self._profile.values.get("backend_requirements", {}) if self._profile else {}
         self._backend_cfg = {
             "backend_type": str(self.get_parameter("backend_type").value),
             "model": str(self.get_parameter("model").value),
@@ -454,7 +503,14 @@ class PolicyNode(Node):
             "connect_timeout_s": float(self.get_parameter("server_connect_timeout_s").value),
             "infer_timeout_s": float(self.get_parameter("server_infer_timeout_s").value),
             "default_prompt": str(self.get_parameter("default_prompt").value),
-            "action_dim": schema.state_dim,
+            "action_dim": schema.action_dim,
+            "layout_hash": schema.layout_hash,
+            "layout_id": str(requirements.get("model_layout_id", schema.profile_id)),
+            "model_capacity": int(self.get_parameter("model_capacity").value or requirements.get("model_capacity", 0)),
+            "require_layout_handshake": bool(
+                self.get_parameter("require_layout_handshake").value
+                or requirements.get("requires_model_layout_handshake", False)
+            ),
             "camera_map": self._camera_map,
             "jpeg_transport": bool(self.get_parameter("jpeg_transport").value),
         }
@@ -492,7 +548,9 @@ class PolicyNode(Node):
                     callback_group=self._sensor_callback_group,
                 )
             else:
-                cb = lambda msg, k=key, d=src.dim: self._on_joints(msg, k, d)  # noqa: E731
+                cb = lambda msg, k=key, d=src.dim, s=src: self._on_joints(  # noqa: E731
+                    msg, k, d, s.joint_names, s.strict_names
+                )
                 self.create_subscription(
                     JointState,
                     src.topic,
@@ -522,9 +580,15 @@ class PolicyNode(Node):
 
     # ------------------------------------------------------------ subscribers
 
-    def _on_joints(self, msg: JointState, key: str, dim: int) -> None:
-        arr = np.asarray(msg.position[:dim], dtype=np.float64)
-        if arr.shape[0] < dim:
+    def _on_joints(
+        self, msg: JointState, key: str, dim: int,
+        joint_names: tuple[str, ...] = (), strict_names: bool = False,
+    ) -> None:
+        expected = joint_names if joint_names else tuple("" for _ in range(dim))
+        arr = reorder_joint_positions(
+            msg.name, msg.position, expected, strict=strict_names
+        )
+        if arr is None or arr.shape != (dim,):
             return
         self._values[key] = arr.copy()
         self._stamps[key] = time.monotonic()
@@ -844,9 +908,9 @@ class PolicyNode(Node):
                 **self._backend_cfg, rtc_guided=guided_rtc, rtc_horizon=rtc_horizon,
             ),
             mode=mode,
-            action_dim=self._schema.state_dim,
+            action_dim=self._schema.action_dim,
             chunk=int(self.get_parameter("action_chunk").value),
-            policy_fps=int(self.get_parameter("dataset_fps").value),
+            policy_fps=self._dataset_fps,
             autostart=True,
             abs_action_min_scale=float(
                 self.get_parameter("abs_action_min_scale").value
@@ -889,12 +953,21 @@ class PolicyNode(Node):
             pass
 
     def _required_writers(self):
-        writers = {f'{side}_arm' for side in self._schema.arms}
-        for side in ('left', 'right'):
-            ee = getattr(self._schema, f'end_effector_{side}')
-            if ee == 'gripper': writers.add(f'{side}_gripper')
-            elif ee == 'wuji': writers.add(f'{side}_hand')
-        if self._schema.include_head: writers.add('head')
+        if self._profile is not None:
+            return {
+                str(row["writer_id"]) for row in self._profile.values.get("writers", [])
+                if row.get("ack_topic")
+            }
+        legacy = self._legacy_collect_schema
+        writers = {f"{side}_arm" for side in legacy.arms}
+        for side in legacy.arms:
+            ee = legacy.end_effector_for(side)
+            if ee == "gripper":
+                writers.add(f"{side}_gripper")
+            elif ee == "wuji":
+                writers.add(f"{side}_hand")
+        if legacy.include_head:
+            writers.add("head")
         return writers
 
     def _start_policy(self) -> bool:
@@ -1070,16 +1143,17 @@ class PolicyNode(Node):
         except Exception as exc:  # noqa: BLE001
             self.get_logger().error(f"replay load failed: {exc}")
             return
-        if ep.action_dim != self._schema.state_dim:
+        if ep.action_dim != self._schema.action_dim:
             self.get_logger().error(
-                f"replay action_dim {ep.action_dim} != robot state_dim "
-                f"{self._schema.state_dim}; schema mismatch"
+                f"replay action_dim {ep.action_dim} != robot action_dim "
+                f"{self._schema.action_dim}; schema mismatch"
             )
             return
         if ep.schema is not None:
             recorded = ep.schema.state_names()
             robot = self._schema.state_names()
-            if recorded != robot:
+            recorded_hash = getattr(ep.schema, "layout_hash", None)
+            if (recorded_hash and recorded_hash != self._schema.layout_hash) or recorded != robot:
                 self.get_logger().error(
                     "replay state layout mismatch (same total dim, different "
                     "blocks/order): recorded "
@@ -1087,11 +1161,10 @@ class PolicyNode(Node):
                 )
                 return
         ep_fps = int(ep.fps)
-        if ep_fps != int(self.get_parameter("dataset_fps").value):
+        if ep_fps != self._dataset_fps:
             self.get_logger().warn(
-                f"replay fps {ep_fps} != dataset_fps "
-                f"{int(self.get_parameter('dataset_fps').value)}; pacing "
-                "uses dataset_fps (normally identical at collection time)"
+                f"replay fps {ep_fps} != profile dataset_fps "
+                f"{self._dataset_fps}; pacing uses the frozen profile rate"
             )
         self.controller.request("playback")
         self._begin_playback(PlaybackSession(ep))
@@ -1697,7 +1770,7 @@ class PolicyNode(Node):
             if t.kind == "ratio":
                 pub = self._pubs.get(("ratio", t.topic))
                 if pub is None:
-                    pub = self.create_publisher(Float64, t.topic, _SENSOR_QOS)
+                    pub = self.create_publisher(Float64, t.topic, _COMMAND_QOS)
                     self._pubs[("ratio", t.topic)] = pub
                 msg = Float64()
                 msg.data = float(t.values[0])
@@ -1710,10 +1783,11 @@ class PolicyNode(Node):
             else:
                 pub = self._pubs.get(("js", t.topic))
                 if pub is None:
-                    pub = self.create_publisher(JointState, t.topic, _SENSOR_QOS)
+                    pub = self.create_publisher(JointState, t.topic, _COMMAND_QOS)
                     self._pubs[("js", t.topic)] = pub
                 msg = JointState()
                 msg.header.stamp = self.get_clock().now().to_msg()
+                msg.name = list(t.joint_names)
                 msg.position = [float(v) for v in t.values]
                 pub.publish(msg)
 
@@ -1751,7 +1825,10 @@ class PolicyNode(Node):
             "activity": self.controller.activity,
             "paused": self.controller.snapshot()["paused"],
             "prompt": self._prompt,
+            "profile_id": self._schema.profile_id,
+            "layout_hash": self._schema.layout_hash,
             "state_dim": self._schema.state_dim,
+            "action_dim": self._schema.action_dim,
             "engine": engine_stats,
             "playback": (
                 {

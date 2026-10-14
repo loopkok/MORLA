@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import json
+import time
 from pathlib import Path
 
 import numpy as np
@@ -12,8 +14,9 @@ from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import PoseArray
 from morla_core.ownership import PolicyLease
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import JointState
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
 
 from xhand_retargeting.preprocess import preprocess_xhand_landmarks
 
@@ -106,6 +109,9 @@ class XHandDexRetargetingNode(Node):
         self.target_topic = target_topic or f"/{self.side}_hand/retarget_targets"
         self._command_pub = self.create_publisher(JointState, self.command_topic, 1)
         self._target_pub = self.create_publisher(JointState, self.target_topic, 1)
+        self._status_pub = self.create_publisher(
+            String, f"/teleop/writer_status/{self.side}_ee", 10
+        )
         self._last_target = None
         self._armed = False
         self._policy_lease = PolicyLease()
@@ -113,10 +119,12 @@ class XHandDexRetargetingNode(Node):
             self, writer=f"{self.side}_ee", callback=self._on_ownership
         )
         self.create_subscription(
-            PoseArray, f"{self.input_topic}/{self.side}", self._on_landmarks, 1
+            PoseArray, f"{self.input_topic}/{self.side}", self._on_landmarks,
+            qos_profile_sensor_data,
         )
         self.create_subscription(Bool, "/teleop/armed", self._on_armed, 10)
         self.create_subscription(Bool, "/teleop/disarm", self._on_disarm, 10)
+        self._status_timer = self.create_timer(0.2, self._publish_runtime_status)
         self.get_logger().info(
             f"XHand DexPilot side={self.side}; input={self.input_topic}/{self.side}; "
             f"standard command={self.command_topic}; description={model_id}"
@@ -156,6 +164,15 @@ class XHandDexRetargetingNode(Node):
     def _on_disarm(self, msg: Bool):
         if msg.data:
             self._armed = False
+
+    def _publish_runtime_status(self):
+        payload = {
+            "writer_id": f"{self.side}_ee",
+            "armed": bool(self._armed),
+            "ownership": self._policy_lease.activity,
+            "sent_at": time.time(),
+        }
+        self._status_pub.publish(String(data=json.dumps(payload, sort_keys=True)))
 
     def _on_landmarks(self, msg: PoseArray):
         activity = self._policy_lease.activity

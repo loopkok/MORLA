@@ -1,12 +1,10 @@
 # morla_policy_inference — 策略部署 / 数据真机回放 / 人在环路（HITL）
 
-一个 ROS 2 Humble 功能包，对 **遥操数采（`astral_arm_teleop` + `morla_data_collect`）→
-训练（OpenPI pi0.5 / LeRobot ACT）** 的上游做推理闭环：
+一个 ROS 2 Humble 功能包，通过 `morla_core` robot profile 与 `FrozenSchema`，将外部策略输入、OpenPI/ACT推理、数据回放和HITL接入标准机器人命令流。Astral历史模型兼容适配仍由策略后端负责，运行时布局始终由Profile及其layout hash确定：
 
 - **策略部署**：VLA 策略跑在真实机器人/仿真上，模型无关换权重（后端抽象）。
 - **推理节奏**：同步 `queue_sync`、异步 `queue_async`、实时分块 `rtc` 三种引擎模式。
-- **全链路适配**：与数采同一 `CollectSchema` → 观测订阅 / state 向量 / 指令拆分全自动，
-  换机器人配置 = 换和采集时一样的 yaml 段落。
+- **全链路适配**：按与数采相同的不可变 `FrozenSchema` 订阅观测、构造state、验证模型容量与layout handshake，并具名拆分动作；换机器人只需选择同一个 `profile_id`。
 - **数据真机回放**：已采集 episode（`aligned_data.h5` 或 LeRobot v2.1 目录）绝对动作回放，
   训练好的模型和采集的数据走同一条执行链。
 - **人在环路**：策略暂停 → VR 遥操**增量接管**（自动重新记录机器人原点/VR 位姿）→
@@ -31,7 +29,7 @@
 
 ```text
 morla_policy_inference/
-├── robot_io.py     ObsLayout：由 CollectSchema 生成订阅表 / 观测向量 / 指令拆分
+├── robot_io.py     ObsLayout：由 FrozenSchema 生成订阅表 / 观测向量 / 指令拆分
 ├── executor.py     SafeExecutor：NaN/限位/速率安全层（纯逻辑，可单测）
 ├── backend.py      PolicyBackend：RemoteBackend(remote) / InprocBackend(inproc) / StubBackend
 ├── client.py       自包含 websocket client + vendored __ndarray__ 序列化（无 openpi_client）
@@ -54,9 +52,10 @@ ACT 三种训练模式一个脚本搞定：`--mode from_scratch|resume|finetune`
 ### 1) 运行节点
 
 ```bash
-cd /home/robot/loopkok/sdk/astral_ws
+cd /home/robot/loopkok/sdk/MORLA
 ros2 launch morla_policy_inference policy_inference.launch.py \
     backend_type:=stub \
+    profile_id:=nero_left_xhand \
     keyboard:=true
 ```
 
@@ -103,7 +102,7 @@ GPU 主机起统一 `scripts/serve.py`，节点 `backend_type=remote` 连它（�
 
 ```bash
 # GPU 主机（py3.12 lerobot 环境，serve ACT）：
-<lerobot-env>/bin/python astral_ws/src/common/morla_policy_inference/scripts/serve.py \
+<lerobot-env>/bin/python MORLA/src/common/morla_policy_inference/scripts/serve.py \
   --model act --checkpoint-dir <act_checkpoint> --port 8001
 # 或直接用运维脚本（参数外置 serve_policy.env，启动前查端口冲突，--status/--stop 配套）：
 MORLA/scripts/serve_policy.sh            # 启动（改参编辑 serve_policy.env，不动脚本）
@@ -127,7 +126,7 @@ flow-matching 去噪步约束新块前缀。节点继续执行旧块，收到新
 ```bash
 # GPU 主机；--rtc-guided 会同时预编译普通和 guided 两条推理路径
 PYTHONPATH=<sdk>/VLA/openpi/src <openpi-env>/bin/python \
-  astral_ws/src/common/morla_policy_inference/scripts/serve.py \
+  MORLA/src/common/morla_policy_inference/scripts/serve.py \
   --model pi05 --checkpoint-dir <openpi_ckpt> --policy-config pi05_astral \
   --action-dim 8 --port 8001 --rtc-guided --rtc-execution-horizon 10
 
@@ -321,7 +320,7 @@ ros2 topic pub /policy_inference/cmd std_msgs/msg/String "data: 'release'" -1
 pause 夹持、resume 恢复、h5 回放逐帧一致与播完自动 IDLE）：
 
 ```bash
-cd /home/robot/loopkok/sdk/astral_ws
+cd /home/robot/loopkok/sdk/MORLA
 source /opt/ros/humble/setup.bash && source install/local_setup.bash
 
 # 先做一次 /tmp/e2e/replay.h5（h5py 写 action + attrs[fps]=30 即可，参考脚本注释）
@@ -338,7 +337,7 @@ console script 放进 `install/morla_policy_inference/bin/` 而无 resource inde
 
 ## 关键设计
 
-- **观测/动作布局 = `morla_data_collect.schema.CollectSchema`**。state 向量按 `meta.json`
+- **观测/动作布局 = profile导出的 `morla_core.schema.FrozenSchema`**。state 向量按 `meta.json`
   冻结顺序拼装；`split_action` 把策略输出的绝对动作行拆回 arm/gripper/head 独立话题；
   waist 块无 v1 指令通道 → 显式 `UnsupportedActionBlockError`，拒绝猜测。
 - **绝对动作行**。pi0.5/ACT 输出与采集的 next-state 同为绝对关节目标，因此 chunk 无缝替换
@@ -440,7 +439,7 @@ ros2 launch morla_policy_inference policy_inference.launch.py ... \
 ## 测试
 
 ```bash
-cd /home/robot/loopkok/sdk/astral_ws
+cd /home/robot/loopkok/sdk/MORLA
 src/common/morla_policy_inference/scripts/run_policy_inference_tests.sh
 ```
 

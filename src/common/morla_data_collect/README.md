@@ -1,5 +1,25 @@
 # morla_data_collect — VLA 数据采集包
 
+## MORLA统一profile模式
+
+遥操/仿真、策略和数采都从同一个 `morla_core` robot profile 读取冻结的 `FrozenSchema`；数采不会再根据独立的 Astral arms/end-effector 参数拼造 Nero/XHand 布局。录制开始时将 `profile_id`、`runtime_mode`（`sim`/`real`）、schema/layout hash 与源资产版本写入 `meta.json`。数据保存到 `{save_root}/{profile_id}/{session}/episodeNNNNNN/`，默认根目录受 `MORLA_DATA_ROOT` 控制。
+
+```bash
+# 先启动同profile的遥操/仿真，再启动数采。mode 必须写明，避免把合成反馈标为实测。
+ros2 launch morla_data_collect data_collect.launch.py \
+  profile_id:=nero_left_xhand runtime_mode:=sim session:=pick_place \
+  keyboard:=false vr_control:=false
+
+# 从 MORLA 工作区运行统一离线工具
+scripts/data_pipeline.sh align --session /path/to/raw/nero_left_xhand/pick_place
+scripts/data_pipeline.sh validate --session /path/to/raw/nero_left_xhand/pick_place
+scripts/data_pipeline.sh export-openpi \
+  --session /path/to/raw/nero_left_xhand/pick_place \
+  --output /path/to/lerobot/nero_left_xhand --codec h264
+```
+
+profile布局由注册表统一维护：Astral左臂+夹爪为8维，Nero单臂+XHand为19维，Astral双臂+左夹爪+右Wuji为35维，Nero双臂+双XHand为38维；其它活动Profile见 `morla-profile validate-all`。XHand力/温度等传感器独立保留在raw/aligned sidecar，不拼进state/action。仿真可缺少某些可选传感器，报告会明确给warning；必需流缺失则录制校验失败。
+
 为 OpenPI pi0.5 等 VLA 模型采集训练数据。与遥操作链路并行运行，四段式：
 **采集（raw HDF5）→ 离线对齐（固定 fps 网格）→ 清洗校验 → LeRobot v2.1 导出**，
 外加 Rerun 可视化回放。设计文档见 `docs/superpowers/specs/2026-08-28-astral-data-collect-design.md`。
@@ -22,6 +42,8 @@ streamer 抽头 ┘     ▲                    robot_data.h5 + camera_data.h5 + 
 3. 依赖：`pip install h5py pyarrow`（采集只需 h5py；导出需 pyarrow+av；回放需 rerun-sdk）
 
 ## 2. 采集前必查（schema 冻结进每段 meta.json）
+
+本节的 `arms/end_effector/include_waist/include_head` 参数只用于兼容的无 `profile_id` Astral schema。统一 MORLA 采集应显式传 `profile_id`；该profile内的state/action/stream布局不可由这些旧参数覆盖。
 
 **参数来源约定**：`config/data_collect.yaml` 是所有参数的唯一默认值来源。
 launch 参数默认空串，**只在显式传入时**（CLI `xxx:=` 或 web 预设 args）

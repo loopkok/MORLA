@@ -19,6 +19,9 @@
   <depend>std_msgs</depend>
   <depend>std_srvs</depend>
   <depend>morla_core</depend>
+  <exec_depend>morla_bringup</exec_depend>
+  <exec_depend>morla_nero_robot</exec_depend>
+  <exec_depend>morla_astral_robot</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>

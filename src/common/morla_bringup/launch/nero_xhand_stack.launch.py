@@ -64,6 +64,20 @@ def _setup(context, *args, **kwargs):
                 "joy_topic": "quest3/left_controller_joy",
                 "right_joy_topic": "quest3/right_controller_joy",
                 "button_index": 5,
+                "use_control_coordinator": True,
+            }],
+        )
+    )
+    actions.append(
+        Node(
+            package="morla_bringup",
+            executable="controller_workpos_gate",
+            name="controller_workpos_gate",
+            output="screen",
+            parameters=[{
+                "joy_topic": "quest3/left_controller_joy",
+                "button_index": 0,
+                "use_control_coordinator": True,
             }],
         )
     )
@@ -205,6 +219,19 @@ def _setup(context, *args, **kwargs):
                     parameters=[vendor_config, {"port_name": serial_port, "update_rate": 50.0}],
                 )
             )
+    if arms:
+        actions.append(
+            Node(
+                package="morla_bringup",
+                executable="control_coordinator_node",
+                name="morla_control_coordinator",
+                output="screen",
+                parameters=[{
+                    "profile_id": profile_id,
+                    "operating_mode": mode,
+                }],
+            )
+        )
     return actions
 
 

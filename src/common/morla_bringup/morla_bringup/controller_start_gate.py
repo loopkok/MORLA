@@ -25,6 +25,7 @@ from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool, String
+from std_srvs.srv import Trigger
 
 from morla_bringup.start_gate_logic import (
     RestartRequiredGate,
@@ -70,6 +71,7 @@ class ControllerStartGate(Node):
         self.declare_parameter("right_joy_topic", "quest3/right_controller_joy")
         self.declare_parameter("input_epoch_topic", "quest3/input_epoch")
         self.declare_parameter("disarm_topic", "/teleop/disarm")
+        self.declare_parameter("use_control_coordinator", False)
 
         joy_topic = str(self.get_parameter("joy_topic").value).strip()
         self.button_index = int(self.get_parameter("button_index").value)
@@ -80,6 +82,9 @@ class ControllerStartGate(Node):
         right_joy_topic = str(self.get_parameter("right_joy_topic").value).strip()
         epoch_topic = str(self.get_parameter("input_epoch_topic").value).strip()
         disarm_topic = str(self.get_parameter("disarm_topic").value).strip()
+        self._coordinator_enabled = bool(self.get_parameter("use_control_coordinator").value)
+        self._control_clients: dict[str, object] = {}
+        self._control_pending: set[str] = set()
 
         # RELIABLE + VOLATILE: one-shot, not latched (match monitor_node).
         self._pub = self.create_publisher(Bool, start_topic, 10)
@@ -107,8 +112,42 @@ class ControllerStartGate(Node):
             f"controller_start_gate joy={joy_topic} button={self.button_index} "
             f"(5=gripClick) → {start_topic} + {armed_topic} "
             f"(policy active → {self._policy_cmd_topic} 'takeover'; "
-            f"right A in HUMAN → 'release')"
+            f"right A in HUMAN → 'release'; coordinator={self._coordinator_enabled})"
         )
+
+    def _request_control(self, operation: str) -> bool:
+        """Submit a one-shot control operation without blocking the Joy callback."""
+        if not self._coordinator_enabled:
+            return False
+        if operation in self._control_pending:
+            return True
+        client = self._control_clients.get(operation)
+        if client is None:
+            client = self.create_client(Trigger, f"/morla/control/{operation}")
+            self._control_clients[operation] = client
+        if not client.service_is_ready():
+            self.get_logger().warning(
+                f"coordinator service for {operation} is not ready; request was not sent"
+            )
+            return True
+        self._control_pending.add(operation)
+        future = client.call_async(Trigger.Request())
+        future.add_done_callback(
+            lambda done, op=operation: self._on_control_result(op, done)
+        )
+        self.get_logger().info(f"controller button submitted /morla/control/{operation}")
+        return True
+
+    def _on_control_result(self, operation: str, future) -> None:
+        self._control_pending.discard(operation)
+        try:
+            response = future.result()
+            if response.success:
+                self.get_logger().info(f"{operation} accepted: {response.message}")
+            else:
+                self.get_logger().warning(f"{operation} rejected: {response.message}")
+        except Exception as exc:  # service disconnect / callback failure
+            self.get_logger().error(f"{operation} service failed: {exc}")
 
     def _on_policy_state(self, msg: String) -> None:
         self._policy_lease.update(msg.data)
@@ -155,7 +194,9 @@ class ControllerStartGate(Node):
             return
         # Rising edge only — hold does not spam start.
         if pressed and not self._prev_pressed:
-            if decide_start_action(self._activity) == "takeover":
+            if self._request_control("start"):
+                pass
+            elif decide_start_action(self._activity) == "takeover":
                 self._policy_cmd_pub.publish(String(data="takeover"))
                 self.get_logger().info(
                     f"controller button {self.button_index} pressed → "
@@ -182,7 +223,8 @@ class ControllerStartGate(Node):
         self._last_right_joy = now
         self._activity = self._policy_lease.activity
         if decide_release_action(self._activity, self._prev_right_buttons, cur):
-            self._policy_cmd_pub.publish(String(data="release"))
+            if not self._request_control("release"):
+                self._policy_cmd_pub.publish(String(data="release"))
             self.get_logger().info(
                 f"right A pressed → {self._policy_cmd_topic} 'release' (HUMAN)"
             )

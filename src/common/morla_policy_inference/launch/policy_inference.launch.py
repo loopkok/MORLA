@@ -52,6 +52,7 @@ def _node(context):
     params_file = LaunchConfiguration("params_file").perform(context)
     backend_type = LaunchConfiguration("backend_type").perform(context)
     model = LaunchConfiguration("model").perform(context)
+    profile_id = LaunchConfiguration("profile_id").perform(context).strip()
     jpeg_transport = LaunchConfiguration("jpeg_transport").perform(context)
     host = LaunchConfiguration("host").perform(context)
     port = LaunchConfiguration("port").perform(context)
@@ -98,6 +99,8 @@ def _node(context):
         parameters.append(params_bt)
     if model:
         parameters.append({"model": model})
+    if profile_id:
+        parameters.append({"profile_id": profile_id})
     if jpeg_transport:
         parameters.append({"jpeg_transport": jpeg_transport.lower() in ("1", "true")})
     if camera_image_size:
@@ -172,6 +175,8 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument("params_file", default_value=_default_params()),
             DeclareLaunchArgument("backend_type", default_value=""),
             DeclareLaunchArgument("model", default_value=""),
+            DeclareLaunchArgument("profile_id", default_value="",
+                                  description="MORLA robot profile; empty preserves legacy yaml"),
             DeclareLaunchArgument(
                 "jpeg_transport", default_value="",
                 description="true 上行 camera 槽位发 JPEG（载荷 ~7x 小）；false 发 RGB"),

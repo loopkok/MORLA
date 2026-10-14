@@ -1,5 +1,24 @@
 # morla_bringup
 
+`morla_bringup` also owns MORLA's shared asynchronous control coordinator. Every profile-driven launch starts one `control_coordinator_node`; Web buttons and controller gates call the same `/morla/control/*` services. An accepted `Trigger` request is not a completed movement: follow `/morla/control/state` by `operation_id` until `completed` or `failed`. The coordinator freezes policy and configured manual writers and waits for fresh ownership/prepare acknowledgements before forwarding mode changes.
+
+```bash
+# Example software-only Nero + dual XHand profile. Real mode must explicitly
+# select hardware backends and configured CAN/serial devices.
+ros2 launch morla_bringup nero_xhand_stack.launch.py \
+  profile_id:=nero_dual_xhand mode:=sim sdk_backend:=fake enable_viewer:=false
+
+# Astral dual arm + left gripper + right Wuji simulation (from Web, select the
+# same profile and Sim mode, or use the profile-driven Astral launch arguments).
+ros2 launch astral_mujoco_sim astral_sim_pipeline.launch.py \
+  control_profile_id:=astral_dual_gripper_wuji arm_side:=both gripper_sides:=left \
+  enable_viewer:=false
+```
+
+The Web manager's “pause/resume/start/release/ready/enable/position/damping/home/workpos/workpos_direct/estop” operations route through this coordinator when a live profile coordinator is present. Direct legacy teleop topic controls remain for standalone compatibility; profile-driven UI and gates use the shared service so writer freeze and completion status stay consistent.
+
+## Legacy Astral assembly notes
+
 整机遥操 **只拼现有包**，这里没有 IK / 夹爪 / retarget 源码。
 
 ```text
@@ -49,10 +68,10 @@ ros2 launch morla_bringup full_teleop.launch.py \
 
 1. **启动 web 监控**（生产模式，托管已构建前端）：
    ```bash
-   ASTRAL_WEB_MONITOR_DIST=$(ros2 pkg prefix morla_web_manager)/../../src/common/morla_web_manager/web/dist \
+   MORLA_WEB_MANAGER_DIST=$(ros2 pkg prefix morla_web_manager)/../../src/common/morla_web_manager/web/dist \
      ros2 launch morla_web_manager web_monitor.launch.py
    ```
-   浏览器访问 `http://<host>:8080`（8080 被占换 `ASTRAL_WEB_MONITOR_PORT=8090`）。
+   浏览器访问 `http://<host>:8080`（8080 被占换 `MORLA_WEB_MANAGER_PORT=8090`）。
 2. **系统 tab → 预设列表 → 选预设 → 启动**：启动只把遥操栈拉起来，**不自动使能电机**——
    使能由 driver `auto_ready` 或「一键就绪」按钮负责。当前采集配置（单左臂+左夹爪）对应
    预设 **「Left arm + left gripper (no right arm)」**。
@@ -187,7 +206,7 @@ grip 仍为原「开始遥操」。
 ## 测试
 
 ```bash
-cd /home/robot/loopkok/sdk/astral_ws/src/common/morla_bringup
+cd /home/robot/loopkok/sdk/MORLA/src/common/morla_bringup
 # 纯逻辑（无 ROS）：
 /usr/bin/python3 -m pytest test/test_controller_workpos_logic.py -q -p no:anyio
 # 节点集成（需 ROS 源环境；本机 rclpy 缺失自动 skip，机器人侧跑）：

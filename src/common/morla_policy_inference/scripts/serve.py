@@ -233,7 +233,8 @@ def _warmup_policy(
 
 async def _handle(
     websocket, infer_fn, reset_fn, packer, model: str, action_dim: int,
-    rtc_guided: bool, rtc_horizon: int,
+    rtc_guided: bool, rtc_horizon: int, layout_id: str,
+    layout_hash: str, model_capacity: int,
 ) -> None:
     import websockets.exceptions
 
@@ -249,6 +250,8 @@ async def _handle(
         await websocket.send(packer.pack({
             "model": model, "action_dim": action_dim,
             "rtc_guided": rtc_guided, "rtc_horizon": rtc_horizon if rtc_guided else 0,
+            "layout_id": layout_id, "layout_hash": layout_hash,
+            "model_capacity": model_capacity,
         }))
         while True:
             data = await websocket.recv()
@@ -272,13 +275,18 @@ async def _handle(
 
 async def _serve(
     infer_fn, reset_fn, host: str, port: int, model: str, action_dim: int,
-    rtc_guided: bool = False, rtc_horizon: int = 10,
+    rtc_guided: bool = False, rtc_horizon: int = 10, layout_id: str = "",
+    layout_hash: str = "", model_capacity: int | None = None,
 ) -> None:
     from websockets.asyncio.server import serve
 
     packer = _proto.Packer()
+    capacity = int(model_capacity or action_dim)
+    if capacity < action_dim:
+        raise ValueError(f"action_dim {action_dim} exceeds model_capacity {capacity}")
     async with serve(
-        lambda ws: _handle(ws, infer_fn, reset_fn, packer, model, action_dim, rtc_guided, rtc_horizon),
+        lambda ws: _handle(ws, infer_fn, reset_fn, packer, model, action_dim,
+                            rtc_guided, rtc_horizon, layout_id, layout_hash, capacity),
         host,
         port,
         compression=None,
@@ -297,6 +305,10 @@ def main() -> None:
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8001)
     parser.add_argument("--action-dim", type=int, default=8, help="act 用")
+    parser.add_argument("--layout-id", default="", help="冻结 action layout 的稳定 ID")
+    parser.add_argument("--layout-hash", default="", help="profile FrozenSchema.layout_hash")
+    parser.add_argument("--model-capacity", type=int, default=0,
+                        help="模型可输出的最大动作维度；默认等于 --action-dim")
     parser.add_argument("--policy-config", default="pi05_astral", help="pi05 用：openpi 训练配置名")
     parser.add_argument("--device", default=None, help="act 用：torch device")
     parser.add_argument(
@@ -330,6 +342,8 @@ def main() -> None:
         parser.error("--rtc-guided requires --model pi05")
     if args.rtc_guided and not args.warmup:
         parser.error("--rtc-guided requires warmup so the guided graph compiles before robot control")
+    if args.action_dim < 1 or (args.model_capacity and args.action_dim > args.model_capacity):
+        parser.error("--action-dim must be positive and cannot exceed --model-capacity")
     try:
         args.slot_map = {str(k): str(v) for k, v in json.loads(args.slot_map).items()}
     except json.JSONDecodeError as exc:
@@ -369,7 +383,8 @@ def main() -> None:
     try:
         asyncio.run(_serve(
             infer_fn, reset_fn, args.host, args.port, args.model, args.action_dim,
-            args.rtc_guided, args.rtc_execution_horizon,
+            args.rtc_guided, args.rtc_execution_horizon, args.layout_id,
+            args.layout_hash, args.model_capacity,
         ))
     except KeyboardInterrupt:
         print(f"serve[{args.model}] stopped")

@@ -63,7 +63,22 @@ def _setup(context, *args, **kwargs):
         executable="controller_start_gate",
         name="controller_start_gate",
         output="screen",
-        parameters=[{"joy_topic": "quest3/left_controller_joy", "button_index": 5}],
+        parameters=[{
+            "joy_topic": "quest3/left_controller_joy",
+            "button_index": 5,
+            "use_control_coordinator": True,
+        }],
+    )
+    workpos_gate = Node(
+        package="morla_bringup",
+        executable="controller_workpos_gate",
+        name="controller_workpos_gate",
+        output="screen",
+        parameters=[{
+            "joy_topic": "quest3/left_controller_joy",
+            "button_index": 0,
+            "use_control_coordinator": True,
+        }],
     )
     nero_driver_share = get_package_share_directory("nero_robot_control")
     teleop_share = get_package_share_directory("nero_arm_teleop")
@@ -111,7 +126,19 @@ def _setup(context, *args, **kwargs):
             f"[nero_arm_stack] profile={profile_id}: {xhand_count} XHand component(s) "
             "declared; this arm-only launch does not start hand writers"
         )
-    return [*input_nodes, start_gate, *drivers, *teleops]
+    coordinator = Node(
+        package="morla_bringup",
+        executable="control_coordinator_node",
+        name="morla_control_coordinator",
+        output="screen",
+        parameters=[{
+            "profile_id": profile_id,
+            "operating_mode": "real"
+            if LaunchConfiguration("sdk_backend").perform(context).strip().lower() == "hardware"
+            else "sim",
+        }],
+    )
+    return [*input_nodes, start_gate, workpos_gate, *drivers, *teleops, coordinator]
 
 
 def generate_launch_description():

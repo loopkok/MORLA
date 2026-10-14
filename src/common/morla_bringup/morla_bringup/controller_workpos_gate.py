@@ -23,6 +23,7 @@ from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool, String
+from std_srvs.srv import Trigger
 
 from morla_bringup.controller_workpos_logic import (
     BLOCK_STATES,
@@ -75,12 +76,16 @@ class ControllerWorkposGate(Node):
         # /teleop/init（途经点）。X 的语义是"段间快速回工作位"→ 直达。
         self.declare_parameter("init_topic", "/teleop/init_direct")
         self.declare_parameter("collect_state_topic", "/data_collect/state")
+        self.declare_parameter("use_control_coordinator", False)
 
         joy_topic = str(self.get_parameter("joy_topic").value).strip()
         self.button_index = int(self.get_parameter("button_index").value)
         disarm_topic = str(self.get_parameter("disarm_topic").value).strip()
         init_topic = str(self.get_parameter("init_topic").value).strip()
         state_topic = str(self.get_parameter("collect_state_topic").value).strip()
+        self._coordinator_enabled = bool(self.get_parameter("use_control_coordinator").value)
+        self._control_client = None
+        self._control_pending = False
 
         self._pub_disarm = self.create_publisher(Bool, disarm_topic, _LATCHED_QOS)
         self._pub_init = self.create_publisher(Bool, init_topic, _VOLATILE_QOS)
@@ -120,16 +125,19 @@ class ControllerWorkposGate(Node):
         if lease is not None and not lease.manual_allowed:
             fire = False
         if fire:
-            self._pub_disarm.publish(Bool(data=True))
-            # 先 disarm、延迟后再 init（时序说明见 _INIT_DELAY_S）：重复按 X
-            # 时取消上一个待发 init（每次 X 都以最新一次 disarm 为基准）。
-            if self._init_timer is not None:
-                self._init_timer.cancel()
-            self._init_timer = self.create_timer(_INIT_DELAY_S, self._fire_init)
-            self.get_logger().info(
-                f"X 段间回位 → /teleop/disarm（{_INIT_DELAY_S}s 后 /teleop/init）"
-                f"（state={self._collect_state}）"
-            )
+            if self._coordinator_enabled:
+                self._request_coordinated_workpos()
+            else:
+                self._pub_disarm.publish(Bool(data=True))
+                # 先 disarm、延迟后再 init（时序说明见 _INIT_DELAY_S）：重复按 X
+                # 时取消上一个待发 init（每次 X 都以最新一次 disarm 为基准）。
+                if self._init_timer is not None:
+                    self._init_timer.cancel()
+                self._init_timer = self.create_timer(_INIT_DELAY_S, self._fire_init)
+                self.get_logger().info(
+                    f"X 段间回位 → /teleop/disarm（{_INIT_DELAY_S}s 后 /teleop/init）"
+                    f"（state={self._collect_state}）"
+                )
         else:
             rising = (
                 0 <= self.button_index < len(cur)
@@ -145,6 +153,31 @@ class ControllerWorkposGate(Node):
                         "（录制中/保存中，防手臂回位毁段；先 B 停止保存再按 X）"
                     )
         self._prev_buttons = cur
+
+    def _request_coordinated_workpos(self) -> None:
+        if self._control_pending:
+            return
+        if self._control_client is None:
+            self._control_client = self.create_client(Trigger, "/morla/control/workpos_direct")
+        if not self._control_client.service_is_ready():
+            self.get_logger().warning(
+                "MORLA control coordinator is not ready; X request was not sent"
+            )
+            return
+        self._control_pending = True
+        future = self._control_client.call_async(Trigger.Request())
+        future.add_done_callback(self._on_coordinated_workpos_result)
+
+    def _on_coordinated_workpos_result(self, future) -> None:
+        self._control_pending = False
+        try:
+            response = future.result()
+            if response.success:
+                self.get_logger().info(f"X workpos accepted: {response.message}")
+            else:
+                self.get_logger().warning(f"X workpos rejected: {response.message}")
+        except Exception as exc:  # service disconnect / callback failure
+            self.get_logger().error(f"X workpos service failed: {exc}")
 
     def _fire_init(self) -> None:
         """一次性定时器回调：disarm 已先发出，现在发 /teleop/init 触发回位。"""

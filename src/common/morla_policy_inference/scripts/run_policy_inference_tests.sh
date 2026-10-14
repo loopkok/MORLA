@@ -12,8 +12,13 @@ PYTHONPATH="$WS/src/robots/astral/astral_arm_teleop:$WS/src/robots/astral/astral
 export PYTHONPATH
 
 fail=0
+domain_base="${MORLA_TEST_ROS_DOMAIN_ID:-121}"
+domain_offset=0
 for t in "$WS"/src/common/morla_policy_inference/tests/test_*.py; do
   echo "== $(basename "$t")"
-  /usr/bin/python3 -m pytest "$t" -q -p no:anyio "$@" || fail=1
+  domain=$((domain_base + domain_offset))
+  domain_offset=$((domain_offset + 1))
+  ROS_DOMAIN_ID="$domain" ROS_LOCALHOST_ONLY=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+    /usr/bin/python3 -m pytest "$t" -q -p no:cacheprovider "$@" || fail=1
 done
 exit "$fail"

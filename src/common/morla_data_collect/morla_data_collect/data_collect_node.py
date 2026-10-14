@@ -941,6 +941,9 @@ class DataCollectNode(Node):
         )
         payload = {
             "state": st,
+            "profile_id": self._profile_id or None,
+            "robot_id": getattr(self._schema, "robot_id", "astral"),
+            "runtime_mode": self._runtime_mode,
             "session": self._session,
             "episode_index": ep_idx,
             "elapsed_s": round(elapsed, 1),

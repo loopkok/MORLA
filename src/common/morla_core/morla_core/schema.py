@@ -421,6 +421,22 @@ class FrozenSchema:
     def action_dim(self) -> int:
         return max((max(block.action_indices) for block in self.action_blocks if block.action_indices), default=-1) + 1
 
+    def state_names(self) -> list[str]:
+        """Feature names in model-vector order, independent of YAML block order."""
+        names = [""] * self.state_dim
+        for block in self.state_blocks:
+            for index, name in zip(block.state_indices, block.feature_names):
+                names[index] = name
+        return names
+
+    def action_names(self) -> list[str]:
+        """Action feature names in model-vector order."""
+        names = [""] * self.action_dim
+        for block in self.action_blocks:
+            for index, name in zip(block.action_indices, block.feature_names):
+                names[index] = name
+        return names
+
     def validate(self) -> None:
         if self.schema_version != 2:
             raise ValueError(f"unsupported frozen schema version {self.schema_version}")

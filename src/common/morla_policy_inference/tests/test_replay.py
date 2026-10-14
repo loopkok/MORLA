@@ -7,7 +7,10 @@ import tempfile
 import unittest
 
 import numpy as np
+import pyarrow as pa
+import pyarrow.parquet as pq
 
+from morla_core.profile import ProfileRegistry
 from morla_data_collect.schema import CollectSchema
 from morla_policy_inference.replay import (
     PlaybackSession,
@@ -121,6 +124,36 @@ class TestLoading(unittest.TestCase):
             # missing info.json -> parse error surfaces (not silent)
             with self.assertRaises(Exception):
                 load_replay(d)
+
+    def test_lerobot_replay_uses_wrapped_frozen_profile_schema(self):
+        profile = ProfileRegistry.from_index().load("nero_left_xhand")
+        with tempfile.TemporaryDirectory() as d:
+            meta = os.path.join(d, "meta")
+            data = os.path.join(d, "data", "chunk-000")
+            os.makedirs(meta)
+            os.makedirs(data)
+            with open(os.path.join(meta, "info.json"), "w", encoding="utf-8") as f:
+                json.dump({
+                    "fps": 30,
+                    "data_path": "data/chunk-{episode_chunk:03d}/episode_{episode_index:06d}.parquet",
+                    "features": {"action": {"shape": [19]}},
+                }, f)
+            contract = {
+                "schema": profile.frozen_schema.to_dict(),
+                "profile_id": profile.profile_id,
+                "schema_hash": profile.frozen_schema.schema_hash,
+                "layout_hash": profile.frozen_schema.layout_hash,
+            }
+            with open(os.path.join(meta, "morla_schema.json"), "w", encoding="utf-8") as f:
+                json.dump(contract, f)
+            actions = np.zeros((4, profile.frozen_schema.action_dim), dtype=np.float32)
+            pq.write_table(pa.table({"action": actions.tolist()}),
+                           os.path.join(data, "episode_000000.parquet"))
+
+            replay = load_replay(d, 0)
+            self.assertEqual(replay.action_dim, 19)
+            self.assertEqual(replay.schema.layout_hash, profile.frozen_schema.layout_hash)
+            self.assertEqual(replay.schema.state_names(), profile.frozen_schema.state_names())
 
 
 if __name__ == "__main__":

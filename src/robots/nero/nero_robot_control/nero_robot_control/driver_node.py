@@ -126,6 +126,11 @@ class NeroRobotDriverNode(Node):
         self._last_error = ""
         self._connect_expired = False
         self._position_active = False
+        self._position_seq = 0
+        self._position_status = "idle"
+        self._estop_seq = 0
+        self._estop_status = "idle"
+        self._enable_status = "idle"
 
         qos = _latest_qos()
         self._state_pub = self.create_publisher(JointState, self.state_topic, qos)
@@ -227,6 +232,11 @@ class NeroRobotDriverNode(Node):
                 setattr(self, f"_{name}_expired", True)
                 if name == "enable":
                     self.core.revoke()
+                    self._enable_status = "timed_out"
+                elif name == "estop":
+                    self._estop_status = "timed_out"
+                elif name == "position":
+                    self._position_status = "timed_out"
             return
         setattr(self, attr, None)
         try:
@@ -234,6 +244,7 @@ class NeroRobotDriverNode(Node):
             if name == "enable":
                 if getattr(self, "_enable_expired", False):
                     self.core.revoke()
+                    self._enable_status = "timed_out"
                     self._last_error = "late SDK enable result; motion remains revoked"
                     if result is True:
                         self._estop_future = self._worker.submit(self.sdk.estop)
@@ -242,18 +253,22 @@ class NeroRobotDriverNode(Node):
                 if result is not True:
                     raise RuntimeError("SDK enable returned false")
                 self.core.set_enabled(True)
+                self._enable_status = "enabled"
                 self._last_error = ""
                 self.get_logger().info("Nero SDK explicitly enabled")
             elif name == "estop":
+                self._estop_status = "sent"
                 self._last_error = ""
                 self.get_logger().error("Electronic emergency stop was sent")
             elif name == "position":
                 if getattr(self, "_position_expired", False):
                     self._position_active = False
+                    self._position_status = "timed_out"
                     self.core.revoke()
                     self._last_error = "position operation exceeded timeout; arrival is unknown"
                     return
                 self._position_active = False
+                self._position_status = "sent_arrival_unverified"
                 self.core.revoke()
                 self._pending_command = None
                 self._last_error = "position request sent; verify measured arrival before re-enable"
@@ -270,6 +285,11 @@ class NeroRobotDriverNode(Node):
                 self.core.revoke()
             if name == "position":
                 self._position_active = False
+                self._position_status = "failed"
+            elif name == "estop":
+                self._estop_status = "failed"
+            elif name == "enable":
+                self._enable_status = "failed"
             self._last_error = f"SDK {name} failed: {exc}"
             self.get_logger().error(self._last_error)
 
@@ -310,6 +330,7 @@ class NeroRobotDriverNode(Node):
             return response
         self._enable_started = time.monotonic()
         self._enable_expired = False
+        self._enable_status = "queued"
         self._enable_future = self._worker.submit(self._enable_and_configure)
         response.success = True
         response.message = "explicit enable request queued; verify ~/status before sending motion"
@@ -347,6 +368,8 @@ class NeroRobotDriverNode(Node):
         self.core.revoke()
         self._pending_command = None
         self._position_active = True
+        self._position_seq += 1
+        self._position_status = "running"
         self._position_started = time.monotonic()
         self._position_expired = False
         speed = int(self.get_parameter("position_speed_percent").value)
@@ -372,6 +395,8 @@ class NeroRobotDriverNode(Node):
             return response
         self._estop_started = time.monotonic()
         self._estop_expired = False
+        self._estop_seq += 1
+        self._estop_status = "queued"
         self._estop_future = self._worker.submit(self.sdk.estop)
         response.success = True
         response.message = "electronic emergency stop request queued"
@@ -444,6 +469,16 @@ class NeroRobotDriverNode(Node):
             "feedback_fresh": age is not None and age <= self.core.max_feedback_age_s,
             "feedback_age_s": age,
             "command_active": self.core.command_active,
+            "position_active": self._position_active,
+            "position_seq": self._position_seq,
+            "position_status": self._position_status,
+            "position_error_rad": (
+                float(np.max(np.abs(self.core.feedback - self.position_pose)))
+                if self.core.feedback is not None and self.position_pose.shape == (7,) else None
+            ),
+            "estop_seq": self._estop_seq,
+            "estop_status": self._estop_status,
+            "enable_status": self._enable_status,
             "last_rejection": self.core.last_rejection,
             "last_error": self._last_error,
         }

@@ -48,6 +48,8 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
+from morla_core.profile import ProfileRegistry
+
 
 def _opt(context, name: str) -> str:
     return LaunchConfiguration(name).perform(context).strip()
@@ -111,6 +113,36 @@ def _setup(context, *args, **kwargs):
     if arm_side not in ("left", "right", "both"):
         raise RuntimeError("arm_side must be left|right|both")
 
+    control_profile_id = _opt(context, "control_profile_id")
+    coordinator = []
+    if control_profile_id:
+        profile = ProfileRegistry.from_index().load(control_profile_id)
+        if profile.robot_id != "astral":
+            raise RuntimeError(f"control profile {control_profile_id!r} is not Astral")
+        profile_sides = {
+            item["side"] for item in profile.values.get("components", [])
+            if item.get("enabled") and item.get("type") == "arm"
+        }
+        launch_sides = {"left", "right"} if arm_side == "both" else {arm_side}
+        if profile_sides != launch_sides:
+            raise RuntimeError(
+                f"control profile arms {sorted(profile_sides)} do not match arm_side {arm_side!r}"
+            )
+        with_driver = _opt(context, "with_arm_driver").lower() in ("true", "1", "yes")
+        dry_run = _opt(context, "dry_run").lower() in ("true", "1", "yes")
+        coordinator.append(
+            Node(
+                package="morla_bringup",
+                executable="control_coordinator_node",
+                name="morla_control_coordinator",
+                output="screen",
+                parameters=[{
+                    "profile_id": control_profile_id,
+                    "operating_mode": "real" if with_driver and not dry_run else "sim",
+                }],
+            )
+        )
+
     mocap_extra = {
         "arm_side": arm_side,
         "viz": False,
@@ -135,6 +167,7 @@ def _setup(context, *args, **kwargs):
         emulate_tty=True,
         parameters=[quest_cfg, mocap_extra],
     )
+    with_input = _opt(context, "with_input").lower() not in ("false", "0", "no")
 
     # Left Touch controller grip button (mask bit 5) → /teleop/start external
     # start gate. Rising-edge only; re-press re-captures vr_init (re-center).
@@ -144,7 +177,11 @@ def _setup(context, *args, **kwargs):
         name="controller_start_gate",
         output="screen",
         emulate_tty=True,
-        parameters=[{"joy_topic": "quest3/left_controller_joy", "button_index": 5}],
+        parameters=[{
+            "joy_topic": "quest3/left_controller_joy",
+            "button_index": 5,
+            "use_control_coordinator": bool(control_profile_id),
+        }],
     )
 
     # Left Touch controller X button (primary, mask bit 0) → 段间回位：停止跟随
@@ -156,7 +193,11 @@ def _setup(context, *args, **kwargs):
         name="controller_workpos_gate",
         output="screen",
         emulate_tty=True,
-        parameters=[{"joy_topic": "quest3/left_controller_joy", "button_index": 0}],
+        parameters=[{
+            "joy_topic": "quest3/left_controller_joy",
+            "button_index": 0,
+            "use_control_coordinator": bool(control_profile_id),
+        }],
     )
 
     # Right Touch thumbstick → head yaw/pitch (absolute, spring-return).
@@ -306,7 +347,8 @@ def _setup(context, *args, **kwargs):
             )
         )
 
-    return [mocap, start_gate, workpos_gate, head_teleop, arms, gripper, right_gripper, glove, *video, *wuji]
+    return [*([mocap] if with_input else []), start_gate, workpos_gate, head_teleop, arms, gripper,
+            right_gripper, glove, *video, *wuji, *coordinator]
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -361,6 +403,15 @@ def generate_launch_description() -> LaunchDescription:
                 "arm_side",
                 default_value="both",
                 description="left | right | both — which arm teleop nodes to start",
+            ),
+            DeclareLaunchArgument(
+                "control_profile_id",
+                default_value="",
+                description="optional MORLA robot profile for the shared web/control API",
+            ),
+            DeclareLaunchArgument(
+                "with_input", default_value="true",
+                description="launch the shared Quest input receiver",
             ),
             DeclareLaunchArgument("protocol", default_value=""),
             DeclareLaunchArgument("convert_to_robot", default_value=""),

@@ -113,6 +113,30 @@ class TestPayloadMapping(unittest.TestCase):
                 bk.open()
         self.assertTrue(client.closed)
 
+    def test_profile_handshake_rejects_same_dimension_wrong_layout(self):
+        client = FakeClient("h", 8000)
+        client.get_server_metadata = lambda: {
+            "model": "pi05", "action_dim": ACT_DIM,
+            "layout_id": "other", "layout_hash": "different", "model_capacity": 32,
+        }
+        bk = RemoteBackend(
+            host="h", port=8000, action_dim=ACT_DIM, slot_keys=CAM_MAP,
+            layout_id="expected", layout_hash="expected-hash", model_capacity=32,
+            require_layout_handshake=True,
+            client_factory=lambda *a, **k: client,
+        )
+        with self.assertRaisesRegex(PolicyError, "layout_hash mismatch"):
+            bk.open()
+        self.assertTrue(client.closed)
+
+    def test_profile_capacity_rejects_38_dim_against_32_before_connect(self):
+        with self.assertRaisesRegex(PolicyError, "exceeds model capacity 32"):
+            make_backend(
+                backend_type="remote", action_dim=38, camera_map={},
+                layout_id="nero_dual_xhand_v1", model_capacity=32,
+                require_layout_handshake=True,
+            )
+
     def test_close_resets_client(self):
         client = FakeClient("h", 8000)
         bk = self._make(client)
@@ -153,6 +177,15 @@ class TestFactory(unittest.TestCase):
         self.assertIsInstance(bk, StubBackend)
         with self.assertRaises(PolicyError):
             make_backend(backend_type="nope", action_dim=ACT_DIM, camera_map={})
+
+    def test_stub_returns_absolute_targets_around_measured_state(self):
+        bk = StubBackend(action_dim=19, camera_map={})
+        state = np.linspace(-0.4, 1.9, 19, dtype=np.float64)
+        actions = bk.infer(ObsBatch(state=state, images={}, prompt=""))
+        self.assertEqual(actions.shape, (4, 19))
+        np.testing.assert_allclose(actions - state[None, :],
+                                   np.tile(actions[0] - state, (4, 1)))
+        self.assertGreater(float(np.max(np.abs(actions[0, 7:]))), 1.0)
 
 
 class TestInprocBackendLoad(unittest.TestCase):

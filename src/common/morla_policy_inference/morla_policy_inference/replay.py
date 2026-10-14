@@ -19,7 +19,7 @@ import os
 
 import numpy as np
 
-from morla_core.schema import CollectSchema
+from morla_core.schema import CollectSchema, FrozenSchema
 
 INFO_JSON = "info.json"
 CHUNK_SIZE = 1000  # must match morla_data_collect.pipeline.convert_to_lerobot.CHUNK_SIZE
@@ -31,7 +31,7 @@ class ReplayEpisode:
     fps: int
     action_dim: int
     source: str
-    schema: CollectSchema | None = None
+    schema: CollectSchema | FrozenSchema | None = None
 
     @property
     def num_frames(self) -> int:
@@ -98,6 +98,32 @@ def _parse_schema_from_info(info: dict) -> CollectSchema | None:
     )
 
 
+def _load_frozen_schema(path: str) -> FrozenSchema | None:
+    if not os.path.isfile(path):
+        return None
+    with open(path, encoding="utf-8") as stream:
+        value = json.load(stream)
+    # LeRobot export keeps the frozen contract beside dataset metadata:
+    # {schema: <FrozenSchema>, profile_id, schema_hash, layout_hash, ...}.
+    # Older aligned/replay files store FrozenSchema directly.
+    envelope = value if isinstance(value, dict) else {}
+    if "schema" in envelope:
+        value = envelope["schema"]
+        if not isinstance(value, dict):
+            raise ValueError("LeRobot morla_schema.json has no schema object")
+    if "schema_version" not in value:
+        return None
+    schema = FrozenSchema.from_dict(value)
+    for key in ("schema_hash", "layout_hash"):
+        declared = envelope.get(key)
+        actual = getattr(schema, key)
+        if declared and declared != actual:
+            raise ValueError(
+                f"LeRobot morla_schema.json {key} mismatch: {declared} != {actual}"
+            )
+    return schema
+
+
 def load_lerobot_actions(dataset_dir: str, episode_index: int) -> ReplayEpisode:
     dataset_dir = os.path.abspath(os.path.expanduser(dataset_dir))
     info = _json(os.path.join(dataset_dir, "meta", INFO_JSON))
@@ -114,9 +140,10 @@ def load_lerobot_actions(dataset_dir: str, episode_index: int) -> ReplayEpisode:
             f"(looked for {path})"
         )
     actions = _read_action_parquet(path)
-    state_feat = info.get("features", {}).get("observation.state", {})
-    action_dim = int(state_feat.get("shape", [actions.shape[1]])[0])
-    schema = _parse_schema_from_info(info)
+    action_dim = int(actions.shape[1])
+    schema = _load_frozen_schema(os.path.join(dataset_dir, "meta", "morla_schema.json"))
+    if schema is None:
+        schema = _parse_schema_from_info(info)
     return ReplayEpisode(
         actions=actions,
         fps=fps,
@@ -137,7 +164,9 @@ def load_aligned_actions(h5_path: str) -> ReplayEpisode:
         fps = int(fa.attrs.get("fps", 30))
         schema_json = fa.attrs.get("schema")
         schema = (
-            CollectSchema.from_json(schema_json) if schema_json else None
+            (FrozenSchema.from_dict(json.loads(schema_json))
+             if schema_json and 'schema_version' in json.loads(schema_json)
+             else CollectSchema.from_json(schema_json)) if schema_json else None
         )
     return ReplayEpisode(
         actions=actions,

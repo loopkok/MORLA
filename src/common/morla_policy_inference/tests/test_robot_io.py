@@ -14,7 +14,9 @@ from morla_policy_inference.robot_io import (
     decode_jpeg_rgb,
     letterbox,
     split_camera_map,
+    reorder_joint_positions,
 )
+from morla_core.profile import ProfileRegistry
 
 
 def schema(**kw):
@@ -56,7 +58,7 @@ class TestSources(unittest.TestCase):
 
     def test_invalid_source_key_rejected(self):
         with self.assertRaises(ValueError):
-            ObsSource("waist", "/astral/joint_states", 2, "body")
+            ObsSource("", "/astral/joint_states", 2, "body")
 
     def test_assemble_missing_and_full(self):
         lay = ObsLayout(schema())
@@ -114,6 +116,43 @@ class TestSplitAction(unittest.TestCase):
         self.assertEqual(targets[1].topic, "/left_gripper/command")
         np.testing.assert_allclose(targets[0].values, np.arange(7))
         np.testing.assert_allclose(targets[1].values, np.array([7.0]))
+
+    def test_profile_layouts_route_named_19_and_38_dim_actions(self):
+        registry = ProfileRegistry.from_index()
+        single = registry.load("nero_left_xhand")
+        single_layout = ObsLayout(single.frozen_schema, strict_names=True)
+        self.assertEqual(single_layout.state_dim, 19)
+        self.assertEqual(single_layout.action_dim, 19)
+        obs = {
+            "left_arm_state": np.arange(7, dtype=float),
+            "left_hand_state": np.arange(12, dtype=float) + 10,
+        }
+        state, missing = single_layout.assemble_state(obs)
+        self.assertEqual(missing, [])
+        np.testing.assert_array_equal(state, np.r_[np.arange(7), np.arange(12) + 10])
+        target = single_layout.split_action(np.arange(19, dtype=float))
+        self.assertEqual([t.topic for t in target], ["/left_arm/joint_commands", "/left_hand/joint_commands"])
+        self.assertEqual(target[0].joint_names, tuple(single.frozen_schema.state_blocks[0].physical_joint_names))
+        self.assertEqual(target[1].writer_id, "left_ee")
+        self.assertEqual(len(target[1].limits), 12)
+
+        dual = registry.load("nero_dual_xhand")
+        dual_layout = ObsLayout(dual.frozen_schema, strict_names=True)
+        self.assertEqual(dual_layout.action_dim, 38)
+        actions = dual_layout.split_action(np.arange(38, dtype=float))
+        self.assertEqual([t.stream for t in actions], [
+            "left_arm_cmd", "right_arm_cmd", "left_hand_cmd", "right_hand_cmd",
+        ])
+        self.assertEqual([len(t.values) for t in actions], [7, 7, 12, 12])
+        self.assertEqual([t.writer_id for t in actions], ["left_arm", "right_arm", "left_ee", "right_ee"])
+
+    def test_profile_joint_names_are_strictly_reordered(self):
+        expected = ("joint_a", "joint_b", "joint_c")
+        got = reorder_joint_positions(
+            ["joint_c", "joint_a", "joint_b"], [3, 1, 2], expected, strict=True
+        )
+        np.testing.assert_array_equal(got, [1, 2, 3])
+        self.assertIsNone(reorder_joint_positions(["joint_a"], [1], expected, strict=True))
 
     def test_split_dim_mismatch_raises(self):
         lay = ObsLayout(schema())
