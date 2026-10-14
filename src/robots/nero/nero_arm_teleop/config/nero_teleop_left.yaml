@@ -1,0 +1,21 @@
+/left_arm/nero_arm_teleop:
+  ros__parameters:
+    arm_side: left
+    control_rate_hz: 125.0
+    require_start_signal: true
+    vr_to_arm_rot_after_unity_to_robot: [0.0, 0.0, 1.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0]
+    pos_smoothing: 0.8
+    rot_smoothing: 0.8
+    motion_scale: 0.65
+    flip_pitch: false
+    max_joint_delta_rad_per_step: 0.065
+    workspace_radius: 0.58
+    workspace_x_min: -.inf
+    workspace_x_max: .inf
+    workspace_y_min: -.inf
+    workspace_y_max: .inf
+    workspace_z_min: -.inf
+    workspace_z_max: .inf
+    tcp_offset: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    data_timeout_s: 5.0
+    description_model_id: nero_left_arm

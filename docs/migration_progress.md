@@ -13,7 +13,7 @@
 | P2 core/profile | 完成 | 新增`morla_core`共享schema/lease/资源/关节映射/profile registry；12个profile固定布局并从已安装ament share验证，见本次日志。消费者运行时接入仍在P7-P9完成。 |
 | P3 description | 完成 | 新建`robot_description`（ament_cmake），集中27个model ID与358项资产；manifest含来源/目标SHA、关节映射、847个mesh闭包和授权信息。24包干净构建成功；普通安装、colcon symlink-install 均由Pinocchio加载12份URDF、MuJoCo加载5份MJCF；生成器可重跑，Astral FK和sim机械量、XNero sim机械量对照通过。 |
 | P4 unified input | 完成 | `morla_input` 固定输出 robot-axis raw 21点；strict packet 默认拒绝legacy，session/坐标帧变化发epoch并由统一闸门停止策略/遥操、清缓存且要求松开后重新start；XHand旧MANO/小指局部适配和Nero新旧pose链等价验证通过。 |
-| P5 Nero driver/teleop | 未开始 | |
+| P5 Nero driver/teleop | 软件完成 | 新建标准 ROS driver/teleop 两包并按 profile 参数装配；fake 双侧 launch 和命名命令往返通过。真实 CAN/固件/安全路径未验收，见 P11。 |
 | P6 XHand adapter/sim | 未开始 | |
 | P7 unified data collection | 未开始 | |
 | P8 policy/HITL | 未开始 | |
@@ -53,3 +53,7 @@
 - P4输入epoch：PacketGuard在新session接替时接受首包并暴露线程内session变更事件，同时退役旧session；receiver在新session或已发布pose从world切到IOBT body frame时清空EMA/腕来源/帧锁并发布latched `quest3/input_epoch`。`controller_start_gate` 收到事件后发布latched `/teleop/disarm`、`/teleop/armed=false` 与policy `stop`，清除旧按钮边沿，并要求控制器先松开grip、再重新按下；新session、旧session重放、严格legacy拒绝均有逻辑测试。实际ROS多节点时序仍将在P10集成运行补验。
 - P4坐标/手型：Nero左右`vr_to_arm_rot_after_unity_to_robot`沿用计划推导的`A_new=A_old*M^T`，flip_pitch=false；新增`xhand_retargeting.preprocess_xhand_landmarks()`，先按`F*M^T`恢复旧XNero手输入，再重放1.05缩放、腕心、SVD、左右OPERATOR2MANO及可选原小指顺序stretch。Wuji不再能被XHand全局变换污染；profile把XHand兼容模式显式写为`retarget_compatibility.preprocess_mode=legacy_xhand_pinky`。
 - P4验证：全量增量构建25/25包通过；`morla_core.profile validate-all` 12/12 profiles通过（8/16/19/27/35/38/54维均保留）；输入/闸门/XHand新增与相关回归合计80 tests通过，其中Nero六方向、三轴旋转、500随机四元数与非零TCP各40随机样本/侧在float64容差内等价；XNero MANO+pinky 20组/侧及MANO-only左右参考对照共44用例通过。`colcon list`发现25个ROS包。未连接Quest、Nero或XHand硬件。
+- P5：从 XNero `nero_quest_teleop` 拆出 `nero_robot_control` 与 `nero_arm_teleop`，保留供应商 `pyAgxArm` 源码/许可证于 `third_party/pyAgxArm`，新增仅供硬件部署显式运行的 editable 安装脚本；此迁移环境未安装供应商包。driver 以单一串行 worker 管理 SDK，connect 后设 streaming 模式，SDK 懒加载；具名7关节 `JointState` 严格校验、限位/有限值/新鲜实测反馈、rad/s限速、显式 enable/position/estop、一次测量态 watchdog hold 和超时后撤销软件运动资格。反馈独立于 teleop，按20Hz发布真实关节名和 flange Pose；没有自动 enable、HOME 或位置动作。默认 launch 只用 `FakeNeroSDK`，`hardware` 是明确覆盖项。
+- P5 teleop 只订阅 Quest wrist 与真实 named state，输出 named command；保留 Nero IK/VR 算法和 `0.065 rad/step` 旧滤波语义，逐周期限速由 driver 的 `rad/s` 层另外处理。补入 core `PolicyLease`、动态 ownership ACK writer、`prepare_reanchor` 一次性token提交及手动 `reanchor`；策略/回放所有权下拒绝遥操，frame/session epoch 清锚并 disarm，不在退出/disarm 时回位。`nero_arm_stack.launch.py`从profile启用侧和组件参数路径装配 input/gate/driver/teleop，XHand本阶段仅报告尚未启动；未复制 `SimArmStub` 生产入口。
+- P5 软件验证：完整 `colcon build --base-paths src` 27/27通过；12 profiles全通过；83项 driver/input/lease/XHand相关测试通过；Nero VR mapping 6/6、analytic IK 5/5。源IK solver SHA256与XNero完全相同；原压力用例的未设种子随机输入导致结果跨运行变化，本次仅在回归脚本固定 seed=2026（求解算法未变）。Fake双侧ROS launch实际跑通，双方SDK连接、实测反馈和125Hz teleop loop正常；隔离ROS domain显式enable左侧fake driver后，逆序JointState命名命令被正确重排，实测七关节各限速移动0.008rad。运行中没有发布Quest数据或自动运动；未连接CAN/实体手臂。
+- P5 smoke同时发现并修正ROS全限定参数文件选择、空Python列表被推断为BYTE_ARRAY、连接future被重复当作未完成等三个启动/生命周期缺陷；回归运行后双侧节点保持存活且status反馈持续新鲜。实际状态发布保持20Hz，不把源配置里的20Hz写成125Hz。硬件 SDK ABI、CAN通道、位置/工作位机械安全仍属于P11。

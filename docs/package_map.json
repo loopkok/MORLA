@@ -1,7 +1,7 @@
 {
   "source_workspace": "astral_ws",
   "target_workspace": "MORLA",
-  "package_count": 25,
+  "package_count": 27,
   "packages": {
     "astral_arm_clean_description": {
       "source_path": "astral_ws/src/astral_arm_clean_description",
@@ -382,10 +382,36 @@
       "migration_kind": "robot_specific_preprocess_then_retarget",
       "executable_names": [],
       "node_names": []
+    },
+    "nero_robot_control": {
+      "source_path": "xnero_ws/src/nero_quest_teleop",
+      "target_name": "nero_robot_control",
+      "target_path": "src/robots/nero/nero_robot_control",
+      "renamed": true,
+      "migration_kind": "sdk_driver_extracted",
+      "executable_names": [
+        "nero_robot_driver"
+      ],
+      "node_names": [
+        "nero_robot_driver"
+      ]
+    },
+    "nero_arm_teleop": {
+      "source_path": "xnero_ws/src/nero_quest_teleop",
+      "target_name": "nero_arm_teleop",
+      "target_path": "src/robots/nero/nero_arm_teleop",
+      "renamed": true,
+      "migration_kind": "standard_ros_teleop",
+      "executable_names": [
+        "nero_arm_teleop_node"
+      ],
+      "node_names": [
+        "nero_arm_teleop"
+      ]
     }
   },
   "source_package_count": 25,
-  "active_ros_package_count": 25,
+  "active_ros_package_count": 27,
   "additional_workspace_assets": {
     "source_workspace": "xnero_ws",
     "target_package": "robot_description",
@@ -405,6 +431,15 @@
       "xnero_mujoco_sim": [
         "mjcf/xnero/"
       ]
+    }
+  },
+  "third_party_dependencies": {
+    "pyAgxArm": {
+      "source_path": "xnero_ws/src/pyAgxArm",
+      "target_path": "third_party/pyAgxArm",
+      "install": "explicit editable install only on hardware deployment host",
+      "runtime_import": "lazy in nero_robot_control hardware adapter",
+      "license_file": "third_party/pyAgxArm/LICENSE"
     }
   }
 }

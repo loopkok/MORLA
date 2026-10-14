@@ -27,6 +27,8 @@
   <exec_depend>morla_nero_robot</exec_depend>
   <exec_depend>morla_wuji_hand</exec_depend>
   <exec_depend>morla_xhand_hand</exec_depend>
+  <exec_depend>nero_robot_control</exec_depend>
+  <exec_depend>nero_arm_teleop</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>

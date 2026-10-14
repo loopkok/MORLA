@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>nero_arm_teleop</name>
+  <version>0.1.0</version>
+  <description>Nero IK and VR teleoperation publishing standard named JointState commands.</description>
+  <maintainer email="loopkok@todo.todo">MORLA maintainers</maintainer>
+  <license>Apache-2.0</license>
+  <depend>rclpy</depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+  <exec_depend>morla_core</exec_depend>
+  <exec_depend>robot_description</exec_depend>
+  <exec_depend>nero_robot_control</exec_depend>
+  <test_depend>python3-pytest</test_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>
