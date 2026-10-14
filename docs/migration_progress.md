@@ -15,8 +15,8 @@
 | P4 unified input | 完成 | `morla_input` 固定输出 robot-axis raw 21点；strict packet 默认拒绝legacy，session/坐标帧变化发epoch并由统一闸门停止策略/遥操、清缓存且要求松开后重新start；XHand旧MANO/小指局部适配和Nero新旧pose链等价验证通过。 |
 | P5 Nero driver/teleop | 软件完成 | 新建标准 ROS driver/teleop 两包并按 profile 参数装配；fake 双侧 launch 和命名命令往返通过。真实 CAN/固件/安全路径未验收，见 P11。 |
 | P6 XHand adapter/sim | 完成 | 31 ROS 包构建通过；adapter/retarget 59 项、XNero 仿真 29 项通过；profile 驱动 headless 整链路实测通过，触觉源约 50 Hz。 |
-| P7 unified data collection | 进行中 | 已开始将在线采集订阅和传感写盘接入 `FrozenSchema`；仍需完成触觉对齐/校验/导出及 XNero 旧格式导入。 |
-| P8 policy/HITL | 未开始 | |
+| P7 unified data collection | 完成 | profile数采/具名重排、XHand力/温度/valid raw sidecar、按源时钟离散对齐、repair同源选帧、source索引验证、LeRobot v2.1/v3 schema与触觉旁路、只读XNero导入均完成。端到端三项新增集成测试通过；数采测试128通过/1跳过。 |
+| P8 policy/HITL | 进行中 | 开始将 policy/replay 从 Astral 固定布局接到 `FrozenSchema`，并梳理全部遥操 writer 的 freeze/ACK/prepare/token 交接。 |
 | P9 Web manager | 未开始 | |
 | P10 software integration | 未开始 | |
 | P11 hardware/model acceptance | 未开始 | |
@@ -62,3 +62,8 @@
 - P6 验证：`colcon build --symlink-install --base-paths src` 31/31 成功；`morla_core.profile validate-all` 12/12；XHand adapter+retarget 59 项通过、XNero MuJoCo 29 项通过。profile `nero_left_xhand` headless launch 实测合成 21 点 `/hand_landmarks/left` → 95 对具名目标/标准命令 → 95 条原生 `XHandCommand`，adapter 发布 161 条具名 12 维状态，sim 原生反馈约 50.1Hz；原生命令与标准命令相同、hand_id/mode/gain/限位正确；每个触觉样本含5指×120点力及每指20温度值。未测相机和实体 Quest 输入。
 - P6 调度修正：实测确认原 simulator 的“当前时刻+周期”调度会因 220Hz 物理步长产生约44Hz状态；改为累进固定周期后，独立订阅 5.98s 收到300条、50.01Hz，整链路测得50.1Hz。
 - P6 依赖：安装 DexPilot runtime 缺失的 `torch==2.5.1+cpu` 到系统 Python 3.10 的用户目录，DexPilot + Pinocchio 现可实际构造/运行。该 wheel 仅验证 x86-64；ARM64/CUDA 依赖需按部署平台提供。供应商 ROS 包原始 license 字段仍为 TODO、XHand SDK 用户协议与外部分发授权待上游明确；SDK `.so` 为 x86-64，硬件分发/ARM64验收未完成。
+- P7 profile collector：数据 writer/订阅由冻结 profile 建立；仅把 state 与当前动作语义需要的 command 标为必需，profile 中其它数值命令流仍订阅并落盘但在 `next_state` 旧示范中不伪造。XHand sidecar 按 profile `hand_id` 和 finger location 对应5指×120点力、每指20原始温度；错误 hand/finger、坏长度或非有限读数不记为有效，温度与力分别记 valid。sim 力标 N/link2 frame，sim 温度有效位为false并标 `synthetic_zero`。
+- P7 离线触觉：raw `/sensors/<key>` 保存源/到达时间及 validity；align 只取 `max_gap_ms` 内最近源样本，写 `source_index/timestamps/offsets`，绝不插值；terminal hold 复制末次值但 source valid 置false。repair 按选中的源帧索引同步复制所有触觉字段；`verify-aligned` 逐元素比对 sensor sidecar。缺 required sensor 失败，optional missing/no-sample 给降级 warning。
+- P7 导出：LeRobot v2.1 写完整 `meta/morla_schema.json`、profile/layout/schema hash 和 policy feature exclusions；非触觉模型将对齐触觉保存到 `meta/sensors/episode_*.h5`，不会拼入 state/action；v2.1→v3 继续复制契约、sidecar、质量和来源目录。`--model-capacity` 仅在显式选择目标模型时启用，通用导出不限制38/54维。
+- P7 XNero import：统一入口 `data_pipeline import-xnero`，要求profile、活动侧、camera map、task、TCP frame、camera calibration和format version。验证旧 HDF5形状、共享严格递增host tick、TCP 7th列为零占位后仅导入xyz+rpy；不补command/tactile/ownership/validity。输出记录逐文件SHA256，导入前后hash一致；validator以`W10`警告 legacy cache validity未知，必须人工审查训练来源。
+- P7 验证：新增profile触觉采集、raw→align→validate→repair→verify→LeRobot v2.1/v3，以及XNero只读导入三条合成集成测试，3/3通过；全量 `morla_data_collect/test` 为128 passed/1 skipped；ROS旧采集 smoke 为2/2；12 profile CLI 12/12；`import-xnero --help`可从安装入口调用；干净source `/opt/ros/humble/setup.bash` 后全workspace `colcon build --symlink-install --base-paths src` 为31/31通过。第一次构建只source了workspace overlay，缺ROS underlay导致依赖查找失败，按标准干净shell重跑通过。期间修复legacy JointState callback闭包变量未初始化导致 executor 线程退出的回归。

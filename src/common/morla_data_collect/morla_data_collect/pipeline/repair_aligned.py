@@ -58,7 +58,7 @@ from morla_data_collect.pipeline.artifacts import (
     require_source_signature,
     source_signature,
 )
-from morla_core.schema import CollectSchema
+from morla_data_collect.schema import pipeline_schema_from_dict
 
 
 CAM_KEYS = None  # 运行时探测 aligned 里的 camera 组名（left_wrist/base/...）
@@ -75,9 +75,10 @@ def _block_masks(ep_dir: str, n_dim: int) -> tuple[np.ndarray | None, np.ndarray
         with open(os.path.join(ep_dir, "meta.json"), encoding="utf-8") as f:
             meta = json.load(f)
         arm, ee = [], []
-        for b in meta["schema"]["state_blocks"]:
-            arm += ["arm" in b["name"]] * b["dim"]
-            ee += ["ee" in b["name"]] * b["dim"]
+        schema = pipeline_schema_from_dict(meta["schema"])
+        for b in schema.state_blocks():
+            arm += ["arm" in b.name] * b.dim
+            ee += ["ee" in b.name] * b.dim
         if len(arm) == n_dim:
             return np.asarray(arm, dtype=bool), np.asarray(ee, dtype=bool)
     except Exception:  # noqa: BLE001
@@ -349,10 +350,14 @@ def repair_episode(ep_dir: str, out_ep_dir: str, fps: int | None, dry_run: bool,
         reject_overlap(ep_dir, out_ep_dir)
     with open(os.path.join(ep_dir, "meta.json"), encoding="utf-8") as mf:
         meta = json.load(mf)
-    schema = CollectSchema.from_dict(meta["schema"])
+    source_schema = pipeline_schema_from_dict(meta["schema"])
+    schema = pipeline_schema_from_dict(meta["schema"])
     if camera_map:
-        schema.cameras = [camera_map.get(c, c) for c in schema.cameras]
-        schema.__post_init__()
+        if hasattr(schema, "map_cameras"):
+            schema.map_cameras(camera_map)
+        else:
+            schema.cameras = [camera_map.get(c, c) for c in schema.cameras]
+            schema.__post_init__()
     fps = schema.dataset_fps if fps is None else fps
     if fps != schema.dataset_fps:
         raise ValueError("repair fps must match source schema")
@@ -366,10 +371,22 @@ def repair_episode(ep_dir: str, out_ep_dir: str, fps: int | None, dry_run: bool,
         ts_all = f["timestamps"][:]
         source_idx = f["source_frame_index"][:] if "source_frame_index" in f else np.arange(len(state))
         source_grid = f["source_grid_timestamps"][:] if "source_grid_timestamps" in f else ts_all
-        cams = list(schema.cameras)
-        cam_images = {} if dry_run else {c: f[f"{c}/images"][:] for c in cams}
-        cam_ts = {c: f[f"{c}/src_timestamps"][:] for c in cams}
+        camera_pairs = [(camera, (camera_map or {}).get(camera, camera))
+                        for camera in source_schema.cameras]
+        cams = [target for _source, target in camera_pairs]
+        cam_images = {} if dry_run else {target: f[f"{source}/images"][:]
+                                         for source, target in camera_pairs}
+        cam_ts = {target: f[f"{source}/src_timestamps"][:]
+                  for source, target in camera_pairs}
         cam_offsets = {c: cam_ts[c] - source_grid for c in cams}
+        aligned_sensors = {}
+        if "sensors" in f:
+            for key, group in f["sensors"].items():
+                fields = {name: ds[:] for name, ds in group.items() if isinstance(ds, h5py.Dataset)}
+                bad = [name for name, value in fields.items() if value.ndim == 0 or len(value) != len(state)]
+                if bad:
+                    raise ValueError(f"aligned sensor {key} frame count mismatch: {bad}")
+                aligned_sensors[key] = (fields, dict(group.attrs))
     if len(state) < 2 or not np.all(np.isfinite(state)) or not np.all(np.isfinite(original_action)):
         raise ValueError("repair requires finite state/action with at least two frames")
     if any(np.any(t <= 0) or not np.all(np.isfinite(t)) for t in cam_ts.values()):
@@ -446,10 +463,27 @@ def repair_episode(ep_dir: str, out_ep_dir: str, fps: int | None, dry_run: bool,
                     cg.create_dataset("src_timestamps", data=ts_cam_new[c])
                     cg.create_dataset("src_offsets", data=ts_cam_new[c] - ts_new)
                     cg.create_dataset("source_alignment_offsets", data=ts_cam_new[c] - source_grid[idx])
+                for key, (fields, sensor_attrs) in aligned_sensors.items():
+                    sg = fo.create_group(f"sensors/{key}")
+                    for attr, value in sensor_attrs.items():
+                        sg.attrs[attr] = value
+                    for name, values in fields.items():
+                        sg.create_dataset(name, data=values[idx],
+                                          compression="lzf" if name in {"force_raw", "temperature_raw"} else None)
             for fname in ("robot_data.h5", "camera_data.h5", "meta.json"):
                 shutil.copy2(os.path.join(ep_dir, fname), os.path.join(staged, fname))
             if camera_map:
+                with h5py.File(os.path.join(staged, "camera_data.h5"), "r+") as f:
+                    for old, new in camera_map.items():
+                        if old == new or old not in f:
+                            continue
+                        if new in f:
+                            raise ValueError(f"camera name collision {old}={new}")
+                        f.move(old, new)
                 meta["schema"] = schema.to_dict()
+                if isinstance(meta.get("cameras"), dict):
+                    meta["cameras"] = {camera_map.get(c, c): value
+                                        for c, value in meta["cameras"].items()}
                 with open(os.path.join(staged, "meta.json"), "w", encoding="utf-8") as f:
                     json.dump(meta, f, ensure_ascii=False, indent=2)
             with h5py.File(os.path.join(staged, "aligned_data.h5"), "r+") as f:

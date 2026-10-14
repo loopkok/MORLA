@@ -35,7 +35,7 @@ import numpy as np
 
 from morla_data_collect.pipeline.align_data import ALIGNED_H5
 from morla_data_collect.data_writer import CAMERA_H5, META_JSON, ROBOT_H5
-from morla_core.schema import CollectSchema
+from morla_data_collect.schema import pipeline_schema_from_dict, pipeline_schema_from_json
 
 QUARANTINE_DIR = "quarantine"
 REPORT_JSON = "validation_report.json"
@@ -150,7 +150,7 @@ def _armed_coverage(events: list[dict], t0: float, t1: float) -> float | None:
     return acc / total
 
 
-def _check_aligned(rep: _Report, f: h5py.File, schema: CollectSchema) -> None:
+def _check_aligned(rep: _Report, f: h5py.File, schema) -> None:
     required = ["observation/state", "action", "timestamps", "quality"]
     missing = [k for k in required if k not in f]
     if missing:
@@ -183,7 +183,7 @@ def _check_aligned(rep: _Report, f: h5py.File, schema: CollectSchema) -> None:
     if "fps" in f.attrs and f.attrs["fps"] != schema.dataset_fps:
         rep.fail("F6", "aligned fps differs from meta schema")
     if "schema" in f.attrs:
-        other = CollectSchema.from_json(f.attrs["schema"])
+        other = pipeline_schema_from_json(f.attrs["schema"])
         if training_contract(other) != training_contract(schema):
             rep.fail("F6", "aligned schema differs from meta schema")
     if schema.action_source == "next_state" and state.shape == action.shape and n > 0:
@@ -213,9 +213,56 @@ def _check_aligned(rep: _Report, f: h5py.File, schema: CollectSchema) -> None:
                 rep.fail("F6", f"aligned {cam} source timestamps invalid")
         if f"{cam}/src_offsets" in f and not np.all(np.isfinite(f[f"{cam}/src_offsets"][:])):
             rep.fail("F6", f"aligned {cam} source offsets invalid")
+    for sensor in getattr(schema, "sensor_specs", ()):
+        key = str(sensor.get("sensor_key", ""))
+        required = bool(sensor.get("required", False))
+        if key not in f:
+            if required:
+                rep.fail("F2", f"aligned required sensor {key} missing")
+            else:
+                rep.warn("W9", f"optional aligned sensor {key} missing; tactile features are unavailable")
+            continue
+        group = f[key]
+        npoints = int(sensor.get("point_count_per_finger", 120))
+        n_fingers = len(sensor.get("finger_order", ("thumb", "index", "middle", "ring", "pinky")))
+        expected = {
+            "force_raw": (n, n_fingers, npoints, 3),
+            "force_sum": (n, n_fingers, 3),
+            "temperature_raw": (n, n_fingers, 20),
+            "temperature_mean": (n, n_fingers),
+            "valid": (n, n_fingers),
+            "temperature_valid": (n, n_fingers),
+            "source_index": (n,),
+            "source_timestamps": (n,),
+            "source_offsets": (n,),
+        }
+        for name, shape in expected.items():
+            full = f"{key}/{name}"
+            if full not in f or f[full].shape != shape:
+                rep.fail("F6", f"aligned sensor {full} missing/shape mismatch")
+        if f"{key}/valid" in f:
+            valid = f[f"{key}/valid"][:].astype(bool)
+            temp_valid = (f[f"{key}/temperature_valid"][:].astype(bool)
+                          if f"{key}/temperature_valid" in f else np.zeros_like(valid))
+            for field in ("force_raw", "force_sum", "temperature_raw", "temperature_mean"):
+                full = f"{key}/{field}"
+                if full in f and np.issubdtype(f[full].dtype, np.number):
+                    values = f[full][:]
+                    mask = temp_valid if field.startswith("temperature") else valid
+                    while mask.ndim < values.ndim:
+                        mask = mask[..., None]
+                    if values.size and np.any(~np.isfinite(values[np.broadcast_to(mask, values.shape)])):
+                        rep.fail("F3", f"aligned sensor {full} has NaN/Inf in valid samples")
+                        break
 
 
-def training_contract(schema: CollectSchema) -> dict:
+def training_contract(schema) -> dict:
+    frozen = getattr(schema, "frozen", None)
+    if frozen is not None:
+        return {"profile_id": frozen.profile_id, "layout_hash": frozen.layout_hash,
+                "schema_hash": frozen.schema_hash, "names": schema.state_names(),
+                "fps": schema.dataset_fps, "cameras": schema.cameras,
+                "action_source": schema.action_source}
     return {"names": schema.state_names(), "fps": schema.dataset_fps,
             "cameras": schema.cameras, "action_source": schema.action_source}
 
@@ -257,10 +304,13 @@ def validate_episode(
     try:
         with open(meta_json, encoding="utf-8") as f:
             meta = json.load(f)
-        schema = CollectSchema.from_dict(meta["schema"])
+        schema = pipeline_schema_from_dict(meta["schema"])
     except Exception as exc:
         rep.fail("F1", f"meta.json unreadable: {exc}")
         return rep
+
+    if meta.get("legacy_validity_unknown"):
+        rep.warn("W10", "legacy XNero cache validity/command timing is unknown; review provenance before training")
 
     max_gap_s = float(schema.max_gap_ms) / 1000.0
 
@@ -269,7 +319,8 @@ def validate_episode(
             # -- 数值流 ------------------------------------------------------------
             for name, dim in schema.required_streams().items():
                 alternative = (
-                    (name == "body_state" and schema.include_head and not schema.include_waist
+                    (name == "body_state" and getattr(schema, "include_head", False)
+                     and not getattr(schema, "include_waist", False)
                      and "head_state" in fr["streams"] and len(fr["streams/head_state/timestamps"]) > 0)
                     or (name in ("head_state", "head_cmd") and "body_state" in fr["streams"]
                         and len(fr["streams/body_state/timestamps"]) > 0)
@@ -284,6 +335,56 @@ def validate_episode(
                 if values.ndim == 2 and values.shape[1] != dim and len(ts) > 0:
                     rep.fail("F6", f"stream {name} dim {values.shape[1]} != schema {dim}")
                 _check_stream(rep, name, ts, values, max_gap_s)
+
+            # Non-joint profile streams have dedicated sidecar storage and never
+            # participate in the model state/action vector.
+            for sensor in getattr(schema, "sensor_specs", ()):
+                key = str(sensor.get("sensor_key", ""))
+                required = bool(sensor.get("required", False))
+                path = f"sensors/{key}"
+                if path not in fr:
+                    if required:
+                        rep.fail("F2", f"required sensor {key} missing")
+                    else:
+                        rep.warn("W9", f"optional sensor {key} missing; tactile features are unavailable")
+                    continue
+                group = fr[path]
+                fingers = len(sensor.get("finger_order", ("thumb", "index", "middle", "ring", "pinky")))
+                points = int(sensor.get("point_count_per_finger", 120))
+                expected = {
+                    "force_raw": (fingers, points, 3), "force_sum": (fingers, 3),
+                    "temperature_raw": (fingers, 20), "temperature_mean": (fingers,),
+                    "valid": (fingers,), "temperature_valid": (fingers,),
+                }
+                ts = group["timestamps"][:] if "timestamps" in group else np.empty(0)
+                for field, shape in expected.items():
+                    if field not in group or group[field].shape != (len(ts),) + shape:
+                        rep.fail("F6", f"sensor {key}/{field} missing/shape mismatch")
+                if "arrival_timestamps" not in group or group["arrival_timestamps"].shape != (len(ts),):
+                    rep.fail("F6", f"sensor {key}/arrival_timestamps missing/count mismatch")
+                if len(ts) == 0 and required:
+                    rep.fail("F2", f"required sensor {key} empty")
+                elif len(ts) == 0:
+                    rep.warn("W9", f"optional sensor {key} has no samples; tactile features are unavailable")
+                if len(ts) and (np.any(~np.isfinite(ts)) or np.any(np.diff(ts) <= 0)):
+                    rep.fail("F4", f"sensor {key} timestamps invalid/not strictly increasing")
+                if len(ts) > 1 and np.isfinite(ts).all():
+                    gaps = np.diff(ts)
+                    if np.count_nonzero(gaps > max_gap_s):
+                        rep.warn("W2", f"sensor {key}: {np.count_nonzero(gaps > max_gap_s)} gaps > {max_gap_s * 1000:.0f}ms")
+                if "valid" in group:
+                    valid = group["valid"][:].astype(bool)
+                    for field in ("force_raw", "force_sum", "temperature_raw", "temperature_mean"):
+                        if field not in group:
+                            continue
+                        values = group[field][:]
+                        mask = (group["temperature_valid"][:].astype(bool)
+                                if field.startswith("temperature") and "temperature_valid" in group
+                                else valid)
+                        while mask.ndim < values.ndim:
+                            mask = mask[..., None]
+                        if values.size and np.any(~np.isfinite(values[np.broadcast_to(mask, values.shape)])):
+                            rep.fail("F3", f"sensor {key}/{field} has NaN/Inf in valid samples")
 
             # -- 相机流 ------------------------------------------------------------
             for cam in schema.cameras:

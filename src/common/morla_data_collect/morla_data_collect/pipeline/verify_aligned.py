@@ -7,7 +7,7 @@ import h5py
 import numpy as np
 
 from .artifacts import require_source_signature
-from morla_core.schema import CollectSchema
+from morla_data_collect.schema import pipeline_schema_from_json
 
 
 def verify_session(source: str, session: str) -> dict:
@@ -22,7 +22,7 @@ def verify_session(source: str, session: str) -> dict:
             require_source_signature(dst, str(ep))
             if 'source_frame_index' not in dst:
                 raise ValueError(f'{ep.name}: missing source_frame_index; rebuild with current repair')
-            schema = CollectSchema.from_json(dst.attrs['schema'])
+            schema = pipeline_schema_from_json(dst.attrs['schema'])
             original_ids = src['source_frame_index'][:] if 'source_frame_index' in src else np.arange(len(src['timestamps']))
             lookup = {int(value): index for index, value in enumerate(original_ids)}
             indices = np.array([lookup[int(value)] for value in dst['source_frame_index'][:]])
@@ -58,6 +58,22 @@ def verify_session(source: str, session: str) -> dict:
                 for i, original in enumerate(indices):
                     if bytes(dst[f'{camera}/images'][i]) != bytes(src[f'{camera}/images'][original]):
                         raise ValueError(f'{ep.name}/{camera}/{i}: image does not match source frame')
+            source_sensors = set(src["sensors"].keys()) if "sensors" in src else set()
+            target_sensors = set(dst["sensors"].keys()) if "sensors" in dst else set()
+            if source_sensors != target_sensors:
+                raise ValueError(f'{ep.name}: sensor sidecars differ: {source_sensors} != {target_sensors}')
+            for key in sorted(source_sensors):
+                source_group, target_group = src[f"sensors/{key}"], dst[f"sensors/{key}"]
+                if set(source_group.keys()) != set(target_group.keys()):
+                    raise ValueError(f'{ep.name}/sensors/{key}: fields differ')
+                for field in source_group:
+                    if not isinstance(source_group[field], h5py.Dataset):
+                        continue
+                    expected = source_group[field][:][indices]
+                    actual = target_group[field][:]
+                    if expected.shape != actual.shape:
+                        raise ValueError(f'{ep.name}/sensors/{key}/{field}: shape differs')
+                    np.testing.assert_array_equal(actual, expected)
             frames += len(state)
     return {'episodes': len(episodes), 'frames': frames, 'source': str(Path(source).resolve()),
             'session': str(Path(session).resolve()), 'status': 'pass'}

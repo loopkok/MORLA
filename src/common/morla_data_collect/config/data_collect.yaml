@@ -9,11 +9,14 @@
 #   3. cameras：要录的相机 label（须与 quest3_video_streamer 的 label 一致）
 data_collect:
   ros__parameters:
-    # 存储位置：{save_root}/{session}/episode{N:06d}/
-    # 目录约定：采集原始数据统一落 astral_data/raw/{session}/；
-    #   openpi 转换 → astral_data/pi/{session}/，ACT 转换 → astral_data/act/{session}/
+    # 空值按 MORLA_DATA_ROOT 或 <SDK_ROOT>/morla_data/raw；profile 模式路径为
+    # {save_root}/{profile_id}/{session}/episode{N:06d}/，旧 Astral schema 为
+    # {save_root}/{session}/episode{N:06d}/。
+    profile_id: ""
+    runtime_mode: "unknown" # unknown | sim | real；用于标记合成/实测传感来源
+    save_root: ""
+    # openpi 转换 → morla_data/pi/{profile_id}/{session}/，ACT 转换 → morla_data/act/...
     #   （见 README §4；转换脚本入参 session 目录即 astral_data/raw/{session}）。
-    save_root: "~/astral_data/raw"
     session: "default_task"
 
     # --- schema ---

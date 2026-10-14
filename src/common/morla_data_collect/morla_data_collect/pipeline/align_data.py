@@ -30,7 +30,8 @@ from morla_data_collect.pipeline.artifacts import (
     source_signature,
 )
 from morla_data_collect.data_writer import CAMERA_H5, META_JSON, ROBOT_H5
-from morla_core.schema import ACTION_COMMAND, CollectSchema
+from morla_core.schema import ACTION_COMMAND
+from morla_data_collect.schema import pipeline_schema_from_dict
 
 ALIGNED_H5 = "aligned_data.h5"
 
@@ -38,6 +39,7 @@ ALIGNED_H5 = "aligned_data.h5"
 FLAG_IMAGE_FAR = 0x01    # 最近图像帧偏差 > 1.5/fps
 FLAG_SYNTHETIC_HOLD = 0x04
 FLAG_STATE_GAP = 0x02    # 某数值流最近采样间隔 > max_gap_ms
+SENSOR_FIELDS = ("force_raw", "force_sum", "temperature_raw", "temperature_mean", "valid", "temperature_valid")
 
 
 def find_nearest_idx(sorted_ts: np.ndarray, value: float) -> int:
@@ -105,7 +107,7 @@ def align_episode(
         from morla_data_collect.pipeline.validate_data import _Report, _check_aligned
         rep = _Report(episode_dir)
         with h5py.File(out_path, "r") as f:
-            _check_aligned(rep, f, CollectSchema.from_dict(meta["schema"]))
+            _check_aligned(rep, f, pipeline_schema_from_dict(meta["schema"]))
             try:
                 require_source_signature(f, episode_dir)
             except ValueError as exc:
@@ -115,7 +117,7 @@ def align_episode(
         log(f"  skip (verified aligned exists): {episode_dir}")
         return None
 
-    schema = CollectSchema.from_dict(meta["schema"])
+    schema = pipeline_schema_from_dict(meta["schema"])
     fps = int(schema.dataset_fps)
 
     robot_h5 = os.path.join(episode_dir, ROBOT_H5)
@@ -148,6 +150,26 @@ def align_episode(
             _valid_timestamps(ts, cam)
             if len(images) != len(ts):
                 raise ValueError(f"{cam}: image/timestamp count mismatch")
+
+        # High-dimensional tactile data is a separate sensor sidecar, never
+        # concatenated into the model state/action vector.
+        raw_sensors: dict[str, dict[str, np.ndarray]] = {}
+        for sensor in getattr(schema, "sensor_specs", ()):
+            key = str(sensor.get("sensor_key", ""))
+            path = f"sensors/{key}"
+            if path not in fr:
+                if sensor.get("required", False):
+                    raise ValueError(f"required sensor {key!r} is missing")
+                continue
+            group = fr[path]
+            ts = group["timestamps"][:] if "timestamps" in group else np.empty(0)
+            if len(ts) == 0:
+                if sensor.get("required", False):
+                    raise ValueError(f"required sensor {key!r} is empty")
+                continue
+            _valid_timestamps(ts, f"sensor:{key}")
+            raw_sensors[key] = {name: group[name][:] for name in group.keys()}
+            raw_sensors[key]["timestamps"] = ts
 
         # -- 时间网格：参考相机 = cameras 列表里第一个有数据的 -----------------------
         ref_cam = schema.cameras[0]
@@ -189,9 +211,53 @@ def align_episode(
                 if abs(float(ts[j]) - t) > max_gap_s:
                     quality[i] |= FLAG_STATE_GAP
                 row = values[j]
-                state[i, col:col + block.dim] = (
-                    row[sl[0]:sl[1]] if sl is not None else row[:block.dim]
-                )
+                if sl is not None:
+                    state[i, col:col + block.dim] = row[sl[0]:sl[1]]
+                elif getattr(block, "stream_indices", ()):
+                    state[i, col:col + block.dim] = row[list(block.stream_indices)]
+                else:
+                    state[i, col:col + block.dim] = row[:block.dim]
+
+        aligned_sensors: dict[str, dict[str, np.ndarray]] = {}
+        for sensor in getattr(schema, "sensor_specs", ()):
+            key = str(sensor.get("sensor_key", ""))
+            source = raw_sensors.get(key)
+            if source is None:
+                continue
+            source_ts = source["timestamps"]
+            n_fingers = len(sensor.get("finger_order", ("thumb", "index", "middle", "ring", "pinky")))
+            points = int(sensor.get("point_count_per_finger", 120))
+            n_source = len(source_ts)
+            expected_shapes = {
+                "force_raw": (n_fingers, points, 3), "force_sum": (n_fingers, 3),
+                "temperature_raw": (n_fingers, 20), "temperature_mean": (n_fingers,),
+                "valid": (n_fingers,), "temperature_valid": (n_fingers,),
+            }
+            for name, shape in expected_shapes.items():
+                if name not in source or source[name].shape != (n_source,) + shape:
+                    raise ValueError(f"sensor {key}/{name}: expected shape {(n_source,) + shape}")
+            source_index = np.full(n_frames, -1, dtype=np.int64)
+            offsets = np.zeros(n_frames, dtype=np.float64)
+            for i, t in enumerate(grid):
+                j = find_nearest_idx(source_ts, float(t))
+                delta = float(source_ts[j]) - float(t)
+                offsets[i] = delta
+                if abs(delta) <= max_gap_s:
+                    source_index[i] = j
+            result = {name: np.zeros((n_frames,) + expected_shapes[name], dtype=source[name].dtype)
+                      for name in SENSOR_FIELDS}
+            result.update({"source_index": source_index,
+                           "source_timestamps": np.zeros(n_frames, dtype=np.float64),
+                           "source_offsets": offsets})
+            valid_rows = source_index >= 0
+            result["source_timestamps"][valid_rows] = source_ts[source_index[valid_rows]]
+            for name in SENSOR_FIELDS:
+                result[name][valid_rows] = source[name][source_index[valid_rows]]
+            result["valid"][~valid_rows] = False
+            result["temperature_valid"][~valid_rows] = False
+            if sensor.get("required", False):
+                quality[np.any(~result["valid"], axis=1)] |= FLAG_STATE_GAP
+            aligned_sensors[key] = result
 
         # -- action ------------------------------------------------------------------
         if schema.action_source == ACTION_COMMAND:
@@ -217,9 +283,12 @@ def align_episode(
                     j = max(0, int(np.searchsorted(ts, t, side="right")) - 1)
                     if t < ts[0] or abs(float(ts[j]) - t) > max_gap_s:
                         quality[i] |= FLAG_STATE_GAP
-                    action[i, col:col + block.dim] = (
-                        values[j][sl[0]:sl[1]] if sl is not None else values[j][:block.dim]
-                    )
+                    if sl is not None:
+                        action[i, col:col + block.dim] = values[j][sl[0]:sl[1]]
+                    elif getattr(block, "stream_indices", ()):
+                        action[i, col:col + block.dim] = values[j][list(block.stream_indices)]
+                    else:
+                        action[i, col:col + block.dim] = values[j][:block.dim]
         else:  # next_state
             action = np.empty_like(state)
             action[:-1] = state[1:]
@@ -254,6 +323,26 @@ def align_episode(
                 )
                 cam_off[cam] = np.concatenate([cam_off[cam],
                     cams[cam][0][cam_idx[cam][-1]] - grid[-hold:]])
+            for result in aligned_sensors.values():
+                source_rows = np.flatnonzero(result["source_index"] >= 0)
+                carry_row = int(source_rows[-1]) if len(source_rows) else len(result["source_index"]) - 1
+                carried = {name: result[name][carry_row:carry_row + 1].copy()
+                           for name in SENSOR_FIELDS}
+                last_index = int(result["source_index"][carry_row])
+                last_source_ts = float(result["source_timestamps"][carry_row])
+                for name in SENSOR_FIELDS:
+                    result[name] = np.concatenate([result[name], np.repeat(carried[name], hold, axis=0)])
+                result["valid"][-hold:] = False
+                result["temperature_valid"][-hold:] = False
+                result["source_index"] = np.concatenate([
+                    result["source_index"], np.full(hold, last_index, dtype=np.int64)
+                ])
+                result["source_timestamps"] = np.concatenate([
+                    result["source_timestamps"], np.full(hold, last_source_ts, dtype=np.float64)
+                ])
+                result["source_offsets"] = np.concatenate([
+                    result["source_offsets"], last_source_ts - grid[-hold:]
+                ])
 
         total_frames = len(grid)
 
@@ -281,6 +370,15 @@ def align_episode(
                     ds[i] = imgs[int(cam_idx[cam][i])]
                 g.create_dataset("src_timestamps", data=ts[cam_idx[cam]])
                 g.create_dataset("src_offsets", data=cam_off[cam])
+            for key, result in aligned_sensors.items():
+                group = fo.create_group(f"sensors/{key}")
+                for name, value in result.items():
+                    group.create_dataset(name, data=value, compression="lzf" if name in {"force_raw", "temperature_raw"} else None)
+                group.attrs["alignment"] = "nearest_source_sample_with_max_gap; no_interpolation"
+                group.attrs["source_kind"] = meta.get("sensors", {}).get(key, {}).get("source_kind", "unknown")
+                group.attrs["force_unit"] = meta.get("sensors", {}).get(key, {}).get("force_unit", "unknown")
+                group.attrs["force_frame"] = meta.get("sensors", {}).get(key, {}).get("force_frame", "unknown")
+                group.attrs["temperature_source_kind"] = meta.get("sensors", {}).get(key, {}).get("temperature_source_kind", "unknown")
 
             fo.create_dataset("source_frame_index", data=np.arange(total_frames, dtype=np.int64))
             fo.create_dataset("source_grid_timestamps", data=grid)
@@ -311,6 +409,10 @@ def align_episode(
             cam: round(float(np.max(np.abs(off))) * 1000.0, 2)
             for cam, off in cam_off.items()
         },
+        "sensors": {key: {"samples": int(len(value["source_index"])),
+                           "valid_samples": int(np.count_nonzero(value["valid"])),
+                           "missing_frames": int(np.count_nonzero(value["source_index"] < 0))}
+                    for key, value in aligned_sensors.items()},
     }
     log(
         f"  aligned {os.path.basename(episode_dir)}: {total_frames} frames "

@@ -27,7 +27,7 @@ import os
 
 # 可被 launch 覆盖的节点参数（值一律空串默认；schema 相关在 yaml 里配置）
 _OVERRIDABLE = [
-    "session", "save_root",
+    "profile_id", "runtime_mode", "session", "save_root",
     "arms", "end_effector_left", "end_effector_right",
     "include_waist", "include_head",
     "cameras", "camera_topic_prefix",

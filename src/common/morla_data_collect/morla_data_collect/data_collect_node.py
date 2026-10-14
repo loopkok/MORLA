@@ -25,6 +25,7 @@ import tempfile
 import threading
 import time
 from collections import deque
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -41,11 +42,10 @@ from morla_data_collect.data_writer import (
     CameraDataWriter,
     StreamDataWriter,
 )
-from morla_core.schema import (
-    EE_GRIPPER,
-    STREAM_TOPICS,
-    CollectSchema,
-)
+from morla_core.profile import ProfileRegistry
+from morla_core.schema import EE_GRIPPER, STREAM_TOPICS, CollectSchema
+from morla_core.resource_locator import morla_source_root
+from morla_data_collect.schema import FrozenPipelineSchema
 
 STATE_IDLE = "IDLE"
 STATE_RECORDING = "RECORDING"
@@ -144,32 +144,59 @@ class DataCollectNode(Node):
         )
         p = lambda name, default: self._param(name, default)
 
-        self._save_root = os.path.expanduser(str(p("save_root", "~/astral_data")))
+        root_value = str(p("save_root", "")).strip()
+        if root_value:
+            default_root = root_value
+        elif os.environ.get("MORLA_DATA_ROOT"):
+            default_root = os.environ["MORLA_DATA_ROOT"]
+        elif os.environ.get("MORLA_SDK_ROOT") or os.environ.get("SDK_ROOT"):
+            default_root = os.path.join(os.environ.get("MORLA_SDK_ROOT") or os.environ["SDK_ROOT"], "morla_data", "raw")
+        else:
+            try:
+                default_root = str(morla_source_root().parent / "morla_data" / "raw")
+            except Exception:
+                default_root = str(Path.home() / "morla_data" / "raw")
+        self._save_root = os.path.expanduser(default_root)
         self._session = str(p("session", "default_task"))
         self._camera_prefix = str(p("camera_topic_prefix", "/quest3_video_streamer/collect"))
-
-        arms_param = p("arms", ["left", "right"])
-        if isinstance(arms_param, str):
-            # launch 传入逗号字符串（"left,right"），yaml 传入字符串数组
-            arms_param = [s.strip() for s in arms_param.split(",") if s.strip()]
-        cameras_param = p("cameras", ["d435i", "wrist_left", "wrist_right"])
-        if isinstance(cameras_param, str):
-            # 同 arms：launch 逗号字符串需拆分，否则被逐字符拆解
-            cameras_param = [s.strip() for s in cameras_param.split(",") if s.strip()]
-        self._schema = CollectSchema(
-            arms=[str(s) for s in arms_param],
-            end_effector_left=str(p("end_effector_left", "gripper")),
-            end_effector_right=str(p("end_effector_right", "gripper")),
-            include_waist=_to_bool(p("include_waist", False)),
-            include_head=_to_bool(p("include_head", False)),
-            cameras=[str(c) for c in cameras_param],
-            dataset_fps=int(p("dataset_fps", 30)),
-            action_source=str(p("action_source", "next_state")),
-            hold_frames=int(p("hold_frames", 10)),
-            max_gap_ms=float(p("max_gap_ms", 100.0)),
-            jpeg_quality=int(p("jpeg_quality", 90)),
+        self._profile_id = str(p("profile_id", "")).strip()
+        self._runtime_mode = str(p("runtime_mode", "unknown")).strip().lower()
+        if self._runtime_mode not in {"unknown", "sim", "real"}:
+            raise ValueError("runtime_mode must be unknown, sim, or real")
+        self._profile_values = None
+        self._profile = None
+        if self._profile_id:
+            self._profile = ProfileRegistry.from_index().load(self._profile_id)
+            self._profile_values = self._profile.values
+            self._schema = FrozenPipelineSchema(self._profile.frozen_schema)
+            self._stream_specs = dict(self._schema.stream_specs)
+            self._sensor_specs = tuple(self._schema.sensor_specs)
+        else:
+            arms_param = p("arms", ["left", "right"])
+            if isinstance(arms_param, str):
+                arms_param = [s.strip() for s in arms_param.split(",") if s.strip()]
+            cameras_param = p("cameras", ["d435i", "wrist_left", "wrist_right"])
+            if isinstance(cameras_param, str):
+                cameras_param = [s.strip() for s in cameras_param.split(",") if s.strip()]
+            self._schema = CollectSchema(
+                arms=[str(s) for s in arms_param],
+                end_effector_left=str(p("end_effector_left", "gripper")),
+                end_effector_right=str(p("end_effector_right", "gripper")),
+                include_waist=_to_bool(p("include_waist", False)),
+                include_head=_to_bool(p("include_head", False)),
+                cameras=[str(c) for c in cameras_param],
+                dataset_fps=int(p("dataset_fps", 30)),
+                action_source=str(p("action_source", "next_state")),
+                hold_frames=int(p("hold_frames", 10)),
+                max_gap_ms=float(p("max_gap_ms", 100.0)),
+                jpeg_quality=int(p("jpeg_quality", 90)),
+            )
+            self._stream_specs = {}
+            self._sensor_specs = ()
+        self._streams = (
+            self._schema.numeric_streams()
+            if self._profile is not None else self._schema.required_streams()
         )
-        self._streams = self._schema.required_streams()
 
         # 单例锁：/data_collect/control 是全局单例控制面——任何第二个采集
         # 节点（哪怕 session 不同）都会响应同一条 start 各录一份。锁按
@@ -205,6 +232,10 @@ class DataCollectNode(Node):
         self._stream_buf: dict[str, deque] = {
             name: deque(maxlen=_STREAM_BUFFER_MAX) for name in self._streams
         }
+        self._sensor_buf: dict[str, deque] = {
+            str(spec["sensor_key"]): deque(maxlen=_STREAM_BUFFER_MAX)
+            for spec in self._sensor_specs
+        }
         self._cam_buf: dict[str, deque] = {
             cam: deque(maxlen=_IMAGE_BUFFER_MAX) for cam in self._schema.cameras
         }
@@ -229,7 +260,8 @@ class DataCollectNode(Node):
         self._status_timer = self.create_timer(1.0, self._publish_state)
 
         self.get_logger().info(
-            f"data_collect ready: save_root={self._save_root} session={self._session} "
+            f"data_collect ready: profile={self._profile_id or 'legacy-astra'} "
+            f"save_root={self._save_root} session={self._session} "
             f"schema={self._schema.to_json()}"
         )
         self._publish_state()
@@ -273,23 +305,59 @@ class DataCollectNode(Node):
     def _mk_subscriptions(self) -> None:
         from sensor_msgs.msg import CompressedImage, JointState
 
-        for name, dim in self._streams.items():
-            topic = STREAM_TOPICS[name][0]
-            if name.endswith("_gripper_ratio"):
+        if self._profile is not None:
+            from rosidl_runtime_py.utilities import get_message
+
+            sensor_by_stream = {
+                str(sensor["source_stream"]): sensor for sensor in self._sensor_specs
+            }
+            for name, spec in self._stream_specs.items():
+                if spec.source_kind == "camera":
+                    cam = name.removeprefix("camera:")
+                    self.create_subscription(
+                        CompressedImage, spec.topic, self._mk_cam_cb(cam), _IMAGE_QOS
+                    )
+                elif spec.source_kind == "sensor":
+                    sensor = sensor_by_stream.get(name)
+                    if sensor is None:
+                        raise ValueError(f"profile sensor stream {name!r} has no sensor spec")
+                    message_type = get_message(spec.message_type)
+                    qos = QoSProfile(
+                        reliability=ReliabilityPolicy.RELIABLE,
+                        history=HistoryPolicy.KEEP_LAST, depth=1,
+                    )
+                    self.create_subscription(
+                        message_type, spec.topic, self._mk_sensor_cb(sensor), qos
+                    )
+                elif spec.message_type == "std_msgs/msg/Float64":
+                    self.create_subscription(
+                        Float64, spec.topic, self._mk_float_cb(name, spec), _SENSOR_QOS
+                    )
+                elif spec.message_type == "sensor_msgs/msg/JointState":
+                    dim = int(spec.shape[-1])
+                    self.create_subscription(
+                        JointState, spec.topic, self._mk_joint_cb(name, dim, spec), _SENSOR_QOS
+                    )
+                else:
+                    raise ValueError(
+                        f"profile stream {name!r} has unsupported collector type {spec.message_type!r}"
+                    )
+        else:
+            for name, dim in self._streams.items():
+                topic = STREAM_TOPICS[name][0]
+                if name.endswith("_gripper_ratio"):
+                    self.create_subscription(
+                        Float64, topic, self._mk_float_cb(name), _SENSOR_QOS,
+                    )
+                else:
+                    self.create_subscription(
+                        JointState, topic, self._mk_joint_cb(name, dim), _SENSOR_QOS,
+                    )
+            for cam in self._schema.cameras:
+                topic = f"{self._camera_prefix}/{cam}"
                 self.create_subscription(
-                    Float64, topic,
-                    self._mk_float_cb(name), _SENSOR_QOS,
+                    CompressedImage, topic, self._mk_cam_cb(cam), _IMAGE_QOS
                 )
-            else:
-                self.create_subscription(
-                    JointState, topic,
-                    self._mk_joint_cb(name, dim), _SENSOR_QOS,
-                )
-        for cam in self._schema.cameras:
-            topic = f"{self._camera_prefix}/{cam}"
-            self.create_subscription(
-                CompressedImage, topic, self._mk_cam_cb(cam), _IMAGE_QOS
-            )
         for topic, event in _TELEOP_EVENTS.items():
             self.create_subscription(
                 Bool, topic, self._mk_event_cb(event), _EVENT_QOS
@@ -309,7 +377,7 @@ class DataCollectNode(Node):
         """仅 RECORDING 才接收样本：IDLE 期数据不污染下一段，PAUSED 期真正暂停。"""
         return self._state == STATE_RECORDING
 
-    def _mk_joint_cb(self, name: str, dim: int):
+    def _mk_joint_cb(self, name: str, dim: int, stream_spec=None):
         # *_cmd 流用到达时刻而非 header.stamp：teleop 端把 joint_commands 的
         # stamp 打成上游 VR 输入戳（供延迟面板算 E2E 延迟），IK 定时器比 VR
         # 快时会多次复用同一戳——实测 ~45% cmd 样本戳完全重复（值不同），
@@ -322,12 +390,27 @@ class DataCollectNode(Node):
             if not self._accepting():
                 return
             now = time.time()
+            arrival_timestamp = use_arrival
             pos = list(msg.position)
-            if len(pos) > dim:
-                pos = pos[:dim]
-            elif len(pos) < dim:
-                return  # 维度不足的消息视为无效（配置错误由 validate 暴露）
-            ts = now if use_arrival else _stamp_sec(msg.header, now)
+            if stream_spec is not None:
+                expected = tuple(stream_spec.joint_names)
+                names = tuple(str(v) for v in msg.name)
+                if (len(pos) != dim or len(names) != dim or len(set(names)) != dim
+                        or set(names) != set(expected)):
+                    self._drop_counts[name] = self._drop_counts.get(name, 0) + 1
+                    return
+                by_name = dict(zip(names, pos))
+                pos = [by_name[joint] for joint in expected]
+                if not np.isfinite(np.asarray(pos, dtype=float)).all():
+                    self._drop_counts[name] = self._drop_counts.get(name, 0) + 1
+                    return
+                arrival_timestamp = stream_spec.timestamp_mode == "arrival"
+            else:
+                if len(pos) > dim:
+                    pos = pos[:dim]
+                elif len(pos) < dim:
+                    return
+            ts = now if arrival_timestamp else _stamp_sec(msg.header, now)
             with self._buf_lock:
                 dq = self._stream_buf[name]
                 if len(dq) == dq.maxlen:
@@ -335,16 +418,93 @@ class DataCollectNode(Node):
                 dq.append((ts, np.asarray(pos, dtype=np.float32)))
         return _cb
 
-    def _mk_float_cb(self, name: str):
+    def _mk_float_cb(self, name: str, stream_spec=None):
         def _cb(msg: Any) -> None:
             if not self._accepting():
+                return
+            value = float(msg.data)
+            if not np.isfinite(value):
+                self._drop_counts[name] = self._drop_counts.get(name, 0) + 1
                 return
             ts = time.time()  # Float64 无 header
             with self._buf_lock:
                 dq = self._stream_buf[name]
                 if len(dq) == dq.maxlen:
                     self._drop_counts[name] = self._drop_counts.get(name, 0) + 1
-                dq.append((ts, np.asarray([msg.data], dtype=np.float32)))
+                dq.append((ts, np.asarray([value], dtype=np.float32)))
+        return _cb
+
+    def _mk_sensor_cb(self, sensor_spec: dict[str, Any]):
+        key = str(sensor_spec["sensor_key"])
+        side = str(sensor_spec.get("side", ""))
+        finger_order = tuple(sensor_spec.get("finger_order", ()))
+        point_count = int(sensor_spec.get("point_count_per_finger", 120))
+        hardware = (self._profile_values or {}).get("hardware", {}).get("xhand", {})
+        hand_id = int(hardware.get(side, {}).get("hand_id", 0))
+        source_stream = str(sensor_spec["source_stream"])
+        stream_spec = self._stream_specs[source_stream]
+
+        def _cb(msg: Any) -> None:
+            if not self._accepting():
+                return
+            now = time.time()
+            ids = [int(value) for value in msg.hand_id]
+            if len(set(ids)) != len(ids) or hand_id not in ids:
+                self._drop_counts[f"sensor:{key}"] = self._drop_counts.get(f"sensor:{key}", 0) + 1
+                return
+            hand_index = ids.index(hand_id)
+            if len(msg.sensor_states) != len(ids):
+                self._drop_counts[f"sensor:{key}"] = self._drop_counts.get(f"sensor:{key}", 0) + 1
+                return
+            sensor_state = msg.sensor_states[hand_index]
+            by_finger = {}
+            for finger_state in sensor_state.finger_sensor_states:
+                label = str(finger_state.location).strip().lower()
+                if label == "mid":
+                    label = "middle"
+                if label in by_finger:
+                    self._drop_counts[f"sensor:{key}"] = self._drop_counts.get(f"sensor:{key}", 0) + 1
+                    return
+                by_finger[label] = finger_state
+
+            forces = np.zeros((len(finger_order), point_count, 3), dtype=np.float32)
+            sums = np.zeros((len(finger_order), 3), dtype=np.float32)
+            temperatures = np.zeros((len(finger_order), 20), dtype=np.int32)
+            temperature_means = np.zeros(len(finger_order), dtype=np.float32)
+            valid = np.zeros(len(finger_order), dtype=np.bool_)
+            temperature_valid = np.zeros(len(finger_order), dtype=np.bool_)
+            for index, finger in enumerate(finger_order):
+                item = by_finger.get(str(finger))
+                if item is None:
+                    continue
+                raw = np.asarray([(v.x, v.y, v.z) for v in item.raw_force], dtype=np.float64)
+                calc = np.asarray((item.calc_force.x, item.calc_force.y, item.calc_force.z), dtype=np.float64)
+                if raw.shape == (point_count, 3) and np.isfinite(raw).all() and np.isfinite(calc).all():
+                    forces[index] = raw.astype(np.float32)
+                    sums[index] = calc.astype(np.float32)
+                    valid[index] = True
+                raw_temp = np.asarray(item.raw_temperature, dtype=np.float64)
+                calc_temp = float(item.calc_temperature)
+                if (raw_temp.shape == (20,) and np.isfinite(raw_temp).all()
+                        and np.equal(raw_temp, np.rint(raw_temp)).all()
+                        and raw_temp.min(initial=0) >= np.iinfo(np.int32).min
+                        and raw_temp.max(initial=0) <= np.iinfo(np.int32).max
+                        and np.isfinite(calc_temp)):
+                    temperatures[index] = raw_temp.astype(np.int32)
+                    temperature_means[index] = calc_temp
+                    temperature_valid[index] = self._runtime_mode != "sim"
+
+            sample = {
+                "force_raw": forces, "force_sum": sums,
+                "temperature_raw": temperatures, "temperature_mean": temperature_means,
+                "valid": valid, "temperature_valid": temperature_valid,
+            }
+            ts = _stamp_sec(msg.header, now) if stream_spec.timestamp_mode == "source_header" else now
+            with self._buf_lock:
+                dq = self._sensor_buf[key]
+                if len(dq) == dq.maxlen:
+                    self._drop_counts[f"sensor:{key}"] = self._drop_counts.get(f"sensor:{key}", 0) + 1
+                dq.append((ts, now, sample))
         return _cb
 
     def _mk_cam_cb(self, cam: str):
@@ -480,6 +640,8 @@ class DataCollectNode(Node):
 
     @property
     def _session_dir(self) -> str:
+        if self._profile_id:
+            return os.path.join(self._save_root, self._profile_id, self._session)
         return os.path.join(self._save_root, self._session)
 
     @staticmethod
@@ -546,12 +708,13 @@ class DataCollectNode(Node):
         # 防御性清空（回调已被 _accepting 门控，此处防状态竞态残留）；
         # 丢弃计数按段归零（meta.json 的 dropped 是段级 provenance）
         with self._buf_lock:
-            for dq in (*self._stream_buf.values(), *self._cam_buf.values()):
+            for dq in (*self._stream_buf.values(), *self._sensor_buf.values(), *self._cam_buf.values()):
                 dq.clear()
             self._drop_counts = {}
         self._prev_counts = {}
         self._robot_writer = StreamDataWriter(
-            os.path.join(self._episode_dir, ROBOT_H5), self._streams
+            os.path.join(self._episode_dir, ROBOT_H5), self._streams,
+            sensor_specs=self._sensor_specs,
         ).open()
         self._camera_writer = CameraDataWriter(
             os.path.join(self._episode_dir, CAMERA_H5), self._schema.cameras
@@ -584,7 +747,10 @@ class DataCollectNode(Node):
         end = self._pause_started if self._pause_started is not None else time.time()
         duration = end - self._episode_start_wall
         self._drain_buffers()
-        stream_counts = self._robot_writer.close() if self._robot_writer else {}
+        writer = self._robot_writer
+        stream_counts = writer.close() if writer else {}
+        sensor_valid_counts = writer.sensor_valid_counts() if writer else {}
+        sensor_temperature_valid_counts = writer.sensor_temperature_valid_counts() if writer else {}
         cam_counts = self._camera_writer.close() if self._camera_writer else {}
         self._robot_writer = None
         self._camera_writer = None
@@ -605,6 +771,15 @@ class DataCollectNode(Node):
                 "control_event_format": "policy_owner_v1",
                 "session": self._session,
                 "schema": self._schema.to_dict(),
+                "profile_id": self._profile_id or None,
+                "robot_id": getattr(self._schema, "robot_id", "astral"),
+                "schema_hash": getattr(self._schema, "schema_hash", None),
+                "layout_hash": getattr(self._schema, "layout_hash", None),
+                "recording_mode": self._runtime_mode,
+                "source_revisions": {
+                    "description_revision": getattr(self._schema, "frozen", None).metadata.get("description_revision")
+                    if getattr(self._schema, "frozen", None) is not None else None,
+                },
                 "episode_index": ep_idx,
                 "start_time_wall": self._episode_start_wall,
                 "end_time_wall": end,
@@ -613,6 +788,24 @@ class DataCollectNode(Node):
                 "streams": {
                     name: {"dim": dim, "count": int(stream_counts.get(name, 0))}
                     for name, dim in self._streams.items()
+                },
+                "sensors": {
+                    key: {
+                        "count": int(stream_counts.get(f"sensor:{key}", 0)),
+                        "finger_order": list(spec.get("finger_order", ())),
+                        "valid_samples_by_finger": sensor_valid_counts.get(key, []),
+                        "temperature_valid_samples_by_finger": sensor_temperature_valid_counts.get(key, []),
+                        "force_unit": "N" if self._runtime_mode == "sim" else "unknown_sdk" if self._runtime_mode == "real" else "unknown",
+                        "force_frame": "finger_link2" if self._runtime_mode == "sim" else "sensor_local" if self._runtime_mode == "real" else str(spec.get("force_frame", "unknown")),
+                        "source_kind": "synthetic" if self._runtime_mode == "sim" else "real" if self._runtime_mode == "real" else "unknown",
+                        "temperature_source_kind": "synthetic_zero" if self._runtime_mode == "sim" else "sdk_native" if self._runtime_mode == "real" else "unknown",
+                        "temperature_scale": str(spec.get("temperature_scale", "unknown")),
+                        "action_observation_only": bool(spec.get("action_observation_only", True)),
+                        "point_count_per_finger": int(spec.get("point_count_per_finger", 120)),
+                        "temperature_count_per_finger": 20,
+                        "calibration_revision": str(spec.get("calibration_revision", "unknown")),
+                    }
+                    for key, spec in ((str(item["sensor_key"]), item) for item in self._sensor_specs)
                 },
                 "cameras": {
                     cam: {"count": int(cam_counts.get(cam, 0))}
@@ -667,6 +860,15 @@ class DataCollectNode(Node):
         for name, items in stream_items.items():
             for ts, values in items:
                 rw.write(name, values, ts)
+        sensor_items = {}
+        with self._buf_lock:
+            sensor_items = {
+                name: [dq.popleft() for _ in range(len(dq))]
+                for name, dq in self._sensor_buf.items() if dq
+            }
+        for name, items in sensor_items.items():
+            for ts, arrival, sample in items:
+                rw.write_sensor(name, sample, ts, arrival)
         if cw is not None:
             for cam, items in cam_items.items():
                 for ts, jpeg, arrival in items:

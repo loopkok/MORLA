@@ -7,7 +7,7 @@ import shutil
 import h5py
 
 from .artifacts import atomic_directory, reject_overlap, require_source_signature, source_signature
-from morla_core.schema import CollectSchema
+from morla_data_collect.schema import pipeline_schema_from_dict, pipeline_schema_from_json
 
 
 def prepare_session(source, output, *, camera_map=None, episodes=None, include_aligned=False):
@@ -47,10 +47,13 @@ def prepare_session(source, output, *, camera_map=None, episodes=None, include_a
                     raise ValueError(f'{ep.name}/{name}: symlink escapes source session')
                 shutil.copy2(ep / name, dest / name)
             meta = json.loads((dest / 'meta.json').read_text())
-            schema = CollectSchema.from_dict(meta['schema'])
+            schema = pipeline_schema_from_dict(meta['schema'])
             if mapping:
-                schema.cameras = [mapping.get(c, c) for c in schema.cameras]
-                schema.__post_init__()
+                if hasattr(schema, 'map_cameras'):
+                    schema.map_cameras(mapping)
+                else:
+                    schema.cameras = [mapping.get(c, c) for c in schema.cameras]
+                    schema.__post_init__()
                 for name in ['camera_data.h5', 'aligned_data.h5']:
                     if not (dest / name).exists():
                         continue
@@ -62,9 +65,12 @@ def prepare_session(source, output, *, camera_map=None, episodes=None, include_a
                                 raise ValueError(f'{ep.name}: camera name collision {old}={new}')
                             f.move(old, new)
                         if name == 'aligned_data.h5' and 'schema' in f.attrs:
-                            old_schema = CollectSchema.from_json(f.attrs['schema'])
-                            old_schema.cameras = [mapping.get(c, c) for c in old_schema.cameras]
-                            old_schema.__post_init__()
+                            old_schema = pipeline_schema_from_json(f.attrs['schema'])
+                            if hasattr(old_schema, 'map_cameras'):
+                                old_schema.map_cameras(mapping)
+                            else:
+                                old_schema.cameras = [mapping.get(c, c) for c in old_schema.cameras]
+                                old_schema.__post_init__()
                             f.attrs['schema'] = old_schema.to_json()
                 meta['schema'] = schema.to_dict()
                 if isinstance(meta.get('cameras'), dict):

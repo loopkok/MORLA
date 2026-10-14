@@ -33,7 +33,7 @@ import h5py
 import numpy as np
 
 from morla_data_collect.pipeline.align_data import ALIGNED_H5
-from morla_core.schema import CollectSchema
+from morla_data_collect.schema import pipeline_schema_from_dict
 
 CODEBASE_VERSION = "v2.1"
 CHUNK_SIZE = 1000  # 与上游 DEFAULT_CHUNK_SIZE 一致
@@ -382,6 +382,7 @@ def _letterbox(img: np.ndarray, size: int) -> np.ndarray:
 
 def convert_session(session_dir: str, output_dir: str, *, robot_type: str = "astral_dual_arm",
                     codec: str = "libsvtav1", image_size: int | None = 224,
+                    model_capacity: int | None = None,
                     log=print) -> dict[str, Any]:
     from morla_data_collect.pipeline.artifacts import atomic_directory, reject_overlap
     from morla_data_collect.pipeline.validate_data import ensure_training_ready
@@ -391,7 +392,8 @@ def convert_session(session_dir: str, output_dir: str, *, robot_type: str = "ast
     reports = ensure_training_ready(session_dir)
     with atomic_directory(output_dir) as staged:
         summary = _convert_session_impl(session_dir, staged, robot_type=robot_type,
-                                        codec=codec, image_size=image_size, log=log)
+                                        codec=codec, image_size=image_size,
+                                        model_capacity=model_capacity, log=log)
         with open(os.path.join(staged, "meta", "processing_manifest.json"), "w", encoding="utf-8") as f:
             json.dump({"version": "export_v2", "source": session_dir, "output": output_dir,
                        "summary": {**summary, "output": output_dir}, "validation": reports},
@@ -407,6 +409,7 @@ def _convert_session_impl(
     robot_type: str = "astral_dual_arm",
     codec: str = "libsvtav1",
     image_size: int | None = 224,
+    model_capacity: int | None = None,
     log=print,
 ) -> dict[str, Any]:
     """image_size: 视频落盘前等比缩放+黑边补齐到该边长（默认 224，与 openpi
@@ -445,7 +448,7 @@ def _convert_session_impl(
         with open(os.path.join(ep, "meta.json"), encoding="utf-8") as f:
             meta = json.load(f)
         metas.append(meta)
-        schemas.append(CollectSchema.from_dict(meta["schema"]))
+        schemas.append(pipeline_schema_from_dict(meta["schema"]))
         task = str(meta.get("task", ""))
         if task not in tasks:
             tasks.append(task)
@@ -457,6 +460,11 @@ def _convert_session_impl(
     fps = int(schema.dataset_fps)
     state_dim = schema.state_dim
     state_names = schema.state_names()
+    if model_capacity is not None and state_dim > model_capacity:
+        raise ValueError(
+            f"layout state_dim={state_dim} exceeds explicitly selected model capacity={model_capacity}; "
+            "generic LeRobot export supports this layout, but the selected model does not"
+        )
     video_keys = [f"observation.images.{cam}" for cam in schema.cameras]
 
     # -- 第二遍：逐 episode 写 parquet + mp4 + meta -------------------------------
@@ -486,6 +494,24 @@ def _convert_session_impl(
             if not (np.all(np.isfinite(state)) and np.all(np.isfinite(action))):
                 raise ValueError(f"{ep_dir}: state/action contains NaN/Inf")
             n = state.shape[0]
+
+            if "sensors" in fa and len(fa["sensors"]):
+                sensor_dir = os.path.join(output_dir, "meta", "sensors")
+                os.makedirs(sensor_dir, exist_ok=True)
+                sidecar_path = os.path.join(sensor_dir, f"episode_{ep_index:06d}.h5")
+                with h5py.File(sidecar_path, "w") as sidecar:
+                    sidecar.attrs["episode_index"] = ep_index
+                    sidecar.attrs["sensor_export_policy"] = "sidecar_only; not a LeRobot policy feature"
+                    sidecar.attrs["profile_id"] = str(meta.get("profile_id") or "legacy")
+                    for key, source_group in fa["sensors"].items():
+                        target_group = sidecar.create_group(key)
+                        for attr, value in source_group.attrs.items():
+                            target_group.attrs[attr] = value
+                        for field, dataset in source_group.items():
+                            target_group.create_dataset(
+                                field, data=dataset[:],
+                                compression="lzf" if field in {"force_raw", "temperature_raw"} else None,
+                            )
 
             # -- 视频：JPEG → RGB 帧 → mp4 ------------------------------------------
             rel_paths: dict[str, str] = {}
@@ -661,9 +687,47 @@ def _convert_session_impl(
         "video_path": VIDEO_PATH_TEMPLATE,
         "features": features,
         "control_owner_codes": {"unknown": 0, "policy": 1, "human": 2, "playback": 3, "pending": 4, "idle": 5},
+        "morla": {
+            "profile_id": getattr(schema, "profile_id", None),
+            "robot_id": getattr(schema, "robot_id", None),
+            "schema_hash": getattr(schema, "schema_hash", None),
+            "layout_hash": getattr(schema, "layout_hash", None),
+            "sensor_export_policy": "sidecar_only; not a LeRobot policy feature",
+            "sensor_sidecars": "meta/sensors/episode_{episode_index:06d}.h5",
+            "legacy_validity_unknown": any(bool(meta.get("legacy_validity_unknown")) for meta in metas),
+        },
     }
     with open(os.path.join(output_dir, "meta", "info.json"), "w", encoding="utf-8") as f:
         json.dump(info, f, ensure_ascii=False, indent=2)
+
+    contract = {
+        "schema": schema.to_dict(),
+        "profile_id": getattr(schema, "profile_id", None),
+        "robot_id": getattr(schema, "robot_id", None),
+        "schema_hash": getattr(schema, "schema_hash", None),
+        "layout_hash": getattr(schema, "layout_hash", None),
+        "state_features": state_names,
+        "action_features": state_names,
+        "state_dim": state_dim,
+        "action_dim": schema.action_dim,
+        "fps": fps,
+        "action_source": schema.action_source,
+        "sensor_policy": {
+            "mode": "sidecar_only",
+            "policy_features_enabled": False,
+            "excluded_from_policy": [dict(sensor) for sensor in getattr(schema, "sensor_specs", ())],
+            "reason": "The selected LeRobot model feature contract does not declare tactile inputs.",
+        },
+        "model_capacity_check": {"capacity": model_capacity, "enforced": model_capacity is not None},
+        "episodes": [
+            {"episode_index": i, "source_episode": os.path.abspath(ep_dir),
+             "legacy_validity_unknown": bool(meta.get("legacy_validity_unknown")),
+             "provenance": meta.get("provenance", {})}
+            for i, (ep_dir, meta) in enumerate(zip(episode_dirs, metas))
+        ],
+    }
+    with open(os.path.join(output_dir, "meta", "morla_schema.json"), "w", encoding="utf-8") as f:
+        json.dump(contract, f, ensure_ascii=False, indent=2)
 
     summary = {
         "output": output_dir,
@@ -688,6 +752,8 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--session", required=True, help="session 目录（含已对齐 episode*）")
     ap.add_argument("--output", required=True, help="LeRobot 数据集输出目录")
     ap.add_argument("--robot-type", default="astral_dual_arm")
+    ap.add_argument("--model-capacity", type=int, default=None,
+                    help="可选目标模型动作/状态维数；通用LeRobot导出默认不限制维数")
     ap.add_argument("--codec", default="libsvtav1", help="libsvtav1（默认）| h264，不可用自动回退")
     ap.add_argument(
         "--image-size",
@@ -702,6 +768,7 @@ def main(argv: list[str] | None = None) -> None:
         robot_type=args.robot_type,
         codec=args.codec,
         image_size=args.image_size or None,
+        model_capacity=args.model_capacity,
     )
 
 

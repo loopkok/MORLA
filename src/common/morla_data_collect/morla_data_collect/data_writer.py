@@ -23,16 +23,21 @@ META_JSON = "meta.json"
 
 
 class StreamDataWriter:
-    """数值流写入：/streams/{name}/values + timestamps。"""
+    """Numeric streams and fixed-shape sensor arrays in one raw HDF5 file."""
 
-    def __init__(self, h5_path: str, streams: dict[str, int]) -> None:
+    def __init__(self, h5_path: str, streams: dict[str, int], sensor_specs=()) -> None:
         self.h5_path = h5_path
         self._streams = dict(streams)
+        self._sensor_specs = {str(s["sensor_key"]): dict(s) for s in sensor_specs}
         self._file: h5py.File | None = None
         self._values: dict[str, h5py.Dataset] = {}
         self._ts: dict[str, h5py.Dataset] = {}
         self._sizes: dict[str, int] = {}
         self._idx: dict[str, int] = {}
+        self._sensors: dict[str, dict[str, h5py.Dataset]] = {}
+        self._sensor_idx: dict[str, int] = {}
+        self._sensor_valid_counts: dict[str, np.ndarray] = {}
+        self._sensor_temperature_valid_counts: dict[str, np.ndarray] = {}
 
     def open(self) -> "StreamDataWriter":
         os.makedirs(os.path.dirname(self.h5_path), exist_ok=True)
@@ -50,6 +55,38 @@ class StreamDataWriter:
             )
             self._sizes[name] = 0
             self._idx[name] = 0
+        if self._sensor_specs:
+            root = self._file.create_group("sensors")
+            for key, spec in self._sensor_specs.items():
+                fingers = len(spec.get("finger_order", ("thumb", "index", "middle", "ring", "pinky")))
+                points = int(spec.get("point_count_per_finger", 120))
+                group = root.create_group(key)
+                group.attrs["finger_order"] = __import__("json").dumps(
+                    list(spec.get("finger_order", ("thumb", "index", "middle", "ring", "pinky")))
+                )
+                shapes = {
+                    "force_raw": (fingers, points, 3),
+                    "force_sum": (fingers, 3),
+                    "temperature_raw": (fingers, 20),
+                    "temperature_mean": (fingers,),
+                    "valid": (fingers,),
+                    "temperature_valid": (fingers,),
+                }
+                datasets = {}
+                for field, shape in shapes.items():
+                    dtype = "bool" if field.endswith("valid") else ("i4" if field == "temperature_raw" else "f4")
+                    datasets[field] = group.create_dataset(
+                        field, shape=(0,) + shape, maxshape=(None,) + shape,
+                        dtype=dtype, chunks=(1,) + shape,
+                    )
+                for field in ("timestamps", "arrival_timestamps"):
+                    datasets[field] = group.create_dataset(
+                        field, shape=(0,), maxshape=(None,), dtype="f8", chunks=(1024,)
+                    )
+                self._sensors[key] = datasets
+                self._sensor_idx[key] = 0
+                self._sensor_valid_counts[key] = np.zeros(fingers, dtype=np.int64)
+                self._sensor_temperature_valid_counts[key] = np.zeros(fingers, dtype=np.int64)
         return self
 
     def write(self, name: str, values: np.ndarray, timestamp: float) -> None:
@@ -66,10 +103,45 @@ class StreamDataWriter:
         self._idx[name] = i + 1
 
     def count(self, name: str) -> int:
+        if name.startswith("sensor:"):
+            return self._sensor_idx.get(name.removeprefix("sensor:"), 0)
         return self._idx.get(name, 0)
 
     def counts(self) -> dict[str, int]:
-        return dict(self._idx)
+        return {**self._idx, **{f"sensor:{key}": value for key, value in self._sensor_idx.items()}}
+
+    def write_sensor(self, key: str, sample: dict, timestamp: float, arrival_timestamp: float) -> None:
+        """Append one decoded tactile sample; invalid fingers stay explicitly invalid."""
+        if self._file is None or key not in self._sensors:
+            return
+        i = self._sensor_idx[key]
+        fields = self._sensors[key]
+        for name, value in sample.items():
+            if name not in fields or name in {"timestamps", "arrival_timestamps"}:
+                continue
+            dataset = fields[name]
+            dataset.resize((i + 1,) + dataset.shape[1:])
+            dataset[i] = np.asarray(value, dtype=dataset.dtype)
+        for name, value in (("timestamps", timestamp), ("arrival_timestamps", arrival_timestamp)):
+            dataset = fields[name]
+            dataset.resize((i + 1,))
+            dataset[i] = value
+        self._sensor_idx[key] = i + 1
+        if "valid" in sample:
+            valid = np.asarray(sample["valid"], dtype=bool)
+            if valid.shape == self._sensor_valid_counts[key].shape:
+                self._sensor_valid_counts[key] += valid.astype(np.int64)
+        if "temperature_valid" in sample:
+            valid = np.asarray(sample["temperature_valid"], dtype=bool)
+            if valid.shape == self._sensor_temperature_valid_counts[key].shape:
+                self._sensor_temperature_valid_counts[key] += valid.astype(np.int64)
+
+    def sensor_valid_counts(self) -> dict[str, list[int]]:
+        return {key: values.astype(int).tolist() for key, values in self._sensor_valid_counts.items()}
+
+    def sensor_temperature_valid_counts(self) -> dict[str, list[int]]:
+        return {key: values.astype(int).tolist()
+                for key, values in self._sensor_temperature_valid_counts.items()}
 
     def close(self) -> dict[str, int]:
         if self._file is None:
@@ -79,9 +151,13 @@ class StreamDataWriter:
             dim = self._values[name].shape[1]
             self._values[name].resize((n, dim))
             self._ts[name].resize((n,))
+        for key, fields in self._sensors.items():
+            n = self._sensor_idx[key]
+            for dataset in fields.values():
+                dataset.resize((n,) + dataset.shape[1:])
         self._file.close()
         self._file = None
-        return dict(self._idx)
+        return self.counts()
 
 
 class CameraDataWriter:

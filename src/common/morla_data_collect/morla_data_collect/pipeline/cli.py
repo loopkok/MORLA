@@ -20,6 +20,7 @@ COMMANDS = {
     "upgrade-v3": ("convert_to_lerobot_v3", "已有 v2.1 → v3"),
     "verify-aligned": ("verify_aligned", "检查清洗后的 state/图像/action 来源"),
     "verify-existing": ("verify_existing_data_pipeline", "已有 raw 的隔离样本端到端验证"),
+    "import-xnero": ("import_xnero", "只读导入XNero legacy raw并保留未知有效性来源"),
     "migrate-cameras": ("migrate_camera_labels", "历史相机名称迁移工具，原地修改；先 --dry-run"),
     "process-openpi": (None, "一键：对齐 → 校验/隔离 → v2.1"),
     "process-act": (None, "一键：对齐 → 校验/隔离 → v3 + 自检"),

@@ -421,7 +421,7 @@ def convert_dataset_v21_to_v30(v21_root: str, output_root: str, *, overwrite: bo
         raise FileExistsError(f"output exists: {output_root}")
     with atomic_directory(output_root) as staged:
         summary = _convert_v30_impl(v21_root, staged, overwrite=True, log=log)
-        for name in ("processing_manifest.json", "quality"):
+        for name in ("processing_manifest.json", "quality", "morla_schema.json", "sensors", "provenance"):
             source = os.path.join(v21_root, "meta", name)
             if os.path.isdir(source):
                 shutil.copytree(source, os.path.join(staged, "meta", name))
