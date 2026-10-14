@@ -14,11 +14,13 @@ Usage:
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
 
 
 def _web_env(suffix: str, default: str) -> str:
@@ -26,6 +28,26 @@ def _web_env(suffix: str, default: str) -> str:
         f"MORLA_WEB_MANAGER_{suffix}",
         os.environ.get(f"ASTRAL_WEB_MONITOR_{suffix}", default),
     )
+
+
+def _default_web_dist() -> str:
+    """Resolve the installed SPA bundle unless an explicit path is configured."""
+    configured = _web_env("DIST", "").strip()
+    if configured:
+        return configured
+    # Under colcon --symlink-install the installed asset files are symlinks
+    # whose targets live outside the install share. Starlette's default
+    # StaticFiles policy correctly rejects those paths, so serve the source
+    # dist directly when the launch file resolves back to the source checkout.
+    source_dist = Path(__file__).resolve().parents[1] / "web" / "dist"
+    if (source_dist / "index.html").is_file():
+        return str(source_dist)
+    try:
+        share = Path(get_package_share_directory("morla_web_manager"))
+        return str(share / "web" / "dist")
+    except Exception:
+        # Keep source launch usable before colcon installation.
+        return str(Path(__file__).resolve().parents[1] / "web" / "dist")
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -43,7 +65,7 @@ def generate_launch_description() -> LaunchDescription:
             ),
             DeclareLaunchArgument(
                 "web_dist",
-                default_value=_web_env("DIST", ""),
+                default_value=_default_web_dist(),
                 description="Path to built frontend (web/dist). Empty = no SPA.",
             ),
             Node(

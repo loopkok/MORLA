@@ -17,6 +17,7 @@ the teleop stack is handled by LaunchManager via subprocess, not by this node.
 from __future__ import annotations
 
 import json
+import math
 import re
 import threading
 import time
@@ -59,6 +60,9 @@ from .config import (
     PI_CMD_TOPIC,
     PI_TASK_TOPIC,
     PI_STATE_TOPIC,
+    CONTROL_OPERATIONS,
+    CONTROL_SERVICE_PREFIX,
+    CONTROL_TOPIC_STATE,
 )
 from .rate_counter import RateRegistry, RateCounter
 
@@ -108,8 +112,13 @@ class MonitorNode(Node):
         self._rates = RateRegistry()
         # State-topic rate counters (one per entity) for health inspection.
         self._state_rates = RateRegistry.for_state_topics()
+        self._profile_layouts: dict[str, list[dict[str, str]]] = {}
+        self._profile_stream_values: dict[str, dict[str, Any]] = {}
+        self._profile_stream_rates: dict[str, RateCounter] = {}
+        self._profile_stream_subs: list[Any] = []
         # Cached driver service clients (created lazily on first call).
         self._driver_clients: dict[str, object] = {}
+        self._control_clients: dict[str, object] = {}
 
         # Pause/resume publishers (latched/transient so late arm nodes pick up).
         qos = QoSProfile(
@@ -178,6 +187,9 @@ class MonitorNode(Node):
         self._pi_state: dict[str, Any] | None = None
         self._pi_state_ts: float = 0.0
         self.create_subscription(String, PI_STATE_TOPIC, self._on_pi_state, qos)
+        self._control_state: dict[str, Any] | None = None
+        self._control_state_ts: float = 0.0
+        self.create_subscription(String, CONTROL_TOPIC_STATE, self._on_control_state, qos)
         # Web preview: latest JPEG bytes per camera label + dynamic subscriptions
         # (created when gate_state reports the camera list).
         self._preview_jpeg: dict[str, bytes] = {}
@@ -221,6 +233,8 @@ class MonitorNode(Node):
                         _qos_best_effort(),
                     )
 
+        self._setup_profile_stream_monitoring()
+
         # Latency / pipeline metrics state.
         #   mocap: stamp age of quest3/{side}_wrist_pose (ms) + arrival Hz
         #   ik: parsed "dt=X.XXms" from ik_solver_{side}/ik_status (String)
@@ -262,6 +276,62 @@ class MonitorNode(Node):
             slot = self._state[entity]
             slot.values = list(msg.position)
             slot.ts = now
+
+    def _setup_profile_stream_monitoring(self) -> None:
+        """Subscribe to profile-declared numeric channels for Astral and Nero."""
+        try:
+            from morla_core.profile import ProfileRegistry
+            profiles = ProfileRegistry.from_index().validate_all()
+        except Exception as exc:
+            self.get_logger().warning(f"profile stream monitoring unavailable: {exc}")
+            return
+        from std_msgs.msg import Float64
+        topics: dict[tuple[str, str], dict[str, str]] = {}
+        for profile in profiles:
+            rows = []
+            for stream in profile.frozen_schema.streams:
+                if stream.source_kind not in {"state", "command", "command_echo"}:
+                    continue
+                if stream.message_type not in {
+                    "sensor_msgs/msg/JointState", "std_msgs/msg/Float64",
+                }:
+                    continue
+                descriptor = {
+                    "stream_key": stream.stream_key,
+                    "topic": stream.topic,
+                    "message_type": stream.message_type,
+                    "source_kind": stream.source_kind,
+                    "unit": stream.unit,
+                }
+                rows.append(descriptor)
+                topics.setdefault((stream.topic, stream.message_type), descriptor)
+                self._profile_stream_rates.setdefault(
+                    stream.topic, RateCounter(stream.topic)
+                )
+            self._profile_layouts[profile.profile_id] = rows
+
+        for (topic, message_type), descriptor in topics.items():
+            msg_type = JointState if message_type == "sensor_msgs/msg/JointState" else Float64
+            self._profile_stream_values[topic] = {"values": [], "ts": 0.0}
+            self._profile_stream_subs.append(self.create_subscription(
+                msg_type, topic,
+                lambda msg, t=topic, d=descriptor: self._on_profile_stream(t, d, msg),
+                _qos_best_effort(),
+            ))
+
+    def _on_profile_stream(self, topic: str, descriptor: dict[str, str], msg: Any) -> None:
+        try:
+            values = list(msg.position) if isinstance(msg, JointState) else [float(msg.data)]
+            if not all(math.isfinite(float(value)) for value in values):
+                return
+            ts = time.time()
+            with self._lock:
+                self._profile_stream_values[topic] = {"values": values, "ts": ts}
+            counter = self._profile_stream_rates.get(topic)
+            if counter is not None:
+                counter.tick(ts)
+        except (TypeError, ValueError, AttributeError):
+            return
 
     def _on_mocap_wrist(self, side: str, msg: Any) -> None:
         """Mocap wrist pose arrived → stamp age = pipeline delay (ms)."""
@@ -401,6 +471,77 @@ class MonitorNode(Node):
                 self._pi_state = data
                 self._pi_state_ts = time.time()
 
+    def _on_control_state(self, msg: String) -> None:
+        try:
+            data = json.loads(msg.data)
+        except (ValueError, TypeError):
+            return
+        if isinstance(data, dict):
+            try:
+                data["node_count"] = self.count_publishers(CONTROL_TOPIC_STATE)
+            except Exception:
+                pass
+            with self._lock:
+                self._control_state = data
+                self._control_state_ts = time.time()
+
+    def control_available(self) -> bool:
+        with self._lock:
+            state = self._control_state
+            timestamp = self._control_state_ts
+        return bool(
+            state and state.get("profile_id")
+            and time.time() - timestamp <= STALE_THRESHOLD_S
+        )
+
+    def control_state_seen(self) -> bool:
+        with self._lock:
+            return bool(self._control_state and self._control_state.get("profile_id"))
+
+    def robot_command_publishers(self) -> dict[str, int]:
+        """Read command-writer presence for safe profile-switch checks."""
+        topics = (
+            "/left_arm/joint_commands", "/right_arm/joint_commands",
+            "/left_hand/joint_commands", "/right_hand/joint_commands",
+            "/left_gripper/command", "/right_gripper/command",
+            "/head/joint_commands",
+        )
+        result = {}
+        for topic in topics:
+            try:
+                count = int(self.count_publishers(topic))
+            except Exception:
+                count = 0
+            if count:
+                result[topic] = count
+        return result
+
+    def call_control_service(
+        self, operation: str, timeout_s: float = 5.0,
+    ) -> tuple[bool, str]:
+        """Submit one profile-routed control request and return its acceptance."""
+        if operation not in CONTROL_OPERATIONS:
+            return False, f"unknown MORLA control operation: {operation}"
+        from std_srvs.srv import Trigger
+        name = f"{CONTROL_SERVICE_PREFIX}/{operation}"
+        client = self._control_clients.get(operation)
+        if client is None:
+            client = self.create_client(Trigger, name)
+            self._control_clients[operation] = client
+        if not client.service_is_ready() and not client.wait_for_service(timeout_sec=2.0):
+            return False, f"MORLA control service unavailable: {name}"
+        future = client.call_async(Trigger.Request())
+        deadline = time.monotonic() + max(0.1, float(timeout_s))
+        while time.monotonic() < deadline and not future.done():
+            time.sleep(0.01)
+        if not future.done():
+            return False, f"MORLA control request timed out: {name}"
+        try:
+            result = future.result()
+        except Exception as exc:  # service disconnect / callback failure
+            return False, f"MORLA control request failed: {exc}"
+        return bool(result.success), str(result.message)
+
     def publish_pi_cmd(
         self, cmd: str, timeout_s: float = 2.0, poll_s: float = 0.02
     ) -> bool:
@@ -451,12 +592,38 @@ class MonitorNode(Node):
             dc_state_ts = self._dc_state_ts
             pi_state = dict(self._pi_state) if self._pi_state else None
             pi_state_ts = self._pi_state_ts
+            control_state = dict(self._control_state) if self._control_state else None
+            control_state_ts = self._control_state_ts
+            profile_values = {
+                topic: dict(value) for topic, value in self._profile_stream_values.items()
+            }
         if dc_state is not None:
             # 采集节点状态龄期：stale 说明节点可能已死（latched 消息会残留）
             dc_state["stale"] = (now - dc_state_ts) > STALE_THRESHOLD_S
         if pi_state is not None:
             # 推理节点状态龄期：stale 说明节点可能已死（latched 消息会残留）
             pi_state["stale"] = (now - pi_state_ts) > STALE_THRESHOLD_S
+        if control_state is not None:
+            control_state["stale"] = (now - control_state_ts) > STALE_THRESHOLD_S
+        profile_id = None
+        if control_state and not control_state.get("stale"):
+            profile_id = control_state.get("profile_id")
+        elif dc_state and not dc_state.get("stale"):
+            profile_id = dc_state.get("profile_id")
+        elif pi_state and not pi_state.get("stale"):
+            profile_id = pi_state.get("profile_id")
+        robot_streams = {}
+        if profile_id in self._profile_layouts:
+            for descriptor in self._profile_layouts[profile_id]:
+                slot = profile_values.get(descriptor["topic"], {"values": [], "ts": 0.0})
+                counter = self._profile_stream_rates.get(descriptor["topic"])
+                robot_streams[descriptor["stream_key"]] = {
+                    **descriptor,
+                    "values": list(slot.get("values", [])),
+                    "ts": float(slot.get("ts", 0.0)),
+                    "stale": (now - float(slot.get("ts", 0.0))) > STALE_THRESHOLD_S,
+                    "rate_hz": counter.hz() if counter else 0.0,
+                }
         return {
             "joints": joints,
             "rates_hz": cmd_rates,
@@ -465,6 +632,9 @@ class MonitorNode(Node):
             "video_gate": video_gate,
             "data_collect": dc_state,
             "infer": pi_state,
+            "control": control_state,
+            "profile_id": profile_id,
+            "robot_streams": robot_streams,
             "latency": self._latency_summary(latency_raw, mocap_rates, now),
         }
 
@@ -661,9 +831,19 @@ def init_node() -> MonitorNode:
         return _node
     rclpy.init(args=None)
     _node = MonitorNode()
-    _spin_thread = threading.Thread(target=rclpy.spin, args=(_node,), daemon=True)
+    _spin_thread = threading.Thread(target=_spin_monitor_node, args=(_node,), daemon=True)
     _spin_thread.start()
     return _node
+
+
+def _spin_monitor_node(node: MonitorNode) -> None:
+    try:
+        rclpy.spin(node)
+    except Exception as exc:
+        # Context shutdown wakes rclpy.spin with an executor/context exception.
+        # Report genuine runtime errors, but keep normal web shutdown quiet.
+        if rclpy.ok():
+            node.get_logger().error(f"monitor ROS executor stopped: {exc}")
 
 
 def get_node() -> MonitorNode | None:
@@ -672,8 +852,20 @@ def get_node() -> MonitorNode | None:
 
 def shutdown_node() -> None:
     global _node, _spin_thread
-    if _node is not None:
-        _node.publish_disarm()  # safety: disarm on monitor exit
-    rclpy.shutdown()
+    node, thread = _node, _spin_thread
+    if node is not None:
+        try:
+            node.publish_disarm()  # safety: disarm on monitor exit
+        except Exception:
+            pass
+    if rclpy.ok():
+        rclpy.shutdown()
+    if thread is not None and thread.is_alive():
+        thread.join(timeout=2.0)
+    if node is not None:
+        try:
+            node.destroy_node()
+        except Exception:
+            pass
     _node = None
     _spin_thread = None

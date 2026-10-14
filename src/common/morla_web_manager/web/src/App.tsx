@@ -43,8 +43,8 @@ export default function App() {
         <ToastHost />
 
         <header style={headerStyle}>
-        <h1 style={titleStyle}>Astral Web Monitor</h1>
-        <span style={subStyle}>非侵入式遥操作监控</span>
+        <h1 style={titleStyle}>MORLA Robot Manager</h1>
+        <span style={subStyle}>统一机器人操作、数据与策略监控</span>
         <div style={spacer} />
         <StatusPill ok={wsConnected} okLabel="WS" badLabel="WS 断" colorOk="#22c55e" />
         <StatusPill ok={!!state} okLabel="ROS" badLabel="ROS 断" colorOk="#3b82f6" />

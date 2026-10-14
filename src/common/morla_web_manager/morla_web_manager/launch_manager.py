@@ -165,8 +165,12 @@ class LaunchManager:
             self._state = STARTING
             self._started_at = time.time()
             self._log_lines.clear()
+        proc = self._proc
         self._watcher = threading.Thread(target=self._watch, daemon=True)
         self._watcher.start()
+        threading.Thread(
+            target=self._promote_after_warmup, args=(proc,), daemon=True,
+        ).start()
         return True, f"启动预设: {preset.name}"
 
     def stop(self) -> tuple[bool, str]:
@@ -195,6 +199,14 @@ class LaunchManager:
                 self._state = RUNNING
 
     # --- internal ----------------------------------------------------------
+    def _promote_after_warmup(self, proc: subprocess.Popen) -> None:
+        """Promote a quiet but healthy launch even when it stops logging."""
+        time.sleep(STARTUP_WARMUP_S)
+        with self._lock:
+            if (self._proc is proc and self._state == STARTING
+                    and proc.poll() is None):
+                self._state = RUNNING
+
     def _watch(self) -> None:
         assert self._proc is not None and self._proc.stdout is not None
         proc = self._proc

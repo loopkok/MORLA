@@ -36,6 +36,16 @@ class StartRequest(BaseModel):
     log: bool = False
 
 
+class ProfileSelectRequest(BaseModel):
+    profile_id: str
+    operating_mode: Literal["sim", "real"] = "sim"
+
+
+class ProfileLaunchRequest(BaseModel):
+    profile_id: str
+    operating_mode: Literal["sim", "real"] = "sim"
+
+
 class PresetInfo(BaseModel):
     name: str
     package: str

@@ -11,6 +11,7 @@ interface Props {
   launch: CollectLaunchInfo | null
   // 遥操栈状态（running/paused 时「段间回位」才可用，对齐后端 workpos 409 守卫）
   teleopState: string
+  controlWorkposAllowed: boolean
 }
 
 const STATE_META: Record<string, { label: string; color: string }> = {
@@ -20,7 +21,7 @@ const STATE_META: Record<string, { label: string; color: string }> = {
   SAVING: { label: '保存中', color: '#3b82f6' },
 }
 
-export function DataCollectCard({ dc, launch, teleopState }: Props) {
+export function DataCollectCard({ dc, launch, teleopState, controlWorkposAllowed }: Props) {
   const [task, setTask] = useState('')
   const [sessionDir, setSessionDir] = useState('')
   // 「本次采集数据」实时下拉面板的展开态（数据随 WS 帧 1Hz 刷新）
@@ -37,6 +38,7 @@ export function DataCollectCard({ dc, launch, teleopState }: Props) {
   // 且录制中/保存中不可用（与 X 闸门录制保护一致——防手臂回位毁段）
   const workposEnabled =
     (teleopState === 'running' || teleopState === 'paused') &&
+    controlWorkposAllowed &&
     !(online && (st === 'RECORDING' || st === 'PAUSED' || st === 'SAVING'))
 
   async function send(cmd: string, okMsg: string) {

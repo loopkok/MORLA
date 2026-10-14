@@ -1,5 +1,5 @@
 // REST client mirroring rob_station's api/client.js convention.
-import type { ApiEnvelope, DataProcessJob, DataProcessRequest, DataProcessState, DataSessionsResponse, HealthData, InferLaunchConfig, LaunchLogsData, Preset, VideoStatusData } from '../types'
+import type { ApiEnvelope, DataProcessJob, DataProcessRequest, DataProcessState, DataSessionsResponse, HealthData, InferLaunchConfig, LaunchLogsData, Preset, ProfileCatalog, VideoStatusData } from '../types'
 
 const base = import.meta.env.VITE_API_BASE ?? ''
 
@@ -32,6 +32,11 @@ async function get<T>(path: string): Promise<ApiEnvelope<T>> {
 export const api = {
   health: () => get<HealthData>('/api/v1/health'),
   presets: () => get<Preset[]>('/api/v1/presets'),
+  profiles: () => get<ProfileCatalog>('/api/v1/profiles'),
+  selectProfile: (profile_id: string, operating_mode: 'sim' | 'real') =>
+    post<unknown>('/api/v1/profile/select', { profile_id, operating_mode }),
+  launchProfile: (profile_id: string, operating_mode: 'sim' | 'real') =>
+    post<unknown>('/api/v1/profile/launch', { profile_id, operating_mode }),
   state: () => get<unknown>('/api/v1/state'),
   start: (preset: string, log = false) => post<unknown>('/api/v1/start', { preset, log }),
   stop: () => post<unknown>('/api/v1/stop'),

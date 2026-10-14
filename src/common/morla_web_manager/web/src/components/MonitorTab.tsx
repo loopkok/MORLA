@@ -14,6 +14,7 @@ export function MonitorTab({ state }: Props) {
   const samples = useSyncExternalStore(subscribeHistory, getSamples, getSamples)
   const j = state?.joints ?? {}
   const rates = state?.ratesHz ?? {}
+  const robotStreams = Object.values(state?.robotStreams ?? {})
 
   // Build chart series from the sample ring buffer.
   const rateSeries = [
@@ -37,17 +38,35 @@ export function MonitorTab({ state }: Props) {
         dc={state?.dataCollect ?? null}
         launch={state?.collectLaunch ?? null}
         teleopState={state?.teleopState ?? 'stopped'}
+        controlWorkposAllowed={!state?.control || state.control.stale || state.control.capabilities?.workpos !== false}
       />
       <InferenceCard infer={state?.infer ?? null} launch={state?.inferLaunch ?? null} />
-      <div style={gridStyle}>
-        <JointPanel title="左臂 (7-DoF)" joint={j.left_arm} rateHz={rates.left_arm_cmd} />
-        <JointPanel title="右臂 (7-DoF)" joint={j.right_arm} rateHz={rates.right_arm_cmd} />
-        <JointPanel title="左夹爪" joint={j.left_gripper} rateHz={rates.left_gripper_cmd} />
-        <JointPanel title="右灵巧手 (20-DoF)" joint={j.right_hand} rateHz={rates.right_hand_cmd} />
-        <JointPanel title="头部 (yaw/pitch)" joint={j.head} rateHz={rates.head_cmd} />
-      </div>
+      {robotStreams.length > 0 ? (
+        <div style={gridStyle}>
+          {robotStreams.map((stream) => (
+            <JointPanel
+              key={stream.stream_key}
+              title={`${stream.stream_key} · ${stream.source_kind} · ${stream.values.length} × ${stream.unit}`}
+              joint={{
+                values: stream.values,
+                stale: stream.stale,
+                ageS: stream.ts ? Math.max(0, state ? state.ts - stream.ts : 0) : -1,
+              }}
+              rateHz={stream.rate_hz}
+            />
+          ))}
+        </div>
+      ) : (
+        <div style={gridStyle}>
+          <JointPanel title="左臂 (7-DoF)" joint={j.left_arm} rateHz={rates.left_arm_cmd} />
+          <JointPanel title="右臂 (7-DoF)" joint={j.right_arm} rateHz={rates.right_arm_cmd} />
+          <JointPanel title="左夹爪" joint={j.left_gripper} rateHz={rates.left_gripper_cmd} />
+          <JointPanel title="右灵巧手 (20-DoF)" joint={j.right_hand} rateHz={rates.right_hand_cmd} />
+          <JointPanel title="头部 (yaw/pitch)" joint={j.head} rateHz={rates.head_cmd} />
+        </div>
+      )}
 
-      {state && (
+      {state && robotStreams.length === 0 && (
         <div style={ratesStyle}>
           <strong>指令频率:</strong>{' '}
           {Object.entries(state.ratesHz).map(([k, v]) => (
@@ -58,7 +77,7 @@ export function MonitorTab({ state }: Props) {
         </div>
       )}
 
-      <div style={chartGridStyle}>
+      {robotStreams.length === 0 && <div style={chartGridStyle}>
         <ChartPanel
           title="指令频率 (Hz)"
           series={rateSeries}
@@ -82,7 +101,7 @@ export function MonitorTab({ state }: Props) {
           ]}
           unit="rad"
         />
-      </div>
+      </div>}
     </div>
   )
 }

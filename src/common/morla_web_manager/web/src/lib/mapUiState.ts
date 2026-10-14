@@ -1,5 +1,5 @@
 // Normalise the raw ui_state frame into a camelCase view model.
-import type { CollectLaunchInfo, DataCollectState, DataProcessState, InferLaunchInfo, InferState, UiState } from '../types'
+import type { CollectLaunchInfo, ControlOperationState, DataCollectState, DataProcessState, InferLaunchInfo, InferState, ProfileStreamValue, UiState } from '../types'
 
 export interface NormalisedJoint {
   values: number[]
@@ -40,6 +40,10 @@ export interface NormalisedState {
   dataCollect: DataCollectState | null
   dataProcess: DataProcessState | null
   infer: InferState | null
+  control: ControlOperationState | null
+  profileId: string | null
+  robotStreams: Record<string, ProfileStreamValue>
+  profileSelection: UiState['profile_selection'] | null
   collectLaunch: CollectLaunchInfo | null
   inferLaunch: InferLaunchInfo | null
   logTail: string[]
@@ -98,6 +102,10 @@ export function mapUiState(msg: UiState, now: number = Date.now() / 1000): Norma
     dataCollect: msg.data_collect ?? null,
     dataProcess: msg.data_process ?? null,
     infer: msg.infer ?? null,
+    control: msg.control ?? null,
+    profileId: msg.profile_id ?? null,
+    robotStreams: msg.robot_streams ?? {},
+    profileSelection: msg.profile_selection ?? null,
     collectLaunch: msg.collect_launch ?? null,
     inferLaunch: msg.infer_launch ?? null,
     logTail: msg.log_tail,

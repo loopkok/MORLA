@@ -171,6 +171,16 @@ TOPIC_INIT = "/teleop/init"
 # 不经 init_waypoints（与 TOPIC_INIT 的区别）。volatile 一次性，同契约。
 TOPIC_INIT_DIRECT = "/teleop/init_direct"
 
+# Unified profile-driven MORLA control coordinator. The monitor treats its
+# latched state as the source of the active robot profile and publishes service
+# requests only through this API when the coordinator is present.
+CONTROL_TOPIC_STATE = "/morla/control/state"
+CONTROL_SERVICE_PREFIX = "/morla/control"
+CONTROL_OPERATIONS = (
+    "pause", "resume", "start", "release", "ready", "enable", "position", "damping",
+    "home", "workpos", "workpos_direct", "estop",
+)
+
 # --- Driver ROS services (call, robot hardware mode) -----------------------
 # These services already exist on astral_robot_control's driver node. Calling
 # them is non-intrusive (the driver owns the SDK/hardware; the monitor just
@@ -257,6 +267,7 @@ def policy_launch_args(cfg: dict) -> dict[str, str]:
     args: dict[str, str] = {
         "backend_type": safe(cfg.get("backend_type", "remote")),
         "model": safe(cfg.get("model", "pi05")),
+        "profile_id": safe(cfg.get("profile_id", "")),
         "host": safe(cfg.get("host", "127.0.0.1")),
         "port": str(int(cfg.get("port", 8001))),
         "camera_image_size": str(int(cfg.get("camera_image_size", 224))),

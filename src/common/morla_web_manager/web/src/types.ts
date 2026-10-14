@@ -40,6 +40,53 @@ export interface VideoGateState {
   active: string[]
 }
 
+export interface ControlOperationState {
+  profile_id: string
+  operating_mode?: 'real' | 'sim'
+  capabilities?: Record<string, boolean>
+  operation_id?: string | null
+  operation?: string
+  phase: string
+  result?: boolean | null
+  message?: string
+  components?: Record<string, { result?: string; message?: string }>
+  stale?: boolean
+  node_count?: number
+}
+
+export interface ProfileStreamValue {
+  stream_key: string
+  topic: string
+  message_type: string
+  source_kind: string
+  unit: string
+  values: number[]
+  ts: number
+  stale: boolean
+  rate_hz: number
+}
+
+export interface RobotProfileInfo {
+  profile_id: string
+  title: string
+  robot_id: string
+  state_dim: number
+  action_dim: number
+  arms: { side: string; type: string }[]
+  hands: { side: string; type: string; dim: number }[]
+  capabilities: Record<string, boolean>
+  launch_modes: ('sim' | 'real')[]
+}
+
+export interface ProfileCatalog {
+  profiles: RobotProfileInfo[]
+  profile_id: string
+  requested_profile_id: string
+  operating_mode: 'sim' | 'real'
+  active_profile_id: string | null
+  active_operating_mode: string | null
+}
+
 // 数采节点泳道（独立于遥操预设的 LaunchManager）状态。
 export interface CollectLaunchInfo {
   state: TeleopState
@@ -53,6 +100,9 @@ export interface CollectLaunchInfo {
 // stale 由 monitor 后端加注：latched 消息在节点死后仍残留，靠龄期判活。
 export interface DataCollectState {
   state: 'IDLE' | 'RECORDING' | 'PAUSED' | 'SAVING'
+  profile_id?: string | null
+  robot_id?: string
+  runtime_mode?: 'sim' | 'real' | 'unknown'
   session: string
   episode_index: number
   elapsed_s: number
@@ -98,6 +148,15 @@ export interface UiState {
   data_collect?: DataCollectState | null
   data_process?: DataProcessState
   infer?: InferState | null
+  control?: ControlOperationState | null
+  profile_id?: string | null
+  robot_streams?: Record<string, ProfileStreamValue>
+  profile_selection?: {
+    profile_id: string
+    requested_profile_id: string
+    operating_mode: 'sim' | 'real'
+    active_profile_id: string | null
+  }
   collect_launch?: CollectLaunchInfo
   infer_launch?: InferLaunchInfo
   log_tail: string[]

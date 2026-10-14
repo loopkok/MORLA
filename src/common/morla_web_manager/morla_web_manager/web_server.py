@@ -36,6 +36,19 @@ from .launch_manager import (
     preset_with_teleop_log,
 )
 from .monitor_node import get_node, init_node, shutdown_node
+try:
+    from morla_core.profile import ProfileRegistry
+    from morla_bringup.robot_profile_launch import select_robot_stack
+    _profile_registry = ProfileRegistry.from_index()
+    _robot_profiles = {
+        profile_id: _profile_registry.load(profile_id)
+        for profile_id in _profile_registry.ids()
+    }
+    _profile_error = ""
+except Exception as exc:  # keep health/log endpoints usable in partial installs
+    _profile_registry = None
+    _robot_profiles = {}
+    _profile_error = str(exc)
 from .schemas import (
     ApiEnvelope,
     DataProcessRequest,
@@ -49,6 +62,8 @@ from .schemas import (
     StartRequest,
     VideoCamerasRequest,
     VideoPushRequest,
+    ProfileSelectRequest,
+    ProfileLaunchRequest,
 )
 
 
@@ -66,6 +81,11 @@ _policy_cfg: dict = {}
 _data_mgr = DataProcessManager(config.DATA_ROOT, config.DATA_PIPELINE_PYTHON,
                                config.DATA_PIPELINE_PACKAGE, config.DATA_CHECK_PYTHON)
 _presets = load_presets()
+_selected_profile_id = (
+    "astral_dual_gripper_wuji" if "astral_dual_gripper_wuji" in _robot_profiles
+    else next(iter(_robot_profiles), "")
+)
+_selected_operating_mode = "sim"
 _web_dist = Path(config._web_env(
     "DIST", str(config.MORLA_WS / 'src/common/morla_web_manager/web/dist')
 ))
@@ -75,6 +95,95 @@ if not _web_dist.is_dir():
         _web_dist = Path(get_package_share_directory('morla_web_manager')) / 'web/dist'
     except Exception:
         pass
+
+
+def _live_control_state(snapshot: dict | None = None) -> dict | None:
+    node = get_node()
+    if node is None:
+        return None
+    snap = snapshot if snapshot is not None else node.snapshot()
+    state = snap.get("control")
+    return state if isinstance(state, dict) and not state.get("stale") else None
+
+
+def _effective_profile_id(snapshot: dict | None = None) -> str:
+    control = _live_control_state(snapshot)
+    if control and control.get("profile_id") in _robot_profiles:
+        return str(control["profile_id"])
+    return _selected_profile_id
+
+
+def _effective_operating_mode(snapshot: dict | None = None) -> str:
+    control = _live_control_state(snapshot)
+    if control and control.get("operating_mode") in {"sim", "real"}:
+        return str(control["operating_mode"])
+    return _selected_operating_mode
+
+
+def _profile_launch_preset(profile_id: str, operating_mode: str) -> Preset:
+    """Build a validated robot stack launch from one immutable profile."""
+    if profile_id not in _robot_profiles:
+        raise ValueError(f"unknown robot profile {profile_id!r}")
+    if operating_mode not in {"sim", "real"}:
+        raise ValueError("operating_mode must be sim or real")
+    profile = _robot_profiles[profile_id]
+    sdk_backend = "hardware" if operating_mode == "real" else "fake"
+    select_robot_stack(profile, operating_mode, sdk_backend)
+    args = {
+        "profile_id": profile_id,
+        "mode": operating_mode,
+        "sdk_backend": sdk_backend,
+        "with_input": "true",
+        "allow_legacy_packets": "false",
+        "enable_viewer": "false",
+        "with_video": "true" if operating_mode == "real" else "false",
+        "with_head_teleop": "false",
+    }
+    return Preset(
+        name=f"{profile_id} ({operating_mode})", package="morla_bringup",
+        launch="robot.launch.py", args=args,
+        description="Unified MORLA profile-driven robot stack",
+    )
+
+
+def _profile_switch_blockers(profile_id: str, operating_mode: str) -> list[str]:
+    """Refuse a profile/mode change while any lane or CLI writer is active."""
+    changed = profile_id != _selected_profile_id or operating_mode != _selected_operating_mode
+    blockers = []
+    if changed:
+        for label, manager in (("teleop", _launch_mgr), ("collector", _collect_mgr), ("inference", _policy_mgr)):
+            if manager.state != STOPPED:
+                blockers.append(f"{label} web lane is {manager.state}")
+    node = get_node()
+    snap = node.snapshot() if node is not None else {}
+    control = _live_control_state(snap)
+    if control:
+        active_id = str(control.get("profile_id", ""))
+        active_mode = str(control.get("operating_mode", ""))
+        if active_id != profile_id or active_mode != operating_mode:
+            blockers.append(f"CLI/ROS coordinator is active for {active_id} ({active_mode})")
+    elif node is not None and changed:
+        writers = node.robot_command_publishers()
+        if writers:
+            blockers.append("robot command writers are active: " + ", ".join(sorted(writers)))
+    if node is not None:
+        dc = snap.get("data_collect") or {}
+        dc_profile = dc.get("profile_id") or (dc.get("schema") or {}).get("profile_id")
+        dc_mode = dc.get("runtime_mode") or dc.get("recording_mode")
+        dc_live = not dc.get("stale") and int(dc.get("node_count", 0)) > 0
+        if dc_live and (dc_profile != profile_id or dc_mode not in (None, "unknown", operating_mode)):
+            blockers.append(
+                f"collector is configured for {dc_profile or 'unknown'} ({dc_mode or 'unknown'})"
+            )
+        elif changed and dc_live:
+            blockers.append("a CLI or web collector is still publishing state")
+        infer = snap.get("infer") or {}
+        infer_live = not infer.get("stale") and int(infer.get("node_count", 0)) > 0
+        if infer_live and infer.get("profile_id") != profile_id:
+            blockers.append(f"policy node is configured for {infer.get('profile_id') or 'unknown'}")
+        elif changed and infer_live:
+            blockers.append("a CLI or web policy node is still publishing state")
+    return blockers
 
 
 def _build_ui_state() -> dict[str, Any]:
@@ -99,6 +208,16 @@ def _build_ui_state() -> dict[str, Any]:
         "data_collect": ros.get("data_collect"),
         "data_process": _data_mgr.snapshot(),
         "infer": ros.get("infer"),
+        "control": ros.get("control"),
+        "profile_id": ros.get("profile_id"),
+        "robot_streams": ros.get("robot_streams", {}),
+        "profile_selection": {
+            "profile_id": _effective_profile_id(ros),
+            "requested_profile_id": _selected_profile_id,
+            "operating_mode": _effective_operating_mode(ros),
+            "active_profile_id": (ros.get("control") or {}).get("profile_id")
+            if ros.get("control") and not ros.get("control", {}).get("stale") else None,
+        },
         "collect_launch": {
             "state": _collect_mgr.state,
             "preset": _collect_mgr.preset,
@@ -115,6 +234,22 @@ def _build_ui_state() -> dict[str, Any]:
         },
         "log_tail": log_tail_for_push(_launch_mgr.log_tail()),
     }
+
+
+async def _try_coordinated_control(operation: str) -> ApiEnvelope | None:
+    """Use the active profile coordinator when its latched state is fresh."""
+    node = get_node()
+    if node is None:
+        return None
+    if not node.control_available():
+        if node.control_state_seen():
+            raise HTTPException(
+                status_code=503,
+                detail="MORLA coordinator state is stale; refusing legacy control fallback",
+            )
+        return None
+    ok, message = await asyncio.to_thread(node.call_control_service, operation)
+    return ApiEnvelope(ok=ok, message=message)
 
 
 # --- connection manager ---------------------------------------------------
@@ -180,6 +315,16 @@ async def _ui_state_broadcaster() -> None:
 app = FastAPI(title="morla_web_manager", version="0.1.0", lifespan=_lifespan)
 
 
+@app.post("/api/v1/control/{operation}")
+async def control_operation(operation: str) -> ApiEnvelope:
+    """Profile-driven shared control endpoint; success means accepted, not complete."""
+    node = get_node()
+    if node is None or not node.control_available():
+        raise HTTPException(status_code=503, detail="MORLA profile control coordinator is offline")
+    ok, message = await asyncio.to_thread(node.call_control_service, operation)
+    return ApiEnvelope(ok=ok, message=message)
+
+
 @app.get("/api/v1/health")
 async def health() -> ApiEnvelope:
     node = get_node()
@@ -207,6 +352,86 @@ async def list_presets() -> ApiEnvelope:
         for p in _presets.values()
     ]
     return ApiEnvelope(ok=True, data=[m.model_dump() for m in items])
+
+
+@app.get("/api/v1/profiles")
+async def list_robot_profiles() -> ApiEnvelope:
+    if not _robot_profiles:
+        raise HTTPException(status_code=503, detail=f"robot profiles unavailable: {_profile_error}")
+    node = get_node()
+    snap = node.snapshot() if node is not None else {}
+    active = _live_control_state(snap)
+    items = []
+    for profile_id, profile in sorted(_robot_profiles.items()):
+        values = profile.values
+        arms = [row for row in values.get("components", [])
+                if row.get("enabled") and row.get("type") in {"arm", "nero_arm"}]
+        hands = [row for row in values.get("components", [])
+                 if row.get("enabled") and row.get("type") in {"wuji_hand", "xhand"}]
+        modes = []
+        for mode in ("sim", "real"):
+            try:
+                _profile_launch_preset(profile_id, mode)
+                modes.append(mode)
+            except ValueError:
+                continue
+        items.append({
+            "profile_id": profile_id,
+            "title": values.get("title", profile_id),
+            "robot_id": profile.robot_id,
+            "state_dim": profile.frozen_schema.state_dim,
+            "action_dim": profile.frozen_schema.action_dim,
+            "arms": [{"side": row["side"], "type": row["type"]} for row in arms],
+            "hands": [{"side": row["side"], "type": row["type"],
+                       "dim": len(row.get("joint_names", []))} for row in hands],
+            "capabilities": dict(values.get("capabilities", {})),
+            "launch_modes": modes,
+        })
+    return ApiEnvelope(ok=True, data={
+        "profiles": items,
+        "profile_id": _effective_profile_id(snap),
+        "requested_profile_id": _selected_profile_id,
+        "operating_mode": _selected_operating_mode,
+        "active_profile_id": active.get("profile_id") if active else None,
+        "active_operating_mode": active.get("operating_mode") if active else None,
+    })
+
+
+@app.post("/api/v1/profile/select")
+async def select_robot_profile(req: ProfileSelectRequest) -> ApiEnvelope:
+    global _selected_profile_id, _selected_operating_mode
+    if req.profile_id not in _robot_profiles:
+        raise HTTPException(status_code=404, detail=f"unknown robot profile {req.profile_id!r}")
+    blockers = _profile_switch_blockers(req.profile_id, req.operating_mode)
+    if blockers:
+        raise HTTPException(status_code=409, detail="profile change blocked: " + "; ".join(blockers))
+    _selected_profile_id = req.profile_id
+    _selected_operating_mode = req.operating_mode
+    return ApiEnvelope(ok=True, message=f"selected {req.profile_id} ({req.operating_mode})")
+
+
+@app.post("/api/v1/profile/launch")
+async def launch_robot_profile(req: ProfileLaunchRequest) -> ApiEnvelope:
+    global _selected_profile_id, _selected_operating_mode
+    if req.profile_id not in _robot_profiles:
+        raise HTTPException(status_code=404, detail=f"unknown robot profile {req.profile_id!r}")
+    try:
+        preset = _profile_launch_preset(req.profile_id, req.operating_mode)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    blockers = _profile_switch_blockers(req.profile_id, req.operating_mode)
+    if blockers:
+        raise HTTPException(status_code=409, detail="profile launch blocked: " + "; ".join(blockers))
+    node = get_node()
+    active = _live_control_state(node.snapshot() if node is not None else {})
+    if active and int(active.get("node_count", 0)) > 0:
+        raise HTTPException(status_code=409, detail="a profile-driven robot stack is already active")
+    _selected_profile_id = req.profile_id
+    _selected_operating_mode = req.operating_mode
+    ok, message = _launch_mgr.start(preset)
+    if not ok:
+        raise HTTPException(status_code=409, detail=message)
+    return ApiEnvelope(ok=True, message=message)
 
 
 @app.get("/api/v1/state")
@@ -291,9 +516,20 @@ async def get_logs() -> ApiEnvelope:
 
 @app.post("/api/v1/start")
 async def start(req: StartRequest) -> ApiEnvelope:
+    global _selected_profile_id, _selected_operating_mode
     preset = _presets.get(req.preset)
     if preset is None:
         raise HTTPException(status_code=404, detail=f"未知预设: {req.preset}")
+    profile_id = preset.args.get("control_profile_id") or preset.args.get("profile_id")
+    if profile_id in _robot_profiles:
+        mode = ("real" if preset.args.get("mode") == "real"
+                or preset.args.get("sdk_backend") == "hardware"
+                or preset.args.get("with_arm_driver") == "true" else "sim")
+        blockers = _profile_switch_blockers(profile_id, mode)
+        if blockers:
+            raise HTTPException(status_code=409, detail="profile launch blocked: " + "; ".join(blockers))
+        _selected_profile_id = profile_id
+        _selected_operating_mode = mode
     if req.log:
         # 遥操日志开关：给白名单预设注入 log_dir 根目录（副本，不改 presets.yaml 源）。
         # launch 每次自动建 {log_dir}/{stamp}[_tag]/ 运行子目录、按侧拆 _left/_right。
@@ -314,6 +550,9 @@ async def stop() -> ApiEnvelope:
 
 @app.post("/api/v1/pause")
 async def pause() -> ApiEnvelope:
+    coordinated = await _try_coordinated_control("pause")
+    if coordinated is not None:
+        return coordinated
     node = get_node()
     if node is None:
         raise HTTPException(status_code=503, detail="ROS 节点未就绪")
@@ -326,6 +565,9 @@ async def pause() -> ApiEnvelope:
 
 @app.post("/api/v1/resume")
 async def resume() -> ApiEnvelope:
+    coordinated = await _try_coordinated_control("resume")
+    if coordinated is not None:
+        return coordinated
     node = get_node()
     if node is None:
         raise HTTPException(status_code=503, detail="ROS 节点未就绪")
@@ -347,6 +589,9 @@ async def teleop_start() -> ApiEnvelope:
     this endpoint publishes unconditionally — it works whether the teleop launch
     was started via this monitor or from a separate CLI.
     """
+    coordinated = await _try_coordinated_control("start")
+    if coordinated is not None:
+        return coordinated
     node = get_node()
     if node is None:
         raise HTTPException(status_code=503, detail="ROS 节点未就绪")
@@ -371,6 +616,9 @@ async def teleop_home() -> ApiEnvelope:
     会自己 disarm 并走轨迹（遥操中/未校准都会忽略之外的输入）。之后要再遥操
     需重新 /teleop/start。仅当前 launch 运行中可用。
     """
+    coordinated = await _try_coordinated_control("home")
+    if coordinated is not None:
+        return coordinated
     if _launch_mgr.state not in (RUNNING, PAUSED):
         raise HTTPException(
             status_code=409,
@@ -406,6 +654,9 @@ async def teleop_workpos() -> ApiEnvelope:
     /teleop/start（未先按工作位直接 start 时臂节点会把原点重锚到当前实测，
     纯增量开始）。仅当前 launch 运行中可用。
     """
+    coordinated = await _try_coordinated_control("workpos")
+    if coordinated is not None:
+        return coordinated
     if _launch_mgr.state not in (RUNNING, PAUSED):
         raise HTTPException(
             status_code=409,
@@ -432,6 +683,9 @@ async def teleop_workpos_direct() -> ApiEnvelope:
     Sequence: 发布 /teleop/disarm + /teleop/init_direct（disarm 先于 init，
     避免臂节点先收 init 启动回位、再收 disarm 取消回位）。仅遥操运行中可用。
     """
+    coordinated = await _try_coordinated_control("workpos_direct")
+    if coordinated is not None:
+        return coordinated
     if _launch_mgr.state not in (RUNNING, PAUSED):
         raise HTTPException(
             status_code=409,
@@ -552,6 +806,9 @@ def _ensure_driver_enabled(timeout_s: float) -> tuple[bool, str]:
 @app.post("/api/v1/robot/ready")
 async def robot_ready() -> ApiEnvelope:
     """一键就绪：先 disarm 遥操（停掉 homing/armed 发流），再 driver one_click_ready。"""
+    coordinated = await _try_coordinated_control("ready")
+    if coordinated is not None:
+        return coordinated
     _disarm_before_hardware()
     ok, msg = await asyncio.to_thread(_driver_call, "ready")
     if not ok:
@@ -562,6 +819,9 @@ async def robot_ready() -> ApiEnvelope:
 @app.post("/api/v1/robot/home")
 async def robot_home() -> ApiEnvelope:
     """归零：先 disarm 遥操，再 driver ~/home（阻尼中会自动切回 POSITION 再归零）。"""
+    coordinated = await _try_coordinated_control("home")
+    if coordinated is not None:
+        return coordinated
     _disarm_before_hardware()
     ok, msg = await asyncio.to_thread(_driver_call, "home")
     if not ok:
@@ -572,6 +832,9 @@ async def robot_home() -> ApiEnvelope:
 @app.post("/api/v1/robot/estop")
 async def robot_estop() -> ApiEnvelope:
     """真急停：先 disarm 遥操（断电后不能让陈旧命令流挂着），再 driver ~/estop。"""
+    coordinated = await _try_coordinated_control("estop")
+    if coordinated is not None:
+        return coordinated
     _disarm_before_hardware()
     ok, msg = await asyncio.to_thread(_driver_call, "estop")
     if not ok:
@@ -582,6 +845,9 @@ async def robot_estop() -> ApiEnvelope:
 @app.post("/api/v1/robot/damping")
 async def robot_damping() -> ApiEnvelope:
     """阻尼释放：先 disarm 遥操，再 driver ~/damping → motion_mode=0，可手动拖拽。"""
+    coordinated = await _try_coordinated_control("damping")
+    if coordinated is not None:
+        return coordinated
     _disarm_before_hardware()
     ok, msg = await asyncio.to_thread(_driver_call, "damping")
     if not ok:
@@ -592,6 +858,9 @@ async def robot_damping() -> ApiEnvelope:
 @app.post("/api/v1/robot/position")
 async def robot_position() -> ApiEnvelope:
     """位置保持：先 disarm 遥操，再 driver ~/position → motion_mode=1。"""
+    coordinated = await _try_coordinated_control("position")
+    if coordinated is not None:
+        return coordinated
     _disarm_before_hardware()
     ok, msg = await asyncio.to_thread(_driver_call, "position")
     if not ok:
@@ -800,7 +1069,15 @@ async def collect_session(req: CollectSessionRequest) -> ApiEnvelope:
 def _collect_preset():
     for p in _presets.values():
         if p.package == "morla_data_collect":
-            return p
+            profile_id = _effective_profile_id()
+            operating_mode = _effective_operating_mode()
+            return Preset(
+                name=f"{p.name} [{profile_id}]" if profile_id else p.name,
+                package=p.package, launch=p.launch,
+                args={**p.args, "profile_id": profile_id, "runtime_mode": operating_mode,
+                      "keyboard": "false", "vr_control": "false"},
+                description=p.description,
+            )
     return None
 
 
@@ -870,6 +1147,7 @@ def _policy_preset(cfg: dict) -> Preset:
 async def infer_launch_start(req: InferLaunchRequest) -> ApiEnvelope:
     global _policy_cfg
     cfg = req.model_dump()
+    cfg["profile_id"] = _effective_profile_id()
     _policy_cfg = cfg
     preset = _policy_preset(cfg)
     ok, msg = _policy_mgr.start(preset, check_orphan=False)
