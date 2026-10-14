@@ -30,12 +30,12 @@ def _find_urdf() -> Path:
     try:
         from ament_index_python.packages import get_package_share_directory
 
-        candidates.append(Path(get_package_share_directory("astral_robot_description"))
+        candidates.append(Path(get_package_share_directory("robot_description"))
                           / "urdf/astral_robot.pin.urdf")
     except Exception:  # noqa: BLE001
         pass
     for parent in here.parents:
-        candidates.append(parent / "src/robots/astral/astral_robot_description/urdf/astral_robot.pin.urdf")
+        candidates.append(parent / "src/robot_description/urdf/astral/robot/astral_robot.pin.urdf")
     for p in candidates:
         if p.is_file():
             return p

@@ -19,7 +19,7 @@ Wuji Hand MuJoCo 仿真 + **三层调参可视化**（TuningViewer）。
 | Scaled target | 青 | 应用 `segment_scaling` 后的目标（仅 scaling≠1 时与橙分离） |
 | Robot FK | 白 | 优化后的关节角做 FK |
 
-网格透明度：`config/tuning_viz.yaml` → `robot_mesh.alpha`（设 `0.0` 可隐藏网格）。
+网格透明度：`config/tuning_viz.yaml` → `robot_mesh.alpha`（设 `0.0` 可隐藏网格）。MJCF 与网格统一从 `robot_description` manifest 按 `wuji_{side}_sim` 查找。
 
 ## 启动
 

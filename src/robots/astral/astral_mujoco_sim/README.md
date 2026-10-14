@@ -45,12 +45,12 @@ sim 管线默认也起 `controller_start_gate` 与带 trigger 合并的 gripper�
 
 ## 模型（运行时未改）
 
-默认加载 **`assets/mjcf/astral_dual.xml`**（由 `astral_robot_description` 的 SW URDF 生成，14 铰链 + STL，**原轴符号**）。
+默认从 `robot_description` manifest model `astral_dual_sim` 加载集中 MJCF（源自 Astral SW URDF，14 铰链 + STL，**原轴符号**）。
 
 | 文件 | 用途 |
 |------|------|
-| `astral_dual.xml` | **默认仿真**（`mjcf_path` 为空时的回退，`mjcf_path` 留空即用它）。与 `geometric`/`analytic_dh` 发布的 q 同约定 |
-| `astral_dual_clean.xml` | 干净 MDH / 翻转限位的可选 MJCF。当前 teleop 默认链路下 **不接入**，误用会肘/肩符号对反 |
+| `robot_description/mjcf/astral/astral_dual.xml` | **默认仿真**（通过 `astral_dual_sim` model ID 解析）。与 `geometric`/`analytic_dh` 发布的 q 同约定 |
+| `robot_description/mjcf/astral/astral_dual_clean.xml` | 干净 MDH / 翻转限位的可选 MJCF。当前 teleop 默认链路下 **不接入**，误用会肘/肩符号对反 |
 
 `mujoco_sim_node.py` 代码默认 `init_pose_left/right` 仍是 `[0.32, ±0.11, -0.53, -0.80, 0.28, 0, 0]`，
 但 **`astral_mujoco_sim.yaml` 已覆盖为零位**：

@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>robot_description</name>
+  <version>0.1.0</version>
+  <description>Unified URDF, MJCF, mesh and asset manifest for MORLA robots.</description>
+  <maintainer email="maintainers@morla.dev">MORLA maintainers</maintainer>
+  <license>Mixed BSD and MIT; see per-asset provenance and license fields in config/asset_manifest.yaml.</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

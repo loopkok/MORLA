@@ -11,8 +11,8 @@
 | P0 独立副本与环境 | 完成 | 595 个 Astral Git 跟踪文件均存在且 SHA256 一致；源提交匹配 baseline；原工作区未修改；MORLA 独立提交 `f441a3e`。 |
 | P1 包路径与改名 | 完成 | 25 ROS 包可发现且全量 clean build 成功；五个共享包完成改名，入口脚本与Web launch路径适配；前端和指定回归通过。映射见 `docs/package_map.json`。 |
 | P2 core/profile | 完成 | 新增`morla_core`共享schema/lease/资源/关节映射/profile registry；12个profile固定布局并从已安装ament share验证，见本次日志。消费者运行时接入仍在P7-P9完成。 |
-| P3 description | 进行中 | 正在把Astral/Wuji/XNero模型与mesh归集到`robot_description`并迁移所有资源引用。 |
-| P4 unified input | 未开始 | |
+| P3 description | 完成 | 新建`robot_description`（ament_cmake），集中27个model ID与358项资产；manifest含来源/目标SHA、关节映射、847个mesh闭包和授权信息。24包干净构建成功；普通安装、colcon symlink-install 均由Pinocchio加载12份URDF、MuJoCo加载5份MJCF；生成器可重跑，Astral FK和sim机械量、XNero sim机械量对照通过。 |
+| P4 unified input | 进行中 | 开始核对输入协议和Nero/XHand局部预处理，统一入口仍保留Astral PacketGuard/frame latch语义。 |
 | P5 Nero driver/teleop | 未开始 | |
 | P6 XHand adapter/sim | 未开始 | |
 | P7 unified data collection | 未开始 | |
@@ -42,3 +42,10 @@
 - P2 回归：纯逻辑10通过；profile CLI从已安装ROS包索引解析12项并生成`resolved_profile.json`/`frozen_schema.json`；单独安装空间可见所有MORLA包。全量clean build 26/26通过。Input 3通过、policy 143通过、Web 25通过、bringup 24通过；统一采集125通过/1跳过。测试使用临时Pandas 2.3.3以满足v3导出；依赖已登记为`python3-pandas`，临时用户级包在最终清理时卸载。
 - P2发现并修正5个新Python包的无效maintainer邮箱：否则colcon会将其识别为普通Python包，虽能编译但不会进入ROS包索引。重建后`colcon list`显示`ros.ament_python`，`ros2 pkg list`和已安装profile CLI验证通过。
 - P2修复`data_pipeline.sh`在重命名后缺少`morla_core`的源码路径，并新增`MORLA_DATA_PYTHON`优先级与旧`ASTRAL_DATA_PYTHON`弃用提示；原兼容路径测试通过。
+
+- P3：新建`src/robot_description`为独立`ament_cmake`资源包，集中Astral robot/arm/clean/legacy RobotMain、Wuji、Nero+XHand、独立XHand retarget URDF，及Astral/Wuji/XNero MuJoCo模型、完整mesh闭包、RViz/launch、触觉点输入、生成/校验脚本。删除MORLA内三个旧description ROS包以及teleop/retarget/sim里的URDF/MJCF/mesh运行时副本；源`astral_ws`/`xnero_ws`保留不变。`docs/package_map.json`已更新资产迁移映射。
+- P3资源索引：manifest记录27个model ID、358个资源文件、847个mesh引用、source/target SHA256、base/end links、可动关节、profile ROS名→URDF名及符号/offset、用途、生成器和license来源。XNero retargeting原包没有声明license，manifest/docs明确标为未解决，不伪造授权；profile的`description_revision`统一固定manifest SHA256。
+- P3路径：所有活动loader以`morla_core.resource_locator.resolve_robot_asset(model_id)`解析安装share+manifest；Astral IK、Astral/Wuji sim、Wuji DexPilot默认均不引用旧description包。`resolve_robot_asset`在普通安装与`colcon --symlink-install`均通过，并限制符号链接只回落到对应`robot_description`源码包。
+- P3构建/安装：24 ROS包clean build通过；普通复制安装运行`check_assets.py --loaders --require-regular-install`通过，symlink安装运行同脚本及12个profile `validate-all`通过。两个安装空间均由Pinocchio实际加载12份URDF（含全部mesh），MuJoCo加载5份MJCF；847个mesh闭包与模型目标hash全通过。
+- P3机械意义回归：7组迁移URDF对原Astral/XNero工作区做随机配置FK、关节名、限位比较均一致；Astral clean MJCF模型维度、body姿态/质量/惯量、joint axis/range、actuator limit完全相同；XNero生成器重跑后对应同一组模型量，`test_xhand_tactile_mujoco.py`验证1200/1200触觉测点、名称完整和测试压入力全部入传感，未启动机器人硬件。Astral Geometric IK、完整IK、VR映射三个原回归脚本均PASS。
+- P3剩余验证限制：DexPilot实际retarget构造因系统Python没有Torch失败（当前只装了`dex_retargeting`代码但其import硬依赖Torch）；URDF本身由Pinocchio加载成功，实际backend将在依赖环境准备后补验。XNero XHand源包license需上游确认后方可外部分发。

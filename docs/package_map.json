@@ -1,29 +1,40 @@
 {
   "source_workspace": "astral_ws",
   "target_workspace": "MORLA",
-  "package_count": 25,
+  "package_count": 24,
   "packages": {
     "astral_arm_clean_description": {
       "source_path": "astral_ws/src/astral_arm_clean_description",
-      "target_name": "astral_arm_clean_description",
-      "target_path": "src/robots/astral/astral_arm_clean_description",
-      "renamed": false,
+      "target_name": "robot_description",
+      "target_path": "src/robot_description",
+      "renamed": true,
       "executable_names": [],
       "node_names": [
         "gui",
         "pub_rate"
-      ]
+      ],
+      "migration_kind": "assets_consolidated",
+      "target_asset_roots": [
+        "urdf/astral/arm_clean/"
+      ],
+      "removed_from_colcon": true
     },
     "astral_arm_description": {
       "source_path": "astral_ws/src/astral_arm_description",
-      "target_name": "astral_arm_description",
-      "target_path": "src/robots/astral/astral_arm_description",
-      "renamed": false,
+      "target_name": "robot_description",
+      "target_path": "src/robot_description",
+      "renamed": true,
       "executable_names": [],
       "node_names": [
         "gui",
         "pub_rate"
-      ]
+      ],
+      "migration_kind": "assets_consolidated",
+      "target_asset_roots": [
+        "urdf/astral/arm/",
+        "meshes/astral/arm/"
+      ],
+      "removed_from_colcon": true
     },
     "astral_arm_teleop": {
       "source_path": "astral_ws/src/astral_arm_teleop",
@@ -57,6 +68,11 @@
         "teleop_tune_plot",
         "test_dataflow",
         "test_safe_teleop"
+      ],
+      "migrated_assets_to": "src/robot_description",
+      "target_asset_roots": [
+        "urdf/astral/legacy_robotmain/",
+        "meshes/astral/legacy_robotmain/"
       ]
     },
     "astral_data_collect": {
@@ -108,6 +124,11 @@
         "controller_workpos_gate",
         "head_teleop_node",
         "quest3_udp_mocap"
+      ],
+      "migrated_assets_to": "src/robot_description",
+      "target_asset_roots": [
+        "mjcf/astral/",
+        "meshes/astral/sim/"
       ]
     },
     "astral_pim_ik": {
@@ -152,14 +173,20 @@
     },
     "astral_robot_description": {
       "source_path": "astral_ws/src/astral_robot_description",
-      "target_name": "astral_robot_description",
-      "target_path": "src/robots/astral/astral_robot_description",
-      "renamed": false,
+      "target_name": "robot_description",
+      "target_path": "src/robot_description",
+      "renamed": true,
       "executable_names": [],
       "node_names": [
         "gui",
         "pub_rate"
-      ]
+      ],
+      "migration_kind": "assets_consolidated",
+      "target_asset_roots": [
+        "urdf/astral/robot/",
+        "meshes/astral/robot/"
+      ],
+      "removed_from_colcon": true
     },
     "astral_teleop": {
       "source_path": "astral_ws/src/astral_teleop",
@@ -254,6 +281,11 @@
         "quest3_udp_mocap",
         "wujihand_mujoco_sim_node",
         "wujihand_tuning_node"
+      ],
+      "migrated_assets_to": "src/robot_description",
+      "target_asset_roots": [
+        "mjcf/wuji/",
+        "meshes/wuji/"
       ]
     },
     "wujihand_retargeting": {
@@ -266,6 +298,10 @@
       ],
       "node_names": [
         "wujihand_retarget_node"
+      ],
+      "migrated_assets_to": "src/robot_description",
+      "target_asset_roots": [
+        "urdf/wuji/"
       ]
     },
     "wujihand_bringup": {
@@ -337,6 +373,29 @@
       "origin": "new P1 framework package",
       "executable_names": [],
       "node_names": []
+    }
+  },
+  "source_package_count": 25,
+  "active_ros_package_count": 24,
+  "additional_workspace_assets": {
+    "source_workspace": "xnero_ws",
+    "target_package": "robot_description",
+    "mappings": {
+      "xhand_nero_description": [
+        "urdf/nero/",
+        "meshes/nero/",
+        "launch/",
+        "rviz/",
+        "scripts/",
+        "docs/"
+      ],
+      "xhand_retargeting": [
+        "urdf/xhand/",
+        "meshes/xhand/"
+      ],
+      "xnero_mujoco_sim": [
+        "mjcf/xnero/"
+      ]
     }
   }
 }

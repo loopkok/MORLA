@@ -55,3 +55,59 @@ def resolve_source_resource(package_path: str | Path, relative_path: str) -> Pat
     if not target.exists():
         raise ResourceLookupError(f"source resource does not exist: {target}")
     return target
+
+
+def resolve_robot_asset(model_id: str) -> Path:
+    """Resolve a model ID through robot_description's installed asset manifest.
+
+    Runtime consumers use stable model IDs from robot profiles. The manifest is
+    the only place that maps those IDs to files, so consumers do not invent a
+    second set of robot-specific paths.
+    """
+    if not model_id or not isinstance(model_id, str):
+        raise ResourceLookupError("robot asset model_id must be a non-empty string")
+    share = package_share("robot_description")
+    manifest_relative = "config/asset_manifest.yaml"
+    source_share: Path | None = None
+    try:
+        import yaml
+
+        try:
+            manifest_path = resolve_package_resource("robot_description", manifest_relative)
+        except ResourceLookupError:
+            # colcon --symlink-install places the resource tree outside install/share.
+            # Permit that only when the manifest symlink resolves into the matching
+            # robot_description source package; arbitrary escaping symlinks stay blocked.
+            manifest_path = (share / manifest_relative).resolve(strict=True)
+            source_share = manifest_path.parent.parent
+            if source_share.name != "robot_description" or not (source_share / "CMakeLists.txt").is_file():
+                raise
+        manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+    except ResourceLookupError:
+        raise
+    except Exception as exc:  # keep optional parser errors behind a stable API
+        raise ResourceLookupError("failed to load robot_description asset manifest") from exc
+    matches = [
+        item
+        for item in manifest.get("models", [])
+        if isinstance(item, dict) and item.get("model_id") == model_id
+    ]
+    if len(matches) != 1:
+        raise ResourceLookupError(
+            f"asset manifest must contain exactly one model_id {model_id!r}; found {len(matches)}"
+        )
+    relative = matches[0].get("path")
+    if not relative:
+        raise ResourceLookupError(f"robot model {model_id!r} has no standalone asset path")
+    try:
+        return resolve_package_resource("robot_description", str(relative))
+    except ResourceLookupError:
+        if source_share is None:
+            raise
+        rel_path = Path(str(relative))
+        if rel_path.is_absolute() or ".." in rel_path.parts:
+            raise ResourceLookupError(f"asset path escapes source package: {relative!r}")
+        target = (source_share / rel_path).resolve()
+        if not target.is_relative_to(source_share) or not target.is_file():
+            raise ResourceLookupError(f"source asset is missing or escapes package: {relative!r}")
+        return target

@@ -47,7 +47,7 @@ def _package_dirs_for(urdf_path: str) -> List[str]:
     try:
         from ament_index_python.packages import get_package_share_directory
 
-        for pkg in ("astral_robot_description", "RobotMain_URDF"):
+        for pkg in ("robot_description",):
             try:
                 share = get_package_share_directory(pkg)
                 # install: .../share/<pkg> → parent .../share

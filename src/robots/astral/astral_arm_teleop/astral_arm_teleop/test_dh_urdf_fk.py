@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare analytic DH FK vs astral_robot_description URDF (Pinocchio).
+"""Compare analytic DH FK vs centralized Astral URDF (Pinocchio).
 
 Stage-1 adaptation check: same q → position / orientation error in *_base_link.
 Shows why Nero closed-form topology cannot fully match Astral URDF SE3.
@@ -23,11 +23,11 @@ def _find_urdf() -> Path:
     try:
         from ament_index_python.packages import get_package_share_directory
 
-        share = Path(get_package_share_directory("astral_robot_description"))
-        candidates.append(share / "urdf/astral_robot.pin.urdf")
+        share = Path(get_package_share_directory("robot_description"))
+        candidates.append(share / "urdf/astral/robot/astral_robot.pin.urdf")
     except Exception:  # noqa: BLE001
         pass
-    candidates.extend(parent / "src/robots/astral/astral_robot_description/urdf/astral_robot.pin.urdf"
+    candidates.extend(parent / "src/robot_description/urdf/astral/robot/astral_robot.pin.urdf"
                       for parent in here.parents)
     for p in candidates:
         if p.is_file():

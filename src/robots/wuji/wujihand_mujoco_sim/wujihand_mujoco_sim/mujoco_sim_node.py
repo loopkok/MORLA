@@ -19,7 +19,6 @@ from typing import List, Optional
 
 import numpy as np
 import rclpy
-from ament_index_python.packages import get_package_share_directory
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import JointState
@@ -81,8 +80,9 @@ class WujiHandMujocoSimNode(Node):
 
         mjcf_path = str(self.get_parameter("mjcf_path").value).strip()
         if not mjcf_path:
-            share = Path(get_package_share_directory("wujihand_mujoco_sim"))
-            mjcf_path = str(share / "assets" / "mjcf" / f"{self.hand_side}.xml")
+            from morla_core.resource_locator import resolve_robot_asset
+
+            mjcf_path = str(resolve_robot_asset(f"wuji_{self.hand_side}_sim"))
         self.mjcf_path = mjcf_path
         if not Path(self.mjcf_path).is_file():
             raise FileNotFoundError(

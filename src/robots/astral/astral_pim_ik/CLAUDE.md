@@ -70,7 +70,7 @@ astral_pim_ik/                    ← ROS 包根（package.xml 在 src/robots/as
   docs/adversarial_review.md  ← 对抗性发现（F1..F8 + 2026-09-04 新增 3 条）
 ```
 
-**依赖关系（移植到新机器必读）**：本包 `import astral_arm_teleop.ik.geometric`（`extract_arm_geometry`/`_circle_basis_sw`/`_elbow_point`/`_collect_solutions`/`_compute_sw`/`psi_from_elbow_dir`/`_axis_angle_rot`/`fk`）和 `astral_arm_teleop.ik.analytic.wrap_to_pi`。**所以 `astral_arm_teleop` 包必须同机可 import**（PYTHONPATH 或 colcon install 后），且 `extract_arm_geometry` 需要 pinocchio + 能解析到 URDF（`factory.default_astral_urdf_path()` → `astral_robot_description/urdf/astral_robot.pin.urdf`）。
+**依赖关系（移植到新机器必读）**：本包 `import astral_arm_teleop.ik.geometric`（`extract_arm_geometry`/`_circle_basis_sw`/`_elbow_point`/`_collect_solutions`/`_compute_sw`/`psi_from_elbow_dir`/`_axis_angle_rot`/`fk`）和 `astral_arm_teleop.ik.analytic.wrap_to_pi`。**所以 `astral_arm_teleop` 包必须同机可 import**（PYTHONPATH 或 colcon install 后），且 `extract_arm_geometry` 需要 pinocchio + 能解析到 URDF（`factory.default_astral_urdf_path()` → `robot_description manifest model `astral_left_arm``）。
 
 ## 5. 已完成的 & 已测试的（截至 2026-09-04，本机环境）
 

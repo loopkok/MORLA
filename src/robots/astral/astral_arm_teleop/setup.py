@@ -14,13 +14,6 @@ setup(
     name=package_name,
     version="0.1.0",
     packages=find_packages(exclude=["test"]),
-    package_data={
-        "astral_arm_teleop": [
-            "robot/urdf/*.urdf",
-            "robot/RobotMain_URDF/meshes/*",
-        ],
-    },
-    include_package_data=True,
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),

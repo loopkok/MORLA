@@ -3,7 +3,7 @@
 Quest3 腕部 → 双臂 IK（DH / 几何闭式 / URDF 数值）→ `/left_arm|/right_arm/joint_commands`。  
 **不** import `astral_robot_sdk`；硬件由 `astral_robot_control` 负责。
 
-当前架构是 **B：模型不动，控制层换算**。SolidWorks 的 `astral_robot_description` URDF、旧 MJCF、真机关节符号都保持原约定；闭式 DH 在「翻转轴 + 干净 MDH 基座」里求解，teleop 边界用 `flip_q` 和 `R_baseᵀ` 对接。
+当前架构是 **B：模型不动，控制层换算**。`robot_description` 中的 SolidWorks URDF、集中 MJCF、真机关节符号都保持原约定；闭式 DH 在「翻转轴 + 干净 MDH 基座」里求解，teleop 边界用 `flip_q` 和 `R_baseᵀ` 对接。
 
 ## 数据流（2× 单臂节点）
 
@@ -64,8 +64,8 @@ astral_arm_teleop/
 | `solver_type` | 实现 | 位姿帧 | 输出 q | 默认模型 |
 |---------------|------|--------|--------|----------|
 | `analytic_dh` | Nero 臂角闭式，硬编码 MDH | 干净 MDH 基座 | 翻转约定，发布前 flip | 无 URDF |
-| `geometric`（yaml 默认） | 免 DH 臂角闭式：URDF 提取肩/肘/腕中心与关节轴，POE + Paden-Kahan；支持 `use_human_elbow` 人臂肘先验 | SW `*_base_link` | 已是硬件约定，不 flip | `astral_robot_description/urdf/astral_robot.pin.urdf` |
-| `urdf_numerical` | Pinocchio + scipy LM | SW `*_base_link` | 已是硬件约定，不 flip | `astral_robot_description/urdf/astral_robot.pin.urdf` |
+| `geometric`（yaml 默认） | 免 DH 臂角闭式：URDF 提取肩/肘/腕中心与关节轴，POE + Paden-Kahan；支持 `use_human_elbow` 人臂肘先验 | SW `*_base_link` | 已是硬件约定，不 flip | `robot_description/urdf/astral/robot/astral_robot.pin.urdf` |
+| `urdf_numerical` | Pinocchio + scipy LM | SW `*_base_link` | 已是硬件约定，不 flip | `robot_description/urdf/astral/robot/astral_robot.pin.urdf` |
 
 单臂节点 `urdf_path` 为空 → `default_astral_urdf_path()` = **`astral_robot.pin.urdf`**（与 MuJoCo 同源）。  
 支持 RobotMain 命名（`Joint_la_*`）或 Astral 命名（`left_joint*`）。
@@ -202,8 +202,8 @@ ros2 launch astral_arm_teleop astral_dual_arm_teleop.launch.py dry_run:=true
 
 | 文件 | 是否改控制闭环 |
 |------|----------------|
-| `astral_robot_description`（`astral_robot.pin.urdf`） | **否**，仍 SW 原轴 |
-| `astral_mujoco_sim` 默认 `assets/mjcf/astral_dual.xml` | **否** |
+| `robot_description`（manifest model `astral_left_arm`） | **否**，仍 SW 原轴 |
+| `astral_mujoco_sim` 默认 manifest model `astral_dual_sim` | **否** |
 | `astral_mujoco_sim.yaml` 的 `init_pose_*` | **否**（旧约定，与 teleop yaml 一致） |
 
 仿真吃的是 flip 之后的 `q_hw`，自己不再 flip。  
@@ -213,8 +213,8 @@ ros2 launch astral_arm_teleop astral_dual_arm_teleop.launch.py dry_run:=true
 
 | | 作用 |
 |--|--|
-| `astral_arm_clean_description` | 干净单臂/双臂 URDF（关节原点=MDH，mesh 用 visual origin 重定位）。架构 B 下 **不接入** teleop/仿真 |
-| `astral_mujoco_sim/assets/mjcf/astral_dual_clean.xml` | 对应干净 MJCF；默认不用 |
+| `robot_description` 的 `astral_arm_clean` model | 干净单臂/双臂 URDF（关节原点=MDH，mesh 用 visual origin 重定位）。架构 B 下 **不接入** teleop/仿真 |
+| `robot_description/mjcf/astral/astral_dual_clean.xml` | 对应干净 MJCF；默认不用 |
 | `derive_clean_mdh.py` | 从 URDF 抽 MDH 诊断 |
 | `generate_clean_urdf.py` | 生成干净 URDF |
 | `generate_clean_mjcf.py` | 生成干净 MJCF |
@@ -235,7 +235,7 @@ python3 -m astral_arm_teleop.generate_clean_urdf
 cd /home/robot/loopkok/sdk/astral_ws
 export PATH=/usr/bin:$PATH
 source /opt/ros/humble/setup.bash
-colcon build --packages-select astral_robot_description astral_robot_control astral_arm_teleop --symlink-install
+colcon build --packages-select robot_description astral_robot_control astral_arm_teleop --symlink-install
 source install/setup.bash
 ```
 

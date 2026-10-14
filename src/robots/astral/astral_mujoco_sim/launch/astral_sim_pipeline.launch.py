@@ -25,41 +25,12 @@ from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from morla_core.resource_locator import resolve_robot_asset
 
 
 def _resolve_astral_urdf() -> str:
-    """Installed share → source tree → empty (teleop uses its own default)."""
-    try:
-        share = get_package_share_directory("astral_robot_description")
-        p = os.path.join(share, "urdf", "astral_robot.pin.urdf")
-        if os.path.isfile(p):
-            return p
-    except Exception:  # noqa: BLE001
-        pass
-    here = os.path.dirname(os.path.abspath(__file__))
-    candidates = [
-        os.path.normpath(
-            os.path.join(
-                here, "..", "..", "astral_robot_description", "urdf", "astral_robot.pin.urdf"
-            )
-        ),
-        os.path.normpath(
-            os.path.join(
-                here,
-                "..",
-                "..",
-                "..",
-                "src",
-                "astral_robot_description",
-                "urdf",
-                "astral_robot.pin.urdf",
-            )
-        ),
-    ]
-    for p in candidates:
-        if os.path.isfile(p):
-            return p
-    return ""
+    """Resolve the sole installed Astral IK model from robot_description."""
+    return str(resolve_robot_asset("astral_left_arm"))
 
 
 def _opt(context, name: str) -> str:

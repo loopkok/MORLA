@@ -11,15 +11,7 @@ data_files = [
     ("share/" + package_name, ["package.xml"]),
     (os.path.join("share", package_name, "config"), glob("config/*")),
     (os.path.join("share", package_name, "launch"), glob("launch/*.launch.py")),
-    (os.path.join("share", package_name, "assets", "mjcf"), glob("assets/mjcf/*")),
 ]
-for side in ("left", "right"):
-    mesh_glob = glob(f"assets/meshes/{side}/*")
-    if mesh_glob:
-        data_files.append(
-            (os.path.join("share", package_name, "assets", "meshes", side), mesh_glob)
-        )
-
 setup(
     name=package_name,
     version="0.1.0",

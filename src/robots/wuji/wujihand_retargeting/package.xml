@@ -22,4 +22,5 @@
     <build_type>ament_python</build_type>
   </export>
   <exec_depend>morla_core</exec_depend>
+  <exec_depend>robot_description</exec_depend>
 </package>

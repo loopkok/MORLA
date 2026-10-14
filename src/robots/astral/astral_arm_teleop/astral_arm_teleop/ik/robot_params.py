@@ -1,7 +1,7 @@
 """Compatibility helpers for Astral DH.
 
 Canonical params live in :mod:`astral_arm_teleop.ik.analytic` (``AstralParams``).
-IK frame is ``left_base_link`` / ``right_base_link`` (see astral_robot_description).
+IK frame is ``left_base_link`` / ``right_base_link`` (see robot_description manifest).
 """
 
 from __future__ import annotations

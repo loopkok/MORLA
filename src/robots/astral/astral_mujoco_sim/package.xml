@@ -19,7 +19,8 @@
   <exec_depend>morla_input</exec_depend>
   <exec_depend>astral_gripper_teleop</exec_depend>
   <exec_depend>morla_bringup</exec_depend>
-  <exec_depend>astral_robot_description</exec_depend>
+  <exec_depend>robot_description</exec_depend>
+  <exec_depend>morla_core</exec_depend>
   <!-- pip: mujoco -->
 
   <export>

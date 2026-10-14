@@ -115,7 +115,9 @@ class WujiHandTuningNode(Node):
         sim_share = Path(get_package_share_directory("wujihand_mujoco_sim"))
         mjcf_path = str(self.get_parameter("mjcf_path").value).strip()
         if not mjcf_path:
-            mjcf_path = str(sim_share / "assets" / "mjcf" / f"{self.hand_side}.xml")
+            from morla_core.resource_locator import resolve_robot_asset
+
+            mjcf_path = str(resolve_robot_asset(f"wuji_{self.hand_side}_sim"))
         self.mjcf_path = mjcf_path
         if not Path(self.mjcf_path).is_file():
             raise FileNotFoundError(f"MJCF not found: {self.mjcf_path}")

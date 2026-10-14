@@ -432,7 +432,7 @@ hardware:
     left:
       hand_id: 0
       serial_port: configure_on_host
-description_revision: pending_robot_description_migration
+description_revision: sha256:9c77a86685ff7d24749b50ae18e26b833ad905077c40ce480fa4560ca4f919bf
 mode_default: sim
 input:
   source: quest

@@ -9,38 +9,18 @@ from typing import Any, Dict, Mapping, Optional, Sequence
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-_PKG_DIR = Path(__file__).resolve().parents[1]
-_DEFAULT_URDF = _PKG_DIR / "robot" / "urdf" / "RobotMain_URDF.pin.urdf"
-
-
 def default_urdf_path() -> str:
-    return str(_DEFAULT_URDF)
+    """Return the centralized legacy RobotMain model used by legacy solver mode."""
+    from morla_core.resource_locator import resolve_robot_asset
+
+    return str(resolve_robot_asset("astral_robotmain_legacy"))
 
 
 def default_astral_urdf_path() -> str:
-    """Prefer installed astral_robot.pin.urdf (matches MuJoCo sim)."""
-    try:
-        from ament_index_python.packages import get_package_share_directory
+    """Return the centralized Astral model used by IK and the arm simulator."""
+    from morla_core.resource_locator import resolve_robot_asset
 
-        p = (
-            Path(get_package_share_directory("astral_robot_description"))
-            / "urdf"
-            / "astral_robot.pin.urdf"
-        )
-        if p.is_file():
-            return str(p)
-    except Exception:  # noqa: BLE001
-        pass
-    # source-tree fallback
-    src = (
-        _PKG_DIR.parents[1]
-        / "astral_robot_description"
-        / "urdf"
-        / "astral_robot.pin.urdf"
-    )
-    if src.is_file():
-        return str(src)
-    return default_urdf_path()
+    return str(resolve_robot_asset("astral_left_arm"))
 
 
 class AstralIKBridge:

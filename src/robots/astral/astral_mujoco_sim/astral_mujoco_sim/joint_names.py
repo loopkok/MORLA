@@ -24,7 +24,7 @@ RIGHT_ARM_JOINT_NAMES: List[str] = [
     "right_wrist_roll",
 ]
 
-# MJCF hinge names from astral_robot_description conversion
+# MJCF hinge names from the centralized Astral description conversion
 LEFT_MJCF_JOINTS: List[str] = [f"left_joint{i}" for i in range(1, 8)]
 RIGHT_MJCF_JOINTS: List[str] = [f"right_joint{i}" for i in range(1, 8)]
 

@@ -42,7 +42,9 @@ class DexPilotRetargetBackend:
         if config_path is None:
             config_path = str(share / "config" / f"retarget_dexpilot_{side}.yml")
         if urdf_path is None:
-            urdf_path = str(share / "urdf" / f"wujihand_{side}.urdf")
+            from morla_core.resource_locator import resolve_robot_asset
+
+            urdf_path = str(resolve_robot_asset(f"wuji_{side}_hand"))
 
         with open(config_path, "r", encoding="utf-8") as f:
             yaml_config = yaml.load(f, Loader=yaml.FullLoader)

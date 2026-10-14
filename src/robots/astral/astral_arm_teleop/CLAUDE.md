@@ -39,7 +39,7 @@ test_ik_solver.py      ← DH 套件（改 analytic.py 后必跑）
 
 ## 架构不变量（改动前先确认不破坏这些）
 
-1. **URDF 是唯一几何真源**。`extract_arm_geometry()` 从 `astral_robot_description/urdf/astral_robot.pin.urdf` 现场提取轴/点/限位，SRS 残差 >2mm 直接 raise。改几何只改 URDF；所有下游（IK/safety/sim）自动跟随。别在代码里写死几何（曾评估过 baked 常量方案，明确要求配防漂移测试才可行，暂未做）。
+1. **URDF 是唯一几何真源**。`extract_arm_geometry()` 从 `robot_description manifest model `astral_left_arm`` 现场提取轴/点/限位，SRS 残差 >2mm 直接 raise。改几何只改 URDF；所有下游（IK/safety/sim）自动跟随。别在代码里写死几何（曾评估过 baked 常量方案，明确要求配防漂移测试才可行，暂未做）。
 2. **geometric 输出即硬件约定**，无 flip_q；只有 `analytic_dh` 需要 flip（节点内自动）。
 3. **限位改动必须四处同步**：`astral_robot{,.pin}.urdf` + `astral_arm{,.pin}.urdf` + `astral_dual.xml`(range+ctrlrange) + `analytic.py` joint_limits。漏一处就会出现"仿真正常、DH 切换后怪异"类问题。
 4. **QoS：腕位/关节/指令流全部 BEST_EFFORT + depth=1**（`_sensor_qos`）。Jetson 实测 depth=10 时队列积满导致 IK 恒解 ~110ms 前的旧帧（vr_rx≈105ms = 10×11.1ms 帧间隔的整数倍，这是指纹）。仿真 PC 上 loop 快、队列积不起来，depth 无感——**别因为"仿真没问题"回退 QoS**。

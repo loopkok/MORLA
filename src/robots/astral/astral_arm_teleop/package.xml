@@ -24,7 +24,8 @@
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>morla_input</exec_depend>
   <exec_depend>astral_robot_control</exec_depend>
-  <exec_depend>astral_robot_description</exec_depend>
+  <exec_depend>robot_description</exec_depend>
+  <exec_depend>morla_core</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>
