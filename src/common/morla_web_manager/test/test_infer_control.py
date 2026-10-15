@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import sys
 from pathlib import Path
 
@@ -10,9 +11,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from morla_web_manager.config import (  # noqa: E402
     PI_COMMANDS,
     PI_LOG_ROOT,
+    normalize_infer_cmd,
     policy_launch_args,
     valid_infer_cmd,
 )
+from morla_web_manager import web_server  # noqa: E402
+from morla_web_manager.schemas import InferCmdRequest  # noqa: E402
 
 
 def test_policy_launch_args_defaults() -> None:
@@ -82,6 +86,30 @@ def test_valid_infer_cmd_all_verbs() -> None:
 def test_valid_infer_cmd_playback_with_source() -> None:
     assert valid_infer_cmd("playback:/data/ep0")
     assert valid_infer_cmd("playback:/data/ep0:3")
+
+
+def test_playback_normalization_preserves_path_case_and_spaces() -> None:
+    cmd = normalize_infer_cmd(" PLAYBACK:/data/My Task/episode000005:5 ")
+    assert cmd == "playback:/data/My Task/episode000005:5"
+    assert valid_infer_cmd(cmd)
+    assert normalize_infer_cmd(" PAUSE ") == "pause"
+
+
+def test_playback_endpoint_preserves_case_sensitive_path(monkeypatch) -> None:
+    class Node:
+        def __init__(self):
+            self.commands = []
+
+        def publish_pi_cmd(self, command):
+            self.commands.append(command)
+            return True
+
+    node = Node()
+    monkeypatch.setattr(web_server, "get_node", lambda: node)
+    command = " PLAYBACK:/data/My Task/episode000005:5 "
+    response = asyncio.run(web_server.infer_cmd(InferCmdRequest(cmd=command)))
+    assert response.ok
+    assert node.commands == ["playback:/data/My Task/episode000005:5"]
 
 
 def test_valid_infer_cmd_rejects_junk() -> None:

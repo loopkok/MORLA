@@ -273,6 +273,23 @@ export interface LaunchLogsData {
   infer: string[]
 }
 
+export interface ReplayBrowserEntry {
+  name: string
+  path: string
+  is_dir: boolean
+  kind: string
+  selectable: boolean
+}
+
+export interface ReplayBrowserData {
+  path: string
+  parent: string | null
+  kind: string
+  selectable: boolean
+  entries: ReplayBrowserEntry[]
+  roots: { name: string; path: string }[]
+}
+
 export type DataProcessAction = 'full' | 'raw-check' | 'quantify' | 'align' | 'validate' | 'repair-preview' | 'repair' | 'verify' | 'export' | 'preview' | 'upgrade-v3'
 export interface DataProcessRequest {
   action: DataProcessAction

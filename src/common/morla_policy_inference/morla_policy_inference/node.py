@@ -1078,6 +1078,7 @@ class PolicyNode(Node):
                 if pending['reanchor']: self._playback.reanchor(state)
                 self._executor.seed(self._layout.split_action(state))
                 self._last_cmds = []
+                self._acc = 0.0
                 self._hold_end = None
                 self._obs_lost_since = None
                 self._policy_start_pending = None
@@ -1168,8 +1169,8 @@ class PolicyNode(Node):
                     f"{recorded} != robot {robot}; refusing to replay"
                 )
                 return
-            expected_kinematics = self._schema.kinematics_hash
-            recorded_kinematics = ep.schema.kinematics_hash
+            expected_kinematics = getattr(self._schema, "kinematics_hash", None)
+            recorded_kinematics = getattr(ep.schema, "kinematics_hash", None)
             require_kinematics = bool(
                 self._profile
                 and self._profile.values.get("backend_requirements", {}).get(
@@ -1185,11 +1186,23 @@ class PolicyNode(Node):
                 )
                 return
         ep_fps = int(ep.fps)
-        if ep_fps != self._dataset_fps:
-            self.get_logger().warn(
-                f"replay fps {ep_fps} != profile dataset_fps "
-                f"{self._dataset_fps}; pacing uses the frozen profile rate"
+        if ep_fps <= 0 or ep_fps > self._ctrl_rate:
+            self.get_logger().error(
+                f"replay fps {ep_fps} outside 0..control rate {self._ctrl_rate}; "
+                "set dataset_fps/control_interp to support the recorded rate"
             )
+            return
+        if ep_fps != self._dataset_fps:
+            self.get_logger().info(
+                f"replay fps {ep_fps} != profile dataset_fps "
+                f"{self._dataset_fps}; playback uses recorded fps to preserve timing"
+            )
+        self.get_logger().info(
+            f"replay loaded {ep.source}: {ep.num_frames} frames @ {ep.fps}Hz "
+            f"({ep.duration_s():.3f}s)"
+        )
+        for note in ep.notes:
+            self.get_logger().info(note)
         self.controller.request("playback")
         self._begin_playback(PlaybackSession(ep))
 
@@ -1566,13 +1579,14 @@ class PolicyNode(Node):
         self._send_targets_from(tgt)
 
     def _playback_tick(self, dt: float) -> None:
-        self._acc += dt
-        if self._acc + 1e-9 < self._policy_dt:
-            return
-        self._acc = max(0.0, self._acc - self._policy_dt)
         if self._playback is None:
             self._cmd_stop()
             return
+        frame_dt = 1.0 / self._playback.episode.fps
+        self._acc += dt
+        if self._acc + 1e-9 < frame_dt:
+            return
+        self._acc = max(0.0, self._acc - frame_dt)
         row = self._playback.target()
         if row is None:
             if not self._last_cmds:

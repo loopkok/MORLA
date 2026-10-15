@@ -5,10 +5,13 @@ Supported sources (absolute actions, same vector layout as the driver):
 * LeRobot v2.1 dataset directory produced by ``convert_to_lerobot`` —
   ``meta/info.json`` (fps / features.action.shape) + per-episode parquet
   ``data/chunk-*/episode_*.parquet`` (``action`` column),
-* an ``aligned_data.h5`` file (attrs carry fps / state_names / schema).
+* an ``aligned_data.h5`` file (attrs carry fps / state_names / schema),
+* a closed raw episode (``meta.json`` + ``robot_data.h5``), a session
+  directory plus episode index, or the episode's ``robot_data.h5``.
 
-Both store **absolute** next-state joint targets (7 arm rad + gripper ratio),
-which the arm driver / MuJoCo node consume directly — no further conversion.
+Raw playback resamples measured state streams onto the frozen profile timeline;
+it does not read cameras, write aligned files, clean pauses, or add training
+hold rows. All playback sources use the same profile and safety execution path.
 """
 
 from __future__ import annotations
@@ -32,6 +35,7 @@ class ReplayEpisode:
     action_dim: int
     source: str
     schema: CollectSchema | FrozenSchema | None = None
+    notes: tuple[str, ...] = ()
 
     @property
     def num_frames(self) -> int:
@@ -62,7 +66,6 @@ def _parse_schema_from_info(info: dict) -> CollectSchema | None:
         return None
     # Rebuild a schema that reproduces the same state vector: block layout is
     # inferred from feature names (e.g. left_arm_0..6, left_ee_0, waist_0..1).
-    side_names = [n.rsplit("_", 1)[0] for n in names]
     arms: list[str] = []
     ee_left = ee_right = "none"
     include_waist = include_head = False
@@ -129,7 +132,9 @@ def load_lerobot_actions(dataset_dir: str, episode_index: int) -> ReplayEpisode:
     info = _json(os.path.join(dataset_dir, "meta", INFO_JSON))
     fps = int(info["fps"])
     chunk = int(episode_index) // CHUNK_SIZE
-    rel = info.get("data_path", "data/chunk-{episode_chunk:03d}/episode_{episode_index:06d}.parquet")
+    rel = info.get(
+        "data_path", "data/chunk-{episode_chunk:03d}/episode_{episode_index:06d}.parquet"
+    )
     path = os.path.join(
         dataset_dir,
         rel.format(episode_chunk=chunk, episode_index=int(episode_index)),
@@ -177,12 +182,166 @@ def load_aligned_actions(h5_path: str) -> ReplayEpisode:
     )
 
 
+def load_raw_actions(episode_dir: str) -> ReplayEpisode:
+    """Read a saved raw episode and map measured state into profile actions."""
+    import h5py
+
+    from morla_data_collect.schema import pipeline_schema_from_dict
+
+    episode_dir = os.path.abspath(os.path.expanduser(episode_dir))
+    meta_path = os.path.join(episode_dir, "meta.json")
+    if not os.path.isfile(meta_path):
+        raise ValueError("raw playback needs saved meta.json; stop/save recording first")
+    meta = _json(meta_path)
+    schema = pipeline_schema_from_dict(meta["schema"])
+    frozen = getattr(schema, "frozen", None)
+
+    # Frozen MORLA contracts can have different state and action vector layouts.
+    # Pair blocks by stable id and write each measured state block into its
+    # action indices. Legacy Astral v1 schemas have a shared sequential layout.
+    mappings = []
+    if frozen is not None:
+        state_by_id = {block.block_id: block for block in frozen.state_blocks}
+        for action in frozen.action_blocks:
+            state = state_by_id.get(action.block_id)
+            if state is None or state.dim != action.dim:
+                raise ValueError(
+                    f"raw playback cannot map action block {action.block_id!r} "
+                    "to a measured state block"
+                )
+            if action.semantics == "delta":
+                raise ValueError(
+                    f"raw playback does not support delta action block {action.block_id!r}"
+                )
+            mappings.append((
+                action.block_id, action.action_indices, state.stream_key,
+                state.stream_indices,
+            ))
+        action_dim = frozen.action_dim
+        result_schema = frozen
+    else:
+        cursor = 0
+        for block in schema.state_blocks():
+            name, body_slice = schema.block_state_source(block)
+            stream_indices = (tuple(range(*body_slice)) if body_slice is not None
+                              else tuple(range(block.dim)))
+            indices = tuple(range(cursor, cursor + block.dim))
+            mappings.append((block.name, indices, name, stream_indices))
+            cursor += block.dim
+        action_dim = schema.state_dim
+        result_schema = schema
+
+    start = float(meta["start_time_wall"])
+    end = float(meta["end_time_wall"])
+    if not np.isfinite([start, end]).all() or end <= start:
+        raise ValueError("raw recording has invalid episode boundaries")
+    episode_start, episode_end = start, end
+
+    source_specs = getattr(schema, "stream_specs", {})
+    streams = []
+    with h5py.File(os.path.join(episode_dir, "robot_data.h5"), "r") as f:
+        stream_group = f.get("streams")
+        if stream_group is None:
+            raise ValueError("raw recording has no /streams group")
+        for block_id, action_indices, stream_name, stream_indices in mappings:
+            # Legacy Astral head blocks can fall back from /astral/joint_states
+            # to the independently recorded /head/joint_states stream.
+            if block_id == "head" and (
+                stream_name not in stream_group
+                or len(stream_group[stream_name]["timestamps"]) == 0
+            ):
+                if "head_state" in stream_group:
+                    stream_name, stream_indices = "head_state", tuple(range(len(stream_indices)))
+            if stream_name not in stream_group:
+                raise ValueError(f"raw playback missing measured stream: {stream_name}")
+            group = stream_group[stream_name]
+            if "timestamps" not in group or "values" not in group:
+                raise ValueError(f"{stream_name}: missing timestamps or values")
+            ts = np.asarray(group["timestamps"], dtype=np.float64)
+            values = np.asarray(group["values"], dtype=np.float64)
+            if ts.ndim != 1 or len(ts) < 2 or not np.isfinite(ts).all():
+                raise ValueError(f"{stream_name}: need at least two finite timestamps")
+            if np.any(np.diff(ts) <= 0):
+                raise ValueError(f"{stream_name}: timestamps must be strictly increasing")
+            expected = meta.get("streams", {}).get(stream_name, {}).get("count")
+            if expected is not None and int(expected) != len(ts):
+                raise ValueError(f"{stream_name}: saved metadata/sample count mismatch")
+            if values.ndim != 2 or len(values) != len(ts):
+                raise ValueError(f"{stream_name}: value/timestamp shape mismatch")
+            indices = np.asarray(stream_indices, dtype=int)
+            if len(indices) != len(action_indices) or np.any(indices >= values.shape[1]):
+                raise ValueError(f"{stream_name}: invalid dimensions for block {block_id!r}")
+            selected = values[:, indices]
+            if not np.isfinite(selected).all():
+                raise ValueError(f"{stream_name}: nonfinite joint values")
+            spec = source_specs.get(stream_name)
+            is_ratio = (stream_name.endswith("_gripper_ratio")
+                        or getattr(spec, "unit", None) == "ratio")
+            streams.append((block_id, action_indices, stream_name, ts, selected, is_ratio))
+
+    start = max(start, max(item[3][0] for item in streams))
+    end = min(end, min(item[3][-1] for item in streams))
+    fps = int(schema.dataset_fps)
+    if end - start < 1.0 / fps:
+        raise ValueError("raw streams have insufficient common recording time")
+
+    paused_at = None
+    for event in sorted(meta.get("events", []), key=lambda item: float(item.get("t", 0))):
+        if event.get("name") != "pause":
+            continue
+        t = float(event["t"])
+        if event.get("data"):
+            paused_at = t
+        elif paused_at is not None:
+            if min(t, end) > max(paused_at, start):
+                raise ValueError("raw episode contains a pause; split the recording first")
+            paused_at = None
+    if paused_at is not None and end > max(paused_at, start):
+        raise ValueError("raw episode contains a pause; split the recording first")
+
+    grid = start + np.arange(int(np.floor((end - start) * fps)) + 1) / fps
+    actions = np.empty((len(grid), action_dim), dtype=np.float64)
+    for block_id, action_indices, stream_name, ts, values, is_ratio in streams:
+        overlaps = (ts[:-1] < end) & (ts[1:] > start)
+        if np.any(np.diff(ts)[overlaps] > schema.max_gap_ms / 1000.0):
+            raise ValueError(
+                f"{stream_name}: sampling gap exceeds max_gap_ms={schema.max_gap_ms}"
+            )
+        if is_ratio:
+            sample_indices = np.searchsorted(ts, grid, side="right") - 1
+            sampled = values[sample_indices]
+        else:
+            sampled = np.column_stack([
+                np.interp(grid - start, ts - start, values[:, col])
+                for col in range(values.shape[1])
+            ])
+        actions[:, np.asarray(action_indices, dtype=int)] = sampled
+
+    return ReplayEpisode(
+        actions=actions, fps=fps, action_dim=action_dim, source=episode_dir,
+        schema=result_schema,
+        notes=(
+            "raw measured trajectory; using common stream interval, "
+            f"excluding {start - episode_start:.3f}s at start and "
+            f"{episode_end - grid[-1]:.3f}s at end; no camera alignment/cleaning",
+        ),
+    )
+
+
 def load_replay(source: str, episode_index: int = 0) -> ReplayEpisode:
-    """Auto-detect: directory = LeRobot v2.1, file = aligned_data.h5."""
+    """Detect raw episode/session/HDF5, aligned HDF5, or LeRobot v2.1."""
     src = os.path.abspath(os.path.expanduser(source))
     if os.path.isdir(src):
+        if os.path.isfile(os.path.join(src, "robot_data.h5")):
+            return load_raw_actions(src)
+        if not os.path.isfile(os.path.join(src, "meta", INFO_JSON)):
+            episode_dir = os.path.join(src, f"episode{int(episode_index):06d}")
+            if os.path.isdir(episode_dir):
+                return load_raw_actions(episode_dir)
         return load_lerobot_actions(src, episode_index)
     if os.path.isfile(src):
+        if os.path.basename(src) == "robot_data.h5":
+            return load_raw_actions(os.path.dirname(src))
         return load_aligned_actions(src)
     raise FileNotFoundError(f"replay source not found: {source}")
 
@@ -231,4 +390,3 @@ class PlaybackSession:
 
     def reset_offset(self) -> None:
         self._offset = np.zeros(self.episode.action_dim, dtype=np.float64)
-

@@ -1,5 +1,5 @@
 // REST client mirroring rob_station's api/client.js convention.
-import type { ApiEnvelope, DataProcessJob, DataProcessRequest, DataProcessState, DataSessionsResponse, HealthData, InferLaunchConfig, LaunchLogsData, Preset, ProfileCatalog, VideoStatusData } from '../types'
+import type { ApiEnvelope, DataProcessJob, DataProcessRequest, DataProcessState, DataSessionsResponse, HealthData, InferLaunchConfig, LaunchLogsData, Preset, ProfileCatalog, ReplayBrowserData, VideoStatusData } from '../types'
 
 const base = import.meta.env.VITE_API_BASE ?? ''
 
@@ -79,6 +79,12 @@ export const api = {
   inferLaunchRestart: () => post<unknown>('/api/v1/infer/launch/restart'),
   inferCmd: (cmd: string) => post<unknown>('/api/v1/infer/cmd', { cmd }),
   inferTask: (text: string) => post<unknown>('/api/v1/infer/task', { text }),
+  replaySources: async (path = '', signal?: AbortSignal): Promise<ApiEnvelope<ReplayBrowserData>> => {
+    const res = await fetch(`${base}/api/v1/infer/replay/sources?path=${encodeURIComponent(path)}`, { signal })
+    const body = await res.json()
+    if (!res.ok) return { ok: false, message: body.detail ?? `HTTP ${res.status}`, data: null as unknown as ReplayBrowserData }
+    return body
+  },
   logs: () => get<LaunchLogsData>('/api/v1/logs'),
   dataSessions: () => get<DataSessionsResponse>('/api/v1/data/sessions'),
   dataJobs: () => get<DataProcessState>('/api/v1/data/jobs'),

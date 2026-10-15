@@ -6,6 +6,7 @@ import type { InferLaunchConfig, InferLaunchInfo, InferState } from '../types'
 import { api } from '../api/client'
 import { pushToast } from '../hooks/useToast'
 import { LaunchLogPanel } from './LogConsole'
+import { ReplaySourcePicker } from './ReplaySourcePicker'
 
 interface Props {
   infer: InferState | null
@@ -54,6 +55,7 @@ export function InferenceCard({ infer, launch }: Props) {
   })
   const [task, setTask] = useState('')
   const [pbSource, setPbSource] = useState('')
+  const [pickingSource, setPickingSource] = useState(false)
 
   const online = infer != null && !infer.stale
   const meta = modeMeta(infer?.state)
@@ -229,10 +231,18 @@ export function InferenceCard({ infer, launch }: Props) {
           <input
             style={inputStyle}
             value={pbSource}
-            placeholder="回放源（可选：<路径>[:<段号>]）"
+            placeholder="点击“浏览”选择回放源"
+            title="可选择已保存的 raw episode、raw session、aligned_data.h5 或 LeRobot v2.1 数据集"
             onChange={(e) => setPbSource(e.target.value)}
           />
+          <button style={btn('#4b5563')} onClick={() => setPickingSource(true)}>浏览…</button>
         </div>
+      </div>
+      {pickingSource && <ReplaySourcePicker source={pbSource}
+        onClose={() => setPickingSource(false)}
+        onSelect={source => { setPbSource(source); setPickingSource(false) }} />}
+      <div style={dimStyle}>
+        遥操录制停止保存后，可直接选择录制段回放，无需先运行 align。
       </div>
       <div style={rowStyle}>
         <button disabled={!online} style={btn('#22c55e')} onClick={() => void sendCmd('policy')}>开始策略 (s)</button>

@@ -25,6 +25,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import config
 from .data_process_manager import DataProcessManager, PipelineConflict
+from .replay_browser import browse_replay_sources
 from .config import STOP_SIGINT_TIMEOUT_S, log_tail_for_push
 from .launch_manager import (
     LaunchManager,
@@ -1183,12 +1184,26 @@ async def infer_launch_restart() -> ApiEnvelope:
     return ApiEnvelope(ok=True, message="已重启推理节点（沿用最近配置）")
 
 
+@app.get("/api/v1/infer/replay/sources")
+def infer_replay_sources(path: str = "") -> ApiEnvelope:
+    """Read-only playback source browsing on configured data roots."""
+    try:
+        data = browse_replay_sources(config.REPLAY_BROWSE_ROOTS, path)
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (OSError, ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=400, detail=f"无法浏览目录：{exc}") from exc
+    return ApiEnvelope(ok=True, data=data)
+
+
 @app.post("/api/v1/infer/cmd")
 async def infer_cmd(req: InferCmdRequest) -> ApiEnvelope:
     node = get_node()
     if node is None:
         raise HTTPException(status_code=503, detail="ROS 节点未就绪")
-    cmd = req.cmd.strip().lower()
+    cmd = config.normalize_infer_cmd(req.cmd)
     if not config.valid_infer_cmd(cmd):
         raise HTTPException(
             status_code=400,

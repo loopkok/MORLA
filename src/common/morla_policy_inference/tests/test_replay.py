@@ -16,6 +16,7 @@ from morla_policy_inference.replay import (
     PlaybackSession,
     ReplayEpisode,
     load_aligned_actions,
+    load_raw_actions,
     load_replay,
 )
 
@@ -135,7 +136,9 @@ class TestLoading(unittest.TestCase):
             with open(os.path.join(meta, "info.json"), "w", encoding="utf-8") as f:
                 json.dump({
                     "fps": 30,
-                    "data_path": "data/chunk-{episode_chunk:03d}/episode_{episode_index:06d}.parquet",
+                    "data_path": (
+                        "data/chunk-{episode_chunk:03d}/episode_{episode_index:06d}.parquet"
+                    ),
                     "features": {"action": {"shape": [19]}},
                 }, f)
             contract = {
@@ -154,6 +157,126 @@ class TestLoading(unittest.TestCase):
             self.assertEqual(replay.action_dim, 19)
             self.assertEqual(replay.schema.layout_hash, profile.frozen_schema.layout_hash)
             self.assertEqual(replay.schema.state_names(), profile.frozen_schema.state_names())
+
+
+class TestRawLoading(unittest.TestCase):
+    def test_raw_replay_resamples_measured_state_and_causal_gripper(self):
+        import h5py
+
+        schema = CollectSchema(
+            arms=["left"], end_effector_left="gripper", end_effector_right="none",
+            cameras=["base"], dataset_fps=10, max_gap_ms=300, action_source="command",
+        )
+        ts = np.array([10.0, 10.05, 10.15, 10.25, 10.35, 10.4])
+        with tempfile.TemporaryDirectory() as session:
+            episode_dir = os.path.join(session, "episode000005")
+            os.mkdir(episode_dir)
+            robot_path = os.path.join(episode_dir, "robot_data.h5")
+            with h5py.File(robot_path, "w") as f:
+                for name, times, values in (
+                    ("left_arm_state", ts, np.repeat((ts - 10)[:, None], 7, axis=1)),
+                    ("left_gripper_ratio", [10, 10.15, 10.4], [[0], [1], [1]]),
+                    ("left_arm_cmd", ts, np.full((len(ts), 7), 99.0)),
+                ):
+                    group = f.create_group(f"streams/{name}")
+                    group.create_dataset("timestamps", data=times)
+                    group.create_dataset("values", data=values)
+            with open(os.path.join(episode_dir, "meta.json"), "w", encoding="utf-8") as f:
+                json.dump({
+                    "schema": schema.to_dict(), "start_time_wall": 10.0,
+                    "end_time_wall": 10.4, "events": [],
+                }, f)
+
+            before = os.stat(robot_path).st_mtime_ns
+            expected = load_raw_actions(episode_dir)
+            self.assertEqual(expected.fps, 10)
+            self.assertEqual(expected.action_dim, 8)
+            self.assertEqual(expected.num_frames, 5)
+            np.testing.assert_allclose(expected.actions[:, 0], [0, .1, .2, .3, .4], atol=1e-12)
+            np.testing.assert_array_equal(expected.actions[:, 7], [0, 0, 1, 1, 1])
+            self.assertEqual(os.stat(robot_path).st_mtime_ns, before)
+            self.assertFalse(os.path.exists(os.path.join(episode_dir, "aligned_data.h5")))
+            for source in (episode_dir, session, robot_path):
+                replay = load_replay(source, 5 if source == session else 0)
+                np.testing.assert_array_equal(replay.actions, expected.actions)
+
+    def test_frozen_profile_layout_maps_measured_state_blocks_to_action_indices(self):
+        import h5py
+
+        profile = ProfileRegistry.from_index().load("nero_left_xhand")
+        schema = profile.frozen_schema
+        times = 1.0 + np.arange(41, dtype=np.float64) / 40.0
+        with tempfile.TemporaryDirectory() as episode_dir:
+            with h5py.File(os.path.join(episode_dir, "robot_data.h5"), "w") as f:
+                streams = f.create_group("streams")
+                for stream_name in sorted({b.stream_key for b in schema.state_blocks}):
+                    spec = next(s for s in schema.streams if s.stream_key == stream_name)
+                    dim = int(spec.shape[-1])
+                    offset = 10 if stream_name == "left_hand_state" else 0
+                    group = streams.create_group(stream_name)
+                    group.create_dataset("timestamps", data=times)
+                    group.create_dataset(
+                        "values", data=np.repeat((times + offset)[:, None], dim, axis=1),
+                    )
+            with open(os.path.join(episode_dir, "meta.json"), "w", encoding="utf-8") as f:
+                json.dump({
+                    "schema": schema.to_dict(), "start_time_wall": 1.0,
+                    "end_time_wall": 2.0, "events": [],
+                    "streams": {name: {"count": len(times)}
+                                for name in {b.stream_key for b in schema.state_blocks}},
+                }, f)
+
+            replay = load_raw_actions(episode_dir)
+            self.assertEqual(replay.action_dim, schema.action_dim)
+            self.assertEqual(replay.num_frames, 31)
+            self.assertEqual(replay.schema.layout_hash, schema.layout_hash)
+            for state in schema.state_blocks:
+                action = next(b for b in schema.action_blocks if b.block_id == state.block_id)
+                expected = times[0] + np.arange(31) / schema.dataset_fps
+                if state.stream_key == "left_hand_state":
+                    expected = expected + 10
+                np.testing.assert_allclose(
+                    replay.actions[:, np.asarray(action.action_indices)],
+                    np.repeat(expected[:, None], state.dim, axis=1), atol=1e-10,
+                )
+
+    def test_raw_replay_rejects_pauses_invalid_counts_and_large_gaps(self):
+        import h5py
+
+        schema = CollectSchema(
+            arms=["left"], end_effector_left="none", end_effector_right="none",
+            cameras=["base"], dataset_fps=10, max_gap_ms=50,
+        )
+        with tempfile.TemporaryDirectory() as episode_dir:
+            ts = np.array([10.0, 10.05, 10.15, 10.25, 10.35, 10.4])
+            with h5py.File(os.path.join(episode_dir, "robot_data.h5"), "w") as f:
+                group = f.create_group("streams/left_arm_state")
+                group.create_dataset("timestamps", data=ts)
+                group.create_dataset("values", data=np.zeros((len(ts), 7)))
+            meta = {
+                "schema": schema.to_dict(), "start_time_wall": 10.0,
+                "end_time_wall": 10.4, "events": [],
+            }
+            path = os.path.join(episode_dir, "meta.json")
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(meta, f)
+            with self.assertRaisesRegex(ValueError, "sampling gap"):
+                load_raw_actions(episode_dir)
+            meta["schema"]["max_gap_ms"] = 300
+            meta["streams"] = {"left_arm_state": {"count": 99}}
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(meta, f)
+            with self.assertRaisesRegex(ValueError, "sample count mismatch"):
+                load_raw_actions(episode_dir)
+            meta["streams"]["left_arm_state"]["count"] = len(ts)
+            meta["events"] = [
+                {"t": 10.1, "name": "pause", "data": True},
+                {"t": 10.2, "name": "pause", "data": False},
+            ]
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(meta, f)
+            with self.assertRaisesRegex(ValueError, "contains a pause"):
+                load_raw_actions(episode_dir)
 
 
 if __name__ == "__main__":

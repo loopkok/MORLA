@@ -68,6 +68,32 @@ def make_h5(frames=30, dim=8, fps=FPS):
     return path
 
 
+def make_raw(episode_dir, frames=200):
+    """Create one closed raw episode matching this test node's legacy profile."""
+    schema = CollectSchema(
+        arms=["left"], end_effector_left="gripper", end_effector_right="none",
+        cameras=["base"], dataset_fps=FPS,
+    )
+    os.makedirs(episode_dir)
+    ts = 1.0 + np.arange(frames, dtype=np.float64) / FPS
+    with h5py.File(os.path.join(episode_dir, "robot_data.h5"), "w") as f:
+        for name, values in (
+            ("left_arm_state", np.repeat((ts - 1.0)[:, None], 7, axis=1)),
+            ("left_gripper_ratio", np.full((frames, 1), 0.5)),
+        ):
+            group = f.create_group(f"streams/{name}")
+            group.create_dataset("timestamps", data=ts)
+            group.create_dataset("values", data=values)
+    with open(os.path.join(episode_dir, "meta.json"), "w", encoding="utf-8") as stream:
+        json.dump({
+            "schema": schema.to_dict(), "start_time_wall": float(ts[0]),
+            "end_time_wall": float(ts[-1]), "events": [],
+            "streams": {"left_arm_state": {"count": frames},
+                        "left_gripper_ratio": {"count": frames}},
+        }, stream)
+    return episode_dir
+
+
 def make_h5_with_schema(frames=12, fps=FPS):
     """Recorded on a *right*-arm robot → same total dim (7+1) as our left-arm
     robot but a different state layout, so the name check must refuse it."""
@@ -437,8 +463,39 @@ class PolicyNodeFlowTest(unittest.TestCase):
     def test_playback_takeover_and_release_roundtrip(self):
         """A recorded real-robot episode can be interrupted by HITL and resumed."""
         h5 = make_h5(200)
+        self._check_playback_takeover_and_release(h5)
+
+    def test_raw_playback_takeover_and_release_roundtrip(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self._check_playback_takeover_and_release(make_raw(
+                os.path.join(directory, "episode000000")
+            ))
+
+    def test_playback_preserves_recorded_fps(self):
+        source = make_h5(12, fps=20)
         self.node.destroy_node()
-        self.node = PolicyNode(parameter_overrides=params(replay_source=h5))
+        self.node = PolicyNode(parameter_overrides=params(replay_source=source))
+        feed_state(self.node)
+        self._cmd("playback")
+        self.assertIsNotNone(self.node._playback)
+        for _ in range(4):
+            self.node._playback_tick(1.0 / FPS)
+        self.assertEqual(self.node._playback.idx, 0)
+        self.node._playback_tick(1.0 / FPS)
+        self.assertEqual(self.node._playback.idx, 1)
+        for _ in range(20):
+            self.node._playback_tick(1.0 / FPS)
+        self.assertEqual(self.node._playback.idx, 5)
+
+    def test_playback_refuses_rate_above_control_capacity(self):
+        feed_state(self.node)
+        self._cmd(f"playback:{make_h5(12, fps=FPS * 2)}")
+        self.assertEqual(self.node.controller.state, "IDLE")
+        self.assertIsNone(self.node._playback)
+
+    def _check_playback_takeover_and_release(self, source):
+        self.node.destroy_node()
+        self.node = PolicyNode(parameter_overrides=params(replay_source=source))
         feed_state(self.node)
         self._cmd("playback")
         self.assertEqual(self.node.controller.state, "PLAYBACK")

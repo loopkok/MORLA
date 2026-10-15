@@ -25,6 +25,11 @@ ros2 launch morla_web_manager web_manager.launch.py
 
 数据采集卡片可独立启动/停止collector，且会传入所选`profile_id`和`runtime_mode`。录制中禁止切换profile或执行回位。策略卡片控制policy/playback/HITL并展示profile/layout hash。监控实体来自当前profile和ROS实际发现的话题；关节名、维度和流率不再固定为Astral布局。摄像头与传感器缺失会按required/optional契约反映在状态和数据质量报告中。
 
+策略推理卡片可浏览机器人主机上的回放源：raw episode/session、aligned HDF5 与 LeRobot v2.1。
+浏览器只读访问 `MORLA_DATA_ROOT`（默认 SDK 根目录下的 `morla_data`）、`~/morla_data` 和
+`MORLA_WEB_MANAGER_REPLAY_ROOTS` 配置的额外目录（按系统路径分隔符分开）；符号链接越出
+这些目录会被拒绝。raw 录制必须先停止并保存，随后可以直接回放，不需要先运行 align。
+
 ## 主要API
 
 响应统一为`{ok, message, data}`；状态冲突返回HTTP 409。
@@ -39,6 +44,7 @@ ros2 launch morla_web_manager web_manager.launch.py
 | `POST` | `/api/v1/collect/launch/start`, `/stop` | 数采泳道启停，自动沿用选定profile/mode |
 | `POST` | `/api/v1/collect/control` | start/stop/pause/resume/next/discard等录制控制 |
 | `POST` | `/api/v1/infer/launch/start`, `/stop`, `/api/v1/infer/cmd` | 策略泳道及policy/playback/HITL控制 |
+| `GET` | `/api/v1/infer/replay/sources?path=...` | 在配置的数据根目录内只读浏览回放源 |
 | `POST` | `/api/v1/data/jobs` | 提交profile感知的对齐、校验、导出等离线任务 |
 | `WS` | `/ws/telemetry` | 推送统一UI快照、动态streams与日志尾部 |
 

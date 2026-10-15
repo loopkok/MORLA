@@ -150,6 +150,13 @@ ros2 topic echo /data_collect/state   # latched JSON：状态/段号/各流频�
 
 ## 4. 离线流水线
 
+**停止保存后可直接回放 raw 录制段**：采集格式仍为 `robot_data.h5`、`camera_data.h5` 和
+`meta.json`。录制停止并保存后，可在 `morla_web_manager` 推理卡点击“浏览…”选择 episode，
+或给 `morla_policy_inference` 传 episode/session 路径；无需先运行对齐、修复或 LeRobot 导出。
+回放只读机器人状态流并按 profile 布局重采样，不读取相机或改变原始文件。策略训练仍走下方
+的对齐、质量校验和导出流程；回放规则、安全执行和 HITL 接管详见
+[`morla_policy_inference`](../morla_policy_inference/README.md) 的“回放采集数据”。
+
 **统一实现目录**：[`morla_data_collect/pipeline/`](morla_data_collect/pipeline/README.md)。对齐、校验、诊断、清洗、导出、回放和验证都在这里；旧脚本和父包离线模块已删除。统一入口：
 
 ```bash

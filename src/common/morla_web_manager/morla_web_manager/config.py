@@ -43,6 +43,11 @@ def _sdk_root() -> Path:
 SDK_ROOT = _sdk_root()
 MORLA_WS = Path(os.environ.get("MORLA_WS", str(SDK_ROOT / "MORLA"))).expanduser().resolve()
 DATA_ROOT = Path(os.environ.get("MORLA_DATA_ROOT", os.environ.get("ASTRAL_DATA_ROOT", str(SDK_ROOT / "morla_data")))).expanduser().resolve()
+REPLAY_BROWSE_ROOTS = list(dict.fromkeys([
+    DATA_ROOT, (Path.home() / "morla_data").resolve(),
+    *(Path(value).expanduser().resolve() for value in
+      _web_env("REPLAY_ROOTS", "").split(os.pathsep) if value),
+]))
 DATA_PIPELINE_PACKAGE = MORLA_WS / "src/common/morla_data_collect"
 DATA_PIPELINE_PYTHON = os.environ.get("MORLA_DATA_PYTHON", os.environ.get("ASTRAL_DATA_PYTHON", str(SDK_ROOT / "VLA/openpi/.venv/bin/python")))
 DATA_CHECK_PYTHON = os.environ.get("MORLA_DATA_CHECK_PYTHON", os.environ.get("ASTRAL_DATA_CHECK_PYTHON", str(Path.home() / "miniconda3/envs/lerobot/bin/python")))
@@ -277,6 +282,12 @@ def policy_launch_args(cfg: dict) -> dict[str, str]:
     if cfg.get("log"):
         args["log_dir"] = PI_LOG_ROOT
     return args
+
+
+def normalize_infer_cmd(cmd: str) -> str:
+    """Normalize command verbs while preserving case-sensitive source paths."""
+    verb, sep, source = cmd.strip().partition(":")
+    return verb.lower() + sep + source
 
 
 def valid_infer_cmd(cmd: str) -> bool:

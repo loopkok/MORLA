@@ -5,7 +5,8 @@
 - **策略部署**：VLA 策略跑在真实机器人/仿真上，模型无关换权重（后端抽象）。
 - **推理节奏**：同步 `queue_sync`、异步 `queue_async`、实时分块 `rtc` 三种引擎模式。
 - **全链路适配**：按与数采相同的不可变 `FrozenSchema` 订阅观测、构造state、验证模型容量与layout handshake，并具名拆分动作；换机器人只需选择同一个 `profile_id`。
-- **数据真机回放**：已采集 episode（`aligned_data.h5` 或 LeRobot v2.1 目录）绝对动作回放，
+- **数据真机回放**：支持已保存 raw episode/session、`robot_data.h5`、`aligned_data.h5` 或
+  LeRobot v2.1 目录；raw 轨迹按 frozen profile 映射实测状态，不要求先运行 align，
   训练好的模型和采集的数据走同一条执行链。
 - **人在环路**：策略暂停 → VR 遥操**增量接管**（自动重新记录机器人原点/VR 位姿）→
   控制权返回策略/回放，全程可重复。
@@ -35,7 +36,7 @@ morla_policy_inference/
 ├── client.py       自包含 websocket client + vendored __ndarray__ 序列化（无 openpi_client）
 ├── engine.py       ActionEngine：queue_sync / queue_async / rtc 三种分块引擎
 ├── controller.py   Controller：IDLE/POLICY(_PAUSED)/PLAYBACK(_PAUSED)/HUMAN FSM
-├── replay.py       读取 aligned_data.h5 / LeRobot v2.1 目录，PlaybackSession 步进
+├── replay.py       读取 raw/aligned HDF5 / LeRobot v2.1，profile 映射 + PlaybackSession 步进
 ├── node.py         policy_node：装配以上全部 + HITL 仲裁 + 控制定时器
 ├── keyboard.py     键盘驱动（s/y/空格/n/h/g/x）
 ├── config/policy_inference.yaml
@@ -290,6 +291,14 @@ CLI 启动的节点同样可控）+ `/policy_inference/state` 实时镜像。启
 ### 4) 回放采集数据
 
 ```bash
+# 直接回放已停止并保存的原始录制段（支持 session:段号）；无需先运行 align
+ros2 topic pub /policy_inference/cmd std_msgs/msg/String \
+    "data: 'playback:/home/robot/loopkok/sdk/morla_data/raw/session/episode000005'" -1
+ros2 topic pub /policy_inference/cmd std_msgs/msg/String \
+    "data: 'playback:/home/robot/loopkok/sdk/morla_data/raw/session:5'" -1
+# 也可选中 episode 内的 robot_data.h5
+ros2 topic pub /policy_inference/cmd std_msgs/msg/String \
+    "data: 'playback:/home/robot/loopkok/sdk/morla_data/raw/session/episode000005/robot_data.h5'" -1
 # LeRobot v2.1 数据集目录（语法 playback:<source>[:<episode>]）
 ros2 topic pub /policy_inference/cmd std_msgs/msg/String \
     "data: 'playback:/data/datasets/xxx:0'" -1
@@ -298,9 +307,23 @@ ros2 topic pub /policy_inference/cmd std_msgs/msg/String \
     "data: 'playback:/data/aligned/aligned_data.h5'" -1
 ```
 
-回放帧率 = `dataset_fps`；播完保持末位 `replay_hold_s` 秒后自动回 IDLE。进入回放前会先校验
+Raw 回放使用 `meta.json` 中的 frozen schema，将 measured-state block 按稳定 block ID 映射到
+action indices；不依赖 state/action 向量恰好同序。使用所有必要流的公共有效时间窗：关节线性
+插值，夹爪/ratio 只保持当前已出现的指令回显；保留静止时长，不做 next_state 移帧、训练清洗
+或训练 hold 帧追加。相机不会读取，raw 文件不会被修改或生成 aligned 文件。缺少必要流、
+NaN/Inf、时间戳重复/倒序、超过 `max_gap_ms` 的采样断档或包含 pause 的历史段会被拒绝。
+若 episode 同时有 raw 和 aligned，直接选择 episode 目录优先回放 raw；需要回放清洗后的动作时，
+明确选择 `aligned_data.h5`。
+
+回放帧率使用文件记录值；若高于 `dataset_fps * control_interp` 所提供的控制率会拒绝启动。
+播完保持末位 `replay_hold_s` 秒后自动回 IDLE。进入回放前会先校验
 `action_dim` 与（h5/lerobot meta 带 schema 时）state 布局命名顺序，不一致直接拒绝并保持
 当前活动——不会出现“总维数相同但块顺序不同”的静默错放。
+
+raw、aligned 和 LeRobot 回放都经过相同的所有权仲裁与 `SafeExecutor` 限位/限速。真机回放前
+需确认驱动就绪、反馈新鲜，并让机器人处在录制起始姿态附近；实体动力学和安全限速可能使实际
+轨迹不同于逐点录制值。回放不启动模型服务，也不播放历史相机画面；人工可通过现有 takeover /
+release 冻结与重锚后续播。
 
 **真机回放中的人在环测试**：回放运行时按键盘 `h`（或向 `/policy_inference/cmd` 发 `takeover`）可
 冻结数据回放并切到 Quest 人工遥操；按 `g`（或发 `release`）后，会以当前实测机器人状态重锚并从

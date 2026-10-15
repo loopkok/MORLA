@@ -16,14 +16,16 @@
 | P5 Nero driver/teleop | 软件完成 | 新建标准 ROS driver/teleop 两包并按 profile 参数装配；fake 双侧 launch 和命名命令往返通过。真实 CAN/固件/安全路径未验收，见 P11。 |
 | P6 XHand adapter/sim | 完成 | 31 ROS 包构建通过；adapter/retarget 59 项、XNero 仿真 29 项通过；profile 驱动 headless 整链路实测通过，触觉源约 50 Hz。 |
 | P7 unified data collection | 完成 | profile数采/具名重排、XHand力/温度/valid raw sidecar、按源时钟离散对齐、repair同源选帧、source索引验证、LeRobot v2.1/v3 schema与触觉旁路、只读XNero导入均完成。端到端三项新增集成测试通过；数采测试128通过/1跳过。 |
-| P8 policy/HITL | 软件完成 | policy、stub/remote handshake、Replay 统一接入 FrozenSchema；标准可靠 QoS、具名 writer 路由、所有权 freeze/ACK 与 Nero prepare/token；149 项策略测试通过。19维实际仿真中完成 stub→HITL takeover/release→LeRobot replay→pause/resume。没有真实硬件策略运行。 |
-| P9 Web manager | 软件完成 | profile/API/操作互锁/三条泳道与动态 streams 已接通；Web manager 37项回归通过；Vite 52 modules 构建通过；headless Chrome 实际加载 MORLA UI，SPA 与 JS asset 均 HTTP 200。 |
+| P8 policy/HITL | 软件完成 | policy、stub/remote handshake、Replay 统一接入 FrozenSchema；标准可靠 QoS、具名 writer 路由、所有权 freeze/ACK 与 Nero prepare/token；本轮含 raw profile block 映射、录制帧率节奏和 HITL 回放闭环，策略套件 156 项通过。19维实际仿真已有 stub→HITL takeover/release→LeRobot replay→pause/resume 证据；新增 raw 回放由合成数据节点流回归覆盖。没有真实硬件策略运行。 |
+| P9 Web manager | 软件完成 | profile/API/操作互锁/三条泳道与动态 streams 已接通；本轮新增回放源只读浏览 API/网页选择器和大小写/空格路径保护，Web manager 测试 44 项通过；Vite 53 modules 构建通过；headless Chrome 既有记录显示 SPA 与 JS asset 均 HTTP 200。 |
 | P10 software integration | 软件完成 | Astral8/35、Nero19/38已有profile仿真证据；8/35/38完成采集→对齐→校验→LeRobot v2.1，均218帧；Nero19完成277帧stub/HITL/replay/pause闭环。本轮验证统一 Astral/Nero 启动入口、Nero19采集到190帧并成功导出。profile CLI 12/12。 |
 | P11 hardware/model acceptance | 待设备验收 | 等待 Astral/Nero/XHand/Wuji 实机、固件/SDK、严格Quest APK与38维策略模型。XNero 冻结点之后新增的 HUG grasp bridge 尚未纳入本次执行计划；其边界见下节。不得将软件仿真结果表述为真机通过。 |
 
 ## 源仓库后续提交复核
 
-冻结基线 `docs/SOURCE_BASELINE.json` 记录 XNero `e6a0100429024f04e18238f1a42ee968bb18967a`。最终复核时 `/home/robot/loopkok/sdk/xnero_ws` 位于干净分支 `feat/hug-grasp-loop`，HEAD 为 `6f467bf2a1131019a882399c0be21059464cd06e`，冻结提交仍是其祖先。Astral 当前 HEAD 仍为冻结的 `3a57d722d3c4257670d9f90526127bed77063e66`，两个源工作区的 Git 状态均为空。
+冻结基线 `docs/SOURCE_BASELINE.json` 记录 Astral `3a57d722d3c4257670d9f90526127bed77063e66` 和 XNero `e6a0100429024f04e18238f1a42ee968bb18967a`；基线文件保持只读，用于说明原始迁移起点。2026-10-15 重新检查 Astral WS，当前 HEAD 为 `38f9b458e80892c85db39f451ce68901e7c5dcbc`，较冻结点新增三项提交：`54ad233` 调整 Astral 双臂 HOME/init 工作位 J1 waypoint（−1.6→−1.2）、`41279f0` 在 HOME 回零途中单独归零 J4、`38f9b45` 将 Quest 时间协议从 UTC-ms envelope 改为单调时钟 challenge/response。已将对应功能同步到 MORLA 的 teleop 配置/逻辑与 `morla_input`，并保留 MORLA 的 profile/session epoch 和输入失效处理。受影响的两个 ROS 包定向构建成功；Quest 输入测试 10 项、Astral arm 回归 49 项通过，`PacketGuard` 定向 flake8/pydocstyle 检查通过。全包历史 lint 扫描仍报告既有格式问题，集中在原有 mocap/standalone 代码。Quest 端协议源码现已提交到本机 `astral-tracking` `a6e262c`，但该提交未构建或安装 APK，设备侧握手仍属待验收项。XNero 冻结点后的 `xnero_grasp_bridge` 边界说明仍适用。
+
+随后复核 Astral WS HEAD `48642270361bf525d91b5b73f7bea893d9d918fe`（`feat: 支持 raw 遥操回放与回放源浏览`），新增更新限于数采/推理/Web 的 raw 回放与回放源浏览功能。本轮已同步到 `morla_policy_inference` 和 `morla_web_manager`，按 MORLA 冻结 schema 的 action/state block 映射实测流，同时保留 profile/layout/kinematics 校验和 SafeExecutor/HITL 路径；网页只读浏览配置的数据根目录并拦截越界路径/符号链接。`morla_policy_inference` 156 项、`morla_web_manager` 44 项测试通过，前端 Vite 53 modules 构建通过，两个 ROS 包定向构建通过。新增 raw 回放以合成 raw 数据和节点测试验证，尚未对真机录制段做回放验收；冻结基线文件未改。
 
 XNero 冻结点后的17个新增文件全部属于独立的 `xnero_grasp_bridge` 研究实现及其 HUG 计划/设计文档：包含右手 MANO→retargeter 坐标候选、HUG WebSocket 模型服务和校准脚本；没有改动冻结基线中的 Nero driver/teleop、XHand retarget、MuJoCo sim 或旧数据采集源文件。该新实现没有 ROS package manifest，且计划基线未定义其接入契约，因此本次不把它并入 MORLA 的 robot graph，也不把它伪装成 `morla_policy_inference` 的标准 action writer。若后续要接入，需要单独定义它输出 MANO landmarks 如何通过冻结 schema、输入所有权和 XHand 坐标兼容校验进入 MORLA。MORLA 当前按用户指定的冻结源基线与迁移计划验收。
 
