@@ -104,6 +104,6 @@ astral_arm_teleop_right:
     human_elbow_min_sin: 0.15
 
     # Via point (hardware convention): lift / fold before extending to the table.
-    init_waypoints: [-1.6, -0.2, 0.0, -1.92, 0.2, 0.0, 0.00]
+    init_waypoints: [-1.2, -0.2, 0.0, -1.92, 0.2, 0.0, 0.00]
     # init_pose: [0.32, -0.11, 0.53, -0.80, -0.28, 0.00, 0.00]
     init_pose: [-0.35, -0.2, 0.0, -1.92, 0.2, 0.0, 0.00]

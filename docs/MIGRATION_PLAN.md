@@ -311,7 +311,7 @@ core 不 import rclpy、硬件 SDK、torch、OpenPI 或 ROS 自定义消息。`P
 - XHand 底层原生通道当前是 rclcpp QoS(1)，默认 RELIABLE。adapter 原生命令 publisher 必须 RELIABLE，与 C++订阅者兼容。标准 BEST_EFFORT 命令不能直接 remap 到 RELIABLE 原生订阅；类型也不同。
 - 所有新标准关节命令均写完整 `name`；接收者按配置名字重排，只接受 exact-name-set。重复/缺失/未知/非有限/错长度均拒绝并留诊断，绝不补零驱动机器人。兼容无名旧消息须显式 `allow_positional_legacy=true` 且精确维数，仅特定适配入口可开。
 - 采集 command 流继续用 host arrival wall-clock 时间，避免遥操沿用 VR 戳产生重复 cmd 时间；state 和 camera 保留有效源 header.stamp。分别保存 `source_timestamp` 与 `arrival_timestamp`（新增可选数据列）以及 `timestamp_mode`，不能混淆。
-- 看门狗用 monotonic；磁盘对齐用同一 wall-clock 域。真机/Quest/ROS host 必须时钟一致；仿真如使用 `/clock`，将整个采集会话显式声明为 sim 时间域，禁止把 ROS sim stamp 与 Unix wall-clock 混入同一次对齐。初版 sim smoke 可继续统一 host 时间。
+- 看门狗用 monotonic；磁盘对齐用同一 wall-clock 域。Quest 新协议通过 challenge/response 自动把 Quest 单调源时间换算到接收主机 wall-clock 域，不要求 Quest 与 PC 系统 UTC 对时；其他外部设备的源时间仍须与采集域有明确映射。仿真如使用 `/clock`，将整个采集会话显式声明为 sim 时间域，禁止把 ROS sim stamp 与 Unix wall-clock 混入同一次对齐。初版 sim smoke 可继续统一 host 时间。
 
 ### 5.3 控制动作语义
 

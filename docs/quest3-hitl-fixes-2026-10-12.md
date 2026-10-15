@@ -14,9 +14,11 @@
 
 ## Quest 网络输入
 
-Unity 对每行数据增加 `@q3 <session> <sequence> <utc_ms>|` 外层包头，原有 wrist、landmark、controller、head、IOBT 载荷格式不变。ROS UDP/TCP 和独立脚本共用检查逻辑：默认最大年龄 0.5 秒，丢弃未来时间戳、过期、重复/乱序及旧 session 迟到包。TCP 行缓冲也有限长。
+Quest 输入后续于 2026-10-15 更新为 `@q3m <session> <sequence> <monotonic_us>|` 包头，ROS UDP/TCP 和 standalone 共用同一 `PacketGuard`。PC 接收端发送带 nonce 的 `@q3sync` challenge，Quest 回传单调时钟收发时刻；接收端用四时间戳公式估计时钟偏移并对源年龄限幅（默认 0.5 秒），无需 Quest/PC 系统 UTC 对时。重复/乱序和已退役 session 仍会被拒绝，ROS 头戳回到接收主机 wall-clock 时间域。
 
-Quest 与接收机系统时钟需要同步。接收端代码默认拒绝旧 APK；本工作区依照本次测试安排，临时将 `allow_legacy_packets` 设为 `true`，可接收旧 APK 载荷，但不提供源时效、序号及 session 保护。新 APK 安装后应恢复 `false`。Unity 源码已修改，但本环境无法运行 Windows Unity 6000.0，APK 未重建或安装。
+`allow_legacy_packets` 仅接受不带任何 envelope 的原始旧载荷，不提供源时效、序号及 session 保护；旧版 `@q3` UTC-ms envelope 不作为 legacy 接受。MORLA 常规配置继续设为 `false`。Quest 端相应 Unity 源码已提交到本机 `astral-tracking` `a6e262c`；该提交记录尚未使用 Unity 重建或安装 APK，因此设备侧握手和时效仍待现场验证。
+
+另同步 Astral WS 2026-10-14 HOME 行为：HOME 到回程最后途经点后，保持其它关节、单独把 J4 置零，再到全零位；该过渡只进入 HOME park 路径，不改变工作位/段间回位。Astral 双臂工作位 J1 途经点由 ±1.6 调整为 ±1.2 rad。
 
 ## 数据标签与导出
 

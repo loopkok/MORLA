@@ -72,12 +72,15 @@ IOBT 开（Quest 已把头/手/手柄及 body 关节变到 hips 躯干系；hips
 
 ### Quest 数据包时效与去重
 
-当前接收端要求每条 Quest 数据行带 `@q3 <session> <sequence> <utc_ms>|` 包头。UDP/TCP 共用检查器会拒绝
-过期、未来时间戳、重复/乱序序号以及已退役 session 的迟到包；默认最大年龄 0.5 秒。Quest 与接收机系统时钟
-需要同步。仓库中的独立脚本使用同一规则。
+当前接收端要求每条 Quest 数据行带 `@q3m <session> <sequence> <monotonic_us>|` 包头。接收端通过
+`@q3sync <nonce> <pc_monotonic_ns>` / `@q3sync_ack <session> <nonce> <quest_receive_us> <quest_send_us>`
+challenge/response 自动估算 Quest 与 PC 单调时钟偏移。UDP/TCP 共用检查器会拒绝未完成同步、过期、重复/乱序
+及已退役 session 的迟到包；默认最大年龄 0.5 秒。时间戳转换回 PC wall-clock 域后再发布 ROS 消息，因此无需
+手动同步 Quest 与 PC 的系统时钟。仓库中的独立脚本使用相同的包格式与检查器。
 
-旧 APK 不带此包头，常规配置默认拒绝。只有明确运行旧设备时才可通过
-`allow_legacy_packets:=true` 开启兼容；此时不具备源端时效、序号和 session 保护。
+旧 APK 不带新包头，常规配置默认拒绝。只有明确运行旧设备时才可通过
+`allow_legacy_packets:=true` 开启兼容；此时只接受未封包的原始行，不具备源端时效、序号和 session 保护。
+旧版 `@q3` UTC-ms 包不属于此 raw legacy 模式，也会被拒绝。新协议需要更新并安装 astral-tracking APK。
 收到新 session 或运行中从 world 切换到 IOBT body frame 时，输入发布 `quest3/input_epoch`，清空接收端滤波缓存，
 控制闸门停止活动写入并要求先松开、再按 grip 重新启动。
 

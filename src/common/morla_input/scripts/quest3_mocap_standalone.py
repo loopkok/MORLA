@@ -542,12 +542,16 @@ class Quest3MocapStandalone:
         assert self._socket is not None
         while self.is_running:
             try:
-                data, _ = self._socket.recvfrom(65536)
+                data, remote = self._socket.recvfrom(65536)
                 arrival = time.time()
+                arrival_mono = time.monotonic()
+                peer_key = f"udp:{remote[0]}:{remote[1]}"
                 for line in data.decode("utf-8").splitlines():
                     if line:
-                        accepted = self._packet_guard.accept(line, arrival)
-                        if accepted: self.process_line(*accepted)
+                        self._handle_peer_line(
+                            line, arrival, arrival_mono, peer_key,
+                            lambda payload: self._socket.sendto(payload, remote),
+                        )
             except socket.timeout:
                 continue
             except OSError:
@@ -575,7 +579,13 @@ class Quest3MocapStandalone:
 
     def _tcp_conn_loop(self, conn: socket.socket, addr) -> None:
         buf = ""
+        peer_key = f"tcp:{addr[0]}:{addr[1]}"
         with conn:
+            try:
+                challenge = self._packet_guard.make_sync_challenge(peer_key, force=True)
+                conn.sendall(challenge.encode("ascii"))
+            except OSError:
+                return
             while self.is_running:
                 try:
                     data = conn.recv(65536)
@@ -583,15 +593,38 @@ class Quest3MocapStandalone:
                         LOG.info("TCP %s disconnected", addr)
                         break
                     arrival = time.time()
+                    arrival_mono = time.monotonic()
                     buf += data.decode("utf-8")
                     while "\n" in buf:
                         line, buf = buf.split("\n", 1)
                         if line.strip():
-                            accepted = self._packet_guard.accept(line.strip(), arrival)
-                            if accepted: self.process_line(*accepted)
+                            self._handle_peer_line(
+                                line.strip(), arrival, arrival_mono, peer_key,
+                                conn.sendall,
+                            )
                 except OSError as exc:
                     LOG.error("TCP read error from %s: %s", addr, exc)
                     break
+
+    def _handle_peer_line(self, line, arrival, arrival_mono, peer_key, send_bytes) -> None:
+        """Mirror the ROS receiver's per-peer sync and telemetry handling."""
+        if line.startswith("@q3sync_ack "):
+            if self._packet_guard.handle_sync_ack(
+                line, peer_key, received_ns=int(arrival_mono * 1e9)
+            ):
+                LOG.info("Quest monotonic clock synchronized for %s", peer_key)
+            return
+        if line.startswith("@q3m "):
+            challenge = self._packet_guard.make_sync_challenge(
+                peer_key, now_ns=int(arrival_mono * 1e9)
+            )
+            if challenge:
+                send_bytes(challenge.encode("ascii"))
+        accepted = self._packet_guard.accept(
+            line, received=arrival, received_monotonic=arrival_mono
+        )
+        if accepted:
+            self.process_line(*accepted)
 
     # ---- processing (same as ROS node) ------------------------------------
 

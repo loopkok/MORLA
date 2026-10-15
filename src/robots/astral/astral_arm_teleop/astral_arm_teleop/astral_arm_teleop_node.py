@@ -949,12 +949,16 @@ class AstralTeleopArmNode(Node):
         # （从零/低位 抬向 init_pose），收回须按**倒序**逐点退回（先回离
         # init_pose 最近的途经点再逐级放下），否则多途经点时 HOME 走的是
         # 顺向延伸而非原路返回（症状：经过位置与启动移动不成反向关系）。
-        # 单一途经点时倒序无差异。
-        self._homing_path = (
-            [self._init_q_hw.copy()]
-            + self._parse_init_waypoints()[::-1]
-            + [np.zeros(7, dtype=float)]
-        )
+        # 到达最后一个安全途经点后，先保持其余关节、单独将 J4 (q[3]) 归零，
+        # 再回全零。该中间点只属于 HOME，不改变启动/工作位路径。
+        park_waypoints = self._parse_init_waypoints()[::-1]
+        self._homing_path = [self._init_q_hw.copy()] + park_waypoints
+        if park_waypoints:
+            j4_zero = park_waypoints[-1].copy()
+            j4_zero[3] = 0.0
+            if not np.allclose(j4_zero, park_waypoints[-1]):
+                self._homing_path.append(j4_zero)
+        self._homing_path.append(np.zeros(7, dtype=float))
         self._homing_i = 0
         self._homing_started = False
         self._homing_seeded = False
@@ -967,10 +971,10 @@ class AstralTeleopArmNode(Node):
         self.pose.reset()
         self.get_logger().warn(
             f"[{self.side}] HOME: disarm + park to zero via init_pose → "
-            f"{len(self._parse_init_waypoints())} via → zero "
+            f"{len(park_waypoints)} via → J4=0 → zero "
             f"({self._init_joint_vel:.2f} rad/s)"
         )
-        return True, "HOME 已启动 (init_pose → init_waypoints → 零位)"
+        return True, "HOME 已启动 (init_pose → init_waypoints → J4归零 → 全零位)"
 
     def _on_init(self, msg: Bool) -> None:
         # One-shot level guard (mirrors /teleop/home): only Bool(true) triggers.

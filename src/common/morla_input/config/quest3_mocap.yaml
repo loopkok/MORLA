@@ -4,8 +4,8 @@ quest3_udp_mocap:
     # udp | tcp_wired | tcp_wireless  — 仿真/遥操 launch 默认不覆盖；改这里即可
     protocol: "tcp_wired"
     max_packet_age_s: 0.5
-    # Normal operation requires timestamped @q3 session/sequence envelopes.
-    # Enable only as an explicit compatibility override for old APKs.
+    # Normal operation requires @q3m monotonic timestamps and the @q3sync handshake.
+    # Legacy mode accepts only unwrapped packets and has no replay/freshness guard.
     allow_legacy_packets: false
     udp_port: 9000
     tcp_port: 8000

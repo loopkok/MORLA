@@ -2,7 +2,7 @@
 """Regression tests for the HOME / park-to-zero path on AstralTeleopArmNode.
 
 ``_go_home`` must disarm and build a joint-space park path
-``init_pose → init_waypoints → 零位`` (the reverse of the startup init
+``init_pose → reversed init_waypoints → J4=0 → 零位`` (the reverse of the startup init
 homing), sharing the ``_homing_*`` machinery. ``_finish_homing`` in "park"
 mode must end at zero on arrival but *never* hard-command a zero target on
 timeout. Park homing runs the same smooth open-loop stepper as startup init;
@@ -136,7 +136,7 @@ def _make_node():
     return node
 
 
-def test_home_disarms_and_builds_reverse_park_path():
+def test_home_disarms_and_builds_reverse_path_with_j4_zero_waypoint():
     node = _make_node()
     node._armed = True
     ok, _ = node._go_home()
@@ -145,13 +145,16 @@ def test_home_disarms_and_builds_reverse_park_path():
     assert node._disarm_reason == "operator"
     assert node._homing is True
     assert node._homing_mode == "park"
-    # init_pose → init_waypoints(**倒序**：先回离 init_pose 最近的途经点) → zero
+    # init_pose → init_waypoints(**倒序**) → 最后途经点保持其他关节、单独归零 J4 → zero
     path = node._homing_path
-    assert len(path) == 1 + 2 + 1
+    assert len(path) == 1 + 2 + 1 + 1
     assert np.allclose(path[0], INIT_Q)
     assert np.allclose(path[1], WAY2)  # 倒序：yaml 末点最先回（原路返回）
     assert np.allclose(path[2], WAY1)
-    assert np.allclose(path[-1], np.zeros(7))
+    expected_j4_zero = WAY1.copy()
+    expected_j4_zero[3] = 0.0
+    assert np.allclose(path[3], expected_j4_zero)
+    assert np.allclose(path[4], np.zeros(7))
     # First step target is init_pose (current → init_pose → … → zero)
     assert np.allclose(node._homing_target(), INIT_Q)
 

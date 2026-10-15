@@ -461,8 +461,10 @@ class Quest3UDPMocap(Node):
             raise ValueError("Quest landmarks must be finite with shape (21, 3)")
         return points - points[0:1, :]
 
-    def _process_network_line(self, line, arrival_time):
-        accepted = self._packet_guard.accept(line, arrival_time)
+    def _process_network_line(self, line, arrival_time, arrival_monotonic=None):
+        accepted = self._packet_guard.accept(
+            line, received=arrival_time, received_monotonic=arrival_monotonic
+        )
         if accepted:
             changed = self._packet_guard.last_session_change
             if changed:
@@ -471,20 +473,42 @@ class Quest3UDPMocap(Node):
         elif time.monotonic() - getattr(self, '_last_packet_warning', 0) > 5.0:
             self._last_packet_warning = time.monotonic()
             self.get_logger().warn(
-                f'Quest input rejected ({self._packet_guard.rejected}): stale/out-of-order '
-                'or legacy packet; update timestamped APK and synchronize UTC clocks')
+                f'Quest input rejected ({self._packet_guard.rejected}): unsynchronized, '
+                'stale, duplicate/out-of-order, or legacy packet; install the monotonic-clock APK')
+
+    def _handle_peer_line(self, line, arrival_time, arrival_monotonic, peer_key, send_bytes):
+        """Handle Quest sync control lines and timestamped telemetry per peer."""
+        if line.startswith('@q3sync_ack '):
+            if self._packet_guard.handle_sync_ack(
+                line, peer_key, received_ns=int(arrival_monotonic * 1e9)
+            ):
+                self.get_logger().info(f'Quest monotonic clock synchronized for {peer_key}')
+            return
+        if line.startswith('@q3m '):
+            challenge = self._packet_guard.make_sync_challenge(
+                peer_key, now_ns=int(arrival_monotonic * 1e9)
+            )
+            if challenge:
+                send_bytes(challenge.encode('ascii'))
+        self._process_network_line(line, arrival_time, arrival_monotonic)
 
     def udp_listener(self):
         """UDP listener thread."""
         while self.is_running and rclpy.ok():
             try:
-                data, _ = self.socket.recvfrom(65536)
+                data, remote = self.socket.recvfrom(65536)
                 arrival_time = time.time()
+                arrival_monotonic = time.monotonic()
                 self._bw.add(len(data))
                 message = data.decode('utf-8')
+                peer_key = f'udp:{remote[0]}:{remote[1]}'
                 for line in message.splitlines():
-                    if not line: continue
-                    self._process_network_line(line, arrival_time)
+                    if not line:
+                        continue
+                    self._handle_peer_line(
+                        line, arrival_time, arrival_monotonic, peer_key,
+                        lambda payload: self.socket.sendto(payload, remote),
+                    )
                 if self._bw.should_print():
                     self.get_logger().info(
                         f"[Mocap Downlink] {self._bw.take_kbps():.1f} kbps"
@@ -514,7 +538,13 @@ class Quest3UDPMocap(Node):
     def _tcp_connection_handler(self, conn, addr):
         """Handle a single TCP connection — read lines and process."""
         buf = ""
+        peer_key = f'tcp:{addr[0]}:{addr[1]}'
         with conn:
+            try:
+                challenge = self._packet_guard.make_sync_challenge(peer_key, force=True)
+                conn.sendall(challenge.encode('ascii'))
+            except OSError:
+                return
             while self.is_running and rclpy.ok():
                 try:
                     data = conn.recv(65536)
@@ -522,6 +552,7 @@ class Quest3UDPMocap(Node):
                         self.get_logger().info(f"TCP {addr} disconnected")
                         break
                     arrival_time = time.time()
+                    arrival_monotonic = time.monotonic()
                     self._bw.add(len(data))
                     buf += data.decode('utf-8')
                     if len(buf) > 1048576:
@@ -529,7 +560,10 @@ class Quest3UDPMocap(Node):
                     while '\n' in buf:
                         line, buf = buf.split('\n', 1)
                         if line.strip():
-                            self._process_network_line(line.strip(), arrival_time)
+                            self._handle_peer_line(
+                                line.strip(), arrival_time, arrival_monotonic, peer_key,
+                                conn.sendall,
+                            )
                     if self._bw.should_print():
                         self.get_logger().info(
                             f"[Mocap Downlink] {self._bw.take_kbps():.1f} kbps"

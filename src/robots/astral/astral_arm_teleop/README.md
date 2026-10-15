@@ -453,9 +453,11 @@ ros2 service call /astral_arm_teleop_right/init std_srvs/srv/Trigger
 
 ## HOME（归位到零 / park-to-zero）
 
-把双臂从**当前位姿**安全收回零位，路径：**init_pose → init_waypoints（倒序逐点）→ 零位**，
+把双臂从**当前位姿**安全收回零位，路径：**init_pose → init_waypoints（倒序逐点）→ 在最后途经点保持其余关节、单独将 J4 归零 → 全零位**，
 与启动归位共用同一条慢速 joint-space 轨迹机。动作前先 disarm；期间忽略 VR/`start`；到零位后
 保持（关节目标=0）并把机器人原点锚到 FK(零)。之后要再遥操需重新 `/teleop/start`。
+
+J4 归零只属于 HOME：到达回程途经点后，先保持其他关节在该途经点，只移动 J4 到硬件零位；确认该点后，再让全臂移动到零位。工作位仍按原有 `init_waypoints → init_pose` 路径运行。
 
 > **途经点防切角（实体到位 + 稳定驻留）**：park 轨迹纯开环，命令（q_cmd）会领先实测（板端
 > 跟踪误差 + 链路延迟）。若命令一到途经点就立刻反向去下一段，**实体会被"切角"在 waypoint

@@ -146,8 +146,8 @@ grip 仍为原「开始遥操」。
   恢复需重新「一键就绪」）。
 - **暂停/恢复**：web「暂停」= 软 disarm（节点保持运行，夹爪/手/头继续）；VR 看门狗
   （1.5s 无腕姿）disarm 后须**重新 grip 重标定**才能恢复。
-- **HOME（归零）**：web 系统 tab「HOME」（先使能电机 → disarm → 沿 init_pose → init_waypoints →
-  零位慢速收回）。
+- **HOME（归零）**：web 系统 tab「HOME」（先使能电机 → disarm → 沿 init_pose → 倒序 init_waypoints →
+  在最后途经点单独将 J4 归零 → 全零位慢速收回）。工作位和段间回位不包含这个 HOME 专用 J4 步骤。
 
 ### 键位速查（VR / web / 键盘 / CLI 四端等价）
 
