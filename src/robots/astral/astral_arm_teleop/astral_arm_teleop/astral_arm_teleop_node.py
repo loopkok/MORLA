@@ -1399,6 +1399,15 @@ class AstralTeleopArmNode(Node):
             self._lat.count("psi_off")
         return psi
 
+    def _control_psi_ref(self, T_flange: np.ndarray) -> Optional[float]:
+        """Use the human elbow prior only outside a committed HITL takeover."""
+        lease = getattr(self, "_policy_lease", None)
+        if not self._use_human_elbow or (lease is not None and lease.activity == "human"):
+            # In HITL, the operator's absolute elbow direction is not anchored
+            # to the robot. The IK state is already warm-started from q_cmd.
+            return None
+        return self._human_psi_ref(T_flange)
+
     def _loop(self) -> None:
         now = time.monotonic()
         dt = max(1e-3, now - self._prev_t)
@@ -1490,7 +1499,7 @@ class AstralTeleopArmNode(Node):
         except TypeError:
             self.ik.sync_state(self._flip_q(self.q_cmd))
         t_ik = time.perf_counter()
-        psi_ref = self._human_psi_ref(T_flange) if self._use_human_elbow else None
+        psi_ref = self._control_psi_ref(T_flange)
         hard_fb = 0
         sol = None
         if (
