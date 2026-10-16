@@ -123,3 +123,10 @@ TF 由 Profile-scoped `robot_state_publisher` 加测量 JointState bridge 提供
 - `*_gripper_flange` 和 SDK `get_flange_pose()` 继续作为独立的物理法兰模型/测量接口；规范 `/flange_pose` 及旧 `/tcp_pose` 兼容别名保留，SDK 与 URDF frame 的实体对齐仍标记未验收。
 - 同步修正坐标计划、TODO、Nero 接口说明、FK 审计断言及 VR→IK→FK 回归的 frame 语义；删除只对应已撤销默认法兰选择的临时审计 JSON。
 - 验证：`scripts/build.sh --mode symlink` 31/31 包通过；坐标与 flange-topic 测试 8 passed；Profile 校验 12/12；Nero 501姿态/侧的解析 FK 与 URDF/MJCF 审计通过；VR 位置映射及 link7 FK→IK→FK 回归 8/8；`git diff --check` 通过。
+
+### 2026-10-16：Astral WS 增量同步
+
+- 核对 Astral `4864227..40b87da` 三个新增提交；逐项决策、源/目标范围和延迟审计说明见 `docs/astral_sync_2026-10-16.md`。
+- 同步 Astral HUMAN 接管期间停用人体绝对肘先验的 IK 行为，并新增 ownership 回归；Quest 严格包校验原已默认生效，补齐启动保护模式日志。
+- MORLA Web 已支持显式 `web_host:=0.0.0.0`，默认继续本机监听以避免无认证控制 API 自动暴露。源延迟审计是调查材料，未改变控制频率、滤波或驱动参数。
+- 验证：定向 9 passed；全工作区 symlink 构建 31/31；`scripts/test_ros.sh` 366 passed/2 deselected，Astral 几何 IK、IK solver 和 VR 映射独立回归均 PASS；`scripts/test_policy.sh` 156 passed。未连接真实硬件。
