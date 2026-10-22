@@ -4,6 +4,10 @@ MORLA is the unified ROS 2 Humble workspace for Astral, Nero, Wuji Hand, and XHa
 
 ## Workspace layout
 
+Recent Nero/XHand piano integration changes are recorded in [CHANGELOG](CHANGELOG.md) and the [2026-10-20—22 piano debugging log](docs/piano/DEBUG_LOG_2026-10-20_22.md). The independent engine lives in sibling `MORLA-piano`; deployed calibration data is stored separately in `.morla_piano/`. See the log for current behavior, parameter snapshots and hardware-validation limits.
+
+Single-operator voice (host/Quest microphone), existing controller buttons, and USB pedal inputs share the operator command router. See [operator control](docs/operator_control.md) for setup, commands, and the Quest Windows build workflow.
+
 - `src/common/`: shared input, collection, policy, web management, and bringup packages.
 - `src/robots/astral/`, `nero/`, `wuji/`, and `xhand/`: robot and hand packages grouped by platform.
 - `tools/legacy/`: archived utilities excluded from ROS package discovery.
@@ -35,6 +39,8 @@ The active tool remains the legacy solver tip until the real SDK flange,
 connector, and task TCP are checked against the physical assembly; see the
 plan for that hardware boundary.
 
+For the current Nero bilateral installation, use the [joint mirror convention and HOME posture](docs/nero_joint_conventions.md) when deriving mirrored arm targets: J1/J3/J5/J6 reverse sign; J2/J4/J7 keep the same sign.
+
 The web UI source is in `src/common/morla_web_manager/web`; build it with `npm ci && npm run build` there.
 
 ## Migration state
@@ -48,3 +54,7 @@ ros2 run morla_core morla-profile validate-all
 ```
 
 Run hardware only after completing the device-specific P11 checklist. The current acceptance boundary and test limitations are recorded in `docs/migration_progress.md`.
+
+## Nero hardware Web startup
+
+Use `bash scripts/nero_web_start.sh` on the robot host, or add `--no-quest` to skip ADB. It checks USB-CAN/serial devices, activates the host CAN mapping, grants serial access, loads ROS, stops old MORLA services and port 8080 listeners, prepares Quest port forwarding, then starts Web in the foreground. See [the complete startup guide](docs/nero_web_start.md) for prerequisites and read-only `--dry-run`.

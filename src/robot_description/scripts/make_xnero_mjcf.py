@@ -135,6 +135,17 @@ def main(argv=None) -> int:
     parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
     root = ET.fromstring(text, parser=parser)
 
+    # MuJoCo's XML writer rounds joint ranges to six significant digits.
+    # Keep the documented hand endpoints identical in joint and actuator bounds.
+    for side in ("left", "right"):
+        for name in HAND_JOINT_NAMES:
+            jname = f"{side}_hand_{name}"
+            lo, hi = limits[jname]
+            joint = root.find(f".//joint[@name='{jname}']")
+            if joint is None:
+                raise SystemExit(f"missing hand joint in converted model: {jname}")
+            joint.set("range", f"{lo:.17g} {hi:.17g}")
+
     # ---- compiler：加 meshdir，并把 mesh 的绝对路径改成相对 meshes 根 ----
     # meshdir 相对「本 XML 所在目录」(robot_description/mjcf/xnero/)：
     #   ../ = assets/ , ../../ = xnero_mujoco_sim/ , ../../../ = src/
@@ -219,7 +230,7 @@ def main(argv=None) -> int:
             ET.SubElement(act, "position", {
                 "name": f"act_{jname}", "joint": jname,
                 "kp": _fmt(args.kp), "kv": _fmt(args.kv),
-                "ctrlrange": f"{_fmt(lo)} {_fmt(hi)}",
+                "ctrlrange": f"{lo:.17g} {hi:.17g}",
                 "forcerange": f"{-args.force:g} {args.force:g}",
             })
             n_act += 1

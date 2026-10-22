@@ -7,23 +7,28 @@ import { MonitorTab } from './components/MonitorTab'
 import { HealthPanel } from './components/HealthPanel'
 import { SystemTab } from './components/SystemTab'
 import { DataProcessTab } from './components/DataProcessTab'
+import { PianoTab } from './components/PianoTab'
 import { ToastHost } from './components/ToastHost'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { api } from './api/client'
 import { pushSample } from './hooks/historyStore'
 
 const TABS = [
-  { id: 'monitor', label: '监控' },
+  { id: 'system', label: '机器人操作' },
+  { id: 'monitor', label: '监控与采集' },
   { id: 'health', label: '健康' },
   { id: 'data', label: '数据处理' },
-  { id: 'system', label: '系统' },
+  { id: 'piano', label: '钢琴工作台' },
 ]
 
 export default function App() {
   const state = useRealtime()
   const wsConnected = useWsConnected()
   const { presets } = usePresets()
-  const [active, setActive] = useState('monitor')
+  const [active, setActive] = useState('system')
+  const [pianoVisited, setPianoVisited] = useState(false)
+  const [pianoActive, setPianoActive] = useState(false)
+  useEffect(() => { if (active === 'piano') setPianoVisited(true) }, [active])
 
   // Feed the chart ring buffer on every telemetry frame.
   useEffect(() => {
@@ -60,11 +65,13 @@ export default function App() {
       <ControlBar state={state} onAction={() => void api.health()} />
 
       <Tabs tabs={TABS} active={active} onChange={setActive} />
+      {active !== 'piano' && pianoActive && <p role="status" style={{ color: '#fbbf24', padding: '0 16px' }}>钢琴会话仍保留，原机器人控制仍受互斥保护。<button onClick={() => setActive('piano')}>返回钢琴工作台停止或断开</button></p>}
 
       <main style={mainStyle}>
         {active === 'monitor' && <MonitorTab state={state} />}
         {active === 'health' && <HealthPanel state={state} />}
         {active === 'data' && <DataProcessTab state={state} connected={wsConnected} />}
+        {(active === 'piano' || pianoVisited) && <div hidden={active !== 'piano'}><PianoTab onActiveChange={setPianoActive} /></div>}
         {active === 'system' && <SystemTab state={state} presets={presets} onAction={() => void api.health()} />}
       </main>
       </div>

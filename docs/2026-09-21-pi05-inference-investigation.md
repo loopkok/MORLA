@@ -5,7 +5,8 @@
 > 目的：记录 Astral 上 pi0.5 推理异常的客观证据、实验变量、结果与后续结论，避免把模型、视觉域偏移和执行层问题混在一起。
 
 ## 1. 当前环境
-
+/dev/serial/by-id/usb-FTDI_USB-RS485-WE_FTAAUYUK-if00-port0
+/dev/serial/by-id/usb-FTDI_USB-RS485-WE_FTAEFQWY-if00-port0
 - 模型：Astral 数据微调的 pi0.5（需继续确认是 `pi05_astral` 全量还是 `pi05_astral_lora`）。
 - GPU 推理主机：`192.168.1.249`。
 - GPU 启动脚本：`~/loopkok/VLA/MORLA/scripts/` 下的 `server29999` / `sever29999` 脚本（准确文件名待确认）。

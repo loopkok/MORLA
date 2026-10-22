@@ -53,7 +53,11 @@ export const api = {
   teleopWorkposDirect: () => post<unknown>('/api/v1/teleop/workpos/direct'),
   restart: () => post<unknown>('/api/v1/restart'),
   // Robot hardware mode (driver services — real hardware actions)
+  robotPrepare: () => post<unknown>('/api/v1/control/prepare'),
   robotReady: () => post<unknown>('/api/v1/robot/ready'),
+  robotEnable: () => post<unknown>('/api/v1/control/enable'),
+  robotReset: () => post<unknown>('/api/v1/control/reset'),
+  robotInitializeCan: () => post<unknown>('/api/v1/control/initialize_can'),
   robotHome: () => post<unknown>('/api/v1/robot/home'),
   robotEstop: () => post<unknown>('/api/v1/robot/estop'),
   robotDamping: () => post<unknown>('/api/v1/robot/damping'),

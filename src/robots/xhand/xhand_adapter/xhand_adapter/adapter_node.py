@@ -75,12 +75,13 @@ class XHandAdapterNode(Node):
 
         self._native_command_type = XHandCommand
         self._native_pub = self.create_publisher(
-            XHandCommand, self.topics["native_command"], 10
+            XHandCommand, self.topics["native_command"], 1
         )
-        # QoS(1) reliable is the vendor driver's native state contract.
+        # NEXUS uses best-effort state feedback; this reader also accepts the
+        # original reliable publisher, avoiding back-pressure on live samples.
         native_qos = QoSProfile(
             depth=1,
-            reliability=ReliabilityPolicy.RELIABLE,
+            reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE,
         )
         self._standard_state_pub = self.create_publisher(JointState, self.topics["state"], 1)
@@ -126,6 +127,9 @@ class XHandAdapterNode(Node):
         return self._lease.manual_allowed and (self._armed or not self.require_armed)
 
     def _on_standard_command(self, msg: JointState):
+        if not self._feedback_fresh():
+            self._reject("command rejected: fresh measured XHand feedback is required")
+            return
         if not self._command_permitted():
             self._reject("command rejected: no active HUMAN arm or fresh POLICY/PLAYBACK lease")
             return
@@ -157,6 +161,10 @@ class XHandAdapterNode(Node):
         self._last_command_values = list(positions)
 
     def _on_native_state(self, msg):
+        now_ros = self.get_clock().now().nanoseconds * 1e-9
+        if not fresh_header(msg, now_ros, timeout=self.command_timeout_s):
+            self._reject("feedback rejected: stale or future native state header")
+            return
         try:
             positions = native_state_positions(msg, self.hand_id, self.side)
         except XHandContractError as exc:
@@ -167,7 +175,11 @@ class XHandAdapterNode(Node):
         standard.name = list(HAND_JOINT_NAMES)
         standard.position = list(positions)
         self._standard_state_pub.publish(standard)
-        self._last_feedback_at = time.monotonic()
+        stamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        self._last_feedback_at = time.monotonic() - (max(0.0, now_ros - stamp) if stamp else 0.0)
+
+    def _feedback_fresh(self):
+        return bool(self._last_feedback_at) and time.monotonic() - self._last_feedback_at <= self.command_timeout_s
 
     def _reject(self, reason):
         self._rejections += 1
@@ -183,6 +195,7 @@ class XHandAdapterNode(Node):
             "lease_fresh": self._lease.fresh,
             "command_age_s": None if not self._last_command_at else max(0.0, now - self._last_command_at),
             "feedback_age_s": None if not self._last_feedback_at else max(0.0, now - self._last_feedback_at),
+            "feedback_fresh": self._feedback_fresh(),
             "command_received": self._last_command_values is not None,
             "rejections": self._rejections,
             "sent_at": time.time(),

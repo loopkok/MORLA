@@ -10,7 +10,7 @@ import numpy as np
 import rclpy
 from geometry_msgs.msg import PoseStamped
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Bool, String
 from std_srvs.srv import Trigger
@@ -20,7 +20,7 @@ from morla_core.coordinates import (
     fixed_transform_between_urdf, solver_tip_to_tcp, tcp_to_solver_tip,
     validate_rotation, validate_transform,
 )
-from morla_core.ownership import PolicyLease
+from morla_core.ownership import PolicyLease, fresh_header
 from morla_core.resource_locator import resolve_robot_asset
 from .fps_counter import FPSCounter
 from .ik_solver import IKSolver, NeroParams
@@ -47,6 +47,7 @@ class NeroArmTeleopNode(Node):
         self.declare_parameter("motion_scale", 0.65)
         self.declare_parameter("flip_pitch", False)
         self.declare_parameter("max_joint_delta_rad_per_step", 0.065)
+        self.declare_parameter("workspace_enabled", False)
         self.declare_parameter("workspace_radius", 0.58)
         self.declare_parameter("workspace_x_min", float("-inf"))
         self.declare_parameter("workspace_x_max", float("inf"))
@@ -63,7 +64,7 @@ class NeroArmTeleopNode(Node):
              0.0, 0.0, 0.0, 1.0],
         )
         self.declare_parameter("use_solver_tip_to_tcp_transform", False)
-        self.declare_parameter("data_timeout_s", 1.5)
+        self.declare_parameter("data_timeout_s", 0.5)
         self.declare_parameter("description_model_id", "nero_left_arm")
         self.declare_parameter("coordinate_contract_version", 0)
         self.declare_parameter("kinematics_hash", "")
@@ -143,14 +144,20 @@ class NeroArmTeleopNode(Node):
         self.solver_adapter_id = str(self.get_parameter("solver_adapter_id").value)
 
         self.data_timeout_s = float(self.get_parameter("data_timeout_s").value)
+        if not np.isfinite(self.data_timeout_s) or self.data_timeout_s <= 0:
+            raise ValueError("data_timeout_s must be finite and positive")
         self._require_start = bool(self.get_parameter("require_start_signal").value)
         self._q: np.ndarray | None = None
         self._q_received_at = 0.0
         self._wrist: PoseStamped | None = None
         self._wrist_received_at = 0.0
+        self._input_valid_after = 0.0
         self._armed = False
+        self._last_disarm_reason = None
         self._active_frame: str | None = None
         self._prepared_token: str | None = None
+        self._last_solver_target = None
+        self._last_ik_solution = None
         self._last_loop_at = time.monotonic()
         self._fps = FPSCounter(window=200, print_interval=3.0)
 
@@ -161,6 +168,7 @@ class NeroArmTeleopNode(Node):
                 self.get_parameter("max_joint_delta_rad_per_step").value
             ),
             workspace_radius=float(self.get_parameter("workspace_radius").value),
+            workspace_enabled=bool(self.get_parameter("workspace_enabled").value),
             workspace_x_min=float(self.get_parameter("workspace_x_min").value),
             workspace_x_max=float(self.get_parameter("workspace_x_max").value),
             workspace_y_min=float(self.get_parameter("workspace_y_min").value),
@@ -183,7 +191,11 @@ class NeroArmTeleopNode(Node):
         self.create_subscription(JointState, self.topics["state_topic"], self._on_state, 10)
         self.create_subscription(Bool, "/teleop/start", self._on_start, 10)
         self.create_subscription(Bool, "/teleop/disarm", self._on_disarm, 10)
-        self.create_subscription(String, "quest3/input_epoch", self._on_epoch, 10)
+        self.create_subscription(
+            String, "/quest3/input_epoch", self._on_epoch,
+            QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE,
+                       durability=DurabilityPolicy.TRANSIENT_LOCAL),
+        )
         self._policy_lease = PolicyLease()
         self._ownership_subscription, self._ownership_ack_pub = self._policy_lease.bind(
             self, writer=f"{self.side}_arm", callback=self._on_policy_state
@@ -197,7 +209,8 @@ class NeroArmTeleopNode(Node):
         self._status_timer = self.create_timer(0.5, self._publish_status)
         self.get_logger().info(
             f"Nero teleop side={self.side} rate={rate:g}Hz start_required="
-            f"{self._require_start}; standard output={self.topics['command_topic']}"
+            f"{self._require_start}; workspace_enabled={self.safety.workspace_enabled}; "
+            f"standard output={self.topics['command_topic']}"
         )
 
     def _on_state(self, msg: JointState) -> None:
@@ -213,6 +226,12 @@ class NeroArmTeleopNode(Node):
         self._q_received_at = time.monotonic()
 
     def _on_wrist(self, msg: PoseStamped) -> None:
+        now_ros = self.get_clock().now().nanoseconds * 1e-9
+        if not fresh_header(msg, now_ros, timeout=self.data_timeout_s):
+            return
+        stamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        if stamp and stamp <= self._input_valid_after:
+            return
         values = np.array(
             [
                 msg.pose.position.x,
@@ -233,11 +252,13 @@ class NeroArmTeleopNode(Node):
         if norm < 1e-8 or abs(norm - 1.0) > 0.1:
             self.get_logger().warning("rejecting invalid Quest quaternion")
             return
+        if self._armed and (not self._fresh_wrist() or self._active_frame != msg.header.frame_id):
+            self._disarm_local("Quest input interrupted or pose frame changed; restart required")
+            if stamp and stamp <= self._input_valid_after:
+                return
         self._wrist = msg
-        self._wrist_received_at = time.monotonic()
-        if self._armed and self._active_frame != msg.header.frame_id:
-            self._disarm_local("Quest pose frame changed during active teleop")
-            return
+        source_age = max(0.0, now_ros - stamp) if stamp else 0.0
+        self._wrist_received_at = time.monotonic() - source_age
         if self._armed:
             self.pose_processor.update_vr_pose(values[:3], Rotation.from_quat(quat / norm))
         elif not self._require_start and self._fresh_feedback():
@@ -257,10 +278,13 @@ class NeroArmTeleopNode(Node):
             self.get_logger().warning("start rejected: policy/playback owns the command stream")
             return
         if self._policy_lease.activity == "human":
-            self.get_logger().warning(
-                "start rejected during HUMAN ownership; a prepared re-anchor token is required"
-            )
-            return
+            if self._armed:
+                return
+            if self._prepared_token is not None:
+                self.get_logger().warning("start deferred: prepared HUMAN takeover has not committed")
+                return
+            # An explicit restart of paused HUMAN teleop is a measured re-anchor,
+            # like ~/reanchor. Heartbeats alone still cannot arm this node.
         self._capture_anchor(self._wrist, arm=True)
 
     def _capture_anchor(self, wrist: PoseStamped | None, *, arm: bool) -> bool:
@@ -288,8 +312,13 @@ class NeroArmTeleopNode(Node):
         self.robot_init_pos = reference[:3, 3].copy()
         self.robot_init_rot = reference[:3, :3].copy()
         self.safety.set_initial_state(self._q)
+        # Reuse the measured seed for zero input. Re-solving an identical
+        # Cartesian pose can otherwise drift along the redundant IK manifold.
+        self._last_solver_target = self.ik.fk(self._q).copy()
+        self._last_ik_solution = self._q.copy()
         self._active_frame = wrist.header.frame_id
         self._armed = bool(arm)
+        self._last_disarm_reason = None
         self.get_logger().info(
             f"[{self.side}] anchor captured from measured q and frame={self._active_frame!r}; "
             f"armed={self._armed}"
@@ -356,15 +385,19 @@ class NeroArmTeleopNode(Node):
             self._disarm_local("/teleop/disarm received")
 
     def _on_epoch(self, msg: String) -> None:
-        self._wrist = None
-        self._wrist_received_at = 0.0
-        self._prepared_token = None
         self._disarm_local(f"Quest input epoch changed: {msg.data}")
 
     def _disarm_local(self, reason: str) -> None:
         was_armed = self._armed
         self._armed = False
+        self._last_disarm_reason = reason
         self._active_frame = None
+        self._wrist = None
+        self._wrist_received_at = 0.0
+        self._input_valid_after = self.get_clock().now().nanoseconds * 1e-9
+        self._prepared_token = None
+        self._last_solver_target = None
+        self._last_ik_solution = None
         self.pose_processor.reset()
         if was_armed:
             self.get_logger().warning(f"[{self.side}] disarmed: {reason}; no automatic home")
@@ -377,6 +410,9 @@ class NeroArmTeleopNode(Node):
         if self._fps.should_print():
             self.get_logger().info(f"[{self.side}] teleop control loop {fps:.1f}Hz")
         if not self._armed:
+            return
+        if not self._policy_lease.manual_allowed:
+            self._disarm_local("ownership expired or no longer permits manual control")
             return
         if not self._fresh_feedback() or not self._fresh_wrist():
             self._disarm_local("feedback or wrist input timed out")
@@ -391,10 +427,16 @@ class NeroArmTeleopNode(Node):
         target_solver_tip = tcp_to_solver_tip(target_tcp, self._T_solver_tip_to_tcp)
         target_solver_tip[:3, 3] = self.safety.check_workspace(target_solver_tip[:3, 3])
         target_tcp = solver_tip_to_tcp(target_solver_tip, self._T_solver_tip_to_tcp)
-        solution = self.ik.solve(target_solver_tip)
+        if (self._last_solver_target is not None and self._last_ik_solution is not None
+                and np.allclose(target_solver_tip, self._last_solver_target, atol=1e-10, rtol=0.0)):
+            solution = self._last_ik_solution.copy()
+        else:
+            solution = self.ik.solve(target_solver_tip)
         if solution is None:
             self.get_logger().warning("Nero analytic IK did not converge", throttle_duration_sec=1.0)
             return
+        self._last_solver_target = target_solver_tip.copy()
+        self._last_ik_solution = solution.copy()
         safe, info = self.safety.filter(solution, dt)
         if info.get("collision"):
             self.get_logger().warning("Nero safety filter rejected self-collision")
@@ -425,10 +467,12 @@ class NeroArmTeleopNode(Node):
         payload = {
             "side": self.side,
             "armed": self._armed,
+            "stop_reason": self._last_disarm_reason,
             "ownership": self._policy_lease.activity,
             "prepared_reanchor": self._prepared_token is not None,
             "feedback_fresh": self._fresh_feedback(),
             "wrist_fresh": self._fresh_wrist(),
+            "workspace_enabled": self.safety.workspace_enabled,
             "frame_id": self._active_frame,
             "command_topic": self.topics["command_topic"],
             "solver": "analytic_dh",

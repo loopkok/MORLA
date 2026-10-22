@@ -20,6 +20,8 @@ scripts/data_pipeline.sh export-openpi \
 
 profile布局由注册表统一维护：Astral左臂+夹爪为8维，Nero单臂+XHand为19维，Astral双臂+左夹爪+右Wuji为35维，Nero双臂+双XHand为38维；其它活动Profile见 `morla-profile validate-all`。XHand力/温度等传感器独立保留在raw/aligned sidecar，不拼进state/action。仿真可缺少某些可选传感器，报告会明确给warning；必需流缺失则录制校验失败。
 
+XHand 原生触觉 `/{side}_hand/driver/xhand_state` 使用 BEST_EFFORT、KEEP_LAST、depth=1 订阅，同时兼容旧驱动/仿真的 RELIABLE 发布者。不能为此订阅请求 RELIABLE，否则当前真机驱动无法匹配，可能出现关节正常但触觉空录。控制命令和录制事件仍保留原可靠传输。对应三个 XHand Profile 的触觉 QoS 声明也已同步；新录制的 schema/layout hash 会变化，既有数据不改写，state/action 维度和顺序保持不变。持有旧 hash 的模型/配置应重新核对并生成匹配当前 Profile 的契约，不能绕过握手检查。
+
 为 OpenPI pi0.5 等 VLA 模型采集训练数据。与遥操作链路并行运行，四段式：
 **采集（raw HDF5）→ 离线对齐（固定 fps 网格）→ 清洗校验 → LeRobot v2.1 导出**，
 外加 Rerun 可视化回放。设计文档见 `docs/superpowers/specs/2026-08-28-astral-data-collect-design.md`。

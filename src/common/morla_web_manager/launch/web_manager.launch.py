@@ -17,7 +17,10 @@ import os
 from pathlib import Path
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, EmitEvent, IncludeLaunchDescription, OpaqueFunction, RegisterEventHandler
+from launch.event_handlers import OnProcessExit
+from launch.events import Shutdown
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
@@ -50,7 +53,53 @@ def _default_web_dist() -> str:
         return str(Path(__file__).resolve().parents[1] / "web" / "dist")
 
 
+def _operator_inputs(context, web_node):
+    def value(name):
+        return LaunchConfiguration(name).perform(context)
+    voice = value("voice_source")
+    if voice not in {"off", "host", "quest", "both"}:
+        raise ValueError("voice_source must be off, host, quest or both")
+    if voice == "off" and not value("pedal_device"):
+        return []
+    share = get_package_share_directory("morla_operator_control")
+    arguments = {
+        # The selected Profile owns the router, including across Profile restarts.
+        "start_router": "false", "voice_source": voice,
+        "pedal_device": value("pedal_device"),
+        "microphone_device": value("microphone_device"),
+        "dry_run": value("operator_dry_run"),
+    }
+    if value("operator_config"):
+        arguments["config"] = value("operator_config")
+    return [
+        RegisterEventHandler(OnProcessExit(target_action=web_node, on_exit=[
+            EmitEvent(event=Shutdown(reason="Web exited; stopping operator inputs")),
+        ])),
+        IncludeLaunchDescription(PythonLaunchDescriptionSource(
+            os.path.join(share, "launch", "operator_control.launch.py")),
+            launch_arguments=arguments.items()),
+    ]
+
+
 def generate_launch_description() -> LaunchDescription:
+    web_node = Node(
+        package="morla_web_manager",
+        executable="morla_web_manager",
+        name="morla_web_manager",
+        output="screen",
+        emulate_tty=True,
+        parameters=[
+            {"web_port": LaunchConfiguration("web_port")},
+            {"web_host": LaunchConfiguration("web_host")},
+            {"web_dist": LaunchConfiguration("web_dist")},
+        ],
+        additional_env={
+            "MORLA_WEB_MANAGER_PORT": LaunchConfiguration("web_port"),
+            "MORLA_WEB_MANAGER_HOST": LaunchConfiguration("web_host"),
+            "MORLA_WEB_MANAGER_DIST": LaunchConfiguration("web_dist"),
+            "MORLA_QUEST_PREVIEW": LaunchConfiguration("quest_preview"),
+        },
+    )
     return LaunchDescription(
         [
             DeclareLaunchArgument(
@@ -68,22 +117,13 @@ def generate_launch_description() -> LaunchDescription:
                 default_value=_default_web_dist(),
                 description="Path to built frontend (web/dist). Empty = no SPA.",
             ),
-            Node(
-                package="morla_web_manager",
-                executable="morla_web_manager",
-                name="morla_web_manager",
-                output="screen",
-                emulate_tty=True,
-                parameters=[
-                    {"web_port": LaunchConfiguration("web_port")},
-                    {"web_host": LaunchConfiguration("web_host")},
-                    {"web_dist": LaunchConfiguration("web_dist")},
-                ],
-                additional_env={
-                    "MORLA_WEB_MANAGER_PORT": LaunchConfiguration("web_port"),
-                    "MORLA_WEB_MANAGER_HOST": LaunchConfiguration("web_host"),
-                    "MORLA_WEB_MANAGER_DIST": LaunchConfiguration("web_dist"),
-                },
-            ),
+            DeclareLaunchArgument("voice_source", default_value="off", description="off | host | quest | both"),
+            DeclareLaunchArgument("quest_preview", default_value="false", description="Receive Quest tracking before a robot Profile starts"),
+            DeclareLaunchArgument("microphone_device", default_value=""),
+            DeclareLaunchArgument("pedal_device", default_value=""),
+            DeclareLaunchArgument("operator_config", default_value=""),
+            DeclareLaunchArgument("operator_dry_run", default_value="false", description="Recognize inputs without sending operator commands"),
+            OpaqueFunction(function=_operator_inputs, args=[web_node]),
+            web_node,
         ]
     )

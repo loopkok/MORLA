@@ -6,8 +6,12 @@
     can_interface: socketcan
     firmware_version: default
     initial_position: [-0.405, 1.281, -0.957, 1.311, 2.682, -0.314, -0.163]
-    position_pose: [-0.405, 1.281, -0.957, 1.311, 2.682, -0.314, -0.163]
+    position_pose: [-0.5061454830783556, 0.5410520681182421, -0.7330382858376184, 1.7976891295541595, 2.0943951023931953, -0.4188790204786391, -0.17453292519943295]
+    # Four native points in degrees, flattened row by row; HOME uses reverse order.
+    workpos_waypoints_deg: [-0.0, 25.0, -0.0, 123.0, -0.0, -0.0, -60.0, -0.0, 25.0, -0.0, 123.0, 100.0, -42.0, 0.0, -0.0, 25.0, -0.0, 123.0, 100.0, -42.0, -70.0, -29.0, 31.0, -42.0, 103.0, 120.0, -24.0, -10.0]
     position_speed_percent: 5
+    home_speed_percent: 5
+    home_stage_timeout_s: 40.0
     max_joint_velocity_rad_s: 1.0
     command_timeout_s: 0.5
     max_feedback_age_s: 0.5

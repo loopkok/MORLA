@@ -15,6 +15,9 @@
 #include "xhand_control_interfaces/msg/x_hand_state.hpp"
 #include "xhand_control_interfaces/msg/x_hand_state_array.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/string.hpp"
+#include "std_srvs/srv/trigger.hpp"
+#include <chrono>
 
 using xhand_control_interfaces::msg::FingerSensorState;
 using xhand_control_interfaces::msg::XHandCommand;
@@ -50,12 +53,17 @@ namespace xhand_control_ros2
     void reset_sensor(ResetSensor::Request::SharedPtr req, ResetSensor::Response::SharedPtr res);
     bool map_to_vector(const std::vector<std::string> msg_names, std::vector<int>& map_vector);
     bool is_valid_hand_id(const uint8_t hand_id) const;
+    void set_passive_command();
+    bool piano_lease_fresh() const;
 
   private:
     rclcpp::Publisher<XHandStateArray>::SharedPtr state_pub_;
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr sdk_status_pub_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr test_pub_;
 
     rclcpp::Subscription<XHandCommand>::SharedPtr command_sub_;
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr piano_lease_sub_;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_feedback_srv_, stop_feedback_srv_;
     rclcpp::Service<ReadHandInfo>::SharedPtr read_info_srv_;
     rclcpp::Service<SetHandId>::SharedPtr set_id_srv_;
     rclcpp::Service<SetHandName>::SharedPtr set_name_srv_;
@@ -71,6 +79,10 @@ namespace xhand_control_ros2
         "mid_joint1", "mid_joint2", "ring_joint1",
         "ring_joint2", "pinky_joint1", "pinky_joint2"};
     double update_rate_{10.0};
+    bool piano_feedback_mode_{false}, feedback_active_{false}, piano_lease_allowed_{false};
+    uint64_t feedback_generation_{0};
+    HandCommand_t poll_command_{};
+    std::chrono::steady_clock::time_point piano_lease_seen_{};
   };
 } // namespace xhand_control_ros2
 

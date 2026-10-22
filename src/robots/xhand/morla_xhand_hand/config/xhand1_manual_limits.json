@@ -1,0 +1,21 @@
+{
+  "source_document": "docs/xhand使用手册/[使用说明书]XHAND 1_带触觉单包_v1.3.pdf",
+  "source_page": 4,
+  "source_section": "3.2 尺寸和动力学",
+  "unit": "degree",
+  "joint_order": "SDK joint IDs 0 through 11; native command coordinates, no retargeting sign transform",
+  "joint_limits": [
+    {"id": 0, "name": "thumb_bend_joint", "lower": 0, "upper": 90},
+    {"id": 1, "name": "thumb_rota_joint1", "lower": -60, "upper": 90},
+    {"id": 2, "name": "thumb_rota_joint2", "lower": 0, "upper": 90},
+    {"id": 3, "name": "index_bend_joint", "lower": -5, "upper": 17},
+    {"id": 4, "name": "index_joint1", "lower": 0, "upper": 110},
+    {"id": 5, "name": "index_joint2", "lower": 0, "upper": 110},
+    {"id": 6, "name": "mid_joint1", "lower": 0, "upper": 110},
+    {"id": 7, "name": "mid_joint2", "lower": 0, "upper": 110},
+    {"id": 8, "name": "ring_joint1", "lower": 0, "upper": 110},
+    {"id": 9, "name": "ring_joint2", "lower": 0, "upper": 110},
+    {"id": 10, "name": "pinky_joint1", "lower": 0, "upper": 110},
+    {"id": 11, "name": "pinky_joint2", "lower": 0, "upper": 110}
+  ]
+}

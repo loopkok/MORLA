@@ -19,6 +19,7 @@ class SafetyFilter:
         workspace_y_min: float = None,
         workspace_y_max: float = None,
         collision_check_fn=None,
+        workspace_enabled: bool = True,
     ):
         self.joint_lower = joint_lower_limits.copy()
         self.joint_upper = joint_upper_limits.copy()
@@ -28,6 +29,7 @@ class SafetyFilter:
             workspace_center if workspace_center is not None else np.zeros(3)
         )
         self.workspace_radius = workspace_radius
+        self.workspace_enabled = workspace_enabled
         self.workspace_z_min = workspace_z_min
         self.workspace_z_max = workspace_z_max
         # Per-axis box bounds (None = inactive)
@@ -97,6 +99,8 @@ class SafetyFilter:
     def check_workspace(self, ee_pos: np.ndarray) -> np.ndarray:
         """Clamp EE position to workspace boundaries. Returns clamped position."""
         pos = ee_pos.copy()
+        if not self.workspace_enabled:
+            return pos
 
         # Spherical boundary
         offset = pos - self.workspace_center

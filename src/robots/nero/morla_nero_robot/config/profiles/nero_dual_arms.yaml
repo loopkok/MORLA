@@ -354,7 +354,7 @@ capabilities:
   position: true
   damping: false
   estop: true
-  home: false
+  home: true
   workpos: true
   reanchor: true
   tactile: false

@@ -163,6 +163,7 @@ def test_collect_tactile_shape_and_consistency(probe_assets):
 def test_xhand_state_carries_tactile(probe_assets):
     import rclpy
     from rclpy.node import Node
+    from rclpy.qos import qos_profile_sensor_data
     from xhand_control_interfaces.msg import XHandStateArray
 
     mjcf, _ = probe_assets
@@ -170,7 +171,7 @@ def test_xhand_state_carries_tactile(probe_assets):
     probe = Node("probe_tac")
     got = {}
     probe.create_subscription(XHandStateArray, "/left_hand/driver/xhand_state",
-                              lambda msg: got.__setitem__("m", msg), 10)
+                              lambda msg: got.__setitem__("m", msg), qos_profile_sensor_data)
     try:
         _curl_and_step(sim, 400)
         for _ in range(20):

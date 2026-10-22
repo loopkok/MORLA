@@ -19,7 +19,13 @@
   <depend>geometry_msgs</depend>
   <exec_depend>morla_core</exec_depend>
   <exec_depend>morla_bringup</exec_depend>
+  <exec_depend>morla_operator_control</exec_depend>
+  <exec_depend>morla_input</exec_depend>
   <exec_depend>std_srvs</exec_depend>
+  <exec_depend>nero_arm_teleop</exec_depend>
+  <exec_depend>nero_robot_control</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
 
   <exec_depend>python3-fastapi</exec_depend>
   <exec_depend>python3-uvicorn</exec_depend>

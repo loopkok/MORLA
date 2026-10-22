@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 import os
 import sys
 
@@ -49,6 +50,23 @@ def test_unknown_control_is_rejected():
     assert "unknown" in reason
 
 
+def test_can_initialization_requires_capability_and_idle_recording():
+    assert operation_guard("initialize_can", {"initialize_can": True}, "NO_COLLECTOR")[0]
+    assert operation_guard("initialize_can", {"initialize_can": True}, "IDLE")[0]
+    for state in (None, "RECORDING", "PAUSED", "SAVING"):
+        assert not operation_guard("initialize_can", {"initialize_can": True}, state)[0]
+    assert not operation_guard("initialize_can", {"initialize_can": False}, "IDLE")[0]
+
+
+def test_controller_reset_is_explicit_and_requires_idle_recording():
+    assert "reset" in OPERATIONS
+    assert operation_guard("reset", {"reset": True}, "IDLE") == (True, "")
+    assert operation_guard("reset", {"reset": True}, "NO_COLLECTOR") == (True, "")
+    assert not operation_guard("reset", {"reset": False}, "IDLE")[0]
+    for state in (None, "RECORDING", "PAUSED", "SAVING"):
+        assert not operation_guard("reset", {"reset": True}, state)[0]
+
+
 def test_operation_record_has_correlatable_lifecycle_fields():
     record = OperationRecord.create("workpos", 12.5)
     assert record.operation_id
@@ -82,3 +100,23 @@ def test_policy_owned_writer_blocks_manual_freeze_assumption():
     assert not writers_have_manual_ownership(ids, status, received, now=10.1)
     status["left_ee"]["ownership"] = None
     assert writers_have_manual_ownership(ids, status, received, now=10.1)
+
+
+@pytest.mark.parametrize("caps, feedback, expected", [
+    ({"enable": True, "initialize_can": True}, False, ["initialize_can", "enable"]),
+    ({"enable": True, "initialize_can": True}, True, ["enable"]),
+    ({"enable": True, "initialize_can": False}, False, ["enable"]),
+    ({"enable": True}, True, ["enable"]),
+])
+def test_preparation_plan_uses_capabilities_without_homing(caps, feedback, expected):
+    from morla_bringup.coordinator_logic import preparation_steps
+    assert preparation_steps(caps, feedback_ready=feedback) == expected
+
+
+def test_prepare_rejects_unsupported_runtime_and_recording():
+    from morla_bringup.coordinator_logic import preparation_steps, operation_guard
+    with pytest.raises(ValueError):
+        preparation_steps({"enable": False}, feedback_ready=True)
+    assert operation_guard("prepare", {"prepare": True}, "NO_COLLECTOR")[0]
+    assert not operation_guard("prepare", {"prepare": True}, "RECORDING")[0]
+    assert not operation_guard("prepare", {"prepare": False}, "IDLE")[0]

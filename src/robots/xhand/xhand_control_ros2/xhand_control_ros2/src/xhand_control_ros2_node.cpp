@@ -7,11 +7,14 @@ int main(int argc, char** argv) {
   auto xhand_control = std::make_shared<XHandControlROS>();
   if (!xhand_control->init()) {
     RCLCPP_ERROR(rclcpp::get_logger("xhand_control_ros2"), "Failed to initialize xhand_control");
-    // return 0; 
+    xhand_control.reset();
+    rclcpp::shutdown();
+    return 1;
   } else {
     xhand_control->run();
   }
 
+  xhand_control.reset();
   rclcpp::shutdown();
   return 0;
 }

@@ -1,0 +1,25 @@
+{
+  "record_date": "2026-10-22",
+  "record_timezone": "Asia/Shanghai",
+  "note": "Source hashes describe deployed working-tree files, not a tagged Git release. No tests rerun for documentation update.",
+  "config_sha256": "a5577d52cb26be919b77cd1a2cb14832c758968483c4ab1f69c3d37d89e492c6",
+  "source_sha256": {
+    "/home/loopkok/MORLA/src/common/morla_web_manager/morla_web_manager/piano_calibration.py": "1e9fc387b7b08e6363fe0bfe1131d1ec15046c86cba73c011d641bc688790c2c",
+    "/home/loopkok/MORLA/src/common/morla_web_manager/morla_web_manager/piano_maintenance.py": "31b2175bdc3e0a159c9dea86a8340abad84f4b448ce730ccc138e787685eeb9d",
+    "/home/loopkok/MORLA/src/common/morla_web_manager/morla_web_manager/piano_manager.py": "a34b153b6f030611917efe536ed5bbfd3abceb69f3df9ca1cc0b83af0ad0a2a4",
+    "/home/loopkok/MORLA/src/common/morla_web_manager/morla_web_manager/piano_processes.py": "073c81070ffa4d60620dcdb297949067035a49dfa04f155cf4b7537ecb8593bd",
+    "/home/loopkok/MORLA/src/common/morla_web_manager/morla_web_manager/piano_store.py": "41f082a61ef8d71e099a4316cea8c1ccb8c8754840b73f504e45f18fccaf62f1",
+    "/home/loopkok/MORLA/src/common/morla_web_manager/morla_web_manager/piano_worker.py": "130f4718b3e2142c881297881d0feb0e61cedc926172f58616331be65feec716",
+    "/home/loopkok/MORLA-piano/morla_piano/engine.py": "ce662ff7d51e706f0e5601195dbebdfc64a2386c6c34d039a4db74a9fd650556",
+    "/home/loopkok/MORLA-piano/morla_piano/model.py": "c741a4f3902ce69c35bdb910483096270ca82f0c8cd62b493372a1982c03a42b",
+    "/home/loopkok/MORLA-piano/morla_piano/ros_backend.py": "e8ad75a972ee6dea11f35d923192ec83869bcd3a64122e997f3ed42fa86e2fe4",
+    "/home/loopkok/MORLA-piano/launch/piano_drivers.launch.py": "1b471bb7d23a328c07210620bd323a081c4fb756c31f3061e0c5aad81a7489ff",
+    "/home/loopkok/MORLA/src/common/morla_web_manager/web/src/components/PianoTab.tsx": "997c676da588847cab742c3cda3383778fc8e7640a82c4a9294ab1305f4efd6f",
+    "/home/loopkok/MORLA/src/common/morla_web_manager/web/src/components/PianoManual.tsx": "384168f042d59a9a52bbfa5ad6820c05fcdaeb4476b24e5b676fe035a5d61331",
+    "/home/loopkok/MORLA/src/robots/nero/nero_robot_control/nero_robot_control/driver_node.py": "703b35bdc0738b6b605a519a43b06af5b60a575c3f0b8f24b164e007b1ac6890",
+    "/home/loopkok/MORLA/src/robots/nero/nero_robot_control/nero_robot_control/sdk_adapter.py": "23d83985f88194a0bb9c0036ab5f8c0e4208363910ccda4ac135ca24ce3b8453"
+  },
+  "snapshot_file": "config-2026-10-22.json",
+  "snapshot_sha256": "c64f512e0406b4401565ca8aba0cca2fadeef337f373870c3e84b1d4cbba4a94",
+  "hash_note": "config_sha256 hashes deployed raw config bytes; snapshot_sha256 hashes the re-indented archival JSON. Values are unchanged."
+}

@@ -120,30 +120,30 @@ components:
   - left_hand_pinky_joint1
   - left_hand_pinky_joint2
   limits: &id004
-  - - 0.0
-    - 1.832
-  - - -0.698
-    - 1.57
-  - - 0.0
-    - 1.57
-  - - -0.174
-    - 0.174
-  - - 0.0
-    - 1.919
-  - - 0.0
-    - 1.919
-  - - 0.0
-    - 1.919
-  - - 0.0
-    - 1.919
-  - - 0.0
-    - 1.919
-  - - 0.0
-    - 1.919
-  - - 0.0
-    - 1.919
-  - - 0.0
-    - 1.919
+    - - 0.0
+      - 1.5707963267948966
+    - - -1.0471975511965976
+      - 1.5707963267948966
+    - - 0.0
+      - 1.5707963267948966
+    - - -0.08726646259971647
+      - 0.29670597283903605
+    - - 0.0
+      - 1.9198621771937625
+    - - 0.0
+      - 1.9198621771937625
+    - - 0.0
+      - 1.9198621771937625
+    - - 0.0
+      - 1.9198621771937625
+    - - 0.0
+      - 1.9198621771937625
+    - - 0.0
+      - 1.9198621771937625
+    - - 0.0
+      - 1.9198621771937625
+    - - 0.0
+      - 1.9198621771937625
   unit: rad
   state_topic: /left_hand/joint_states
   command_topic: /left_hand/joint_commands
@@ -225,7 +225,7 @@ streams:
   - 3
   dtype: float32
   unit: source_native
-  qos: reliable_keep_last_1
+  qos: best_effort_keep_last_1
   timestamp_mode: source_header
   required: false
   source_kind: sensor
@@ -405,7 +405,7 @@ capabilities:
   position: true
   damping: false
   estop: true
-  home: false
+  home: true
   workpos: true
   reanchor: true
   tactile: true

@@ -155,3 +155,33 @@ def test_stale_feedback_and_timeout_hold_revoke_motion_eligibility():
     core.set_enabled(True)
     with pytest.raises(RuntimeError, match="stale"):
         core.accept_command(core.joint_names, SEED, received_at=1.3)
+
+
+def test_measurement_margin_keeps_raw_values_but_command_limits_stay_strict():
+    from nero_robot_control.driver_core import FEEDBACK_LIMIT_TOLERANCE_RAD
+    core=make_core()
+    raw=np.zeros(7)
+    raw[3]=1.+FEEDBACK_LIMIT_TOLERANCE_RAD/2
+    core.set_connected(True)
+    core.update_feedback(raw,1.)
+    np.testing.assert_array_equal(core.feedback,raw)
+    core.set_enabled(True)
+    assert core.last_target[3]==1.
+    with pytest.raises(ValueError,match='command is outside'):
+        core.accept_command(core.joint_names,raw,1.)
+    result=core.accept_command(core.joint_names,np.zeros(7),1.)
+    assert np.all(result.target>=core.limits[:,0]) and np.all(result.target<=core.limits[:,1])
+
+
+@pytest.mark.parametrize('sign',[-1,1])
+def test_feedback_beyond_measurement_margin_reports_joint_value_and_excess(sign):
+    from nero_robot_control.driver_core import FeedbackLimitError,FEEDBACK_LIMIT_TOLERANCE_RAD
+    core=make_core()
+    core.update_feedback(np.zeros(7),1.)
+    q=np.zeros(7);q[3]=sign*(1.+FEEDBACK_LIMIT_TOLERANCE_RAD*2)
+    with pytest.raises(FeedbackLimitError,match='J4 measured=') as error:
+        core.update_feedback(q,2.)
+    assert error.value.details[0]['joint']==4
+    assert error.value.details[0]['excess_deg']==pytest.approx(.2)
+    assert core.feedback_at==1.
+    np.testing.assert_array_equal(core.feedback,np.zeros(7))

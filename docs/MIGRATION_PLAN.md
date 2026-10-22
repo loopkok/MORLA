@@ -515,7 +515,7 @@ meta新增：schema_version、profile_id、robot_id、schema_hash/layout_hash、
 
 ### 9.2 XHand 触觉数据规范
 
-采集订内部原生`XHandStateArray`（RELIABLE源，订阅可BEST_EFFORT），通过`hand_id`找到对应`sensor_states`，手指按location匹配，不假定数组位置。标准顺序：`thumb,index,middle,ring,pinky`；不把middle写成mid。
+采集订内部原生`XHandStateArray`（订阅BEST_EFFORT，兼容当前真机BEST_EFFORT及旧驱动/仿真RELIABLE源），通过`hand_id`找到对应`sensor_states`，手指按location匹配，不假定数组位置。标准顺序：`thumb,index,middle,ring,pinky`；不把middle写成mid。
 
 新`robot_data.h5:/sensors/<side>_hand_tactile/`保存：
 

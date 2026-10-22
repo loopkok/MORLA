@@ -1,0 +1,77 @@
+.piano-page { display:flex; flex-direction:column; gap:18px; }
+.piano-heading { display:flex; align-items:center; justify-content:space-between; gap:20px; }
+.piano-heading h2 { font-size:28px; margin:4px 0 8px; letter-spacing:-.5px; }
+.piano-heading p { color:#94a3b8; margin:0; font-size:13px; }
+.piano-heading .piano-eyebrow { font-size:11px; letter-spacing:2px; color:#67e8f9; }
+.piano-state { display:flex; align-items:center; gap:8px; padding:9px 14px; border:1px solid #334155; border-radius:6px; font-size:13px; white-space:nowrap; }
+.piano-state span { width:7px; height:7px; border-radius:50%; background:#67e8f9; }
+.piano-state.fault span { background:#f87171; }
+.piano-section { border:1px solid #253147; background:#101826; border-radius:8px; padding:18px; min-width:0; }
+.piano-section h3 { font-size:16px; margin:0 0 14px; }
+.piano-section .piano-row h3 { margin:0; margin-right:auto; }
+.piano-section-title { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.piano-section-title span { font-size:12px; color:#94a3b8; }
+.piano-row { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+.piano-session .piano-row + .piano-row { margin-top:14px; }
+.piano-grid { display:grid; gap:14px; }
+.piano-grid.two { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.piano-grid.four { grid-template-columns:repeat(4,minmax(0,1fr)); margin-top:16px; }
+.piano-grid.performance { grid-template-columns:minmax(200px,2fr) 100px repeat(3,auto); align-items:end; margin-top:20px; }
+.piano-field { display:flex; flex-direction:column; gap:7px; color:#aab8cc; font-size:12px; min-width:0; }
+.piano-field input,.piano-page select,.piano-page textarea { background:#0b1220; border:1px solid #344258; color:#e5e7eb; border-radius:5px; padding:9px 10px; min-width:0; font:inherit; }
+.piano-field input:focus,.piano-page textarea:focus { outline:1px solid #67e8f9; }
+.piano-page input[aria-invalid=true] { border-color:#f87171; }
+.piano-page textarea { width:100%; font:12px/1.6 ui-monospace,monospace; margin-bottom:10px; }
+.piano-page button { border:1px solid transparent; background:#67e8f9; color:#08212b; padding:9px 13px; font-size:13px; font-weight:600; border-radius:5px; cursor:pointer; white-space:nowrap; }
+.piano-page button.secondary { background:#182536; border-color:#344258; color:#d3dfef; }
+.piano-page button.stop { background:#fbbf24; color:#241a07; }
+.piano-page button.emergency { background:#7f1d1d; border-color:#ef4444; color:#fff; }
+.piano-muted { color:#8294ad; font-size:12px; line-height:1.8; }
+.piano-small { font-size:12px; }
+.piano-small span { color:#aab8cc; }
+.piano-notice { padding:12px 16px; color:#fcd34d; background:#302615; border:1px solid #63502c; border-radius:6px; font-size:13px; line-height:1.7; }
+.piano-error { color:#fca5a5; }
+.piano-notice.piano-error { background:#301b24; border-color:#703744; }
+.piano-subtabs { display:flex; border-bottom:1px solid #253147; gap:20px; }
+.piano-subtabs button { background:none; color:#94a3b8; border-radius:0; padding:10px 0 14px; border-bottom:2px solid transparent; }
+.piano-subtabs button[aria-pressed=true] { border-bottom-color:#67e8f9; color:#d5f9ff; }
+.piano-keyboard { height:106px; position:relative; margin-top:14px; background:#0b0f17; overflow:hidden; border:1px solid #344258; border-radius:4px; }
+.piano-key { position:absolute; top:0; border-radius:0 0 3px 3px; }
+.piano-key.white { height:100%; background:#d9e1eb; border:1px solid #607087; color:#344258; }
+.piano-key.black { height:62%; background:#152031; border:1px solid #060b13; z-index:1; }
+.piano-key.active { background:#22d3ee; }
+.piano-key span { position:absolute; bottom:6px; left:2px; font-size:9px; }
+.piano-table-wrap { overflow:auto; max-height:360px; margin-top:16px; }
+.piano-page table { border-collapse:collapse; width:100%; font-size:12px; text-align:left; }
+.piano-page th { color:#94a3b8; position:sticky; top:0; background:#152031; }
+.piano-page td,.piano-page th { padding:9px 12px; border-bottom:1px solid #253147; white-space:nowrap; }
+.piano-plan-summary { display:flex; gap:20px; flex-wrap:wrap; font-size:13px; margin-top:18px; color:#aab8cc; }
+.piano-plan-summary strong { color:#e5e7eb; }
+.piano-playback { margin-top:16px; padding:14px; border:1px solid #30455e; border-radius:8px; background:#111d2d; }
+.piano-playback progress { display:block; width:100%; height:16px; margin:12px 0; accent-color:#22d3ee; }
+.piano-playback progress::-webkit-progress-bar { background:#26374c; border-radius:6px; }
+.piano-playback progress::-webkit-progress-value { background:#22d3ee; border-radius:6px; }
+.piano-parameters { border:0; padding:0; margin:0; min-width:0; display:flex; flex-direction:column; gap:18px; }
+.piano-vector { margin-top:14px; }
+.piano-vector input { font-family:ui-monospace,monospace; font-size:12px; }
+.piano-finger { display:grid; grid-template-columns:70px repeat(3,minmax(0,1fr)); gap:10px; align-items:end; margin-top:16px; }
+.piano-finger strong { font-size:12px; color:#bdcadd; }
+.piano-check { display:flex; gap:8px; align-items:center; font-size:12px; color:#aab8cc; line-height:1.7; }
+.piano-check input { accent-color:#67e8f9; }
+.piano-page pre { font:11px/1.6 ui-monospace,monospace; overflow:auto; max-height:260px; white-space:pre-wrap; overflow-wrap:anywhere; color:#94a3b8; }
+.piano-manual h4 { font-size:14px; margin:18px 0 12px; color:#d8e4f4; }
+.piano-live { color:#67e8f9; font-size:12px; }
+.piano-live-pose { font:12px/1.8 ui-monospace,monospace; color:#bbecf4; margin:12px 0; }
+.piano-cartesian,.piano-capture-panel { padding-top:6px; margin-top:16px; border-top:1px solid #253147; }
+.piano-capture-panel .piano-row { margin-top:14px; }
+.piano-jog-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-top:16px; }
+.piano-jog-grid > div { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.piano-jog-grid strong { grid-column:1 / -1; text-align:center; font-size:12px; color:#94a3b8; }
+.piano-joint-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 20px; }
+.piano-joint-row { display:grid; grid-template-columns:86px 90px minmax(80px,1fr) auto; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid #253147; }
+.piano-joint-row strong { color:#aab8cc; font-size:12px; }
+.piano-joint-row output { color:#bbecf4; font:12px ui-monospace,monospace; }
+.piano-joint-row small { font-size:10px; color:#8294ad; }
+@media(max-width:1100px) { .piano-joint-list { grid-template-columns:1fr; }.piano-jog-grid { grid-template-columns:repeat(3,1fr); } }
+@media(max-width:1050px) { .piano-grid.performance { grid-template-columns:2fr 1fr; }.piano-grid.four { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:700px) { .piano-grid.two,.piano-grid.four,.piano-grid.performance { grid-template-columns:1fr; }.piano-heading { align-items:flex-start; }.piano-heading h2 { font-size:24px; }.piano-section { padding:14px; }.piano-finger { grid-template-columns:1fr 1fr; }.piano-row > button { flex:1; }.piano-keyboard { height:80px; }.piano-section-title span { line-height:1.7; } }

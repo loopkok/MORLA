@@ -18,7 +18,8 @@
 #     /quest3_video_streamer/active_cameras std_msgs/msg/String "{data: 'video0'}"
 quest3_video_streamer:
   ros__parameters:
-    auto_scan: true
+    # haining14：固定三路安装位置，使用下方 device 的 by-path 路径。
+    auto_scan: false
 
     # cameras: auto_scan=false 时的固定相机名列表（顺序 = WebRTC track 顺序）。
     #          也是 auto_scan 一台设备都没扫到时的回退。语义名（与 label_aliases 一致）。
@@ -54,7 +55,8 @@ quest3_video_streamer:
 
     left_wrist:
       source: "webcam"
-      device: "/dev/v4l/by-path/platform-3610000.usb-usb-0:2.2:1.0-video-index0"
+      # 左腕 Gemini 305，CV284600002L，USB 02:00.3-1 彩色接口。
+      device: "/dev/v4l/by-path/pci-0000:02:00.3-usb-0:1:1.4-video-index0"
       topic: ""
       preset: "720p30"
       fov_h_deg: 60.0
@@ -67,7 +69,8 @@ quest3_video_streamer:
 
     right_wrist:
       source: "webcam"
-      device: "/dev/v4l/by-path/platform-3610000.usb-usb-0:1.3:1.0-video-index0"
+      # 右腕 Gemini 305，CV28460000FV，USB 02:00.3-2 彩色接口。
+      device: "/dev/v4l/by-path/pci-0000:02:00.3-usb-0:2:1.4-video-index0"
       topic: ""
       preset: "720p30"
       fov_h_deg: 60.0
@@ -78,13 +81,13 @@ quest3_video_streamer:
         distance: 1.8
         size_multiplier: 0.28
 
-    # base（realsense 彩色）。每个相机**一个合并块**：auto_scan=true 时 label_aliases 按
+    # base 为胸前主视角 Gemini 335（CP02653000VE）。每个相机**一个合并块**：auto_scan=true 时 label_aliases 按
     # 指纹钉 base 后，本块提供 preset/布局覆盖（device 被扫描值取代）；auto_scan=false 或
     # 兜底时用固定 by-path 设备路径（by-id 对复合 D435i 不可靠——index 串位指向深度节点，
     # 彩色节点无 by-id 条目，见下方 label_aliases 注释）。
     base:
       source: "v4l2"
-      device: "/dev/v4l/by-path/platform-3610000.usb-usb-0:2.1:1.3-video-index0"
+      device: "/dev/v4l/by-path/pci-0000:44:00.0-usb-0:2:1.4-video-index0"
       topic: ""
       preset: "1080p30"
       fov_h_deg: 69.0

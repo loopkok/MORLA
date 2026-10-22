@@ -28,15 +28,16 @@ class _Coordinator:
         return self.response
 
 
-def test_control_endpoint_routes_to_profile_coordinator(monkeypatch):
+@pytest.mark.parametrize("operation", ["workpos", "initialize_can", "reset", "prepare"])
+def test_control_endpoint_routes_to_profile_coordinator(monkeypatch, operation):
     node = _Coordinator(response=(True, "accepted operation_id=abc"))
     monkeypatch.setattr(web_server, "get_node", lambda: node)
 
-    result = asyncio.run(web_server.control_operation("workpos"))
+    result = asyncio.run(web_server.control_operation(operation))
 
     assert result.ok is True
     assert result.message.endswith("operation_id=abc")
-    assert node.calls == ["workpos"]
+    assert node.calls == [operation]
 
 
 def test_control_endpoint_does_not_report_success_without_coordinator(monkeypatch):

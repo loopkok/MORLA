@@ -12,6 +12,7 @@
   <license>MIT</license>
 
   <depend>morla_core</depend>
+  <exec_depend>morla_operator_control</exec_depend>
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>

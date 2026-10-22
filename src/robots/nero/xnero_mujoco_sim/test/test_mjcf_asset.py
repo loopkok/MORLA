@@ -1,5 +1,6 @@
 """Central robot_description MJCF structure checks."""
 import re
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
@@ -39,8 +40,16 @@ def test_hand_actuators_24(text):
 
 def test_actuator_ctrlrange_matches_urdf_limits(text):
     """ctrlrange 必须取自 URDF 限位，不能瞎写。"""
-    m = re.search(r'<position name="act_left_hand_thumb_bend_joint"[^>]*ctrlrange="([^"]+)"', text)
-    assert m and m.group(1).split() == ["0", "1.832"], m
+    urdf = ET.parse(MJCF.parents[2] / "urdf/nero/xhand_nero_description.urdf").getroot()
+    mjcf = ET.fromstring(text)
+    actuators = mjcf.findall("./actuator/position")
+    assert len(actuators) == 24
+    for actuator in actuators:
+        limit = urdf.find(f"./joint[@name='{actuator.get('joint')}']/limit")
+        expected = [float(limit.get(k)) for k in ("lower", "upper")]
+        joint = mjcf.find(f".//joint[@name='{actuator.get('joint')}']")
+        for bound in (actuator.get("ctrlrange"), joint.get("range")):
+            assert list(map(float, bound.split())) == pytest.approx(expected, rel=0, abs=1e-12)
 
 
 def test_touch_sensors_10(text):

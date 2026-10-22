@@ -1,5 +1,6 @@
 // Normalise the raw ui_state frame into a camelCase view model.
 import type { CollectLaunchInfo, ControlOperationState, DataCollectState, DataProcessState, InferLaunchInfo, InferState, ProfileStreamValue, UiState } from '../types'
+import type { PianoSession } from '../pianoTypes'
 
 export interface NormalisedJoint {
   values: number[]
@@ -8,6 +9,7 @@ export interface NormalisedJoint {
 }
 
 export interface NormalisedState {
+  piano?: PianoSession
   ts: number
   teleopState: string
   preset: string
@@ -82,6 +84,7 @@ export function mapUiState(msg: UiState, now: number = Date.now() / 1000): Norma
     }
   }
   return {
+    piano: msg.piano,
     ts: msg.ts,
     teleopState: msg.teleop.state,
     preset: msg.teleop.preset,

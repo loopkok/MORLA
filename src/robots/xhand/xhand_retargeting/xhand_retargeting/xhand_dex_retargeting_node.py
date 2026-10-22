@@ -12,9 +12,9 @@ import rclpy
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import PoseArray
-from morla_core.ownership import PolicyLease
+from morla_core.ownership import PolicyLease, fresh_header
 from rclpy.node import Node
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import qos_profile_sensor_data, QoSProfile, DurabilityPolicy
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Bool, String
 
@@ -114,6 +114,9 @@ class XHandDexRetargetingNode(Node):
         )
         self._last_target = None
         self._armed = False
+        self._last_landmarks_at = 0.0
+        self._input_valid_after = 0.0
+        self.input_timeout_s = 0.5
         self._policy_lease = PolicyLease()
         self._lease_sub, self._ack_pub = self._policy_lease.bind(
             self, writer=f"{self.side}_ee", callback=self._on_ownership
@@ -124,6 +127,10 @@ class XHandDexRetargetingNode(Node):
         )
         self.create_subscription(Bool, "/teleop/armed", self._on_armed, 10)
         self.create_subscription(Bool, "/teleop/disarm", self._on_disarm, 10)
+        self.create_subscription(
+            String, "/quest3/input_epoch", self._on_epoch,
+            QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL),
+        )
         self._status_timer = self.create_timer(0.2, self._publish_runtime_status)
         self.get_logger().info(
             f"XHand DexPilot side={self.side}; input={self.input_topic}/{self.side}; "
@@ -143,42 +150,62 @@ class XHandDexRetargetingNode(Node):
         return path
 
     def _on_ownership(self, msg):
+        previous = self._policy_lease.activity
         accepted = self._policy_lease.update(msg.data)
         if not self._policy_lease.manual_allowed:
             self._armed = False
-        elif accepted and self._policy_lease.activity == "human":
-            # Human takeover starts with new landmarks after the upstream start gate.
-            self._armed = True
             self._last_target = None
-        elif accepted:
+        elif accepted and self._policy_lease.activity == "human" and previous in ("policy", "playback"):
+            # Human takeover starts with new landmarks after the upstream start gate.
+            self._armed = self._input_fresh()
+            self._last_target = None
+        elif accepted and self._policy_lease.activity is None and previous is not None:
             # A policy stop/release returns control to the explicit start gate.
             self._armed = False
+            self._last_target = None
+        # Repeated HUMAN/IDLE heartbeats neither re-arm a frozen writer nor
+        # disarm a manually started writer or reset its smoothing state.
 
     def _on_armed(self, msg: Bool):
-        if bool(msg.data) and self._policy_lease.manual_allowed:
+        if bool(msg.data) and self._policy_lease.manual_allowed and self._input_fresh():
             self._armed = True
             self._last_target = None
-        elif not msg.data:
+        else:
             self._armed = False
 
     def _on_disarm(self, msg: Bool):
         if msg.data:
             self._armed = False
+            self._last_target = None
+
+    def _on_epoch(self, _msg: String):
+        self._armed = False
+        self._last_target = None
+        self._last_landmarks_at = 0.0
+        self._input_valid_after = self.get_clock().now().nanoseconds * 1e-9
+
+    def _input_fresh(self):
+        return bool(self._last_landmarks_at) and time.monotonic() - self._last_landmarks_at <= self.input_timeout_s
 
     def _publish_runtime_status(self):
+        if not self._input_fresh() or not self._policy_lease.manual_allowed:
+            self._armed = False
+            self._last_target = None
         payload = {
             "writer_id": f"{self.side}_ee",
             "armed": bool(self._armed),
+            "input_fresh": self._input_fresh(),
             "ownership": self._policy_lease.activity,
             "sent_at": time.time(),
         }
         self._status_pub.publish(String(data=json.dumps(payload, sort_keys=True)))
 
     def _on_landmarks(self, msg: PoseArray):
-        activity = self._policy_lease.activity
-        if not self._policy_lease.manual_allowed or activity in ("policy", "playback", "unknown"):
+        now_ros = self.get_clock().now().nanoseconds * 1e-9
+        if not fresh_header(msg, now_ros, timeout=self.input_timeout_s):
             return
-        if self.require_armed and not self._armed:
+        stamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        if stamp and stamp <= self._input_valid_after:
             return
         if len(msg.poses) != 21:
             self.get_logger().warning(f"rejecting landmarks: expected 21, got {len(msg.poses)}")
@@ -189,6 +216,15 @@ class XHandDexRetargetingNode(Node):
         )
         if not np.isfinite(points).all():
             self.get_logger().warning("rejecting non-finite Quest landmarks")
+            return
+        if not self._input_fresh():
+            self._armed = False
+            self._last_target = None
+        self._last_landmarks_at = time.monotonic() - (max(0.0, now_ros - stamp) if stamp else 0.0)
+        activity = self._policy_lease.activity
+        if not self._policy_lease.manual_allowed or activity in ("policy", "playback", "unknown"):
+            return
+        if self.require_armed and not self._armed:
             return
         try:
             robot_points = preprocess_xhand_landmarks(

@@ -1,0 +1,13 @@
+{
+  "capture": true,
+  "cross_lane_and_owner_rejection": true,
+  "manual_joint_cartesian_hand_and_ready_invalidation": true,
+  "native_four_stage_J_then_piano_work_pose": true,
+  "eight_fingers_and_both_wrists": true,
+  "json_finished": true,
+  "csv_stop_released_fingers": true,
+  "browser_lease_loss_reaped_processes": true,
+  "no_motion_publishers_left": true,
+  "native_J_stop_cancels_without_final_pose": true,
+  "worker_crash_stop_only_recovery": true
+}

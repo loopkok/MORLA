@@ -6,12 +6,65 @@ from dataclasses import dataclass, field
 
 
 MOTION_OPERATIONS = frozenset({
-    "ready", "enable", "position", "damping", "home", "workpos", "workpos_direct",
+    "prepare", "ready", "initialize_can", "enable", "reset", "position", "damping", "home", "workpos", "workpos_direct",
 })
 OPERATIONS = frozenset({
     "pause", "resume", "start", "release", *MOTION_OPERATIONS, "estop",
 })
 RECORDING_STATES = frozenset({"RECORDING", "PAUSED", "SAVING"})
+
+
+def nero_home_blockers(status: dict) -> list[str]:
+    """Gate planned J motion using measured motors, not streaming permission."""
+    if not status:
+        return ["驱动状态缺失或过期，请检查节点与连接"]
+    reasons = []
+    if not status.get("connected"):
+        reasons.append("驱动未连接")
+    if not status.get("feedback_fresh"):
+        reasons.append("关节反馈缺失或过期")
+    code = status.get("controller_arm_status")
+    if not status.get("controller_status_fresh"):
+        reasons.append("控制器状态缺失或过期")
+    elif code == 1:
+        reasons.append("控制器仍处于急停（状态 1），请先解除并复位急停")
+    elif code == 6:
+        reasons.append("关节抱闸未打开（状态 6），请先点击“准备并使能”并等待完成")
+    elif code != 0:
+        reasons.append(f"控制器异常（状态 {code}），请先排查故障")
+    if status.get("motor_status_fresh") is None:
+        reasons.append("驱动尚未提供电机使能反馈，请重启机器人 Profile 加载新驱动")
+    elif status.get("motor_status_fresh") is not True:
+        reasons.append("七关节电机使能反馈缺失或过期，请检查反馈与连接")
+    elif status.get("motors_enabled") is not True and code not in {1, 6}:
+        reasons.append("电机未全部使能，请先点击“准备并使能”并等待完成")
+    elif status.get("position_permitted") is not True and code not in {1, 6}:
+        reasons.append("位置动作许可已撤销，请先点击“准备并使能”并等待完成")
+    return reasons
+
+
+def nero_start_blockers(status: dict) -> list[str]:
+    """Streaming requires live measured hardware, independently of writer armed."""
+    if not status:
+        return ["驱动状态缺失或过期，请检查连接并重启机器人 Profile"]
+    reasons = []
+    if status.get("connected") is not True:
+        reasons.append("驱动未连接")
+    if status.get("feedback_fresh") is not True or status.get("feedback_read_ok") is False:
+        reasons.append("实测关节反馈缺失或过期")
+    if status.get("controller_status_fresh") is not True:
+        reasons.append("控制器状态缺失或过期")
+    elif status.get("controller_arm_status") != 0:
+        reasons.append("控制器未就绪，请检查急停或故障并准备使能")
+    if status.get("motor_status_fresh") is not True:
+        reasons.append("电机使能反馈缺失或过期")
+    elif status.get("motors_enabled") is not True:
+        reasons.append("电机未全部使能，请先准备并使能")
+    if status.get("streaming_enabled") is not True:
+        reasons.append("遥操流式许可未开启，请先点击“准备并使能”并等待完成")
+    if status.get("position_active"):
+        reasons.append("位置轨迹尚未结束")
+    return reasons
 
 
 def operation_guard(
@@ -98,3 +151,14 @@ class OperationRecord:
             "profile_id": profile_id,
             "components": self.components,
         }
+
+
+def preparation_steps(capabilities: dict, *, feedback_ready: bool) -> list[str]:
+    """One preparation entry point, using declared capabilities, without homing."""
+    if not capabilities.get("enable", False):
+        raise ValueError("this runtime does not support hardware enable")
+    steps = []
+    if capabilities.get("initialize_can", False) and not feedback_ready:
+        steps.append("initialize_can")
+    steps.append("enable")
+    return steps

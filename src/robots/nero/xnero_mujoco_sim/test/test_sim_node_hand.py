@@ -55,6 +55,7 @@ def test_hand_tracking_end_to_end(sim_node):
     """发 0.6 rad 命令，手关节应跟上去（真物理 + 位置执行器）。"""
     import rclpy
     from rclpy.node import Node
+    from rclpy.qos import qos_profile_sensor_data
     from xhand_control_interfaces.msg import XHandStateArray
 
     sim = sim_node
@@ -63,7 +64,7 @@ def test_hand_tracking_end_to_end(sim_node):
     # 记「最后一条」而不是第一条 —— 第一条是瞬态快照，采样它会把收敛前的中间态当结果
     probe.create_subscription(
         XHandStateArray, "/left_hand/driver/xhand_state",
-        lambda m: got.__setitem__("pos", list(m.hand_states[0].position)), 10)
+        lambda m: got.__setitem__("pos", list(m.hand_states[0].position)), qos_profile_sensor_data)
     pub = probe.create_publisher(
         __import__("xhand_control_interfaces.msg", fromlist=["XHandCommand"]).XHandCommand,
         "/left_hand/driver/xhand_command", 10)
@@ -82,10 +83,15 @@ def test_hand_tracking_end_to_end(sim_node):
         assert got, "没收到 /left_hand/driver/xhand_state"
         arr = np.array(got["pos"])
         assert arr.shape == (12,)
-        # index_bend_joint 限位只有 ±0.174，会贴限位；其余 11 个应跟到 ~0.6
+        # index_bend_joint 会贴当前模型的上限；其余 11 个应跟到 ~0.6。
+        # 旧 ±0.174 断言属于 legacy MJCF，当前模型是 -5°..17°。
         others = np.delete(arr, 3)
         assert others.mean() > 0.55, f"手没跟上命令：{np.round(arr, 3)}"
         assert np.all(others > 0.4), f"有点没动：{np.round(arr, 3)}"
-        assert abs(arr[3]) <= 0.1741, "index_bend 超出限位"
+        joint = "left_hand_index_bend_joint"
+        lower, upper = sim.model.joint(joint).range
+        # 目标必须截在精确限位；MuJoCo 软约束实测允许 0.002rad 数值偏差。
+        assert sim.data.ctrl[sim._hand_act[joint]] == pytest.approx(upper)
+        assert lower - 0.002 <= arr[3] <= upper + 0.002, "index_bend 超出当前模型限位"
     finally:
         probe.destroy_node()

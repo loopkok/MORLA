@@ -1,4 +1,5 @@
 // Shared types for the ui_state WebSocket frame and REST envelopes.
+import type { PianoSession } from './pianoTypes'
 
 export interface JointSlot {
   values: number[]
@@ -50,6 +51,42 @@ export interface ControlOperationState {
   result?: boolean | null
   message?: string
   components?: Record<string, { result?: string; message?: string }>
+  start_readiness?: { ready: boolean; blockers: string[] }
+  driver_status?: Record<string, {
+    connected?: boolean
+    feedback_fresh?: boolean
+    enabled?: boolean
+    streaming_enabled?: boolean
+    position_permitted?: boolean
+    motors_enabled?: boolean | null
+    motor_status_fresh?: boolean | null
+    motor_status_error?: string
+    joint_enable_status?: (boolean | null)[] | null
+    enable_status?: string
+    controller_status_fresh?: boolean
+    controller_arm_status?: number | null
+    controller_motion_status?: number | null
+    reset_seq?: number
+    reset_status?: string
+    reset_error?: string
+    reset_mode?: string
+    reset_unknown_status_supported?: boolean
+    position_active?: boolean
+    command_active?: boolean
+    estop_status?: string
+    estop_seq?: number
+    last_error?: string
+    position_kind?: string
+    position_stage?: number
+    position_stage_count?: number
+    position_status?: string
+    position_error_rad?: number | null
+    home_speed_percent?: number
+    home_final_pose_deg?: number[]
+    trajectory_revision?: string
+    workpos_waypoints_deg?: number[][]
+    position_speed_percent?: number
+  }>
   stale?: boolean
   node_count?: number
 }
@@ -145,6 +182,7 @@ export interface DataCollectState {
 }
 
 export interface UiState {
+  piano?: PianoSession
   type: 'ui_state'
   ts: number
   teleop: {

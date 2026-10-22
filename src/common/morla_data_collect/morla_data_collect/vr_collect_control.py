@@ -36,6 +36,7 @@ from morla_data_collect.vr_collect_logic import (
     decide_vr_command,
 )
 from morla_core.ownership import PolicyLease
+from morla_operator_control.commands import request
 
 _CONTROL_QOS = QoSProfile(
     reliability=ReliabilityPolicy.RELIABLE,
@@ -77,6 +78,7 @@ class VrCollectControl(Node):
         self._ctrl_pub = self.create_publisher(
             String, "/data_collect/control", _CONTROL_QOS
         )
+        self._operator_pub = self.create_publisher(String, "/morla/operator/command", _CONTROL_QOS)
         self._state: str | None = None  # None = 尚未收到采集节点状态
         self.create_subscription(
             String, "/data_collect/state", self._on_state, _LATCHED_QOS
@@ -116,6 +118,9 @@ class VrCollectControl(Node):
         self._activity = self._policy_lease.activity
 
     def _send(self, cmd: str, to_policy: bool = False) -> None:
+        if not to_policy and self.count_publishers("/morla/operator/state"):
+            self._operator_pub.publish(String(data=json.dumps(request("record_" + cmd, "quest_controller"))))
+            return
         msg = String()
         msg.data = cmd
         (self._policy_cmd_pub if to_policy else self._ctrl_pub).publish(msg)

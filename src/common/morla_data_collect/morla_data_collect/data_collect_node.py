@@ -19,12 +19,13 @@ from __future__ import annotations
 
 import fcntl
 import json
+import math
 import os
 import shutil
 import tempfile
 import threading
 import time
-from collections import deque
+from collections import OrderedDict, deque
 from pathlib import Path
 from typing import Any
 
@@ -244,6 +245,8 @@ class DataCollectNode(Node):
 
         self._mk_subscriptions()
         self._state_pub = self.create_publisher(String, "/data_collect/state", _LATCHED_QOS)
+        self._control_ack_pub = self.create_publisher(String, "/data_collect/control_ack", _CONTROL_QOS)
+        self._command_results = OrderedDict()
         self.create_subscription(
             String, "/data_collect/control", self._on_control, _CONTROL_QOS
         )
@@ -323,7 +326,9 @@ class DataCollectNode(Node):
                         raise ValueError(f"profile sensor stream {name!r} has no sensor spec")
                     message_type = get_message(spec.message_type)
                     qos = QoSProfile(
-                        reliability=ReliabilityPolicy.RELIABLE,
+                        # Native XHand feedback is best effort on hardware.
+                        # This also accepts the reliable simulator/older driver.
+                        reliability=ReliabilityPolicy.BEST_EFFORT,
                         history=HistoryPolicy.KEEP_LAST, depth=1,
                     )
                     self.create_subscription(
@@ -578,16 +583,58 @@ class DataCollectNode(Node):
         self._publish_state()
 
     def _on_control(self, msg: String) -> None:
+        envelope = None
         cmd = msg.data.strip().lower()
+        if msg.data.lstrip().startswith("{"):
+            try:
+                envelope = json.loads(msg.data)
+                cmd = envelope["command"]
+                if not isinstance(cmd, str):
+                    raise ValueError("invalid command")
+                ident = envelope["request_id"]
+                if not isinstance(ident, str) or not 1 <= len(ident) <= 128:
+                    raise ValueError("invalid request_id")
+            except (ValueError, TypeError, KeyError):
+                self.get_logger().warning("invalid structured collect command")
+                return
+            if ident in self._command_results:
+                self._control_ack_pub.publish(String(data=json.dumps(self._command_results[ident], ensure_ascii=False)))
+                return
         if cmd not in _CMDS:
             self.get_logger().warning(f"unknown control cmd {cmd!r} (expect {_CMDS})")
             return
         self.get_logger().info(f"control <- {cmd}")
         with self._state_lock:
+            success, error = True, None
+            ignored = self._ignored_cmds.get(cmd, 0)
             try:
+                if envelope:
+                    if (envelope.get("profile_id") != self._profile_id
+                            or envelope.get("expected_state") != self._state
+                            or envelope.get("expected_episode_index") != self._episode_index):
+                        raise ValueError("采集状态或段号已改变，请重新操作")
+                    sent = float(envelope.get("sent_at", 0))
+                    if not math.isfinite(sent) or abs(time.time() - sent) > 2.0:
+                        raise ValueError("采集命令已过期")
+                    if self._state in (STATE_RECORDING, STATE_PAUSED):
+                        self._events.append({"t": time.time(), "name": "operator_request", "data": envelope})
                 self._apply(cmd)
+                success = self._ignored_cmds.get(cmd, 0) == ignored
+                if envelope and cmd == "start" and success:
+                    self._events.append({"t": time.time(), "name": "operator_request", "data": envelope})
             except Exception as exc:  # 状态机错误不致命
                 self.get_logger().error(f"cmd {cmd} failed: {exc}")
+                success, error = False, str(exc)
+            if envelope:
+                labels = {"start": "开始录制", "stop": "本段已保存", "discard": "本段已丢弃",
+                          "pause": "采集已暂停", "resume": "采集已继续", "next": "已切换下一段"}
+                ack = dict(request_id=envelope["request_id"], success=success,
+                           message=labels.get(cmd, cmd) if success else error or "当前采集状态拒绝此操作",
+                           state=self._state, sent_at=time.time())
+                self._command_results[envelope["request_id"]] = ack
+                while len(self._command_results) > 128:
+                    self._command_results.popitem(last=False)
+                self._control_ack_pub.publish(String(data=json.dumps(ack, ensure_ascii=False)))
         self._publish_state()
 
     def _reject(self, cmd: str, st: str) -> None:

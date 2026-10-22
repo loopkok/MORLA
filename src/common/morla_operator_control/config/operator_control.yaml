@@ -1,0 +1,12 @@
+/**:
+  ros__parameters:
+    model_path: ~/.local/share/morla/models/vosk-model-small-cn-0.22
+    wake_word: 机器人
+    min_confidence: 0.75
+    quest_bind: 127.0.0.1
+    quest_port: 8001
+    microphone_device: ""
+    dry_run: false
+    bindings: ["KEY_F13:teleop_toggle", "KEY_F14:record_toggle", "KEY_F15:record_discard"]
+    long_press_s: 1.5
+    exclusive: true

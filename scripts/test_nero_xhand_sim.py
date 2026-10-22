@@ -103,7 +103,7 @@ class SimIntegrationDriver(Node):
         )
         self.create_subscription(
             XHandStateArray, "/left_hand/driver/xhand_state",
-            self._on_native_hand_state, reliable,
+            self._on_native_hand_state, sensor_qos,
         )
 
         unity = make_open_hand()

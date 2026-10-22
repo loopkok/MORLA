@@ -8,6 +8,26 @@ from dataclasses import dataclass
 import numpy as np
 
 
+# Measurement-only allowance for quantization and small following error at a
+# commanded boundary. Command limits stay strict; raw feedback is never clipped.
+FEEDBACK_LIMIT_TOLERANCE_RAD = float(np.deg2rad(0.1))
+
+
+class FeedbackLimitError(ValueError):
+    """Measured joints exceed the boundary margin; never masquerade as no CAN."""
+    def __init__(self, positions, limits):
+        excess = np.maximum(limits[:, 0] - positions, positions - limits[:, 1])
+        indices = np.flatnonzero(excess > FEEDBACK_LIMIT_TOLERANCE_RAD)
+        self.details = [dict(joint=int(i + 1), measured_deg=float(np.rad2deg(positions[i])),
+                             lower_deg=float(np.rad2deg(limits[i, 0])),
+                             upper_deg=float(np.rad2deg(limits[i, 1])),
+                             excess_deg=float(np.rad2deg(excess[i]))) for i in indices]
+        values = "; ".join(f"J{d['joint']} measured={d['measured_deg']:.4f} deg, "
+                           f"limits=[{d['lower_deg']:.4f}, {d['upper_deg']:.4f}] deg, "
+                           f"excess={d['excess_deg']:.4f} deg" for d in self.details)
+        super().__init__(f"SDK feedback exceeds joint limits + 0.1 deg measurement margin: {values}")
+
+
 @dataclass(frozen=True)
 class CommandResult:
     target: np.ndarray
@@ -72,7 +92,7 @@ class NeroDriverCore:
             raise RuntimeError("measured joint state is stale; enable rejected")
         self.enabled = bool(enabled) and self.connected
         # Every enable epoch starts from actual feedback, never a stale cache.
-        self.last_target = self.feedback.copy() if self.enabled and self.feedback is not None else None
+        self.last_target = np.clip(self.feedback, self.limits[:, 0], self.limits[:, 1]) if self.enabled and self.feedback is not None else None
         self.last_target_at = None
         self.command_active = False
         self._watchdog_reported = False
@@ -86,12 +106,13 @@ class NeroDriverCore:
             raise ValueError(f"SDK feedback must contain exactly 7 joints, got {q.shape}")
         if not np.isfinite(q).all():
             raise ValueError("SDK feedback contains non-finite joint values")
-        if np.any(q < self.limits[:, 0]) or np.any(q > self.limits[:, 1]):
-            raise ValueError("SDK feedback is outside the configured joint limits")
+        excess = np.maximum(self.limits[:, 0] - q, q - self.limits[:, 1])
+        if np.any(excess > FEEDBACK_LIMIT_TOLERANCE_RAD):
+            raise FeedbackLimitError(q, self.limits)
         self.feedback = q.copy()
         self.feedback_at = self._clock() if received_at is None else float(received_at)
         if self.enabled and self.last_target is None:
-            self.last_target = q.copy()
+            self.last_target = np.clip(q, self.limits[:, 0], self.limits[:, 1])
 
     def reorder_command(self, names, positions) -> np.ndarray:
         names = tuple(str(name) for name in names)
@@ -122,7 +143,7 @@ class NeroDriverCore:
             raise ValueError("command is outside configured joint limits")
 
         if self.last_target is None:
-            self.last_target = self.feedback.copy()
+            self.last_target = np.clip(self.feedback, self.limits[:, 0], self.limits[:, 1])
         period = (
             self.command_period_s
             if self.last_target_at is None

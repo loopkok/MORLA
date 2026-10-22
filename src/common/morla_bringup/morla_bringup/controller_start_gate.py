@@ -19,6 +19,7 @@ the zero (re-center), matching the web "开始遥操" button and the CLI
 from __future__ import annotations
 
 import time
+import json
 
 import rclpy
 from rclpy.node import Node
@@ -33,6 +34,7 @@ from morla_bringup.start_gate_logic import (
     decide_start_action,
 )
 from morla_core.ownership import PolicyLease, fresh_header
+from morla_operator_control.commands import request
 
 
 def _sensor_qos() -> QoSProfile:
@@ -91,6 +93,7 @@ class ControllerStartGate(Node):
         self._pub_armed = self.create_publisher(Bool, armed_topic, 10)
         self._policy_cmd_pub = self.create_publisher(String, self._policy_cmd_topic, 10)
         self._epoch_disarm_pub = self.create_publisher(Bool, disarm_topic, _latched_qos())
+        self._operator_pub = self.create_publisher(String, "/morla/operator/command", 10)
         # BEST_EFFORT sub is compatible with the mocap Joy publisher (RELIABLE
         # default) and CLI `ros2 topic pub` — no dual-sub needed.
         self.create_subscription(Joy, joy_topic, self._on_joy, _sensor_qos())
@@ -119,6 +122,11 @@ class ControllerStartGate(Node):
         """Submit a one-shot control operation without blocking the Joy callback."""
         if not self._coordinator_enabled:
             return False
+        if self.count_publishers("/morla/operator/state"):
+            command = {"start": "teleop_start", "release": "release"}.get(operation)
+            if command:
+                self._operator_pub.publish(String(data=json.dumps(request(command, "quest_controller"))))
+                return True
         if operation in self._control_pending:
             return True
         client = self._control_clients.get(operation)

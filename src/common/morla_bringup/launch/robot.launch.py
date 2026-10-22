@@ -9,6 +9,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
 
 from morla_core.profile import ProfileRegistry
 from morla_bringup.robot_profile_launch import select_robot_stack
@@ -47,10 +48,13 @@ def _setup(context, *args, **kwargs):
         f"[morla robot] profile={profile_id} robot={profile.robot_id} mode={mode} "
         f"stack={stack.package}/{stack.launch_file}"
     )
-    return [IncludeLaunchDescription(
+    actions = [IncludeLaunchDescription(
         PythonLaunchDescriptionSource(launch_path),
         launch_arguments=arguments.items(),
     )]
+    if LaunchConfiguration("with_operator_control").perform(context).lower() == "true":
+        actions.append(Node(package="morla_operator_control", executable="operator_router", output="screen"))
+    return actions
 
 
 def generate_launch_description():
@@ -59,6 +63,7 @@ def generate_launch_description():
         DeclareLaunchArgument("mode", default_value="sim", description="sim | real"),
         DeclareLaunchArgument("sdk_backend", default_value="fake", description="fake | hardware"),
         DeclareLaunchArgument("with_input", default_value="true"),
+        DeclareLaunchArgument("with_operator_control", default_value="true"),
         DeclareLaunchArgument("allow_legacy_packets", default_value="false"),
         DeclareLaunchArgument("enable_viewer", default_value="false"),
         DeclareLaunchArgument("with_video", default_value="true"),

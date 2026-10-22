@@ -13,8 +13,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import time
+from urllib.parse import urlsplit
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -26,6 +28,7 @@ from fastapi.staticfiles import StaticFiles
 from . import config
 from .data_process_manager import DataProcessManager, PipelineConflict
 from .replay_browser import browse_replay_sources
+from .quest_preview import QuestPreview
 from .config import STOP_SIGINT_TIMEOUT_S, log_tail_for_push
 from .launch_manager import (
     LaunchManager,
@@ -37,6 +40,8 @@ from .launch_manager import (
     preset_with_teleop_log,
 )
 from .monitor_node import get_node, init_node, shutdown_node
+from .piano_manager import PianoManager
+from .piano_store import PianoConflict, PianoError, PianoStore
 try:
     from morla_core.profile import ProfileRegistry
     from morla_bringup.robot_profile_launch import select_robot_stack
@@ -70,6 +75,10 @@ from .schemas import (
 
 # --- globals ---------------------------------------------------------------
 _launch_mgr = LaunchManager()
+_quest_preview = QuestPreview(
+    enabled=os.environ.get("MORLA_QUEST_PREVIEW", "false").lower() == "true",
+    port=int(os.environ.get("MORLA_QUEST_PREVIEW_PORT", "8000")),
+)
 # 数采独立泳道：与遥操预设生命周期完全解耦（用户决策：web 单独启停）。
 # 纯订阅者、不抢 joint_commands，start 时跳过孤儿检测；遥操侧孤儿检测
 # 对 morla_data_collect 命令行有对称豁免（launch_manager._find_orphan）。
@@ -81,6 +90,11 @@ _policy_mgr = LaunchManager(lane_name="推理")
 _policy_cfg: dict = {}
 _data_mgr = DataProcessManager(config.DATA_ROOT, config.DATA_PIPELINE_PYTHON,
                                config.DATA_PIPELINE_PACKAGE, config.DATA_CHECK_PYTHON)
+_piano_store = PianoStore(
+    Path(os.environ.get("MORLA_PIANO_PROJECT", str(config.MORLA_WS.parent / "MORLA-piano"))),
+    Path(os.environ.get("MORLA_PIANO_DATA", str(config.MORLA_WS / ".morla_piano"))),
+)
+_piano_mgr = PianoManager(_piano_store)
 _presets = load_presets()
 _selected_profile_id = (
     "astral_dual_gripper_wuji" if "astral_dual_gripper_wuji" in _robot_profiles
@@ -207,9 +221,11 @@ def _build_ui_state() -> dict[str, Any]:
         "latency": ros.get("latency", {"stages": {}}),
         "video_gate": ros.get("video_gate"),
         "data_collect": ros.get("data_collect"),
+        "quest_preview": _quest_preview.snapshot(),
         "data_process": _data_mgr.snapshot(),
         "infer": ros.get("infer"),
         "control": ros.get("control"),
+        "piano": _piano_mgr.snapshot(),
         "profile_id": ros.get("profile_id"),
         "robot_streams": ros.get("robot_streams", {}),
         "profile_selection": {
@@ -290,9 +306,17 @@ _conn = _ConnectionManager()
 async def _lifespan(app: FastAPI):
     init_node()
     broadcaster = asyncio.create_task(_ui_state_broadcaster())
+    preview = asyncio.create_task(_quest_preview_supervisor())
     try:
         yield
     finally:
+        await asyncio.to_thread(_piano_mgr.close)
+        preview.cancel()
+        try:
+            await preview
+        except asyncio.CancelledError:
+            pass
+        await asyncio.to_thread(_quest_preview.close)
         broadcaster.cancel()
         try:
             await broadcaster
@@ -300,6 +324,22 @@ async def _lifespan(app: FastAPI):
             pass
         shutdown_node()
         await asyncio.to_thread(_data_mgr.close)
+
+
+async def _quest_preview_supervisor():
+    previous = None
+    while True:
+        active = _launch_mgr.state not in {STOPPED, "start_failed"} or _live_control_state() is not None
+        await asyncio.to_thread(_quest_preview.tick, active)
+        state = _quest_preview.snapshot()
+        if state["enabled"] and state["state"] != previous:
+            logging.getLogger("uvicorn.error").info("Quest tracking receiver :%s: %s", state["port"], state["state"])
+        previous = state["state"]
+        await asyncio.sleep(0.5)
+
+
+async def _start_teleop_preset(preset):
+    return await asyncio.to_thread(_quest_preview.start_stack, lambda: _launch_mgr.start(preset))
 
 
 async def _ui_state_broadcaster() -> None:
@@ -314,6 +354,180 @@ async def _ui_state_broadcaster() -> None:
 
 # --- app -------------------------------------------------------------------
 app = FastAPI(title="morla_web_manager", version="0.1.0", lifespan=_lifespan)
+
+# Serialize all Web motion/lifecycle mutations with piano acquisition. Emergency
+# requests bypass the mutex so a slow legacy service cannot delay stopping.
+_motion_mutation_lock = asyncio.Lock()
+_piano_exclusive_paths = ("/api/v1/control/", "/api/v1/robot/", "/api/v1/teleop/",
+                          "/api/v1/profile/", "/api/v1/collect/", "/api/v1/infer/")
+_piano_legacy_controls = {"/api/v1/start", "/api/v1/stop", "/api/v1/pause", "/api/v1/resume", "/api/v1/restart"}
+_emergency_paths = {"/api/v1/control/estop", "/api/v1/robot/estop"}
+
+
+@app.middleware("http")
+async def piano_exclusion(request, call_next):
+    path = request.url.path
+    if request.method not in {"POST", "PUT", "PATCH", "DELETE"}:
+        return await call_next(request)
+    if path.startswith("/api/v1/piano/"):
+        origin = request.headers.get("origin")
+        if origin and urlsplit(origin).netloc != request.headers.get("host"):
+            return JSONResponse(status_code=403, content={"detail": "拒绝跨来源钢琴控制请求"})
+        try:
+            if int(request.headers.get("content-length", "0")) > 1_000_000:
+                return JSONResponse(status_code=413, content={"detail": "钢琴请求体过大"})
+        except ValueError:
+            return JSONResponse(status_code=400, content={"detail": "无效请求长度"})
+    if path in _emergency_paths and _piano_mgr.active:
+        try:
+            _piano_mgr.stop(emergency=True)
+            return JSONResponse({"ok": True, "message": "钢琴急停请求已发送；请检查实体反馈", "data": None})
+        except PianoError as exc:
+            return JSONResponse(status_code=503, content={"detail": str(exc)})
+    guarded = path in _piano_legacy_controls or path.startswith(_piano_exclusive_paths)
+    piano_mutation = path.startswith("/api/v1/piano/") and not path.endswith(("/heartbeat", "/stop", "/close"))
+    if guarded or piano_mutation:
+        async with _motion_mutation_lock:
+            if guarded and _piano_mgr.active:
+                return JSONResponse(status_code=409, content={"detail": "钢琴会话占用机器人；停止并断开钢琴后可恢复原操作"})
+            return await call_next(request)
+    return await call_next(request)
+
+
+def _piano_blockers(mode=None):
+    blockers = []
+    for label, manager in (("机器人/遥操", _launch_mgr), ("采集", _collect_mgr), ("推理", _policy_mgr)):
+        if manager.state not in {STOPPED, "start_failed"}:
+            blockers.append(f"{label}通道仍为 {manager.state}")
+    node = get_node()
+    if node is None and mode in {"ros_fake", "hardware"}:
+        blockers.append("ROS监控尚未连接，不能核验现有硬件驱动")
+    if node is not None:
+        snap = node.snapshot()
+        for key, label, topic in (("control", "机器人协调器", "/morla/control/state"),
+                                  ("data_collect", "采集节点", "/data_collect/state"),
+                                  ("infer", "策略节点", "/policy_inference/state")):
+            state = snap.get(key) or {}
+            if not state.get("stale", True) and int(state.get("node_count", 0)) > 0:
+                # Monitor snapshots cache node_count at reception. Recheck the graph:
+                # the previous piano lease can remain fresh after its publisher exits.
+                if node.count_publishers(topic):
+                    blockers.append(f"{label}仍在运行（可能从命令行启动）")
+        if node.robot_command_publishers():
+            blockers.append("已有 ROS 运动指令发布者，请先停止")
+        if mode in {"ros_fake", "hardware"}:
+            for side in ("left", "right"):
+                for topic in (f"/{side}_arm/nero_robot_driver/status", f"/{side}_arm/joint_states",
+                              f"/{side}_hand/adapter/status", f"/{side}_hand/driver/xhand_state"):
+                    try:
+                        if node.count_publishers(topic):
+                            blockers.append(f"现有驱动仍占用 {topic}")
+                    except Exception:
+                        blockers.append(f"无法核验驱动占用 {topic}")
+    return blockers
+
+
+def _piano_call(function, *args, **kwargs):
+    try:
+        return function(*args, **kwargs)
+    except PianoConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except (PianoError, ValueError, TypeError, KeyError, OSError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/piano/state")
+async def piano_state():
+    error = None
+    try:
+        _piano_store.model()
+    except Exception as exc:
+        error = str(exc)
+    return ApiEnvelope(ok=True, data={**_piano_mgr.snapshot(), "available": error is None,
+                                     "project_error": error, "blockers": [] if _piano_mgr.active else _piano_blockers()})
+
+
+@app.get("/api/v1/piano/config")
+async def piano_config():
+    return ApiEnvelope(ok=True, data=_piano_call(_piano_store.config))
+
+
+@app.post("/api/v1/piano/config")
+async def piano_save_config(body: dict):
+    _piano_call(_piano_mgr.editable)
+    return ApiEnvelope(ok=True, message="参数已保存；重新连接后生效", data=_piano_call(
+        _piano_store.save_config, body.get("config"), body.get("revision"), body.get("certify") is True))
+
+
+@app.post("/api/v1/piano/config/validate")
+async def piano_validate_config(body: dict):
+    return ApiEnvelope(ok=True, data=_piano_call(_piano_store.validate, body.get("config")))
+
+
+@app.get("/api/v1/piano/scores")
+async def piano_scores():
+    _piano_call(_piano_store.seed)
+    return ApiEnvelope(ok=True, data=_piano_call(_piano_store.list_scores))
+
+
+@app.get("/api/v1/piano/scores/{score_id}")
+async def piano_score(score_id: str):
+    return ApiEnvelope(ok=True, data=_piano_call(_piano_store.score, score_id))
+
+
+@app.post("/api/v1/piano/scores")
+async def piano_import_score(body: dict):
+    _piano_call(_piano_mgr.editable)
+    return ApiEnvelope(ok=True, message="曲谱已导入；演奏前请预检", data=_piano_call(
+        _piano_store.import_score, body.get("name", ""), body.get("content", ""), body.get("format", "json"),
+        body.get("tempo_bpm", 60), body.get("tonic", "C4")))
+
+
+@app.delete("/api/v1/piano/scores/{score_id}")
+async def piano_delete_score(score_id: str):
+    _piano_call(_piano_mgr.editable)
+    _piano_call(lambda: _piano_store._score_path(score_id).unlink(missing_ok=True))
+    return ApiEnvelope(ok=True, message="曲谱已删除")
+
+
+@app.post("/api/v1/piano/plan")
+async def piano_plan(body: dict):
+    _, plan = _piano_call(_piano_store.plan, body.get("score_id", ""), body.get("tempo_bpm"))
+    return ApiEnvelope(ok=True, data={**plan, "config_revision": _piano_call(_piano_store.config)["revision"]})
+
+
+@app.post("/api/v1/piano/session")
+async def piano_open(body: dict):
+    blockers = _piano_blockers(body.get("mode", "software"))
+    if blockers:
+        raise HTTPException(status_code=409, detail="；".join(blockers))
+    result = _piano_call(_piano_mgr.open, body.get("mode", "software"), body.get("revision"), body.get("options"))
+    return ApiEnvelope(ok=True, message="独立钢琴会话已启动，等待反馈", data=result)
+
+
+@app.post("/api/v1/piano/heartbeat")
+async def piano_heartbeat(body: dict):
+    _piano_call(_piano_mgr.heartbeat, body.get("token"))
+    return ApiEnvelope(ok=True)
+
+
+@app.post("/api/v1/piano/command")
+async def piano_command(body: dict):
+    arguments = {key: value for key, value in body.items() if key not in {"token", "operation"}}
+    result = _piano_call(_piano_mgr.command, body.get("token"), body.get("operation"), **arguments)
+    return ApiEnvelope(ok=True, message="操作已排队，以实际状态为准", data=result)
+
+
+@app.post("/api/v1/piano/stop")
+async def piano_stop(body: dict | None = None):
+    _piano_call(_piano_mgr.stop, emergency=(body or {}).get("emergency") is True)
+    return ApiEnvelope(ok=True, message="停止请求已发送，请等待执行状态更新")
+
+
+@app.post("/api/v1/piano/close")
+async def piano_close(body: dict):
+    _piano_call(_piano_mgr.disconnect, body.get("token"))
+    return ApiEnvelope(ok=True, message="正在停止并释放钢琴会话")
 
 
 @app.post("/api/v1/control/{operation}")
@@ -431,7 +645,7 @@ async def launch_robot_profile(req: ProfileLaunchRequest) -> ApiEnvelope:
         raise HTTPException(status_code=409, detail="a profile-driven robot stack is already active")
     _selected_profile_id = req.profile_id
     _selected_operating_mode = req.operating_mode
-    ok, message = _launch_mgr.start(preset)
+    ok, message = await _start_teleop_preset(preset)
     if not ok:
         raise HTTPException(status_code=409, detail=message)
     return ApiEnvelope(ok=True, message=message)
@@ -537,7 +751,7 @@ async def start(req: StartRequest) -> ApiEnvelope:
         # 遥操日志开关：给白名单预设注入 log_dir 根目录（副本，不改 presets.yaml 源）。
         # launch 每次自动建 {log_dir}/{stamp}[_tag]/ 运行子目录、按侧拆 _left/_right。
         preset = preset_with_teleop_log(preset, config.TELEOP_LOG_ROOT)
-    ok, msg = _launch_mgr.start(preset)
+    ok, msg = await _start_teleop_preset(preset)
     if not ok:
         raise HTTPException(status_code=409, detail=msg)
     return ApiEnvelope(ok=True, message=msg)
@@ -720,7 +934,7 @@ async def restart() -> ApiEnvelope:
     ok_stop, _ = _launch_mgr.stop()
     # Wait briefly for the stop to take effect before restarting.
     await asyncio.sleep(1.0)
-    ok_start, msg = _launch_mgr.start(_presets[name])
+    ok_start, msg = await _start_teleop_preset(_presets[name])
     if not ok_start:
         raise HTTPException(status_code=409, detail=msg)
     return ApiEnvelope(ok=True, message=f"已重启预设: {name}")

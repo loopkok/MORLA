@@ -182,7 +182,7 @@ TOPIC_INIT_DIRECT = "/teleop/init_direct"
 CONTROL_TOPIC_STATE = "/morla/control/state"
 CONTROL_SERVICE_PREFIX = "/morla/control"
 CONTROL_OPERATIONS = (
-    "pause", "resume", "start", "release", "ready", "enable", "position", "damping",
+    "pause", "resume", "start", "release", "prepare", "ready", "initialize_can", "enable", "reset", "position", "damping",
     "home", "workpos", "workpos_direct", "estop",
 )
 
