@@ -16,6 +16,7 @@ from sensor_msgs.msg import JointState
 from scipy.spatial.transform import Rotation
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
+from rcl_interfaces.msg import SetParametersResult
 
 from .driver_core import FEEDBACK_LIMIT_TOLERANCE_RAD, FeedbackLimitError, NeroDriverCore
 from .home_trajectory import HOME_FINAL_POSE_DEG, home_targets
@@ -76,6 +77,8 @@ class NeroRobotDriverNode(Node):
         self.declare_parameter("initial_position", [0.0])
         self.declare_parameter("position_pose", [0.0])
         self.declare_parameter("position_speed_percent", 5)
+        # Zero inherits the existing work-position speed at startup (legacy behavior).
+        self.declare_parameter("stream_j_speed_percent", 0)
         self.declare_parameter("position_timeout_s", 40.0)
         # Original profiles retain 0.02 rad. Piano opts into 3 degrees.
         self.declare_parameter("workpos_arrival_tolerance_deg", float(np.rad2deg(0.02)))
@@ -144,8 +147,13 @@ class NeroRobotDriverNode(Node):
             max_feedback_age_s=float(self.get_parameter("max_feedback_age_s").value),
             command_period_s=1.0 / float(self.get_parameter("control_rate_hz").value),
         )
+        stream_speed = self.get_parameter("stream_j_speed_percent").value
+        if isinstance(stream_speed, bool) or not isinstance(stream_speed, int) or not 0 <= stream_speed <= 100:
+            raise ValueError("stream_j_speed_percent must be an integer in [0,100]")
+        stream_speed = stream_speed or int(self.get_parameter("position_speed_percent").value)
         if self.backend == "fake":
             self.sdk = FakeNeroSDK(seed)
+            self.sdk.stream_j_speed_percent = stream_speed
             self.sdk.stream_position_mode = str(self.get_parameter("stream_position_mode").value)
         else:
             self.sdk = PyAgxArmAdapter(
@@ -155,7 +163,7 @@ class NeroRobotDriverNode(Node):
                 max_feedback_age_s=self.core.max_feedback_age_s,
                 native_j7_first=bool(self.get_parameter("native_j7_first").value),
                 stream_position_mode=str(self.get_parameter("stream_position_mode").value),
-                stream_j_speed_percent=int(self.get_parameter("position_speed_percent").value),
+                stream_j_speed_percent=stream_speed,
             )
 
         # All vendor SDK I/O is serialized off the ROS callback thread. Timer
@@ -241,6 +249,7 @@ class NeroRobotDriverNode(Node):
 
         control_hz = float(self.get_parameter("control_rate_hz").value)
         state_hz = float(self.get_parameter("state_rate_hz").value)
+        self.add_on_set_parameters_callback(self._validate_stream_speed)
         self._control_timer = self.create_timer(1.0 / control_hz, self._control_tick)
         self._state_timer = self.create_timer(1.0 / state_hz, self._state_tick)
         self._status_timer = self.create_timer(0.2, self._publish_status)
@@ -252,6 +261,19 @@ class NeroRobotDriverNode(Node):
             f"state_rate={state_hz:g}Hz; "
             "SDK enable is explicit and no home/position move starts automatically"
         )
+
+    def _validate_stream_speed(self, parameters):
+        requested = [p.value for p in parameters if p.name == "stream_j_speed_percent"]
+        if not requested:
+            return SetParametersResult(successful=True)
+        if (len(requested) != 1 or isinstance(requested[0], bool)
+                or not isinstance(requested[0], int) or not 1 <= requested[0] <= 100):
+            return SetParametersResult(successful=False, reason="stream speed must be an integer in [1,100]")
+        if self._position_active or self._position_future is not None:
+            return SetParametersResult(successful=False, reason="native waypoint operation is active")
+        # SDK I/O occurs only in the serialized command worker. No enable/disable,
+        # reset, target or mode transition is performed by this callback.
+        return SetParametersResult(successful=True)
 
     def _complete(self, future: Future | None) -> bool:
         return future is None or future.done()
@@ -1000,6 +1022,8 @@ class NeroRobotDriverNode(Node):
             self._read_future = self._worker.submit(self.sdk.read_state)
 
     def _control_tick(self) -> None:
+        requested = self.get_parameter("stream_j_speed_percent").value
+        self.sdk.stream_j_speed_percent = requested or int(self.get_parameter("position_speed_percent").value)
         self._poll_operation("command")
         hold = self.core.watchdog_hold()
         if hold is not None:
@@ -1087,6 +1111,8 @@ class NeroRobotDriverNode(Node):
             "native_j7_first": bool(self.get_parameter("native_j7_first").value),
             "stream_position_mode": str(self.get_parameter("stream_position_mode").value),
             "position_speed_percent": self.get_parameter("position_speed_percent").value,
+            "stream_j_speed_percent": self.sdk.stream_j_speed_percent,
+            "stream_applied_speed_percent": getattr(self.sdk, "_stream_applied_speed_percent", None),
             "position_arrival_tolerance_deg": float(np.rad2deg(self._position_arrival_tolerance_rad)),
             "home_speed_percent": self.get_parameter("home_speed_percent").value,
             "trajectory_revision": TRAJECTORY_REVISION,

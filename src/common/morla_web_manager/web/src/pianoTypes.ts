@@ -20,6 +20,7 @@ export interface PianoConfig {
   calibrated: boolean
   keyboard: { first_note: string; key_count: number }
   timing: Record<string, number>
+  performance?: Record<string, number>
   score_defaults: { tempo_bpm: number; tonic: string }
   hands: Record<PianoSide, PianoHand>
   calibration: { work_pose_deg: Record<PianoSide, number[]> }
@@ -45,6 +46,7 @@ export interface PianoSession {
   maintenance_allowed?: boolean
   hand_feedback_start_allowed?: boolean
   feedback_warnings?: Record<string, string>
+  arm_speed?: Record<PianoSide, { stream_applied_speed_percent?: number | null }>
   hand_sdk?: Record<PianoSide, { feedback_active: boolean; feedback_valid: boolean; error_code: number; error: string; passive: boolean }>
   reset_required?: boolean
   busy: boolean

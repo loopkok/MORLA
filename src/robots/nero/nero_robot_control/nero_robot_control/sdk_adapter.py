@@ -162,6 +162,12 @@ class PyAgxArmAdapter:
                 # The piano is position-driven, not teleoperation. Use the
                 # controller's J position loop and avoid replanning identical
                 # holding goals on every browser/ROS heartbeat.
+                speed = getattr(self, "stream_j_speed_percent", None)
+                if speed is not None and speed != getattr(self, "_stream_applied_speed_percent", None):
+                    # Update speed in the current position mode, retaining the
+                    # goal and motor power. Never re-enable or reset here.
+                    self._robot.set_speed_percent(speed)
+                    self._stream_applied_speed_percent = speed
                 encoded = tuple(round(float(np.rad2deg(v))*1000) for v in values)
                 if encoded == getattr(self, "_stream_goal_mdeg", None):
                     return
@@ -220,6 +226,7 @@ class PyAgxArmAdapter:
         self._robot.set_speed_percent(int(speed_percent))
         self._robot.set_motion_mode("j")
         self._robot.set_auto_set_motion_mode_enabled(False)
+        self._stream_applied_speed_percent = int(speed_percent)
 
     def restore_streaming_mode(self) -> None:
         self.configure_streaming()
@@ -299,6 +306,7 @@ class FakeNeroSDK:
         return self.enabled
 
     def configure_streaming(self) -> None:
+        self._stream_applied_speed_percent = getattr(self, "stream_j_speed_percent", 5)
         self.motion_mode = getattr(self, "stream_position_mode", "js")
         self.calls.append(("mode", self.motion_mode))
 
@@ -329,6 +337,7 @@ class FakeNeroSDK:
         }
 
     def move_js(self, q) -> None:
+        self._stream_applied_speed_percent = getattr(self, "stream_j_speed_percent", 5)
         self.calls.append(("move_js",))
         if self.command_error:
             raise RuntimeError("injected fake command failure")

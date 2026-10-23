@@ -30,7 +30,7 @@ def main():
     args = parser.parse_args()
     sys.path.insert(0, str(Path(args.project).resolve()))
     from morla_piano.engine import Clock, Engine, FakeBackend, Stopped, MotionConfirmationError, smooth
-    from morla_piano.model import FINGER_JOINTS, FINGERS, SIDES, arm_target, load_config, plan_score, hand_command_seed
+    from morla_piano.model import FINGER_JOINTS, FINGERS, SIDES, arm_target, load_config, plan_score, hand_command_seed, performance_timing
 
     config = load_config(args.config)
     immutable_calibrated = config["calibrated"]
@@ -88,6 +88,9 @@ def main():
         state["reset_required"] = args.mode == "hardware" and any(
             getattr(backend, "statuses", {}).get(hand + "_arm", {}).get("controller_arm_status") == 1
             for hand in SIDES)
+        state["arm_speed"] = {side: {key: getattr(backend, "statuses", {}).get(side + "_arm", {}).get(key)
+            for key in ("position_speed_percent", "home_speed_percent", "stream_j_speed_percent", "stream_applied_speed_percent")}
+            for side in SIDES}
         state["hand_sdk"] = getattr(backend, "sdk_statuses", {})
         state["feedback_warnings"] = getattr(backend, "feedback_warnings", {})
         state["hand_feedback_start_allowed"] = (
@@ -406,12 +409,13 @@ def main():
             if side not in SIDES or isinstance(shift, bool) or not isinstance(shift, int):
                 raise ValueError("无效移位参数")
             q0, q1 = list(engine.targets[side + "_arm"]), arm_target(config, side, shift)
-            timing = config["timing"]
+            timing = performance_timing(config)
             duration = max(timing["move_duration_s"], 1.5 * max(abs(a - b) for a, b in zip(q0, q1)) / timing["max_arm_velocity_rad_s"])
             engine.stop_event.clear()
             engine.state = "CALIBRATING"
-            begin = time.monotonic()
             try:
+                engine.performance_speed(True)
+                begin = time.monotonic()
                 while time.monotonic() - begin < duration:
                     engine._check()
                     ratio = smooth((time.monotonic() - begin) / duration)
@@ -427,6 +431,13 @@ def main():
             except Exception as exc:
                 engine._fault(exc)
                 raise
+            finally:
+                if backend.claimed and engine.state != "FAULT":
+                    try:
+                        engine.performance_speed(False)
+                    except Exception as exc:
+                        engine._fault(exc)
+                        raise
             return {}
         if operation in ("stop", "shutdown"):
             healthy_stop()

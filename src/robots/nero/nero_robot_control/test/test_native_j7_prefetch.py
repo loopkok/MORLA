@@ -136,3 +136,14 @@ def test_stream_configuration_never_enables_or_sends_a_target(mode):
     a.configure_streaming()
     expected=[('speed',5),('mode','j'),('auto',False)] if mode=='j' else [('mode','js'),('auto',False)]
     assert calls==expected and a._stream_goal_mdeg is None
+
+
+def test_stream_speed_changes_preserve_goal_dedup_and_motor_power():
+    a=adapter();a.stream_position_mode='j';a.stream_j_speed_percent=5
+    speeds=[];a._robot.set_speed_percent=speeds.append
+    for speed in (5,10,15,5):
+        a.stream_j_speed_percent=speed
+        a.move_js([0.]*7)
+        a.move_js([0.]*7)
+    assert speeds==[5,10,15,5]
+    assert a._robot.calls==1  # unchanged hold target is never resent on a speed change
