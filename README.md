@@ -1,5 +1,7 @@
 # MORLA robot platform
 
+2026-10-27 用户曲谱归档与三仓库提交说明见[详细日志](docs/piano/DEBUG_LOG_2026-10-27.md)。本体本轮仅文档更新，现场标定和Web曲谱库仍需独立备份。
+
 2026-10-23 钢琴调速、曲谱与双仓库更新说明见[本轮详细日志](docs/piano/DEBUG_LOG_2026-10-23.md)。包含本次软件复验、历史现场证据与未完成验收边界。
 
 MORLA is the unified ROS 2 Humble workspace for Astral, Nero, Wuji Hand, and XHand. The software migration through P10 is complete: common input, profile-driven robot assembly, description assets, collection/pipeline, policy/replay/HITL, and Web operation/monitoring are integrated. Hardware and deployed-model acceptance is tracked separately as P11; no software simulation result implies real-hardware acceptance. See [`docs/migration_progress.md`](docs/migration_progress.md) for evidence and remaining deployment conditions, [`docs/MIGRATION_PLAN.md`](docs/MIGRATION_PLAN.md) for contracts, and [`docs/SOURCE_BASELINE.json`](docs/SOURCE_BASELINE.json) for upstream provenance.
