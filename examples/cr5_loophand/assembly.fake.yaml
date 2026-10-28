@@ -1,0 +1,18 @@
+assembly_version: 1
+assembly_id: cr5_loophand
+revision: 1
+instances:
+  arm:
+    plugin: morla.dobot.cr5
+    version: '1.0.0'
+    backend: fake
+  hand:
+    plugin: morla.loophand.compact
+    version: '1.0.0'
+    backend: fake
+capture:
+  state: [arm.position, hand.position]
+  action: [arm.position_target, hand.position_target]
+  images: {}
+  action_source: command
+  hold_frames: 0

@@ -1,0 +1,6 @@
+{
+  "source": "cr5_loophand_graspnet/arm_CR/dobot_api.py",
+  "license": "MIT",
+  "sha256_original_file": "e95de52e9645d415fdc037b34b2f301d77a3459932401655077e78657cb60f60",
+  "changes": "extracted MyType dtype only"
+}

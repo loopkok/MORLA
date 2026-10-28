@@ -8,7 +8,8 @@ from pathlib import Path
 from .session import RuntimeSession
 
 
-def main(args=None):
+def main(args=None, *, node_name='morla_runtime', required_plugin=None,
+         publish_joint_states=False):
     import rclpy
     from rclpy.node import Node
     from std_msgs.msg import String
@@ -19,10 +20,24 @@ def main(args=None):
 
     class RuntimeNode(Node):
         def __init__(self):
-            super().__init__('morla_runtime')
+            super().__init__(node_name)
             self.declare_parameter('resolved_path', '')
             path = self.get_parameter('resolved_path').value
-            self.runtime = RuntimeSession(json.loads(Path(path).read_text()))
+            resolved = json.loads(Path(path).read_text())
+            if required_plugin is not None:
+                instances = resolved.get('instances', [])
+                if len(instances) != 1 or instances[0]['plugin_id'] != required_plugin:
+                    raise ValueError('Single-device driver requires exactly its own component')
+            self.runtime = RuntimeSession(resolved)
+            self.joint_publishers = {}
+            self.last_samples = {}
+            if publish_joint_states:
+                from sensor_msgs.msg import JointState
+                self.joint_publishers = {
+                    key: self.create_publisher(JointState, '~/' + key + '/joint_states', 10)
+                    for key, instance in self.runtime.instances.items()
+                    if instance['kind'] == 'actuator'
+                }
             self.state_pub = self.create_publisher(String, '~/state', 10)
             self.receipts = self.create_publisher(CommandReceipt, '~/receipts', 10)
             self.health_pub = self.create_publisher(ComponentHealth, '~/health', 10)
@@ -89,6 +104,20 @@ def main(args=None):
                 health.source, health.sample_ns = value.get('source', 'unknown'), value.get('sample_ns', 0)
                 health.values = value.get('values', [])
                 self.health_pub.publish(health)
+                if key in self.joint_publishers and value.get('ready') and value.get('values'):
+                    stamp = value['sample_ns']
+                    if stamp <= self.last_samples.get(key, -1):
+                        continue
+                    from sensor_msgs.msg import JointState
+                    message = JointState()
+                    ros_stamp = self.get_clock().now().nanoseconds - (self.runtime.clock() - stamp)
+                    message.header.stamp.sec = ros_stamp // 1_000_000_000
+                    message.header.stamp.nanosec = ros_stamp % 1_000_000_000
+                    message.header.frame_id = key + '_base'
+                    message.name = [joint['name'] for joint in self.runtime.instances[key]['joints']]
+                    message.position = value['values']
+                    self.joint_publishers[key].publish(message)
+                    self.last_samples[key] = stamp
 
     node = None
     try:
@@ -99,3 +128,8 @@ def main(args=None):
             node.runtime.stop()
             node.destroy_node()
         rclpy.shutdown()
+
+
+def joint_state_main(args=None):
+    """Generic multi-component gateway with named JointState feedback outputs."""
+    return main(args, publish_joint_states=True)

@@ -1,0 +1,11 @@
+{
+  "source": "cr5_loophand_graspnet/loophand/aero_open_sdk",
+  "upstream": "TetherIA Aero Hand Open",
+  "license": "Apache-2.0 (upstream SDK attribution in source project)",
+  "changes": "relative imports; trailing whitespace normalized in aero_hand_constants.py",
+  "sha256_original": {
+    "aero_hand_constants.py": "67c2604df1655e5ab9ac58dd45a57c6049817c907f32fa58d0c221ac7c714405",
+    "joints_to_actuations.py": "84ed5208d36e4fbe39bce2f07f976fd3c717a1d6864464b679f1cbf6dfc29bb0",
+    "actuations_to_joints.py": "a1b23b2c015abe1a45a3481c7850f26a76ef9ab831bc074812070ce57563b7d3"
+  }
+}

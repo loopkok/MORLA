@@ -197,6 +197,19 @@ class RuntimeSession:
                 else:
                     missing.append('camera_backend')
             elif backend == 'real':
+                # External adapters may use a direct TCP/serial SDK without ROS.
+                # Inspect installed metadata only; preflight must not load device code.
+                from importlib import metadata
+                entries = metadata.entry_points(group='morla.adapters')
+                selected = [entry for entry in entries if entry.name == plugin + ':real']
+                if selected:
+                    checks.append({'instance_id': key, 'backend': backend,
+                                   'backend_available': len(selected) == 1,
+                                   'deployment_verified': bool(instance.get('deployment_verified')),
+                                   'missing': [] if len(selected) == 1 else ['ambiguous_adapter_entry_point'],
+                                   'probe': 'installed_adapter_metadata_only_dependencies_unchecked',
+                                   'render_context_verified': None})
+                    continue
                 if module_missing('rclpy'): missing.append('rclpy')
                 if shutil.which('ros2') is None: missing.append('ros2')
                 try:

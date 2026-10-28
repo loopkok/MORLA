@@ -1,0 +1,5 @@
+........................................................................ [ 64%]
+........................................                                 [100%]
+=========================== short test summary info ============================
+SKIPPED [1] src/common/morla_core/test/contracts/test_parser_properties.py:6: could not import 'hypothesis': No module named 'hypothesis'
+112 passed, 1 skipped in 4.74s

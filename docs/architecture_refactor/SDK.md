@@ -1,5 +1,7 @@
 # MORLA 可组合组件接入 SDK
 
+完整设备移植流程、各类设备的对齐要求、当前接线限制及验收模板见 [设备移植与接入指南](../device_integration_guide.md)。本文保留简明 ABI 参考。
+
 本接口以实际测试代码为准：纯配置入口位于 `morla_core.composition`，适配 ABI 位于 `morla_core.contracts.component`。`schema.py` 的旧 v2 身份保持不变；新系统使用 `SchemaV3`。
 
 ## 一、组件包最小内容

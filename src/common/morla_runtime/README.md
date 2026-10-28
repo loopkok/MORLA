@@ -66,6 +66,19 @@ ROS build, or offscreen GPU context is certified by offline tests.
 
 ## Third-party adapters
 
+Device packages remain independent: each owns its descriptor, protocol/SDK,
+adapter factory, deployment configuration, launch entry point and tests.
+`CachedActuatorAdapter` in `cached_actuator.py` provides optional brand-neutral
+cached I/O, command watchdog and target guards. A device subclass supplies its
+transport, configuration validation, feedback provenance and watchdog capability;
+this helper imports no robot or hand packages. It does not certify hardware stop.
+
+The generic `joint_state_runtime_node` uses the same ROS command/operation/
+authority gateway as `runtime_node`, with per-actuator `~/<instance>/joint_states`
+outputs for fresh samples. Independent device wrappers can select this gateway
+with an exact single-device plugin requirement. Multi-device assemblies use the
+generic runtime; they do not require a new combined device driver package.
+
 Install a static component descriptor through `morla_core`'s catalogue mechanism
 and register an installed Python entry point. AssemblySpec never supplies an import
 path or command:

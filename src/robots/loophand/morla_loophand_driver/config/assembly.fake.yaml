@@ -1,0 +1,16 @@
+assembly_version: 1
+assembly_id: loophand_only
+revision: 1
+instances:
+  hand:
+    plugin: morla.loophand.compact
+    version: 1.0.0
+    backend: fake
+capture:
+  state:
+  - hand.position
+  action:
+  - hand.position_target
+  images: {}
+  action_source: command
+  hold_frames: 0

@@ -1,6 +1,10 @@
 # 排查经验索引（Troubleshooting & Investigation）
 
-可组合架构重构的执行入口：[完整计划](COMPOSABLE_ARCHITECTURE_PLAN.md)、[agent 分阶段任务](architecture_refactor/EXECUTION.md)、[验收与对抗性审查](architecture_refactor/VALIDATION.md)。状态为计划已完成、重构未实施；旧排障和硬件验收证据继续有效。
+新增机器人、输入设备、相机、传感器或脚踏操作源，先阅读 [设备移植与接入指南](device_integration_guide.md)：包含重构后实际接口、坐标/关节/时间对齐、分设备接入步骤、配置样例、验收和交付模板。
+
+现有独立接入示例：[CR5 机械臂](integrations/cr5.md)、[LoopHand 灵巧手](integrations/loophand.md)；两者的 [组合配置](../examples/cr5_loophand/README.md) 由公共 runtime 装配，不依赖联合设备驱动。
+
+可组合架构实现已于 2026-10-28 提交，范围见 [重构提交记录](architecture_refactor/CHANGE_LOG_2026-10-28.md)，剩余验收见 [progress](architecture_refactor/progress.md)。设计与执行依据：[完整计划](COMPOSABLE_ARCHITECTURE_PLAN.md)、[agent 分阶段任务](architecture_refactor/EXECUTION.md)、[验收与对抗性审查](architecture_refactor/VALIDATION.md)。旧排障和硬件验收证据继续保留，不能据此推定新链路已完成实机验收。
 
 > 给新会话/接手者：真机/数据/推理出问题先来这里找对应主题的**症状 → 根因 → 修法 → 数值**。
 > 本目录按"排查主题"聚合散落在各包 `CLAUDE.md` 坑表、`README` 排障章节与
@@ -12,7 +16,7 @@
 | 主题 | 独立文档 | 一句话结论 | 权威源 |
 |---|---|---|---|
 | 坐标、零位与工具链优化 | [coordinate_kinematics_optimization_plan.md](coordinate_kinematics_optimization_plan.md) | 软件实施与仿真/数据闭环已完成；实机 flange、connector、TCP 与安装标定待设备验收 | [审查与实施证据](coordinate_kinematics_audit_2026-10-14.json) |
-| MORLA 后续 TODO | [TODO.md](TODO.md) | 声明式、高自由度的机器人与执行器组合装配规划；当前尚未实现 | `morla_bringup/robot_profile_launch.py` |
+| MORLA 后续 TODO | [TODO.md](TODO.md) | 设计及后续工作索引；当前实现和未完成验收以重构记录为准 | [重构提交记录](architecture_refactor/CHANGE_LOG_2026-10-28.md) |
 | ACT 推理卡顿 | [act-inference-stutter-investigation.md](act-inference-stutter-investigation.md) | 真机"一卡一卡"= 四层独立原因叠加（参数没生效/换 chunk 断流/收敛拉回尖峰/数据节奏/网络），按层排查 | `src/common/morla_policy_inference/CLAUDE.md`「推理优化历程」 |
 | pi0.5 推理问题调查（进行中） | [2026-09-21-pi05-inference-investigation.md](2026-09-21-pi05-inference-investigation.md) | 抓偏/误抓/卡顿的 A/B/C/D 轮实验设计与结论；左腕视角变化 + 时间轴定责 | `pi05_infer_test_log/`、CHANGELOG 09-21/22 |
 | 推理部署环境/后端坑 | [inference-deploy-pitfalls.md](inference-deploy-pitfalls.md) | py3.12 lerobot vs py3.10 rclpy 硬墙、ACT 1 行 chunk、锁饥饿、陈旧队列、绝对语义守卫等 | `src/common/morla_policy_inference/CLAUDE.md` 坑表 |

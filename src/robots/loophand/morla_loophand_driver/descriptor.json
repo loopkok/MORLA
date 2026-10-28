@@ -1,0 +1,193 @@
+{
+  "descriptor_version": 1,
+  "api_version": "1.0",
+  "plugin_id": "morla.loophand.compact",
+  "plugin_version": "1.0.0",
+  "kind": "actuator",
+  "ports": {
+    "position": {
+      "direction": "output",
+      "semantic": "joint_state",
+      "dim": 7,
+      "unit": "rad",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "position_target": {
+      "direction": "input",
+      "semantic": "joint_targets",
+      "dim": 7,
+      "unit": "rad",
+      "codec": "numeric",
+      "dtype": "float64"
+    }
+  },
+  "joints": [
+    {
+      "name": "thumb_cmc_abd",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": 0.0,
+      "upper": 1.7453292519943295,
+      "limits": [
+        0.0,
+        1.7453292519943295
+      ],
+      "limit_source": "AeroHandConstants_compact_model"
+    },
+    {
+      "name": "thumb_cmc_flex",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": 0.0,
+      "upper": 0.9599310885968813,
+      "limits": [
+        0.0,
+        0.9599310885968813
+      ],
+      "limit_source": "AeroHandConstants_compact_model"
+    },
+    {
+      "name": "thumb_flex",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": 0.0,
+      "upper": 1.5707963267948966,
+      "limits": [
+        0.0,
+        1.5707963267948966
+      ],
+      "limit_source": "AeroHandConstants_compact_model"
+    },
+    {
+      "name": "index_flex",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": 0.0,
+      "upper": 1.5707963267948966,
+      "limits": [
+        0.0,
+        1.5707963267948966
+      ],
+      "limit_source": "AeroHandConstants_compact_model"
+    },
+    {
+      "name": "middle_flex",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": 0.0,
+      "upper": 1.5707963267948966,
+      "limits": [
+        0.0,
+        1.5707963267948966
+      ],
+      "limit_source": "AeroHandConstants_compact_model"
+    },
+    {
+      "name": "ring_flex",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": 0.0,
+      "upper": 1.5707963267948966,
+      "limits": [
+        0.0,
+        1.5707963267948966
+      ],
+      "limit_source": "AeroHandConstants_compact_model"
+    },
+    {
+      "name": "pinky_flex",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": 0.0,
+      "upper": 1.5707963267948966,
+      "limits": [
+        0.0,
+        1.5707963267948966
+      ],
+      "limit_source": "AeroHandConstants_compact_model"
+    }
+  ],
+  "command_modes": [
+    "position"
+  ],
+  "backend_variants": {
+    "fake": {
+      "available": true,
+      "validation_level": "protocol"
+    },
+    "real": {
+      "available": true,
+      "validation_level": "NOT_RUN_hardware_acceptance_required"
+    },
+    "sim": {
+      "available": false,
+      "validation_level": "no_validated_composable_model"
+    }
+  },
+  "resources": {
+    "session_family": "morla.loophand.compact",
+    "sharing": "exclusive",
+    "stop_policy": "zero_torque_unverified"
+  },
+  "operations": {
+    "prepare": {
+      "moves": false
+    },
+    "enable": {
+      "moves": false
+    },
+    "stop": {
+      "moves": false
+    }
+  },
+  "geometry": {
+    "frames": [
+      "base",
+      "flange",
+      "mount"
+    ],
+    "calibration_required": true,
+    "collision_verified": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "rate_hz": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 100
+      },
+      "port": {
+        "type": "string"
+      },
+      "timeout_s": {
+        "type": "number",
+        "minimum": 0.01,
+        "maximum": 0.5
+      },
+      "command_timeout_s": {
+        "type": "number",
+        "minimum": 0.05,
+        "maximum": 1
+      },
+      "max_step_rad": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 0.2
+      }
+    },
+    "additionalProperties": false
+  },
+  "defaults": {
+    "rate_hz": 20,
+    "timeout_s": 0.2,
+    "command_timeout_s": 0.3,
+    "max_step_rad": 0.05
+  },
+  "source": {
+    "package": "morla_loophand_driver",
+    "version": "0.1.0"
+  },
+  "validation_artifacts": []
+}

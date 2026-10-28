@@ -2,6 +2,16 @@
 
 ## 2026-10-28
 
+### 设备接入规范、CR5 / LoopHand 独立驱动与组合示例
+
+- 新增[设备移植与接入指南](docs/device_integration_guide.md)，按重构后源码明确执行器、VR/手套/手柄/手机/外骨骼、相机、传感器与脚踏的接口、关节/单位/坐标/TCP/时间对齐、插件注册、装配部署、数据模型契约及验收交付要求；修正入口文档中“重构未实施”的过时说明。
+- 新增互不依赖的 `morla_cr5_driver` 与 `morla_loophand_driver`：分别拥有 descriptor、ament 注册、Adapter factory、ROS 入口、单设备配置、测试和来源/许可证记录。组合只在 `examples/cr5_loophand` 中通过 Assembly/Deployment 表达；初版联合包未入库，最终提交不保留品牌联合驱动。
+- CR5 使用独立 TCP 控制与二进制实测反馈，转换 degree/rad，校验包长/魔数/设备时钟；使能/停止等待新的 enable_status，提供部署限位、目标步长和主机命令 watchdog。真实设备与固件、设备 watchdog、限位/零位/TCP 尚未验收。
+- Aero 手以 7 维紧凑手型接入，目标经过耦合模型转换，反馈由执行器编码器估算，明确 `estimated / measured=false`。上游缺少停止执行确认与已验证 watchdog，real 激活继续阻止，不以配置标志或 fake 测试冒充可运动。
+- 公共 runtime 新增品牌无关缓存执行器 helper、可选具名 JointState 发布和单设备入口约束；外部 real 插件预检只检查已安装 entry-point 元数据，不导入设备代码、不认证硬件或全部依赖。
+- 明确公共 CartesianController 是 VR 增量/锚点/TCP/求解调用与结果检查层，实际复用 Astral/Nero 专用 FK/IK；本轮未修改它们的算法，也未实现 CR5 FK/IK、VR 笛卡尔遥操、手重定向、触觉抓取或仿真模型。
+- 本次提交前 pure 回归 112 passed、1 skipped（缺 Hypothesis）；两个包分别独立构建 wheel，安装资源/选中 factory/ABI/fake 生命周期分别验证 6/6、7/7 和组合 13/13 维契约。ROS-free 主机的 ament 索引替代测试不等于 ROS 或实机验收。详见[本轮详细提交记录](docs/integrations/CHANGE_LOG_2026-10-28.md)、[拆包验证](docs/integrations/cr5_loophand.md)及其证据目录。
+
 ### 可组合机器人架构重构（未完成部署验收）
 
 - 新增组件描述、装配/部署编译器、冻结契约与哈希、插件发现和 SDK；保留 12 个旧 Profile 的兼容快照。

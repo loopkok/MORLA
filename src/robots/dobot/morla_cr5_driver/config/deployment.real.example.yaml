@@ -1,0 +1,12 @@
+deployment_version: 1
+deployment_id: cr5_only_bench
+instances:
+  arm:
+    backend: real
+    device_id: REPLACE_CR5_SERIAL
+    resource_key: cr5:REPLACE_CR5_SERIAL
+    parameters:
+      host: REPLACE_CONTROLLER_IP
+    verified: false
+    stop_verified: false
+calibrations: {}

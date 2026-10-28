@@ -1,0 +1,12 @@
+deployment_version: 1
+deployment_id: loophand_only_bench
+instances:
+  hand:
+    backend: real
+    device_id: REPLACE_HAND_SERIAL
+    resource_key: serial:REPLACE_HAND_SERIAL
+    parameters:
+      port: /dev/serial/by-id/REPLACE_HAND
+    verified: false
+    stop_verified: false
+calibrations: {}

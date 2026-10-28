@@ -1,0 +1,20 @@
+deployment_version: 1
+deployment_id: cr5_loophand_bench
+instances:
+  arm:
+    backend: real
+    device_id: REPLACE_CR5_SERIAL
+    resource_key: cr5:REPLACE_CR5_SERIAL
+    parameters:
+      host: REPLACE_CONTROLLER_IP
+    verified: false
+    stop_verified: false
+  hand:
+    backend: real
+    device_id: REPLACE_HAND_SERIAL
+    resource_key: serial:REPLACE_HAND_SERIAL
+    parameters:
+      port: /dev/serial/by-id/REPLACE_HAND
+    verified: false
+    stop_verified: false
+calibrations: {}

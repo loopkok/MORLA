@@ -34,3 +34,15 @@ def test_ambiguous_selected_adapter_rejected_without_import(monkeypatch):
     monkeypatch.setattr('morla_runtime.plugins.metadata.entry_points', lambda: Entries([entry, entry]))
     with pytest.raises(ValueError, match='AMBIGUOUS_ADAPTER'):
         load_installed_adapter({'plugin_id': 'custom', 'backend': 'fake'}, {})
+
+
+def test_external_real_preflight_is_metadata_only(monkeypatch):
+    entry = SimpleNamespace(name='external.direct:real',
+                            load=lambda: (_ for _ in ()).throw(AssertionError('preflight imported device code')))
+    monkeypatch.setattr('importlib.metadata.entry_points', lambda **kwargs: [entry])
+    runtime = RuntimeSession({'instances': [{'instance_id': 'arm', 'plugin_id': 'external.direct',
+                              'backend': 'real', 'kind': 'actuator'}]},
+                              allow_unverified_test_fixture=True)
+    result = runtime.preflight()
+    assert result['ready']
+    assert result['components'][0]['probe']=='installed_adapter_metadata_only_dependencies_unchecked'

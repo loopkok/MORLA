@@ -34,12 +34,21 @@ The reusable checks are `scripts/test_ros.sh`, `scripts/test_offline.sh`,
 raw and exported data under `/tmp` by default; set `MORLA_TEST_OUTPUT_ROOT` or
 `MORLA_ASTRAL_TEST_OUTPUT_ROOT` to choose another empty directory.
 
-Future architecture work, including declarative high-flexibility robot and
-actuator composition, is tracked in [`docs/TODO.md`](docs/TODO.md).
-The detailed [composable architecture refactoring plan](docs/COMPOSABLE_ARCHITECTURE_PLAN.md)
-covers mixed-brand hardware, input devices, runtime scheduling, Web assembly,
-data/training contracts, migration tasks and adversarial acceptance; it is a
-plan for subsequent implementation, not a claim of completed functionality.
+For new robots, hands, input devices, cameras, and sensors, start with the
+[device integration guide](docs/device_integration_guide.md). It documents the
+post-refactor interfaces, coordinate/time/data contracts, required implementation
+work, and acceptance checklist against the actual code.
+[CR5](docs/integrations/cr5.md) and
+[Aero Hand Open](docs/integrations/loophand.md) are independent ROS 2 driver
+packages and composable plugins. Their [combined example](examples/cr5_loophand/README.md)
+contains assembly/deployment configuration only. Real-hardware gates and the
+hand's current read-only boundary are documented explicitly.
+The composable architecture implementation was committed on 2026-10-28; see the
+[implementation record](docs/architecture_refactor/CHANGE_LOG_2026-10-28.md) and
+[remaining acceptance gates](docs/architecture_refactor/progress.md).
+The [refactoring plan](docs/COMPOSABLE_ARCHITECTURE_PLAN.md) and
+[`docs/TODO.md`](docs/TODO.md) retain design and follow-up context; implementation
+does not imply real-device or deployed-model acceptance.
 The [coordinate and kinematics optimization plan](docs/coordinate_kinematics_optimization_plan.md)
 records the implemented coordinate contract, Nero J2 zero correction, named
 URDF tool-chain resolver, measured-state TF bridge, and validation evidence.

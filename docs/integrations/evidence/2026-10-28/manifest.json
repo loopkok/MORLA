@@ -1,0 +1,91 @@
+{
+  "date": "2026-10-28",
+  "timezone": "Asia/Shanghai",
+  "baseline_commit": "b91211a9184067a42d7b8090d3dddca138ac80e4",
+  "host": "macOS, no ROS Humble or physical devices",
+  "python": "Python 3.13.5",
+  "hardware_touched": false,
+  "pure": {
+    "command": "MORLA_PYTHON=/opt/anaconda3/bin/python bash scripts/test_composable.sh --layer pure -rs",
+    "passed": 112,
+    "skipped": 1,
+    "skip_reason": "Hypothesis is not installed",
+    "output": "pure.txt"
+  },
+  "installed_plugins": {
+    "output": "installed_plugins.txt",
+    "script": "verify_installed_plugins.py",
+    "ament_index_substituted": true,
+    "cases": [
+      "CR5 only: 6/6",
+      "LoopHand only: 7/7",
+      "both: 13/13"
+    ]
+  },
+  "static_checks": {
+    "script": "static_checks.py",
+    "output": "static_checks.txt"
+  },
+  "not_run": [
+    "ROS Humble colcon/IDL/runtime integration",
+    "all physical devices and device watchdog/stop acceptance",
+    "CR5 Cartesian VR teleoperation/FK/IK",
+    "geometry/TCP calibration",
+    "long-duration operation",
+    "real recording/export/training/model effects"
+  ],
+  "wheel_builds": [
+    {
+      "package": "morla_cr5_driver",
+      "filename": "morla_cr5_driver-0.1.0-py3-none-any.whl",
+      "sha256": "88a3dfb7a757e06c14959f6e93827abef4b9e48747078b663aedb5bb665d33c8"
+    },
+    {
+      "package": "morla_loophand_driver",
+      "filename": "morla_loophand_driver-0.1.0-py3-none-any.whl",
+      "sha256": "6510e1f116aa7ca6a344cf3f6aad7cdaf2aab90feae251a420402e5fa8139131"
+    }
+  ],
+  "selected_source_sha256": {
+    "examples/cr5_loophand/assembly.fake.yaml": "84b5c38936f330bc079a3f76ade2ac9d4bbc85f8e50a3a0641ae5a3ec8975622",
+    "examples/cr5_loophand/deployment.real.example.yaml": "49f30b819920f6bda7313b554c7ad8993c47fa6f0dab7e6f860ec4633128b60a",
+    "examples/cr5_loophand/test/test_cr5_loophand_composition.py": "0487c43117d84cba081a296c6ac1f92d9db106a0f4674f1870d0297436ffef36",
+    "scripts/test_composable.sh": "69c7344b40fab674db13408d58ec052db7124312346967376cc17624ab5b0f88",
+    "src/common/morla_runtime/morla_runtime/cached_actuator.py": "f8aac9432074cc807d189dd2136fc9494d569f960a5e495853e2c1d414670a79",
+    "src/common/morla_runtime/morla_runtime/ros_bridge.py": "c3bd6c369f0d026ff86b81aed39966925255f1b32620f9b8a0e452702c42850a",
+    "src/common/morla_runtime/morla_runtime/session.py": "2d76f6b7edb8593684d240cd93d3d62414397e9b35d5e80ddee047c48bdc1d48",
+    "src/common/morla_runtime/setup.py": "a91ad2e203e59ab118244d69e666cbb071699331bb44c48cde28eff5ea13f33b",
+    "src/robots/dobot/morla_cr5_driver/PROVENANCE.json": "94d8ee6b59dc21fa6153e3009d1645da6bc6f4231144d87efda876c9b1172027",
+    "src/robots/dobot/morla_cr5_driver/config/assembly.fake.yaml": "5ddb6b494fc3cabac6d42471574519b6f646a57c6e15280b2b3efaf690d88823",
+    "src/robots/dobot/morla_cr5_driver/config/deployment.real.example.yaml": "739f07084560b4c0579a131025db9416cd450aede67a76178b46bb5635a8ed04",
+    "src/robots/dobot/morla_cr5_driver/descriptor.json": "d708346a326c4a358ccba3dc08a3951c9f002fac4b10dd4d368dd254a6f45bf5",
+    "src/robots/dobot/morla_cr5_driver/launch/cr5_driver.launch.py": "8872a71a1038ead484f71e6a719b8905fe160fbee1284acef88ecd327903e26e",
+    "src/robots/dobot/morla_cr5_driver/morla_cr5_driver/__init__.py": "89b762957cc5ed0db4b8d5c917368c3dd0116ebc7b0ee8f67bd004ab269a8562",
+    "src/robots/dobot/morla_cr5_driver/morla_cr5_driver/adapter.py": "5c6f7816113ca9570358a5c75668932b62f7df7b33c8500e0275226b7742d712",
+    "src/robots/dobot/morla_cr5_driver/morla_cr5_driver/node.py": "20b7bab8bbff61f1d534a839caeb070248314fb5615c6f66dbd2dd264e214844",
+    "src/robots/dobot/morla_cr5_driver/morla_cr5_driver/transport.py": "f96ba7d011554259ebbe6d31c20b211cadee6584134150e4d6d472e2e6d2e7f5",
+    "src/robots/dobot/morla_cr5_driver/morla_cr5_driver/vendor/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/robots/dobot/morla_cr5_driver/morla_cr5_driver/vendor/dobot_feedback.py": "6bfe880d7cc4e22a9e8c8bdbf3f1e5dadaa368c19203e54443b66ec988aa892d",
+    "src/robots/dobot/morla_cr5_driver/package.xml": "577c12648c1e92f98100cca6da7a51158bb51809ffb3531efc636679da72eea0",
+    "src/robots/dobot/morla_cr5_driver/setup.cfg": "2b68a5983fa7015e40c1cb107b184fd801429f6060e317951787d121a67b1492",
+    "src/robots/dobot/morla_cr5_driver/setup.py": "62622d13a97a179aa6a8d81d1c6ada6ebbaf8ec76ffdbd1c46b3c69cd98983cd",
+    "src/robots/dobot/morla_cr5_driver/test/test_cr5_driver.py": "b4fca5476974ad02f8f3840e701b370feaa596a51c224e4968703b5ae3c7eef1",
+    "src/robots/loophand/morla_loophand_driver/PROVENANCE.json": "944ea9864405249b883392f2ded091e4f4af705c88a12979a60a9fe5dd50a9ea",
+    "src/robots/loophand/morla_loophand_driver/config/assembly.fake.yaml": "cbcadaeff23c4ce03d3e7347312f9393804fc97e59f7e656edbe92c9ce0e9dfa",
+    "src/robots/loophand/morla_loophand_driver/config/deployment.real.example.yaml": "fcd23b384fe64d141a276363b326dd3f154be75067eb16cb53c29a574cb2caaf",
+    "src/robots/loophand/morla_loophand_driver/descriptor.json": "20059ba5e829fd1a224847c19b4719d995a871976ead2794aec701311c36cb40",
+    "src/robots/loophand/morla_loophand_driver/launch/loophand_driver.launch.py": "fe2ec319ae2ddb559c68fd0e143a8f1c9bc098b02ddac6e2a22e62c2d12c953a",
+    "src/robots/loophand/morla_loophand_driver/morla_loophand_driver/__init__.py": "89b762957cc5ed0db4b8d5c917368c3dd0116ebc7b0ee8f67bd004ab269a8562",
+    "src/robots/loophand/morla_loophand_driver/morla_loophand_driver/adapter.py": "2daebebb247e60715d4a5a4daafde2faef2d21fb77c1b032546622493b4d8d76",
+    "src/robots/loophand/morla_loophand_driver/morla_loophand_driver/node.py": "7011fa5e1a65313518768199e6fe2c89b008749234b4a174d9ec62ef9a1ee55d",
+    "src/robots/loophand/morla_loophand_driver/morla_loophand_driver/transport.py": "03daa421a4bf3f4dc6e29e4b8583f5a3d568716f827300f18fefe6f354f18b8d",
+    "src/robots/loophand/morla_loophand_driver/morla_loophand_driver/vendor/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/robots/loophand/morla_loophand_driver/morla_loophand_driver/vendor/actuations_to_joints.py": "c87743902eae5ca691d25208b087937d5ab991fd8d303b896b533a4ed05de263",
+    "src/robots/loophand/morla_loophand_driver/morla_loophand_driver/vendor/aero_hand_constants.py": "e17164cdc4d918ca272c8e01d096b6cd8ff5c09516af122afd0cf8cf51150472",
+    "src/robots/loophand/morla_loophand_driver/morla_loophand_driver/vendor/joints_to_actuations.py": "84ed5208d36e4fbe39bce2f07f976fd3c717a1d6864464b679f1cbf6dfc29bb0",
+    "src/robots/loophand/morla_loophand_driver/package.xml": "854ed940013bd34269ad64b579ae0c598691f4567773c8666116a7a74dccfb80",
+    "src/robots/loophand/morla_loophand_driver/setup.cfg": "bdf5c0afa0646dc92306107c3818662da8ecaf15fcccdec5515286e661bc0fe1",
+    "src/robots/loophand/morla_loophand_driver/setup.py": "b0436dd8c927e014127cc0b466aec8ecca4f8ffe67f008dec9e844bd0ec7f6b1",
+    "src/robots/loophand/morla_loophand_driver/test/test_loophand_driver.py": "7a4e18dc4bfab960595fbafc4e56ff4af09454338a5a8f7665a603c4bb0b6457"
+  }
+}

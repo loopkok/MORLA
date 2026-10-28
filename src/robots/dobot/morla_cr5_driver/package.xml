@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>morla_cr5_driver</name><version>0.1.0</version>
+  <description>Independent cr5_driver ROS 2 and MORLA component</description>
+  <maintainer email="robot@localhost">MORLA maintainers</maintainer>
+  <license>Apache-2.0</license><license>MIT</license>
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>morla_core</exec_depend><exec_depend>morla_runtime</exec_depend>
+  <exec_depend>rclpy</exec_depend><exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>launch</exec_depend><exec_depend>launch_ros</exec_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

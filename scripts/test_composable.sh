@@ -15,7 +15,7 @@ for package_dir in "$MORLA_ROOT"/src/common/* "$MORLA_ROOT"/src/robots/*/*; do
   [[ -f "$package_dir/package.xml" ]] && export PYTHONPATH="$package_dir${PYTHONPATH:+:$PYTHONPATH}"
 done
 case "$MORLA_LAYER" in
-  pure) exec "$MORLA_PYTHON" -m pytest -q "$MORLA_ROOT/src/common/morla_core/test/contracts" "$MORLA_ROOT/src/common/morla_runtime/test" "$MORLA_ROOT/src/common/morla_teleop/test" "$MORLA_ROOT/src/common/morla_learning/test" "$@" ;;
+  pure) exec "$MORLA_PYTHON" -m pytest -q "$MORLA_ROOT/src/common/morla_core/test/contracts" "$MORLA_ROOT/src/common/morla_runtime/test" "$MORLA_ROOT/src/common/morla_teleop/test" "$MORLA_ROOT/src/common/morla_learning/test" "$MORLA_ROOT/src/robots/dobot/morla_cr5_driver/test" "$MORLA_ROOT/src/robots/loophand/morla_loophand_driver/test" "$MORLA_ROOT/examples/cr5_loophand/test" "$@" ;;
   fake) exec "$MORLA_PYTHON" -m pytest -q "$MORLA_ROOT/src/common/morla_data_collect/test/test_composable_data.py" "$MORLA_ROOT/src/common/morla_policy_inference/tests/test_composable.py" "$MORLA_ROOT/src/common/morla_web_manager/test/test_composable_api.py" "$@" ;;
   sim) exec "$MORLA_PYTHON" -m pytest -q "$MORLA_ROOT/src/robot_description/test" "$@" ;;
   web) exec "$MORLA_PYTHON" -m pytest -q "$MORLA_ROOT/src/common/morla_web_manager/test/test_composable_api.py" "$@" ;;

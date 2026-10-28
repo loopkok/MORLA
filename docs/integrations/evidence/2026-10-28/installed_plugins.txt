@@ -1,0 +1,3 @@
+cr5: installed discovery/factory/ABI/runtime PASS; dimensions=6
+hand: installed discovery/factory/ABI/runtime PASS; dimensions=7
+both: installed discovery/factory/ABI/runtime PASS; dimensions=13

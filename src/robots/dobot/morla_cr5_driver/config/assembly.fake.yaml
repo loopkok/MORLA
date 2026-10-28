@@ -1,0 +1,16 @@
+assembly_version: 1
+assembly_id: cr5_only
+revision: 1
+instances:
+  arm:
+    plugin: morla.dobot.cr5
+    version: 1.0.0
+    backend: fake
+capture:
+  state:
+  - arm.position
+  action:
+  - arm.position_target
+  images: {}
+  action_source: command
+  hold_frames: 0

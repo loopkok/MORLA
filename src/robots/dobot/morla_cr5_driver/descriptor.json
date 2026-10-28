@@ -1,0 +1,197 @@
+{
+  "descriptor_version": 1,
+  "api_version": "1.0",
+  "plugin_id": "morla.dobot.cr5",
+  "plugin_version": "1.0.0",
+  "kind": "actuator",
+  "ports": {
+    "position": {
+      "direction": "output",
+      "semantic": "joint_state",
+      "dim": 6,
+      "unit": "rad",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "position_target": {
+      "direction": "input",
+      "semantic": "joint_targets",
+      "dim": 6,
+      "unit": "rad",
+      "codec": "numeric",
+      "dtype": "float64"
+    }
+  },
+  "joints": [
+    {
+      "name": "joint1",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": -6.283185307179586,
+      "upper": 6.283185307179586,
+      "limits": [
+        -6.283185307179586,
+        6.283185307179586
+      ],
+      "limit_source": "outer_guard_REQUIRES_deployment_limits"
+    },
+    {
+      "name": "joint2",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": -6.283185307179586,
+      "upper": 6.283185307179586,
+      "limits": [
+        -6.283185307179586,
+        6.283185307179586
+      ],
+      "limit_source": "outer_guard_REQUIRES_deployment_limits"
+    },
+    {
+      "name": "joint3",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": -6.283185307179586,
+      "upper": 6.283185307179586,
+      "limits": [
+        -6.283185307179586,
+        6.283185307179586
+      ],
+      "limit_source": "outer_guard_REQUIRES_deployment_limits"
+    },
+    {
+      "name": "joint4",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": -6.283185307179586,
+      "upper": 6.283185307179586,
+      "limits": [
+        -6.283185307179586,
+        6.283185307179586
+      ],
+      "limit_source": "outer_guard_REQUIRES_deployment_limits"
+    },
+    {
+      "name": "joint5",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": -6.283185307179586,
+      "upper": 6.283185307179586,
+      "limits": [
+        -6.283185307179586,
+        6.283185307179586
+      ],
+      "limit_source": "outer_guard_REQUIRES_deployment_limits"
+    },
+    {
+      "name": "joint6",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": -6.283185307179586,
+      "upper": 6.283185307179586,
+      "limits": [
+        -6.283185307179586,
+        6.283185307179586
+      ],
+      "limit_source": "outer_guard_REQUIRES_deployment_limits"
+    }
+  ],
+  "command_modes": [
+    "position"
+  ],
+  "backend_variants": {
+    "fake": {
+      "available": true,
+      "validation_level": "protocol"
+    },
+    "real": {
+      "available": true,
+      "validation_level": "NOT_RUN_hardware_acceptance_required"
+    },
+    "sim": {
+      "available": false,
+      "validation_level": "no_validated_composable_model"
+    }
+  },
+  "resources": {
+    "session_family": "morla.dobot.cr5",
+    "sharing": "exclusive",
+    "stop_policy": "disable"
+  },
+  "operations": {
+    "prepare": {
+      "moves": false
+    },
+    "enable": {
+      "moves": false
+    },
+    "stop": {
+      "moves": false
+    }
+  },
+  "geometry": {
+    "frames": [
+      "base",
+      "flange",
+      "mount"
+    ],
+    "calibration_required": true,
+    "collision_verified": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "rate_hz": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 100
+      },
+      "host": {
+        "type": "string"
+      },
+      "timeout_s": {
+        "type": "number",
+        "minimum": 0.01,
+        "maximum": 0.5
+      },
+      "command_timeout_s": {
+        "type": "number",
+        "minimum": 0.05,
+        "maximum": 1
+      },
+      "max_step_rad": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 0.2
+      },
+      "joint_lower": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 6,
+        "maxItems": 6
+      },
+      "joint_upper": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 6,
+        "maxItems": 6
+      }
+    },
+    "additionalProperties": false
+  },
+  "defaults": {
+    "rate_hz": 20,
+    "timeout_s": 0.2,
+    "command_timeout_s": 0.3,
+    "max_step_rad": 0.05
+  },
+  "source": {
+    "package": "morla_cr5_driver",
+    "version": "0.1.0"
+  },
+  "validation_artifacts": []
+}
