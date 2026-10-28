@@ -155,7 +155,10 @@ def get_video_info(video_path: str) -> dict[str, Any]:
         info["video.codec"] = str(stream.codec.canonical_name or stream.codec.name)
         info["video.pix_fmt"] = str(stream.pix_fmt)
         info["video.is_depth_map"] = False
-        info["video.fps"] = int(stream.base_rate)
+        rate = stream.average_rate or stream.base_rate
+        if rate is None or rate.denominator == 0:
+            raise ValueError("video has no valid frame rate")
+        info["video.fps"] = rate.numerator / rate.denominator
         pix = str(stream.pix_fmt)
         info["video.channels"] = (
             1 if ("gray" in pix or "mono" in pix) else (4 if "a" in pix[-2:] else 3)
@@ -460,6 +463,9 @@ def _convert_session_impl(
     fps = int(schema.dataset_fps)
     state_dim = schema.state_dim
     state_names = schema.state_names()
+    from morla_data_collect.schema import action_names as get_action_names
+    action_names = get_action_names(schema)
+    action_dim = schema.action_dim
     if model_capacity is not None and state_dim > model_capacity:
         raise ValueError(
             f"layout state_dim={state_dim} exceeds explicitly selected model capacity={model_capacity}; "
@@ -512,6 +518,18 @@ def _convert_session_impl(
                                 field, data=dataset[:],
                                 compression="lzf" if field in {"force_raw", "temperature_raw"} else None,
                             )
+
+            # Preserve exact source samples and provenance masks independently of
+            # model projection/resampling, including unknown legacy provenance.
+            raw_robot = os.path.join(ep_dir, "robot_data.h5")
+            if os.path.exists(raw_robot):
+                provenance_dir = os.path.join(output_dir, "meta", "provenance")
+                os.makedirs(provenance_dir, exist_ok=True)
+                with h5py.File(raw_robot, "r") as raw, h5py.File(os.path.join(provenance_dir, f"episode_{ep_index:06d}.h5"), "w") as provenance:
+                    if "streams" in raw:
+                        raw.copy("streams", provenance)
+                    provenance.attrs["alignment"] = "raw_source_samples; timestamps retained; not resampled"
+                    provenance.attrs["schema_hash"] = str(getattr(schema, "schema_hash", "legacy"))
 
             # -- 视频：JPEG → RGB 帧 → mp4 ------------------------------------------
             rel_paths: dict[str, str] = {}
@@ -647,7 +665,7 @@ def _convert_session_impl(
             "dtype": "float32", "shape": [state_dim], "names": state_names,
         },
         "action": {
-            "dtype": "float32", "shape": [state_dim], "names": state_names,
+            "dtype": "float32", "shape": [action_dim], "names": action_names,
         },
     }
     features.update({key: {"dtype": "int64" if key == "control_owner" else "bool",
@@ -711,7 +729,7 @@ def _convert_session_impl(
         "kinematics_hash": getattr(schema, "kinematics_hash", None),
         "coordinate_contract": getattr(schema, "metadata", {}).get("coordinate_contract", {}),
         "state_features": state_names,
-        "action_features": state_names,
+        "action_features": action_names,
         "state_dim": state_dim,
         "action_dim": schema.action_dim,
         "fps": fps,

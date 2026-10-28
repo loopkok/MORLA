@@ -1,5 +1,7 @@
 # 排查经验索引（Troubleshooting & Investigation）
 
+可组合架构重构的执行入口：[完整计划](COMPOSABLE_ARCHITECTURE_PLAN.md)、[agent 分阶段任务](architecture_refactor/EXECUTION.md)、[验收与对抗性审查](architecture_refactor/VALIDATION.md)。状态为计划已完成、重构未实施；旧排障和硬件验收证据继续有效。
+
 > 给新会话/接手者：真机/数据/推理出问题先来这里找对应主题的**症状 → 根因 → 修法 → 数值**。
 > 本目录按"排查主题"聚合散落在各包 `CLAUDE.md` 坑表、`README` 排障章节与
 > `astral_ws/CHANGELOG.md`（按天演进史）里的经验；每个主题给出独立整理版 + 权威源指针。

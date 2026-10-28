@@ -24,6 +24,8 @@ class PipelineBlock:
     cmd_stream: str | None
     body_slice: tuple[int, int] | None = None
     stream_indices: tuple[int, ...] = ()
+    indices: tuple[int, ...] = ()
+    source_state_indices: tuple[int, ...] = ()
 
 
 class FrozenPipelineSchema:
@@ -60,7 +62,7 @@ class FrozenPipelineSchema:
 
     @property
     def kinematics_hash(self) -> str | None:
-        return self.frozen.kinematics_hash
+        return getattr(self.frozen, "kinematics_hash", self.frozen.metadata.get("kinematics_hash"))
 
     @property
     def metadata(self) -> dict[str, Any]:
@@ -76,9 +78,31 @@ class FrozenPipelineSchema:
                 if self._action_by_id.get(block.block_id) is not None
                 else None,
                 stream_indices=block.stream_indices,
+                indices=block.state_indices,
             )
             for block in self.frozen.state_blocks
         ]
+
+    def action_names(self) -> list[str]:
+        return self.frozen.action_names()
+
+    def action_blocks(self) -> list[PipelineBlock]:
+        state_names = self.state_names()
+        result = []
+        for block in self.frozen.action_blocks:
+            indices = getattr(block, "source_state_indices", ())
+            if not indices:
+                try:
+                    indices = tuple(state_names.index(name) for name in block.feature_names)
+                except ValueError:
+                    if self.action_source == ACTION_NEXT_STATE:
+                        raise ValueError(f"action block {block.block_id!r} needs explicit source_state_indices")
+            result.append(PipelineBlock(
+                block.block_id, block.dim, "", block.command_stream,
+                stream_indices=getattr(block, "stream_indices", ()) or tuple(range(block.dim)),
+                indices=block.action_indices, source_state_indices=tuple(indices),
+            ))
+        return result
 
     def state_names(self) -> list[str]:
         names = [""] * self.state_dim
@@ -99,7 +123,7 @@ class FrozenPipelineSchema:
             key: int(spec.shape[-1])
             for key, spec in self.stream_specs.items()
             if (spec.source_kind == "state"
-                or (self.action_source == ACTION_COMMAND and spec.source_kind == "command"))
+                or (self.action_source != ACTION_NEXT_STATE and spec.source_kind == "command"))
             and spec.required
             and len(spec.shape) == 1 and spec.shape[-1] is not None
         }
@@ -148,6 +172,9 @@ class FrozenPipelineSchema:
 
 def pipeline_schema_from_dict(value: dict[str, Any]):
     """Load a current frozen schema or an explicitly supported Astral v1 schema."""
+    if isinstance(value, dict) and value.get("schema_version") == 3:
+        from morla_core.contracts import SchemaV3
+        return FrozenPipelineSchema(SchemaV3.from_dict(value))
     if isinstance(value, dict) and value.get("schema_version") == 2 and "streams" in value:
         return FrozenPipelineSchema(FrozenSchema.from_dict(value))
     return CollectSchema.from_dict(value)
@@ -159,3 +186,48 @@ def pipeline_schema_from_json(value: str):
 
 
 __all__ = [name for name in globals() if not name.startswith("_")]
+
+
+def action_blocks(schema):
+    """Independent action layout, with explicit legacy v1 equal-layout behavior."""
+    if hasattr(schema, "action_blocks"):
+        return schema.action_blocks()
+    result, offset = [], 0
+    for block in schema.state_blocks():
+        indices = tuple(range(offset, offset + block.dim))
+        result.append(PipelineBlock(block.name, block.dim, block.state_stream,
+            block.cmd_stream, block.body_slice, tuple(range(block.dim)), indices, indices))
+        offset += block.dim
+    return result
+
+
+def action_names(schema):
+    return schema.action_names() if hasattr(schema, "action_names") else schema.state_names()
+
+
+def project_next_state(schema, state):
+    """Project next observations into independently ordered action columns."""
+    import numpy as np
+    result = np.empty((len(state), schema.action_dim), dtype=state.dtype)
+    for block in action_blocks(schema):
+        if len(block.source_state_indices) != block.dim:
+            raise ValueError(f"action block {block.name!r} has no complete state projection")
+        result[:, list(block.indices)] = state[:, list(block.source_state_indices)]
+    return result
+
+
+def rebuild_actions(schema, state, original_action=None):
+    """Recompute next-state labels while retaining logged command actions."""
+    import numpy as np
+    output = (np.asarray(original_action).copy() if original_action is not None
+              else np.empty((len(state), schema.action_dim), dtype=state.dtype))
+    for block in action_blocks(schema):
+        if schema.action_source != ACTION_NEXT_STATE and block.cmd_stream is not None:
+            continue
+        cols = list(block.indices)
+        source = list(block.source_state_indices)
+        if len(source) != block.dim:
+            raise ValueError(f"action block {block.name!r} needs a state projection")
+        output[:-1, cols] = state[1:, source]
+        output[-1, cols] = state[-1, source]
+    return output

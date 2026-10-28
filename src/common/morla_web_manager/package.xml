@@ -2,6 +2,9 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>morla_web_manager</name>
+  <exec_depend>morla_runtime</exec_depend>
+  <exec_depend>morla_teleop</exec_depend>
+  <exec_depend>morla_learning</exec_depend>
   <version>0.1.0</version>
   <description>
     MORLA web manager for robot operation and monitoring.

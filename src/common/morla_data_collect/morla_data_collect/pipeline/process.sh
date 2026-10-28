@@ -39,9 +39,9 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 echo "[1/3] 对齐：$SESSION"
-"$PY" -m morla_data_collect.pipeline align --session "$SESSION" "${ALIGN_ARGS[@]}"
+"$PY" -m morla_data_collect.pipeline align --session "$SESSION" ${ALIGN_ARGS[@]+"${ALIGN_ARGS[@]}"}
 echo "[2/3] 校验：$SESSION"
-if ! "$PY" -m morla_data_collect.pipeline validate --session "$SESSION" "${VALIDATE_ARGS[@]}"; then
+if ! "$PY" -m morla_data_collect.pipeline validate --session "$SESSION" ${VALIDATE_ARGS[@]+"${VALIDATE_ARGS[@]}"}; then
     echo "校验未通过，已终止导出；请处理失败项后重试" >&2
     exit 1
 fi
@@ -54,6 +54,6 @@ case "$TARGET" in
     process-act)
         "$PY" -m morla_data_collect.pipeline export-act \
             --session "$SESSION" --output "$OUTPUT" --image-size "$IMAGE_SIZE" \
-            "${EXPORT_ARGS[@]}" "${FORCE_ACT[@]}";;
+            ${EXPORT_ARGS[@]+"${EXPORT_ARGS[@]}"} ${FORCE_ACT[@]+"${FORCE_ACT[@]}"};;
     *) echo "unknown target: $TARGET" >&2; exit 2;;
 esac

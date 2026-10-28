@@ -403,3 +403,65 @@ bash MORLA/scripts/data_pipeline.sh verify-existing \
 ```
 
 本次结果与局限见 [修复验证报告](../../docs/data-pipeline-fixes-2026-10-10.md)。
+
+## 可组合系统的 schema v3 采集和独立动作布局
+
+ROS 节点可使用 `capture_schema_json` 参数接收编译产物的 `capture_schema`。
+该参数优先于 legacy profile/arms/EE 参数；schema v1/v2 的解析、哈希和历史语义保持兼容。
+`morla_data_collect.composable_recorder.ComposableRecorder` 提供无 ROS 的同一 raw HDF5
+写入边界，供可组合 Web/runtime 使用：
+
+```python
+recorder = ComposableRecorder(resolved["capture_schema"], "/data/raw/session")
+episode_dir = recorder.start(task="pick the cube")
+recorder.append_snapshot({"arm__position": measured, "arm__position_target": dispatched}, timestamp)
+recorder.append_camera("overhead", jpeg_bytes, timestamp)
+recorder.event("control_owner", "human", timestamp)
+result = recorder.stop()
+```
+
+只能记录实测反馈及实际 dispatch 的指令；请求值不能伪装为反馈。流必须预先声明，
+数值 shape/有限性及逐流时间戳严格递增在落盘前检查。元数据从开始录制即原子写入，
+冻结 schema、codec 版本和 assembly 元数据，结束记录真实数量与 complete/cancelled/failed 状态；
+未完成或取消的数据被 validate 拒绝导出。`pause()/resume()` 保留事件；离线 align
+保留已有“不把暂停间隔隐式插值成示范”的检查，含暂停区间需要先拆段。
+
+state 和 action 分别使用独立的 block 索引、名称和维度。schema v3 action block 的
+`source_state_indices` 显式定义 next_state 投影，`stream_indices` 显式定义指令流投影。
+例如观测含 11 维位置/速度/只读状态，动作仅 8 维，align、validate、repair、verify、
+LeRobot v2/v3、ACT 导出和 Rerun 回放均按各自布局处理。动作源 command/requested/
+authorized/dispatched/feedback 按声明流读取；不会因没有指令日志而假造指令。
+通用导出允许 0 相机、0 动作；无相机时以已声明数值流的时间交集对齐。
+ACT 的结构验收仍检查模型至少需要一路图像，因此无相机数据可通用导出但不能直接训练视觉 ACT。
+
+插件可用 sensor spec 的 `fields` 映射声明任意固定 shape 数值 tensor：
+`{"sensor_key":"pressure","fields":{"values":{"shape":[2,3],"dtype":"float32"}}}`。
+`append_sensor(key, {"values": tensor, "valid": bool}, timestamp)` 写独立 sidecar，
+不隐式拼进策略 state/action。对齐保留 source_index/source_timestamps/source_offsets 和有效性。
+可选传感器缺失时 v3 保留零填充值、valid=False、source_index=-1 和 quality 位 `0x08`；
+终端 hold 传感器有效性固定为 False。必需传感器缺失或严重间隔继续拒绝训练。
+`codecs.py` 的可信 registry 提供 numeric、tensor_sensor、xhand_native codec，
+禁止由 schema 字符串任意导入 Python；XHand 原生 hand_id/finger 解码从 collector 移至 codec。
+
+回归可用仓库 Python 环境运行：
+
+```bash
+PYTHONPATH=src/common/morla_core:src/common/morla_data_collect \
+  python -m pytest src/common/morla_data_collect/test/test_composable_data.py -q
+```
+
+用例逐元素检查 11-state/8-action 重排 canary、command/next_state、0-camera/0-action、
+自定义相机键、ACT/v2/v3 数值一致性、修复回放来源、缺失传感有效性、codec 拒绝非法输入。
+ROS 在线订阅/硬件采样需要另在 ROS 环境验证，离线测试不代替真机验证。
+
+可组合 Web/runtime 使用 `AsyncComposableRecorder`（同模块、相同方法），其有界队列在网关回调内
+只进行 `put_nowait`；独立线程执行 HDF5 写盘。队列满会记录 `RECORDER_QUEUE_OVERFLOW`
+与丢样数量，最终 episode 状态为 failed；`stop()` 等待已接收样本排空后关闭。
+缺省时间戳在入队时冻结，不能因写盘积压而被重写为执行时间；显式时间戳保持原值。
+`append_stream(..., provenance={source, valid, measured, synthetic, command_echo,
+source_time_ns, received_time_ns})` 保存逐样本来源/有效性与原始时钟戳；source/received ns
+为非负 int64，0 表示未提供，不推断未知时钟。不能同时声称 measured 与 synthetic/command_echo。
+LeRobot v2/v3 将原始数值流和来源掩码保存在 `meta/provenance/episode_XXXXXX.h5`，
+其时间戳保留原始采样语义，不能按已对齐帧号直接索引。缺少必需数值/图像/传感器样本的
+录制不会标 complete。codec 在类型转换前拒绝整型截断、负数转 unsigned、非二值 bool
+和 float32 溢出；JointState 速度流依据 rad/s、m/s、ratio/s 单位读取 velocity 字段。

@@ -2,6 +2,8 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>morla_policy_inference</name>
+  <exec_depend>morla_runtime</exec_depend>
+  <exec_depend>morla_learning</exec_depend>
   <version>0.1.0</version>
   <description>
     Astral policy inference/replay with human-in-the-loop takeover. Deploys

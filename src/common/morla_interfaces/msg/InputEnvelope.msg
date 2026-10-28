@@ -1,0 +1,12 @@
+string session_id
+string source_id
+string port
+string semantic_type
+uint64 source_epoch
+uint64 sequence
+uint64 received_ns
+uint64 source_ns
+bool valid
+string frame_id
+string[] names
+float64[] values

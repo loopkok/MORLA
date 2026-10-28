@@ -1,0 +1,1552 @@
+{
+  "morla.wuji.hand": {
+    "right": [
+      {
+        "name": "finger1_joint1",
+        "driver_name": "finger1_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.0448,
+          1.6508
+        ],
+        "lower": -0.0448,
+        "upper": 1.6508,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger1_joint1",
+        "mjcf_name": "right_finger1_joint1"
+      },
+      {
+        "name": "finger1_joint2",
+        "driver_name": "finger1_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.1659,
+          0.9339
+        ],
+        "lower": -0.1659,
+        "upper": 0.9339,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger1_joint2",
+        "mjcf_name": "right_finger1_joint2"
+      },
+      {
+        "name": "finger1_joint3",
+        "driver_name": "finger1_joint3",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger1_joint3",
+        "mjcf_name": "right_finger1_joint3"
+      },
+      {
+        "name": "finger1_joint4",
+        "driver_name": "finger1_joint4",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger1_joint4",
+        "mjcf_name": "right_finger1_joint4"
+      },
+      {
+        "name": "finger2_joint1",
+        "driver_name": "finger2_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.32695,
+          1.63595
+        ],
+        "lower": -0.32695,
+        "upper": 1.63595,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger2_joint1",
+        "mjcf_name": "right_finger2_joint1"
+      },
+      {
+        "name": "finger2_joint2",
+        "driver_name": "finger2_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.495,
+          0.495
+        ],
+        "lower": -0.495,
+        "upper": 0.495,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger2_joint2",
+        "mjcf_name": "right_finger2_joint2"
+      },
+      {
+        "name": "finger2_joint3",
+        "driver_name": "finger2_joint3",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger2_joint3",
+        "mjcf_name": "right_finger2_joint3"
+      },
+      {
+        "name": "finger2_joint4",
+        "driver_name": "finger2_joint4",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger2_joint4",
+        "mjcf_name": "right_finger2_joint4"
+      },
+      {
+        "name": "finger3_joint1",
+        "driver_name": "finger3_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.32695,
+          1.63595
+        ],
+        "lower": -0.32695,
+        "upper": 1.63595,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger3_joint1",
+        "mjcf_name": "right_finger3_joint1"
+      },
+      {
+        "name": "finger3_joint2",
+        "driver_name": "finger3_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.495,
+          0.495
+        ],
+        "lower": -0.495,
+        "upper": 0.495,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger3_joint2",
+        "mjcf_name": "right_finger3_joint2"
+      },
+      {
+        "name": "finger3_joint3",
+        "driver_name": "finger3_joint3",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger3_joint3",
+        "mjcf_name": "right_finger3_joint3"
+      },
+      {
+        "name": "finger3_joint4",
+        "driver_name": "finger3_joint4",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger3_joint4",
+        "mjcf_name": "right_finger3_joint4"
+      },
+      {
+        "name": "finger4_joint1",
+        "driver_name": "finger4_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.32695,
+          1.63595
+        ],
+        "lower": -0.32695,
+        "upper": 1.63595,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger4_joint1",
+        "mjcf_name": "right_finger4_joint1"
+      },
+      {
+        "name": "finger4_joint2",
+        "driver_name": "finger4_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.495,
+          0.495
+        ],
+        "lower": -0.495,
+        "upper": 0.495,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger4_joint2",
+        "mjcf_name": "right_finger4_joint2"
+      },
+      {
+        "name": "finger4_joint3",
+        "driver_name": "finger4_joint3",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger4_joint3",
+        "mjcf_name": "right_finger4_joint3"
+      },
+      {
+        "name": "finger4_joint4",
+        "driver_name": "finger4_joint4",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger4_joint4",
+        "mjcf_name": "right_finger4_joint4"
+      },
+      {
+        "name": "finger5_joint1",
+        "driver_name": "finger5_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.32695,
+          1.63595
+        ],
+        "lower": -0.32695,
+        "upper": 1.63595,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger5_joint1",
+        "mjcf_name": "right_finger5_joint1"
+      },
+      {
+        "name": "finger5_joint2",
+        "driver_name": "finger5_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.495,
+          0.495
+        ],
+        "lower": -0.495,
+        "upper": 0.495,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger5_joint2",
+        "mjcf_name": "right_finger5_joint2"
+      },
+      {
+        "name": "finger5_joint3",
+        "driver_name": "finger5_joint3",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger5_joint3",
+        "mjcf_name": "right_finger5_joint3"
+      },
+      {
+        "name": "finger5_joint4",
+        "driver_name": "finger5_joint4",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_right.yaml",
+        "urdf_name": "finger5_joint4",
+        "mjcf_name": "right_finger5_joint4"
+      }
+    ],
+    "left": [
+      {
+        "name": "finger1_joint1",
+        "driver_name": "finger1_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.0448,
+          1.6508
+        ],
+        "lower": -0.0448,
+        "upper": 1.6508,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger1_joint1",
+        "mjcf_name": "left_finger1_joint1"
+      },
+      {
+        "name": "finger1_joint2",
+        "driver_name": "finger1_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.1659,
+          0.9339
+        ],
+        "lower": -0.1659,
+        "upper": 0.9339,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger1_joint2",
+        "mjcf_name": "left_finger1_joint2"
+      },
+      {
+        "name": "finger1_joint3",
+        "driver_name": "finger1_joint3",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger1_joint3",
+        "mjcf_name": "left_finger1_joint3"
+      },
+      {
+        "name": "finger1_joint4",
+        "driver_name": "finger1_joint4",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger1_joint4",
+        "mjcf_name": "left_finger1_joint4"
+      },
+      {
+        "name": "finger2_joint1",
+        "driver_name": "finger2_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.32695,
+          1.63595
+        ],
+        "lower": -0.32695,
+        "upper": 1.63595,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger2_joint1",
+        "mjcf_name": "left_finger2_joint1"
+      },
+      {
+        "name": "finger2_joint2",
+        "driver_name": "finger2_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.495,
+          0.495
+        ],
+        "lower": -0.495,
+        "upper": 0.495,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger2_joint2",
+        "mjcf_name": "left_finger2_joint2"
+      },
+      {
+        "name": "finger2_joint3",
+        "driver_name": "finger2_joint3",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger2_joint3",
+        "mjcf_name": "left_finger2_joint3"
+      },
+      {
+        "name": "finger2_joint4",
+        "driver_name": "finger2_joint4",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger2_joint4",
+        "mjcf_name": "left_finger2_joint4"
+      },
+      {
+        "name": "finger3_joint1",
+        "driver_name": "finger3_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.32695,
+          1.63595
+        ],
+        "lower": -0.32695,
+        "upper": 1.63595,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger3_joint1",
+        "mjcf_name": "left_finger3_joint1"
+      },
+      {
+        "name": "finger3_joint2",
+        "driver_name": "finger3_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.495,
+          0.495
+        ],
+        "lower": -0.495,
+        "upper": 0.495,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger3_joint2",
+        "mjcf_name": "left_finger3_joint2"
+      },
+      {
+        "name": "finger3_joint3",
+        "driver_name": "finger3_joint3",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger3_joint3",
+        "mjcf_name": "left_finger3_joint3"
+      },
+      {
+        "name": "finger3_joint4",
+        "driver_name": "finger3_joint4",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger3_joint4",
+        "mjcf_name": "left_finger3_joint4"
+      },
+      {
+        "name": "finger4_joint1",
+        "driver_name": "finger4_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.32695,
+          1.63595
+        ],
+        "lower": -0.32695,
+        "upper": 1.63595,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger4_joint1",
+        "mjcf_name": "left_finger4_joint1"
+      },
+      {
+        "name": "finger4_joint2",
+        "driver_name": "finger4_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.495,
+          0.495
+        ],
+        "lower": -0.495,
+        "upper": 0.495,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger4_joint2",
+        "mjcf_name": "left_finger4_joint2"
+      },
+      {
+        "name": "finger4_joint3",
+        "driver_name": "finger4_joint3",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger4_joint3",
+        "mjcf_name": "left_finger4_joint3"
+      },
+      {
+        "name": "finger4_joint4",
+        "driver_name": "finger4_joint4",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger4_joint4",
+        "mjcf_name": "left_finger4_joint4"
+      },
+      {
+        "name": "finger5_joint1",
+        "driver_name": "finger5_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.32695,
+          1.63595
+        ],
+        "lower": -0.32695,
+        "upper": 1.63595,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger5_joint1",
+        "mjcf_name": "left_finger5_joint1"
+      },
+      {
+        "name": "finger5_joint2",
+        "driver_name": "finger5_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.495,
+          0.495
+        ],
+        "lower": -0.495,
+        "upper": 0.495,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger5_joint2",
+        "mjcf_name": "left_finger5_joint2"
+      },
+      {
+        "name": "finger5_joint3",
+        "driver_name": "finger5_joint3",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger5_joint3",
+        "mjcf_name": "left_finger5_joint3"
+      },
+      {
+        "name": "finger5_joint4",
+        "driver_name": "finger5_joint4",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.4932,
+          1.6272
+        ],
+        "lower": -0.4932,
+        "upper": 1.6272,
+        "max_velocity": null,
+        "limit_source": "src/robots/wuji/morla_wuji_hand/config/components/wuji_left.yaml",
+        "urdf_name": "finger5_joint4",
+        "mjcf_name": "left_finger5_joint4"
+      }
+    ]
+  },
+  "morla.xhand.hand": {
+    "left": [
+      {
+        "name": "thumb_bend_joint",
+        "driver_name": "thumb_bend_joint",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.5707963267948966
+        ],
+        "lower": 0.0,
+        "upper": 1.5707963267948966,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_left.yaml",
+        "urdf_name": "thumb_bend_joint",
+        "mjcf_name": "left_hand_thumb_bend_joint"
+      },
+      {
+        "name": "thumb_rota_joint1",
+        "driver_name": "thumb_rota_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -1.0471975511965976,
+          1.5707963267948966
+        ],
+        "lower": -1.0471975511965976,
+        "upper": 1.5707963267948966,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_left.yaml",
+        "urdf_name": "thumb_rota_joint1",
+        "mjcf_name": "left_hand_thumb_rota_joint1"
+      },
+      {
+        "name": "thumb_rota_joint2",
+        "driver_name": "thumb_rota_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.5707963267948966
+        ],
+        "lower": 0.0,
+        "upper": 1.5707963267948966,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_left.yaml",
+        "urdf_name": "thumb_rota_joint2",
+        "mjcf_name": "left_hand_thumb_rota_joint2"
+      },
+      {
+        "name": "index_bend_joint",
+        "driver_name": "index_bend_joint",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.08726646259971647,
+          0.29670597283903605
+        ],
+        "lower": -0.08726646259971647,
+        "upper": 0.29670597283903605,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_left.yaml",
+        "urdf_name": "index_bend_joint",
+        "mjcf_name": "left_hand_index_bend_joint"
+      },
+      {
+        "name": "index_joint1",
+        "driver_name": "index_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.9198621771937625
+        ],
+        "lower": 0.0,
+        "upper": 1.9198621771937625,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_left.yaml",
+        "urdf_name": "index_joint1",
+        "mjcf_name": "left_hand_index_joint1"
+      },
+      {
+        "name": "index_joint2",
+        "driver_name": "index_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.9198621771937625
+        ],
+        "lower": 0.0,
+        "upper": 1.9198621771937625,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_left.yaml",
+        "urdf_name": "index_joint2",
+        "mjcf_name": "left_hand_index_joint2"
+      },
+      {
+        "name": "mid_joint1",
+        "driver_name": "mid_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.9198621771937625
+        ],
+        "lower": 0.0,
+        "upper": 1.9198621771937625,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_left.yaml",
+        "urdf_name": "mid_joint1",
+        "mjcf_name": "left_hand_mid_joint1"
+      },
+      {
+        "name": "mid_joint2",
+        "driver_name": "mid_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.9198621771937625
+        ],
+        "lower": 0.0,
+        "upper": 1.9198621771937625,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_left.yaml",
+        "urdf_name": "mid_joint2",
+        "mjcf_name": "left_hand_mid_joint2"
+      },
+      {
+        "name": "ring_joint1",
+        "driver_name": "ring_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.9198621771937625
+        ],
+        "lower": 0.0,
+        "upper": 1.9198621771937625,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_left.yaml",
+        "urdf_name": "ring_joint1",
+        "mjcf_name": "left_hand_ring_joint1"
+      },
+      {
+        "name": "ring_joint2",
+        "driver_name": "ring_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.9198621771937625
+        ],
+        "lower": 0.0,
+        "upper": 1.9198621771937625,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_left.yaml",
+        "urdf_name": "ring_joint2",
+        "mjcf_name": "left_hand_ring_joint2"
+      },
+      {
+        "name": "pinky_joint1",
+        "driver_name": "pinky_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.9198621771937625
+        ],
+        "lower": 0.0,
+        "upper": 1.9198621771937625,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_left.yaml",
+        "urdf_name": "pinky_joint1",
+        "mjcf_name": "left_hand_pinky_joint1"
+      },
+      {
+        "name": "pinky_joint2",
+        "driver_name": "pinky_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.9198621771937625
+        ],
+        "lower": 0.0,
+        "upper": 1.9198621771937625,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_left.yaml",
+        "urdf_name": "pinky_joint2",
+        "mjcf_name": "left_hand_pinky_joint2"
+      }
+    ],
+    "right": [
+      {
+        "name": "thumb_bend_joint",
+        "driver_name": "thumb_bend_joint",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.5707963267948966
+        ],
+        "lower": 0.0,
+        "upper": 1.5707963267948966,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_right.yaml",
+        "urdf_name": "thumb_bend_joint",
+        "mjcf_name": "right_hand_thumb_bend_joint"
+      },
+      {
+        "name": "thumb_rota_joint1",
+        "driver_name": "thumb_rota_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -1.0471975511965976,
+          1.5707963267948966
+        ],
+        "lower": -1.0471975511965976,
+        "upper": 1.5707963267948966,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_right.yaml",
+        "urdf_name": "thumb_rota_joint1",
+        "mjcf_name": "right_hand_thumb_rota_joint1"
+      },
+      {
+        "name": "thumb_rota_joint2",
+        "driver_name": "thumb_rota_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.5707963267948966
+        ],
+        "lower": 0.0,
+        "upper": 1.5707963267948966,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_right.yaml",
+        "urdf_name": "thumb_rota_joint2",
+        "mjcf_name": "right_hand_thumb_rota_joint2"
+      },
+      {
+        "name": "index_bend_joint",
+        "driver_name": "index_bend_joint",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.08726646259971647,
+          0.29670597283903605
+        ],
+        "lower": -0.08726646259971647,
+        "upper": 0.29670597283903605,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_right.yaml",
+        "urdf_name": "index_bend_joint",
+        "mjcf_name": "right_hand_index_bend_joint"
+      },
+      {
+        "name": "index_joint1",
+        "driver_name": "index_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.9198621771937625
+        ],
+        "lower": 0.0,
+        "upper": 1.9198621771937625,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_right.yaml",
+        "urdf_name": "index_joint1",
+        "mjcf_name": "right_hand_index_joint1"
+      },
+      {
+        "name": "index_joint2",
+        "driver_name": "index_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.9198621771937625
+        ],
+        "lower": 0.0,
+        "upper": 1.9198621771937625,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_right.yaml",
+        "urdf_name": "index_joint2",
+        "mjcf_name": "right_hand_index_joint2"
+      },
+      {
+        "name": "mid_joint1",
+        "driver_name": "mid_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.9198621771937625
+        ],
+        "lower": 0.0,
+        "upper": 1.9198621771937625,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_right.yaml",
+        "urdf_name": "mid_joint1",
+        "mjcf_name": "right_hand_mid_joint1"
+      },
+      {
+        "name": "mid_joint2",
+        "driver_name": "mid_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.9198621771937625
+        ],
+        "lower": 0.0,
+        "upper": 1.9198621771937625,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_right.yaml",
+        "urdf_name": "mid_joint2",
+        "mjcf_name": "right_hand_mid_joint2"
+      },
+      {
+        "name": "ring_joint1",
+        "driver_name": "ring_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.9198621771937625
+        ],
+        "lower": 0.0,
+        "upper": 1.9198621771937625,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_right.yaml",
+        "urdf_name": "ring_joint1",
+        "mjcf_name": "right_hand_ring_joint1"
+      },
+      {
+        "name": "ring_joint2",
+        "driver_name": "ring_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.9198621771937625
+        ],
+        "lower": 0.0,
+        "upper": 1.9198621771937625,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_right.yaml",
+        "urdf_name": "ring_joint2",
+        "mjcf_name": "right_hand_ring_joint2"
+      },
+      {
+        "name": "pinky_joint1",
+        "driver_name": "pinky_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.9198621771937625
+        ],
+        "lower": 0.0,
+        "upper": 1.9198621771937625,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_right.yaml",
+        "urdf_name": "pinky_joint1",
+        "mjcf_name": "right_hand_pinky_joint1"
+      },
+      {
+        "name": "pinky_joint2",
+        "driver_name": "pinky_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          0.0,
+          1.9198621771937625
+        ],
+        "lower": 0.0,
+        "upper": 1.9198621771937625,
+        "max_velocity": null,
+        "limit_source": "src/robots/xhand/morla_xhand_hand/config/components/xhand_right.yaml",
+        "urdf_name": "pinky_joint2",
+        "mjcf_name": "right_hand_pinky_joint2"
+      }
+    ]
+  },
+  "morla.nero.arm": {
+    "left": [
+      {
+        "name": "joint1",
+        "driver_name": "left_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -2.705261,
+          2.705261
+        ],
+        "lower": -2.705261,
+        "upper": 2.705261,
+        "max_velocity": 1.0,
+        "limit_source": "src/robots/nero/morla_nero_robot/config/components/nero_left.yaml",
+        "urdf_name": "left_joint1",
+        "mjcf_name": "left_joint1"
+      },
+      {
+        "name": "joint2",
+        "driver_name": "left_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -1.74533,
+          1.74533
+        ],
+        "lower": -1.74533,
+        "upper": 1.74533,
+        "max_velocity": 1.0,
+        "limit_source": "src/robots/nero/morla_nero_robot/config/components/nero_left.yaml",
+        "urdf_name": "left_joint2",
+        "mjcf_name": "left_joint2"
+      },
+      {
+        "name": "joint3",
+        "driver_name": "left_joint3",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -2.757621,
+          2.757621
+        ],
+        "lower": -2.757621,
+        "upper": 2.757621,
+        "max_velocity": 1.0,
+        "limit_source": "src/robots/nero/morla_nero_robot/config/components/nero_left.yaml",
+        "urdf_name": "left_joint3",
+        "mjcf_name": "left_joint3"
+      },
+      {
+        "name": "joint4",
+        "driver_name": "left_joint4",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -1.012291,
+          2.146755
+        ],
+        "lower": -1.012291,
+        "upper": 2.146755,
+        "max_velocity": 1.0,
+        "limit_source": "src/robots/nero/morla_nero_robot/config/components/nero_left.yaml",
+        "urdf_name": "left_joint4",
+        "mjcf_name": "left_joint4"
+      },
+      {
+        "name": "joint5",
+        "driver_name": "left_joint5",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -2.757621,
+          2.757621
+        ],
+        "lower": -2.757621,
+        "upper": 2.757621,
+        "max_velocity": 1.0,
+        "limit_source": "src/robots/nero/morla_nero_robot/config/components/nero_left.yaml",
+        "urdf_name": "left_joint5",
+        "mjcf_name": "left_joint5"
+      },
+      {
+        "name": "joint6",
+        "driver_name": "left_joint6",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.733039,
+          0.959932
+        ],
+        "lower": -0.733039,
+        "upper": 0.959932,
+        "max_velocity": 1.0,
+        "limit_source": "src/robots/nero/morla_nero_robot/config/components/nero_left.yaml",
+        "urdf_name": "left_joint6",
+        "mjcf_name": "left_joint6"
+      },
+      {
+        "name": "joint7",
+        "driver_name": "left_joint7",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -1.570797,
+          1.570797
+        ],
+        "lower": -1.570797,
+        "upper": 1.570797,
+        "max_velocity": 1.0,
+        "limit_source": "src/robots/nero/morla_nero_robot/config/components/nero_left.yaml",
+        "urdf_name": "left_joint7",
+        "mjcf_name": "left_joint7"
+      }
+    ],
+    "right": [
+      {
+        "name": "joint1",
+        "driver_name": "right_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -2.705261,
+          2.705261
+        ],
+        "lower": -2.705261,
+        "upper": 2.705261,
+        "max_velocity": 1.0,
+        "limit_source": "src/robots/nero/morla_nero_robot/config/components/nero_right.yaml",
+        "urdf_name": "right_joint1",
+        "mjcf_name": "right_joint1"
+      },
+      {
+        "name": "joint2",
+        "driver_name": "right_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -1.74533,
+          1.74533
+        ],
+        "lower": -1.74533,
+        "upper": 1.74533,
+        "max_velocity": 1.0,
+        "limit_source": "src/robots/nero/morla_nero_robot/config/components/nero_right.yaml",
+        "urdf_name": "right_joint2",
+        "mjcf_name": "right_joint2"
+      },
+      {
+        "name": "joint3",
+        "driver_name": "right_joint3",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -2.757621,
+          2.757621
+        ],
+        "lower": -2.757621,
+        "upper": 2.757621,
+        "max_velocity": 1.0,
+        "limit_source": "src/robots/nero/morla_nero_robot/config/components/nero_right.yaml",
+        "urdf_name": "right_joint3",
+        "mjcf_name": "right_joint3"
+      },
+      {
+        "name": "joint4",
+        "driver_name": "right_joint4",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -1.012291,
+          2.146755
+        ],
+        "lower": -1.012291,
+        "upper": 2.146755,
+        "max_velocity": 1.0,
+        "limit_source": "src/robots/nero/morla_nero_robot/config/components/nero_right.yaml",
+        "urdf_name": "right_joint4",
+        "mjcf_name": "right_joint4"
+      },
+      {
+        "name": "joint5",
+        "driver_name": "right_joint5",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -2.757621,
+          2.757621
+        ],
+        "lower": -2.757621,
+        "upper": 2.757621,
+        "max_velocity": 1.0,
+        "limit_source": "src/robots/nero/morla_nero_robot/config/components/nero_right.yaml",
+        "urdf_name": "right_joint5",
+        "mjcf_name": "right_joint5"
+      },
+      {
+        "name": "joint6",
+        "driver_name": "right_joint6",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -0.733039,
+          0.959932
+        ],
+        "lower": -0.733039,
+        "upper": 0.959932,
+        "max_velocity": 1.0,
+        "limit_source": "src/robots/nero/morla_nero_robot/config/components/nero_right.yaml",
+        "urdf_name": "right_joint6",
+        "mjcf_name": "right_joint6"
+      },
+      {
+        "name": "joint7",
+        "driver_name": "right_joint7",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -1.570797,
+          1.570797
+        ],
+        "lower": -1.570797,
+        "upper": 1.570797,
+        "max_velocity": 1.0,
+        "limit_source": "src/robots/nero/morla_nero_robot/config/components/nero_right.yaml",
+        "urdf_name": "right_joint7",
+        "mjcf_name": "right_joint7"
+      }
+    ]
+  },
+  "morla.astral.arm": {
+    "left": [
+      {
+        "name": "shoulder_pitch",
+        "driver_name": "left_shoulder_pitch",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -3.141593,
+          3.141593
+        ],
+        "lower": -3.141593,
+        "upper": 3.141593,
+        "max_velocity": 6.0,
+        "limit_source": "src/robots/astral/morla_astral_robot/config/profiles/astral_left_wuji.yaml:left_arm",
+        "urdf_name": "left_shoulder_pitch",
+        "source_status": "legacy_declared_not_hardware_verified",
+        "mjcf_name": "left_joint1"
+      },
+      {
+        "name": "shoulder_roll",
+        "driver_name": "left_shoulder_roll",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -3.141593,
+          3.141593
+        ],
+        "lower": -3.141593,
+        "upper": 3.141593,
+        "max_velocity": 6.0,
+        "limit_source": "src/robots/astral/morla_astral_robot/config/profiles/astral_left_wuji.yaml:left_arm",
+        "urdf_name": "left_shoulder_roll",
+        "source_status": "legacy_declared_not_hardware_verified",
+        "mjcf_name": "left_joint2"
+      },
+      {
+        "name": "elbow_roll",
+        "driver_name": "left_elbow_roll",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -3.141593,
+          3.141593
+        ],
+        "lower": -3.141593,
+        "upper": 3.141593,
+        "max_velocity": 6.0,
+        "limit_source": "src/robots/astral/morla_astral_robot/config/profiles/astral_left_wuji.yaml:left_arm",
+        "urdf_name": "left_elbow_roll",
+        "source_status": "legacy_declared_not_hardware_verified",
+        "mjcf_name": "left_joint3"
+      },
+      {
+        "name": "elbow_pitch",
+        "driver_name": "left_elbow_pitch",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -3.141593,
+          3.141593
+        ],
+        "lower": -3.141593,
+        "upper": 3.141593,
+        "max_velocity": 6.0,
+        "limit_source": "src/robots/astral/morla_astral_robot/config/profiles/astral_left_wuji.yaml:left_arm",
+        "urdf_name": "left_elbow_pitch",
+        "source_status": "legacy_declared_not_hardware_verified",
+        "mjcf_name": "left_joint4"
+      },
+      {
+        "name": "forearm_roll",
+        "driver_name": "left_forearm_roll",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -3.141593,
+          3.141593
+        ],
+        "lower": -3.141593,
+        "upper": 3.141593,
+        "max_velocity": 6.0,
+        "limit_source": "src/robots/astral/morla_astral_robot/config/profiles/astral_left_wuji.yaml:left_arm",
+        "urdf_name": "left_forearm_roll",
+        "source_status": "legacy_declared_not_hardware_verified",
+        "mjcf_name": "left_joint5"
+      },
+      {
+        "name": "wrist_pitch",
+        "driver_name": "left_wrist_pitch",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -3.141593,
+          3.141593
+        ],
+        "lower": -3.141593,
+        "upper": 3.141593,
+        "max_velocity": 6.0,
+        "limit_source": "src/robots/astral/morla_astral_robot/config/profiles/astral_left_wuji.yaml:left_arm",
+        "urdf_name": "left_wrist_pitch",
+        "source_status": "legacy_declared_not_hardware_verified",
+        "mjcf_name": "left_joint6"
+      },
+      {
+        "name": "wrist_roll",
+        "driver_name": "left_wrist_roll",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -3.141593,
+          3.141593
+        ],
+        "lower": -3.141593,
+        "upper": 3.141593,
+        "max_velocity": 6.0,
+        "limit_source": "src/robots/astral/morla_astral_robot/config/profiles/astral_left_wuji.yaml:left_arm",
+        "urdf_name": "left_wrist_roll",
+        "source_status": "legacy_declared_not_hardware_verified",
+        "mjcf_name": "left_joint7"
+      }
+    ],
+    "right": [
+      {
+        "name": "shoulder_pitch",
+        "driver_name": "right_shoulder_pitch",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -3.141593,
+          3.141593
+        ],
+        "lower": -3.141593,
+        "upper": 3.141593,
+        "max_velocity": 6.0,
+        "limit_source": "src/robots/astral/morla_astral_robot/config/profiles/astral_right_wuji.yaml:right_arm",
+        "urdf_name": "right_shoulder_pitch",
+        "source_status": "legacy_declared_not_hardware_verified",
+        "mjcf_name": "right_joint1"
+      },
+      {
+        "name": "shoulder_roll",
+        "driver_name": "right_shoulder_roll",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -3.141593,
+          3.141593
+        ],
+        "lower": -3.141593,
+        "upper": 3.141593,
+        "max_velocity": 6.0,
+        "limit_source": "src/robots/astral/morla_astral_robot/config/profiles/astral_right_wuji.yaml:right_arm",
+        "urdf_name": "right_shoulder_roll",
+        "source_status": "legacy_declared_not_hardware_verified",
+        "mjcf_name": "right_joint2"
+      },
+      {
+        "name": "elbow_roll",
+        "driver_name": "right_elbow_roll",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -3.141593,
+          3.141593
+        ],
+        "lower": -3.141593,
+        "upper": 3.141593,
+        "max_velocity": 6.0,
+        "limit_source": "src/robots/astral/morla_astral_robot/config/profiles/astral_right_wuji.yaml:right_arm",
+        "urdf_name": "right_elbow_roll",
+        "source_status": "legacy_declared_not_hardware_verified",
+        "mjcf_name": "right_joint3"
+      },
+      {
+        "name": "elbow_pitch",
+        "driver_name": "right_elbow_pitch",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -3.141593,
+          3.141593
+        ],
+        "lower": -3.141593,
+        "upper": 3.141593,
+        "max_velocity": 6.0,
+        "limit_source": "src/robots/astral/morla_astral_robot/config/profiles/astral_right_wuji.yaml:right_arm",
+        "urdf_name": "right_elbow_pitch",
+        "source_status": "legacy_declared_not_hardware_verified",
+        "mjcf_name": "right_joint4"
+      },
+      {
+        "name": "forearm_roll",
+        "driver_name": "right_forearm_roll",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -3.141593,
+          3.141593
+        ],
+        "lower": -3.141593,
+        "upper": 3.141593,
+        "max_velocity": 6.0,
+        "limit_source": "src/robots/astral/morla_astral_robot/config/profiles/astral_right_wuji.yaml:right_arm",
+        "urdf_name": "right_forearm_roll",
+        "source_status": "legacy_declared_not_hardware_verified",
+        "mjcf_name": "right_joint5"
+      },
+      {
+        "name": "wrist_pitch",
+        "driver_name": "right_wrist_pitch",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -3.141593,
+          3.141593
+        ],
+        "lower": -3.141593,
+        "upper": 3.141593,
+        "max_velocity": 6.0,
+        "limit_source": "src/robots/astral/morla_astral_robot/config/profiles/astral_right_wuji.yaml:right_arm",
+        "urdf_name": "right_wrist_pitch",
+        "source_status": "legacy_declared_not_hardware_verified",
+        "mjcf_name": "right_joint6"
+      },
+      {
+        "name": "wrist_roll",
+        "driver_name": "right_wrist_roll",
+        "unit": "rad",
+        "type": "revolute",
+        "limits": [
+          -3.141593,
+          3.141593
+        ],
+        "lower": -3.141593,
+        "upper": 3.141593,
+        "max_velocity": 6.0,
+        "limit_source": "src/robots/astral/morla_astral_robot/config/profiles/astral_right_wuji.yaml:right_arm",
+        "urdf_name": "right_wrist_roll",
+        "source_status": "legacy_declared_not_hardware_verified",
+        "mjcf_name": "right_joint7"
+      }
+    ]
+  },
+  "morla.astral.gripper": {
+    "left": [
+      {
+        "name": "gripper_joint",
+        "driver_name": "left_gripper_joint",
+        "unit": "ratio",
+        "type": "scalar",
+        "limits": [
+          0,
+          1
+        ],
+        "lower": 0,
+        "upper": 1,
+        "max_velocity": 2.5,
+        "limit_source": "src/robots/astral/morla_astral_robot/config/profiles/astral_left_gripper_3cam.yaml:left_ee",
+        "urdf_name": "left_gripper_joint",
+        "source_status": "legacy_declared_not_hardware_verified",
+        "mjcf_name": "left_gripper_joint"
+      }
+    ],
+    "right": [
+      {
+        "name": "gripper_joint",
+        "driver_name": "right_gripper_joint",
+        "unit": "ratio",
+        "type": "scalar",
+        "limits": [
+          0,
+          1
+        ],
+        "lower": 0,
+        "upper": 1,
+        "max_velocity": 2.5,
+        "limit_source": "src/robots/astral/morla_astral_robot/config/profiles/astral_right_gripper.yaml:right_ee",
+        "urdf_name": "right_gripper_joint",
+        "source_status": "legacy_declared_not_hardware_verified",
+        "mjcf_name": "right_gripper_joint"
+      }
+    ]
+  }
+}

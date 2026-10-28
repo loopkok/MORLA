@@ -1,0 +1,1195 @@
+{
+  "action_blocks": [
+    {
+      "action_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "block_id": "left_arm",
+      "command_stream": "left_arm_cmd",
+      "dim": 7,
+      "feature_names": [
+        "left_arm_0",
+        "left_arm_1",
+        "left_arm_2",
+        "left_arm_3",
+        "left_arm_4",
+        "left_arm_5",
+        "left_arm_6"
+      ],
+      "limits": [
+        [
+          -2.705261,
+          2.705261
+        ],
+        [
+          -1.74533,
+          1.74533
+        ],
+        [
+          -2.757621,
+          2.757621
+        ],
+        [
+          -1.012291,
+          2.146755
+        ],
+        [
+          -2.757621,
+          2.757621
+        ],
+        [
+          -0.733039,
+          0.959932
+        ],
+        [
+          -1.570797,
+          1.570797
+        ]
+      ],
+      "semantics": "next_state",
+      "unit": "rad",
+      "writable": true,
+      "writer_id": "left_arm"
+    },
+    {
+      "action_indices": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "block_id": "right_arm",
+      "command_stream": "right_arm_cmd",
+      "dim": 7,
+      "feature_names": [
+        "right_arm_0",
+        "right_arm_1",
+        "right_arm_2",
+        "right_arm_3",
+        "right_arm_4",
+        "right_arm_5",
+        "right_arm_6"
+      ],
+      "limits": [
+        [
+          -2.705261,
+          2.705261
+        ],
+        [
+          -1.74533,
+          1.74533
+        ],
+        [
+          -2.757621,
+          2.757621
+        ],
+        [
+          -1.012291,
+          2.146755
+        ],
+        [
+          -2.757621,
+          2.757621
+        ],
+        [
+          -0.733039,
+          0.959932
+        ],
+        [
+          -1.570797,
+          1.570797
+        ]
+      ],
+      "semantics": "next_state",
+      "unit": "rad",
+      "writable": true,
+      "writer_id": "right_arm"
+    }
+  ],
+  "backend_requirements": {
+    "action_semantics": "absolute_position",
+    "camera_map": {
+      "base": "base",
+      "left_wrist": "left_wrist",
+      "right_wrist": "right_wrist"
+    },
+    "model_capacity": 32,
+    "model_layout_id": "nero_dual_arms_v1",
+    "optional_sensors": [],
+    "requires_model_kinematics_handshake": true,
+    "requires_model_layout_handshake": true,
+    "requires_named_features": true
+  },
+  "camera_specs": [
+    {
+      "device_fingerprint": null,
+      "image_size": null,
+      "label": "base",
+      "slot": 0
+    },
+    {
+      "device_fingerprint": null,
+      "image_size": null,
+      "label": "left_wrist",
+      "slot": 1
+    },
+    {
+      "device_fingerprint": null,
+      "image_size": null,
+      "label": "right_wrist",
+      "slot": 2
+    }
+  ],
+  "cameras": [
+    "base",
+    "left_wrist",
+    "right_wrist"
+  ],
+  "capabilities": {
+    "damping": false,
+    "enable": true,
+    "estop": true,
+    "grippers": false,
+    "hands": false,
+    "head": false,
+    "home": true,
+    "position": true,
+    "ready": true,
+    "reanchor": true,
+    "tactile": false,
+    "waist": false,
+    "workpos": true
+  },
+  "components": [
+    {
+      "can_channel": "can_nero_left",
+      "can_interface": "socketcan",
+      "command_topic": "/left_arm/joint_commands",
+      "component_id": "left_arm",
+      "control_rate_hz": 125.0,
+      "description_model_id": "nero_left_arm",
+      "driver_package": "nero_robot_control",
+      "driver_params_file": "config/nero_driver_left.yaml",
+      "enabled": true,
+      "firmware_version": "default",
+      "flip_pitch": false,
+      "init_pose": [
+        -0.405,
+        1.281,
+        -0.957,
+        1.311,
+        2.682,
+        -0.314,
+        -0.163
+      ],
+      "joint_names": [
+        "left_joint1",
+        "left_joint2",
+        "left_joint3",
+        "left_joint4",
+        "left_joint5",
+        "left_joint6",
+        "left_joint7"
+      ],
+      "limits": [
+        [
+          -2.705261,
+          2.705261
+        ],
+        [
+          -1.74533,
+          1.74533
+        ],
+        [
+          -2.757621,
+          2.757621
+        ],
+        [
+          -1.012291,
+          2.146755
+        ],
+        [
+          -2.757621,
+          2.757621
+        ],
+        [
+          -0.733039,
+          0.959932
+        ],
+        [
+          -1.570797,
+          1.570797
+        ]
+      ],
+      "max_joint_velocity_rad_s": 1.0,
+      "package": "morla_nero_robot",
+      "params_file": "config/components/nero_left.yaml",
+      "side": "left",
+      "state_topic": "/left_arm/joint_states",
+      "teleop_package": "nero_arm_teleop",
+      "teleop_params_file": "config/nero_teleop_left.yaml",
+      "type": "nero_arm",
+      "unit": "rad"
+    },
+    {
+      "can_channel": "can_nero_right",
+      "can_interface": "socketcan",
+      "command_topic": "/right_arm/joint_commands",
+      "component_id": "right_arm",
+      "control_rate_hz": 125.0,
+      "description_model_id": "nero_right_arm",
+      "driver_package": "nero_robot_control",
+      "driver_params_file": "config/nero_driver_right.yaml",
+      "enabled": true,
+      "firmware_version": "default",
+      "flip_pitch": false,
+      "init_pose": [
+        0.405,
+        1.281,
+        0.957,
+        1.311,
+        -2.682,
+        0.314,
+        -0.163
+      ],
+      "joint_names": [
+        "right_joint1",
+        "right_joint2",
+        "right_joint3",
+        "right_joint4",
+        "right_joint5",
+        "right_joint6",
+        "right_joint7"
+      ],
+      "limits": [
+        [
+          -2.705261,
+          2.705261
+        ],
+        [
+          -1.74533,
+          1.74533
+        ],
+        [
+          -2.757621,
+          2.757621
+        ],
+        [
+          -1.012291,
+          2.146755
+        ],
+        [
+          -2.757621,
+          2.757621
+        ],
+        [
+          -0.733039,
+          0.959932
+        ],
+        [
+          -1.570797,
+          1.570797
+        ]
+      ],
+      "max_joint_velocity_rad_s": 1.0,
+      "package": "morla_nero_robot",
+      "params_file": "config/components/nero_right.yaml",
+      "side": "right",
+      "state_topic": "/right_arm/joint_states",
+      "teleop_package": "nero_arm_teleop",
+      "teleop_params_file": "config/nero_teleop_right.yaml",
+      "type": "nero_arm",
+      "unit": "rad"
+    }
+  ],
+  "coordinate_contract": {
+    "arms": {
+      "left": {
+        "description_model_id": "nero_left_arm",
+        "joint_convention": "hardware",
+        "physical_flange_frame": "left_gripper_flange",
+        "sdk_flange_frame": "unverified_vendor_sdk_frame",
+        "solver_adapter_id": "nero_analytic_mdh_link7_v1",
+        "solver_base_frame": "left_base_link",
+        "solver_tip_frame": "left_link7",
+        "tool": {
+          "calibration_status": "physical_tool_unverified",
+          "frame": "left_link7",
+          "id": "legacy_solver_tip",
+          "source": "urdf_named_frame"
+        }
+      },
+      "right": {
+        "description_model_id": "nero_right_arm",
+        "joint_convention": "hardware",
+        "physical_flange_frame": "right_gripper_flange",
+        "sdk_flange_frame": "unverified_vendor_sdk_frame",
+        "solver_adapter_id": "nero_analytic_mdh_link7_v1",
+        "solver_base_frame": "right_base_link",
+        "solver_tip_frame": "right_link7",
+        "tool": {
+          "calibration_status": "physical_tool_unverified",
+          "frame": "right_link7",
+          "id": "legacy_solver_tip",
+          "source": "urdf_named_frame"
+        }
+      }
+    },
+    "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+    "input_basis_id": "quest3_canonical_legacy_v1",
+    "input_frame_policy": "incremental_operator_aligned",
+    "input_rotation_source": "algebraically_derived_from_legacy_arm_rotations_and_urdf_mounts",
+    "input_rotation_to_robot_body": [
+      0.0,
+      0.999999999993,
+      -3.673205e-06,
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      3.673205e-06,
+      0.999999999993
+    ],
+    "kinematics_hash": "9deadffa7c271be784c51841a5e4259ef3fe29d62d460d50277ccb57771e2ed6",
+    "robot_body_frame": "t_bracket_base",
+    "robot_id": "nero",
+    "version": 1
+  },
+  "data": {
+    "action_source": "next_state",
+    "data_root": "${MORLA_DATA_ROOT:-${SDK_ROOT}/morla_data}",
+    "dataset_fps": 30,
+    "hold_frames": 10,
+    "legacy_validity_unknown": false,
+    "max_gap_ms": 100.0
+  },
+  "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+  "frozen_schema": {
+    "action_blocks": [
+      {
+        "action_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "block_id": "left_arm",
+        "command_stream": "left_arm_cmd",
+        "dim": 7,
+        "feature_names": [
+          "left_arm_0",
+          "left_arm_1",
+          "left_arm_2",
+          "left_arm_3",
+          "left_arm_4",
+          "left_arm_5",
+          "left_arm_6"
+        ],
+        "limits": [
+          [
+            -2.705261,
+            2.705261
+          ],
+          [
+            -1.74533,
+            1.74533
+          ],
+          [
+            -2.757621,
+            2.757621
+          ],
+          [
+            -1.012291,
+            2.146755
+          ],
+          [
+            -2.757621,
+            2.757621
+          ],
+          [
+            -0.733039,
+            0.959932
+          ],
+          [
+            -1.570797,
+            1.570797
+          ]
+        ],
+        "semantics": "next_state",
+        "unit": "rad",
+        "writable": true,
+        "writer_id": "left_arm"
+      },
+      {
+        "action_indices": [
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ],
+        "block_id": "right_arm",
+        "command_stream": "right_arm_cmd",
+        "dim": 7,
+        "feature_names": [
+          "right_arm_0",
+          "right_arm_1",
+          "right_arm_2",
+          "right_arm_3",
+          "right_arm_4",
+          "right_arm_5",
+          "right_arm_6"
+        ],
+        "limits": [
+          [
+            -2.705261,
+            2.705261
+          ],
+          [
+            -1.74533,
+            1.74533
+          ],
+          [
+            -2.757621,
+            2.757621
+          ],
+          [
+            -1.012291,
+            2.146755
+          ],
+          [
+            -2.757621,
+            2.757621
+          ],
+          [
+            -0.733039,
+            0.959932
+          ],
+          [
+            -1.570797,
+            1.570797
+          ]
+        ],
+        "semantics": "next_state",
+        "unit": "rad",
+        "writable": true,
+        "writer_id": "right_arm"
+      }
+    ],
+    "action_dim": 14,
+    "action_source": "next_state",
+    "cameras": [
+      "base",
+      "left_wrist",
+      "right_wrist"
+    ],
+    "dataset_fps": 30,
+    "hold_frames": 10,
+    "kinematics_hash": "9deadffa7c271be784c51841a5e4259ef3fe29d62d460d50277ccb57771e2ed6",
+    "layout_hash": "1034b5bc51a23cbb89339203953a6285dbde988c5811f7052735610215ad84b3",
+    "max_gap_ms": 100.0,
+    "metadata": {
+      "coordinate_contract": {
+        "arms": {
+          "left": {
+            "description_model_id": "nero_left_arm",
+            "joint_convention": "hardware",
+            "physical_flange_frame": "left_gripper_flange",
+            "sdk_flange_frame": "unverified_vendor_sdk_frame",
+            "solver_adapter_id": "nero_analytic_mdh_link7_v1",
+            "solver_base_frame": "left_base_link",
+            "solver_tip_frame": "left_link7",
+            "tool": {
+              "calibration_status": "physical_tool_unverified",
+              "frame": "left_link7",
+              "id": "legacy_solver_tip",
+              "source": "urdf_named_frame"
+            }
+          },
+          "right": {
+            "description_model_id": "nero_right_arm",
+            "joint_convention": "hardware",
+            "physical_flange_frame": "right_gripper_flange",
+            "sdk_flange_frame": "unverified_vendor_sdk_frame",
+            "solver_adapter_id": "nero_analytic_mdh_link7_v1",
+            "solver_base_frame": "right_base_link",
+            "solver_tip_frame": "right_link7",
+            "tool": {
+              "calibration_status": "physical_tool_unverified",
+              "frame": "right_link7",
+              "id": "legacy_solver_tip",
+              "source": "urdf_named_frame"
+            }
+          }
+        },
+        "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+        "input_basis_id": "quest3_canonical_legacy_v1",
+        "input_frame_policy": "incremental_operator_aligned",
+        "input_rotation_source": "algebraically_derived_from_legacy_arm_rotations_and_urdf_mounts",
+        "input_rotation_to_robot_body": [
+          0.0,
+          0.999999999993,
+          -3.673205e-06,
+          -1.0,
+          0.0,
+          0.0,
+          0.0,
+          3.673205e-06,
+          0.999999999993
+        ],
+        "kinematics_hash": "9deadffa7c271be784c51841a5e4259ef3fe29d62d460d50277ccb57771e2ed6",
+        "robot_body_frame": "t_bracket_base",
+        "robot_id": "nero",
+        "version": 1
+      },
+      "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+      "kinematics_hash": "9deadffa7c271be784c51841a5e4259ef3fe29d62d460d50277ccb57771e2ed6"
+    },
+    "profile_id": "nero_dual_arms",
+    "profile_version": 1,
+    "robot_id": "nero",
+    "schema_hash": "994c84d6337a18b1bcb513bdc6b73817134f80b833c293b8852d1ec6c47aa142",
+    "schema_version": 2,
+    "sensor_specs": [],
+    "state_blocks": [
+      {
+        "block_id": "left_arm",
+        "dim": 7,
+        "feature_names": [
+          "left_arm_0",
+          "left_arm_1",
+          "left_arm_2",
+          "left_arm_3",
+          "left_arm_4",
+          "left_arm_5",
+          "left_arm_6"
+        ],
+        "limits": [
+          [
+            -2.705261,
+            2.705261
+          ],
+          [
+            -1.74533,
+            1.74533
+          ],
+          [
+            -2.757621,
+            2.757621
+          ],
+          [
+            -1.012291,
+            2.146755
+          ],
+          [
+            -2.757621,
+            2.757621
+          ],
+          [
+            -0.733039,
+            0.959932
+          ],
+          [
+            -1.570797,
+            1.570797
+          ]
+        ],
+        "physical_joint_names": [
+          "left_joint1",
+          "left_joint2",
+          "left_joint3",
+          "left_joint4",
+          "left_joint5",
+          "left_joint6",
+          "left_joint7"
+        ],
+        "state_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "stream_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "stream_key": "left_arm_state",
+        "unit": "rad"
+      },
+      {
+        "block_id": "right_arm",
+        "dim": 7,
+        "feature_names": [
+          "right_arm_0",
+          "right_arm_1",
+          "right_arm_2",
+          "right_arm_3",
+          "right_arm_4",
+          "right_arm_5",
+          "right_arm_6"
+        ],
+        "limits": [
+          [
+            -2.705261,
+            2.705261
+          ],
+          [
+            -1.74533,
+            1.74533
+          ],
+          [
+            -2.757621,
+            2.757621
+          ],
+          [
+            -1.012291,
+            2.146755
+          ],
+          [
+            -2.757621,
+            2.757621
+          ],
+          [
+            -0.733039,
+            0.959932
+          ],
+          [
+            -1.570797,
+            1.570797
+          ]
+        ],
+        "physical_joint_names": [
+          "right_joint1",
+          "right_joint2",
+          "right_joint3",
+          "right_joint4",
+          "right_joint5",
+          "right_joint6",
+          "right_joint7"
+        ],
+        "state_indices": [
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ],
+        "stream_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "stream_key": "right_arm_state",
+        "unit": "rad"
+      }
+    ],
+    "state_dim": 14,
+    "streams": [
+      {
+        "dtype": "float32",
+        "joint_names": [
+          "left_joint1",
+          "left_joint2",
+          "left_joint3",
+          "left_joint4",
+          "left_joint5",
+          "left_joint6",
+          "left_joint7"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          7
+        ],
+        "source_kind": "state",
+        "stream_key": "left_arm_state",
+        "timestamp_mode": "source_header",
+        "topic": "/left_arm/joint_states",
+        "unit": "rad"
+      },
+      {
+        "dtype": "float32",
+        "joint_names": [
+          "left_joint1",
+          "left_joint2",
+          "left_joint3",
+          "left_joint4",
+          "left_joint5",
+          "left_joint6",
+          "left_joint7"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          7
+        ],
+        "source_kind": "command",
+        "stream_key": "left_arm_cmd",
+        "timestamp_mode": "arrival",
+        "topic": "/left_arm/joint_commands",
+        "unit": "rad"
+      },
+      {
+        "dtype": "float32",
+        "joint_names": [
+          "right_joint1",
+          "right_joint2",
+          "right_joint3",
+          "right_joint4",
+          "right_joint5",
+          "right_joint6",
+          "right_joint7"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          7
+        ],
+        "source_kind": "state",
+        "stream_key": "right_arm_state",
+        "timestamp_mode": "source_header",
+        "topic": "/right_arm/joint_states",
+        "unit": "rad"
+      },
+      {
+        "dtype": "float32",
+        "joint_names": [
+          "right_joint1",
+          "right_joint2",
+          "right_joint3",
+          "right_joint4",
+          "right_joint5",
+          "right_joint6",
+          "right_joint7"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          7
+        ],
+        "source_kind": "command",
+        "stream_key": "right_arm_cmd",
+        "timestamp_mode": "arrival",
+        "topic": "/right_arm/joint_commands",
+        "unit": "rad"
+      },
+      {
+        "dtype": "uint8",
+        "joint_names": [],
+        "message_type": "sensor_msgs/msg/CompressedImage",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          null,
+          null,
+          3
+        ],
+        "source_kind": "camera",
+        "stream_key": "camera:base",
+        "timestamp_mode": "source_header",
+        "topic": "/quest3_video_streamer/collect/base",
+        "unit": "rgb"
+      },
+      {
+        "dtype": "uint8",
+        "joint_names": [],
+        "message_type": "sensor_msgs/msg/CompressedImage",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          null,
+          null,
+          3
+        ],
+        "source_kind": "camera",
+        "stream_key": "camera:left_wrist",
+        "timestamp_mode": "source_header",
+        "topic": "/quest3_video_streamer/collect/left_wrist",
+        "unit": "rgb"
+      },
+      {
+        "dtype": "uint8",
+        "joint_names": [],
+        "message_type": "sensor_msgs/msg/CompressedImage",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          null,
+          null,
+          3
+        ],
+        "source_kind": "camera",
+        "stream_key": "camera:right_wrist",
+        "timestamp_mode": "source_header",
+        "topic": "/quest3_video_streamer/collect/right_wrist",
+        "unit": "rgb"
+      }
+    ]
+  },
+  "hardware": {
+    "arms": {
+      "left": {
+        "can_channel": "can_nero_left",
+        "can_interface": "socketcan",
+        "firmware_version": "default"
+      },
+      "right": {
+        "can_channel": "can_nero_right",
+        "can_interface": "socketcan",
+        "firmware_version": "default"
+      }
+    },
+    "xhand": {}
+  },
+  "input": {
+    "landmark_preprocess": "raw",
+    "legacy_packets_allowed": false,
+    "source": "quest",
+    "strict_packets": true
+  },
+  "kinematics_hash": "9deadffa7c271be784c51841a5e4259ef3fe29d62d460d50277ccb57771e2ed6",
+  "layout_hash": "1034b5bc51a23cbb89339203953a6285dbde988c5811f7052735610215ad84b3",
+  "mode_default": "sim",
+  "profile_id": "nero_dual_arms",
+  "profile_version": 1,
+  "robot_id": "nero",
+  "schema_hash": "994c84d6337a18b1bcb513bdc6b73817134f80b833c293b8852d1ec6c47aa142",
+  "sensors": [],
+  "state_blocks": [
+    {
+      "block_id": "left_arm",
+      "dim": 7,
+      "feature_names": [
+        "left_arm_0",
+        "left_arm_1",
+        "left_arm_2",
+        "left_arm_3",
+        "left_arm_4",
+        "left_arm_5",
+        "left_arm_6"
+      ],
+      "limits": [
+        [
+          -2.705261,
+          2.705261
+        ],
+        [
+          -1.74533,
+          1.74533
+        ],
+        [
+          -2.757621,
+          2.757621
+        ],
+        [
+          -1.012291,
+          2.146755
+        ],
+        [
+          -2.757621,
+          2.757621
+        ],
+        [
+          -0.733039,
+          0.959932
+        ],
+        [
+          -1.570797,
+          1.570797
+        ]
+      ],
+      "physical_joint_names": [
+        "left_joint1",
+        "left_joint2",
+        "left_joint3",
+        "left_joint4",
+        "left_joint5",
+        "left_joint6",
+        "left_joint7"
+      ],
+      "state_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "stream_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "stream_key": "left_arm_state",
+      "unit": "rad"
+    },
+    {
+      "block_id": "right_arm",
+      "dim": 7,
+      "feature_names": [
+        "right_arm_0",
+        "right_arm_1",
+        "right_arm_2",
+        "right_arm_3",
+        "right_arm_4",
+        "right_arm_5",
+        "right_arm_6"
+      ],
+      "limits": [
+        [
+          -2.705261,
+          2.705261
+        ],
+        [
+          -1.74533,
+          1.74533
+        ],
+        [
+          -2.757621,
+          2.757621
+        ],
+        [
+          -1.012291,
+          2.146755
+        ],
+        [
+          -2.757621,
+          2.757621
+        ],
+        [
+          -0.733039,
+          0.959932
+        ],
+        [
+          -1.570797,
+          1.570797
+        ]
+      ],
+      "physical_joint_names": [
+        "right_joint1",
+        "right_joint2",
+        "right_joint3",
+        "right_joint4",
+        "right_joint5",
+        "right_joint6",
+        "right_joint7"
+      ],
+      "state_indices": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "stream_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "stream_key": "right_arm_state",
+      "unit": "rad"
+    }
+  ],
+  "streams": [
+    {
+      "dtype": "float32",
+      "joint_names": [
+        "left_joint1",
+        "left_joint2",
+        "left_joint3",
+        "left_joint4",
+        "left_joint5",
+        "left_joint6",
+        "left_joint7"
+      ],
+      "message_type": "sensor_msgs/msg/JointState",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        7
+      ],
+      "source_kind": "state",
+      "stream_key": "left_arm_state",
+      "timestamp_mode": "source_header",
+      "topic": "/left_arm/joint_states",
+      "unit": "rad"
+    },
+    {
+      "dtype": "float32",
+      "joint_names": [
+        "left_joint1",
+        "left_joint2",
+        "left_joint3",
+        "left_joint4",
+        "left_joint5",
+        "left_joint6",
+        "left_joint7"
+      ],
+      "message_type": "sensor_msgs/msg/JointState",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        7
+      ],
+      "source_kind": "command",
+      "stream_key": "left_arm_cmd",
+      "timestamp_mode": "arrival",
+      "topic": "/left_arm/joint_commands",
+      "unit": "rad"
+    },
+    {
+      "dtype": "float32",
+      "joint_names": [
+        "right_joint1",
+        "right_joint2",
+        "right_joint3",
+        "right_joint4",
+        "right_joint5",
+        "right_joint6",
+        "right_joint7"
+      ],
+      "message_type": "sensor_msgs/msg/JointState",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        7
+      ],
+      "source_kind": "state",
+      "stream_key": "right_arm_state",
+      "timestamp_mode": "source_header",
+      "topic": "/right_arm/joint_states",
+      "unit": "rad"
+    },
+    {
+      "dtype": "float32",
+      "joint_names": [
+        "right_joint1",
+        "right_joint2",
+        "right_joint3",
+        "right_joint4",
+        "right_joint5",
+        "right_joint6",
+        "right_joint7"
+      ],
+      "message_type": "sensor_msgs/msg/JointState",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        7
+      ],
+      "source_kind": "command",
+      "stream_key": "right_arm_cmd",
+      "timestamp_mode": "arrival",
+      "topic": "/right_arm/joint_commands",
+      "unit": "rad"
+    },
+    {
+      "dtype": "uint8",
+      "message_type": "sensor_msgs/msg/CompressedImage",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        null,
+        null,
+        3
+      ],
+      "source_kind": "camera",
+      "stream_key": "camera:base",
+      "timestamp_mode": "source_header",
+      "topic": "/quest3_video_streamer/collect/base",
+      "unit": "rgb"
+    },
+    {
+      "dtype": "uint8",
+      "message_type": "sensor_msgs/msg/CompressedImage",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        null,
+        null,
+        3
+      ],
+      "source_kind": "camera",
+      "stream_key": "camera:left_wrist",
+      "timestamp_mode": "source_header",
+      "topic": "/quest3_video_streamer/collect/left_wrist",
+      "unit": "rgb"
+    },
+    {
+      "dtype": "uint8",
+      "message_type": "sensor_msgs/msg/CompressedImage",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        null,
+        null,
+        3
+      ],
+      "source_kind": "camera",
+      "stream_key": "camera:right_wrist",
+      "timestamp_mode": "source_header",
+      "topic": "/quest3_video_streamer/collect/right_wrist",
+      "unit": "rgb"
+    }
+  ],
+  "title": "Nero Dual Arms",
+  "writers": [
+    {
+      "ack_topic": "/teleop/ownership_ack",
+      "command_stream": "left_arm_cmd",
+      "component_id": "left_arm",
+      "prepare_reanchor_service": "/left_arm/nero_arm_teleop/prepare_reanchor",
+      "writer_id": "left_arm"
+    },
+    {
+      "ack_topic": "/teleop/ownership_ack",
+      "command_stream": "right_arm_cmd",
+      "component_id": "right_arm",
+      "prepare_reanchor_service": "/right_arm/nero_arm_teleop/prepare_reanchor",
+      "writer_id": "right_arm"
+    }
+  ]
+}

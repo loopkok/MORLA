@@ -19,4 +19,5 @@
   <export>
     <build_type>ament_cmake</build_type>
   </export>
+  <depend>morla_interfaces</depend>
 </package>

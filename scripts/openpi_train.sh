@@ -10,6 +10,11 @@
 #   ./openpi_train.sh lora run1 --stats-only       # 只重算 norm stats 不训练
 set -euo pipefail
 
+if [[ "${1:-}" == "--spec" ]]; then
+    shift
+    exec "${MORLA_LEARNING_PYTHON:-python3}" -m morla_learning.cli "$@"
+fi
+
 MODE="${1:?usage: openpi_train.sh <lora|full> <exp_name> [--stats-only] [-- extra args...]}"
 EXP="${2:?missing exp_name}"
 shift 2

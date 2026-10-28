@@ -87,6 +87,8 @@ def _sensor_data_qos() -> QoSProfile:
 class AstralRobotDriverNode(Node):
     def __init__(self) -> None:
         super().__init__("astral_robot_driver")
+        from morla_core.device_guard import LegacyDeviceGuard
+        self._morla_device_guard = LegacyDeviceGuard()
 
         # --- hardware / SDK ---
         self.declare_parameter("control_board_ip", "192.168.10.2")
@@ -99,6 +101,10 @@ class AstralRobotDriverNode(Node):
         # 代码默认 0.85≈近直通（配 teleop 平滑 0.25）；config/astral_robot.yaml 会覆盖。
         self.declare_parameter("lpf_alpha", 0.85)
         self.declare_parameter("auto_ready", True)
+        self.declare_parameter("managed_arm_sides", ["left", "right"])
+        self.declare_parameter("managed_gripper_sides", ["left", "right"])
+        self._managed_arm_sides = set(self.get_parameter("managed_arm_sides").value)
+        self._managed_gripper_sides = set(self.get_parameter("managed_gripper_sides").value)
         self.declare_parameter("dry_run", False)
         self.declare_parameter("enable_full_body_cmd", True)
         self.declare_parameter("command_timeout_s", 1.5)
@@ -362,6 +368,7 @@ class AstralRobotDriverNode(Node):
         finally:
             if getattr(self, "_dlog", None) is not None:
                 self._dlog.close()
+            self._morla_device_guard.close()
             return super().destroy_node()
 
     # ------------------------------------------------------------------ cmds
@@ -379,6 +386,8 @@ class AstralRobotDriverNode(Node):
         )
 
     def _on_left_cmd(self, msg: JointState) -> None:
+        if "left" not in self._managed_arm_sides:
+            return
         q = pack_named_positions(msg.name, msg.position, LEFT_ARM_JOINT_NAMES)
         if len(q) != NUM_ARM_JOINTS:
             self.get_logger().warning(
@@ -393,6 +402,8 @@ class AstralRobotDriverNode(Node):
         self._log_cmd(self._left_cmd_topic, q)
 
     def _on_right_cmd(self, msg: JointState) -> None:
+        if "right" not in self._managed_arm_sides:
+            return
         q = pack_named_positions(msg.name, msg.position, RIGHT_ARM_JOINT_NAMES)
         if len(q) != NUM_ARM_JOINTS:
             self.get_logger().warning(
@@ -447,6 +458,8 @@ class AstralRobotDriverNode(Node):
             )
 
     def _on_grip_js(self, side: str, msg: JointState) -> None:
+        if side not in self._managed_gripper_sides:
+            return
         # 机械夹爪：话题名 left_gripper/right_gripper → CMD 0x97/0x98
         expected = [f"{side}_gripper"]
         q = pack_named_positions(msg.name, msg.position, expected)
@@ -455,6 +468,8 @@ class AstralRobotDriverNode(Node):
         self._set_grip_rad(side, q[0])
 
     def _on_grip_ratio(self, side: str, msg: Float64) -> None:
+        if side not in self._managed_gripper_sides:
+            return
         r = max(0.0, min(1.0, float(msg.data)))
         lo = self._grip_open_rad[side]
         hi = self._grip_closed_rad[side]

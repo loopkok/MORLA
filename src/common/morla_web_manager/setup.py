@@ -9,6 +9,7 @@ setup(
     name=package_name,
     version="0.1.0",
     packages=find_packages(exclude=["test"]),
+    package_data={package_name: ["static/*.html"]},
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),
@@ -28,6 +29,7 @@ setup(
     entry_points={
         "console_scripts": [
             "morla_web_manager = morla_web_manager.web_server:main",
+            "morla-composable-web = morla_web_manager.composable_api:main",
         ],
     },
 )

@@ -1,0 +1,12 @@
+assembly_version: 1
+assembly_id: reference_three_dof
+revision: 1
+instances:
+  custom_arm:
+    plugin: lab.reference.arm
+    version: '1.0.0'
+    backend: fake
+capture:
+  state: [custom_arm.position, custom_arm.velocity]
+  action: [custom_arm.position_target]
+  images: {}

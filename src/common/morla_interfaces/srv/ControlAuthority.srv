@@ -1,0 +1,13 @@
+string session_id
+string request_id
+string operation
+string producer
+string token
+string[] resources
+uint64 ttl_ns
+---
+bool accepted
+string reason
+string token
+uint64 epoch
+uint64 expires_ns

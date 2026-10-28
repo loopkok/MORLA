@@ -41,3 +41,6 @@ pi05_infer_test_log/
 .morla_piano/
 .pnpm-store/
 .pytest_cache/
+
+# Property-based testing local cache
+.hypothesis/

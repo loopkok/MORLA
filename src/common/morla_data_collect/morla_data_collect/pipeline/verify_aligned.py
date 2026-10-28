@@ -37,20 +37,9 @@ def verify_session(source: str, session: str) -> dict:
             if len(ts) < 2 or not np.all(np.isfinite(ts)):
                 raise ValueError(f'{ep.name}: invalid timestamps')
             np.testing.assert_allclose(np.diff(ts), 1 / schema.dataset_fps, atol=1e-5, rtol=0)
-            if schema.action_source == 'next_state':
-                np.testing.assert_array_equal(action[:-1], state[1:])
-                np.testing.assert_array_equal(action[-1], state[-1])
-            else:
-                col = 0
-                original_action = src['action'][:][indices]
-                for block in schema.state_blocks():
-                    columns = slice(col, col + block.dim)
-                    if block.cmd_stream is not None:
-                        np.testing.assert_array_equal(action[:, columns], original_action[:, columns])
-                    else:
-                        np.testing.assert_array_equal(action[:-1, columns], state[1:, columns])
-                        np.testing.assert_array_equal(action[-1, columns], state[-1, columns])
-                    col += block.dim
+            from morla_data_collect.schema import rebuild_actions
+            expected_action = rebuild_actions(schema, state, src['action'][:][indices])
+            np.testing.assert_array_equal(action, expected_action)
             for camera in schema.cameras:
                 np.testing.assert_array_equal(dst[f'{camera}/src_timestamps'][:], src[f'{camera}/src_timestamps'][:][indices])
                 if len(dst[f'{camera}/images']) != len(indices):

@@ -64,6 +64,8 @@ def _latest_qos() -> QoSProfile:
 class NeroRobotDriverNode(Node):
     def __init__(self) -> None:
         super().__init__("nero_robot_driver")
+        from morla_core.device_guard import LegacyDeviceGuard
+        self._morla_device_guard = LegacyDeviceGuard()
         self.declare_parameter("arm_side", "left")
         self.declare_parameter("sdk_backend", "fake")  # fake | hardware
         self.declare_parameter("can_channel", "can_nero_left")
@@ -221,6 +223,7 @@ class NeroRobotDriverNode(Node):
         self._position_target = self.position_pose.copy()
         self._position_stage = 0
         self._position_feedback_baseline = 0.0
+        self._enable_seq = 0
         self._estop_seq = 0
         self._estop_status = "idle"
         self._enable_status = "idle"
@@ -628,13 +631,14 @@ class NeroRobotDriverNode(Node):
                 response.message = "fresh Nero controller status is required before enable; wait for status polling"
                 return response
             # The nonzero case was rejected before the rest of the enable gate.
+        self._enable_seq = getattr(self, "_enable_seq", 0) + 1
         self._enable_started = time.monotonic()
         self._position_permitted = False
         self._enable_expired = False
         self._enable_status = "queued"
         self._enable_future = self._worker.submit(self._enable_and_configure)
         response.success = True
-        response.message = "explicit enable request queued; verify ~/status before sending motion"
+        response.message = f"explicit enable request queued; verify ~/status before sending motion [morla_seq={self._enable_seq}]"
         return response
 
     def _enable_and_configure(self) -> bool:
@@ -885,7 +889,7 @@ class NeroRobotDriverNode(Node):
         self._estop_status = "queued"
         self._estop_future = self._worker.submit(self.sdk.estop)
         response.success = True
-        response.message = "electronic emergency stop request queued"
+        response.message = f"electronic emergency stop request queued [morla_seq={self._estop_seq}]"
         return response
 
     def _controller_status_is_fresh(self) -> bool:
@@ -1145,6 +1149,7 @@ class NeroRobotDriverNode(Node):
             ),
             "controller_status_error": self._controller_status_error,
             "enable_status": self._enable_status,
+            "enable_seq": getattr(self, "_enable_seq", 0),
             "enable_started_monotonic_s": getattr(self, "_enable_started", None),
             "last_rejection": self.core.last_rejection,
             "last_error": self._last_error,
@@ -1179,6 +1184,7 @@ class NeroRobotDriverNode(Node):
             # vendor call; cancelling that task would leave the transport live.
             self._worker.shutdown(wait=False, cancel_futures=False)
             super().destroy_node()
+            self._morla_device_guard.close()
 
 
 def main(args=None) -> None:

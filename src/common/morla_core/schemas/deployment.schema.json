@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://morla.local/schemas/deployment.schema.json",
+  "type": "object",
+  "properties": {
+    "deployment_version": {
+      "const": 1
+    },
+    "deployment_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "instances": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "backend": {
+            "type": "string",
+            "minLength": 1
+          },
+          "device_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "session_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "resource_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "parameters": {
+            "type": "object"
+          },
+          "calibration": {
+            "type": "string",
+            "minLength": 1
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "stop_verified": {
+            "type": "boolean"
+          },
+          "serial": {
+            "type": "string",
+            "minLength": 1
+          },
+          "bus": {
+            "type": "string",
+            "minLength": 1
+          },
+          "secret_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    "calibrations": {
+      "type": "object"
+    },
+    "allow_mixed_backends": {
+      "type": "boolean"
+    },
+    "verified": {
+      "type": "boolean"
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

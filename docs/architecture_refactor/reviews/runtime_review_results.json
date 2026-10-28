@@ -1,0 +1,9 @@
+{
+  "missing_hash_rejected": true,
+  "failed_stop_ack_cannot_be_erased": true,
+  "command_echo_not_hardware_measurement": true,
+  "reset_requires_acknowledged_stop": true,
+  "previous_nero_stop_ack_rejected": true,
+  "previous_nero_generation_rejected": true,
+  "matching_nero_generation_acknowledged": true
+}

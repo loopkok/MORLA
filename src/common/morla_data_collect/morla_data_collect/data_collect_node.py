@@ -36,6 +36,7 @@ from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPo
 from std_msgs.msg import Bool, Float64, String
 
 from morla_data_collect import __version__
+from morla_data_collect.codecs import DEFAULT_CODECS
 from morla_data_collect.data_writer import (
     CAMERA_H5,
     META_JSON,
@@ -166,7 +167,13 @@ class DataCollectNode(Node):
             raise ValueError("runtime_mode must be unknown, sim, or real")
         self._profile_values = None
         self._profile = None
-        if self._profile_id:
+        capture_schema_json = str(p("capture_schema_json", "")).strip()
+        if capture_schema_json:
+            from morla_data_collect.schema import pipeline_schema_from_json
+            self._schema = pipeline_schema_from_json(capture_schema_json)
+            self._stream_specs = dict(self._schema.stream_specs)
+            self._sensor_specs = tuple(self._schema.sensor_specs)
+        elif self._profile_id:
             self._profile = ProfileRegistry.from_index().load(self._profile_id)
             self._profile_values = self._profile.values
             self._schema = FrozenPipelineSchema(self._profile.frozen_schema)
@@ -196,7 +203,7 @@ class DataCollectNode(Node):
             self._sensor_specs = ()
         self._streams = (
             self._schema.numeric_streams()
-            if self._profile is not None else self._schema.required_streams()
+            if self._stream_specs else self._schema.required_streams()
         )
 
         # 单例锁：/data_collect/control 是全局单例控制面——任何第二个采集
@@ -308,7 +315,7 @@ class DataCollectNode(Node):
     def _mk_subscriptions(self) -> None:
         from sensor_msgs.msg import CompressedImage, JointState
 
-        if self._profile is not None:
+        if self._stream_specs:
             from rosidl_runtime_py.utilities import get_message
 
             sensor_by_stream = {
@@ -320,7 +327,7 @@ class DataCollectNode(Node):
                     self.create_subscription(
                         CompressedImage, spec.topic, self._mk_cam_cb(cam), _IMAGE_QOS
                     )
-                elif spec.source_kind == "sensor":
+                elif spec.source_kind == "sensor" or name in sensor_by_stream:
                     sensor = sensor_by_stream.get(name)
                     if sensor is None:
                         raise ValueError(f"profile sensor stream {name!r} has no sensor spec")
@@ -341,12 +348,15 @@ class DataCollectNode(Node):
                 elif spec.message_type == "sensor_msgs/msg/JointState":
                     dim = int(spec.shape[-1])
                     self.create_subscription(
-                        JointState, spec.topic, self._mk_joint_cb(name, dim, spec), _SENSOR_QOS
+                        JointState, spec.topic,
+                        (self._mk_numeric_cb(name, spec)
+                         if getattr(getattr(self._schema, "frozen", None), "schema_version", 0) == 3
+                         else self._mk_joint_cb(name, dim, spec)), _SENSOR_QOS
                     )
                 else:
-                    raise ValueError(
-                        f"profile stream {name!r} has unsupported collector type {spec.message_type!r}"
-                    )
+                    # Additional standard numeric transports share the same codec contract.
+                    message_type = get_message(spec.message_type)
+                    self.create_subscription(message_type, spec.topic, self._mk_numeric_cb(name, spec), _SENSOR_QOS)
         else:
             for name, dim in self._streams.items():
                 topic = STREAM_TOPICS[name][0]
@@ -439,7 +449,56 @@ class DataCollectNode(Node):
                 dq.append((ts, np.asarray([value], dtype=np.float32)))
         return _cb
 
+    def _mk_numeric_cb(self, name, spec):
+        from morla_data_collect.codecs import DEFAULT_CODECS
+        codec = DEFAULT_CODECS.get("numeric")
+        def callback(msg):
+            if not self._accepting(): return
+            now = time.time()
+            try:
+                values = codec.decode(msg, spec)
+            except (ValueError, TypeError, AttributeError):
+                self._drop_counts[name] = self._drop_counts.get(name, 0) + 1
+                return
+            stamp = (_stamp_sec(msg.header, now) if spec.timestamp_mode == "source_header" and hasattr(msg, "header") else now)
+            with self._buf_lock:
+                queue = self._stream_buf[name]
+                if len(queue) == queue.maxlen:
+                    self._drop_counts[name] = self._drop_counts.get(name, 0) + 1
+                queue.append((stamp, values))
+        return callback
+
+    def _mk_tensor_sensor_cb(self, sensor_spec):
+        from morla_data_collect.codecs import DEFAULT_CODECS
+        key = str(sensor_spec["sensor_key"])
+        source = self._stream_specs[str(sensor_spec["source_stream"])]
+        codec = DEFAULT_CODECS.get(sensor_spec.get("codec", "tensor_sensor"))
+        def callback(msg):
+            if not self._accepting(): return
+            now = time.time()
+            try:
+                sample = codec.decode(msg, sensor_spec)
+            except (ValueError, TypeError, AttributeError):
+                self._drop_counts[f"sensor:{key}"] = self._drop_counts.get(f"sensor:{key}", 0) + 1
+                return
+            stamp = (_stamp_sec(msg.header, now) if source.timestamp_mode == "source_header" and hasattr(msg, "header") else now)
+            with self._buf_lock:
+                queue = self._sensor_buf[key]
+                if len(queue) == queue.maxlen:
+                    self._drop_counts[f"sensor:{key}"] = self._drop_counts.get(f"sensor:{key}", 0) + 1
+                queue.append((stamp, now, sample))
+                if source.stream_key in self._stream_buf and "values" in sample:
+                    values = np.asarray(sample["values"], dtype=np.float32).reshape(-1)
+                    numeric_queue = self._stream_buf[source.stream_key]
+                    if values.shape == tuple(source.shape):
+                        if len(numeric_queue) == numeric_queue.maxlen:
+                            self._drop_counts[source.stream_key] = self._drop_counts.get(source.stream_key, 0) + 1
+                        numeric_queue.append((stamp, values))
+        return callback
+
     def _mk_sensor_cb(self, sensor_spec: dict[str, Any]):
+        if "fields" in sensor_spec:
+            return self._mk_tensor_sensor_cb(sensor_spec)
         key = str(sensor_spec["sensor_key"])
         side = str(sensor_spec.get("side", ""))
         finger_order = tuple(sensor_spec.get("finger_order", ()))
@@ -453,57 +512,14 @@ class DataCollectNode(Node):
             if not self._accepting():
                 return
             now = time.time()
-            ids = [int(value) for value in msg.hand_id]
-            if len(set(ids)) != len(ids) or hand_id not in ids:
+            from morla_data_collect.codecs import DEFAULT_CODECS
+            try:
+                sample = DEFAULT_CODECS.get("xhand_native").decode(
+                    msg, hand_id=hand_id, finger_order=finger_order,
+                    point_count=point_count, runtime_mode=self._runtime_mode)
+            except (ValueError, TypeError, AttributeError):
                 self._drop_counts[f"sensor:{key}"] = self._drop_counts.get(f"sensor:{key}", 0) + 1
                 return
-            hand_index = ids.index(hand_id)
-            if len(msg.sensor_states) != len(ids):
-                self._drop_counts[f"sensor:{key}"] = self._drop_counts.get(f"sensor:{key}", 0) + 1
-                return
-            sensor_state = msg.sensor_states[hand_index]
-            by_finger = {}
-            for finger_state in sensor_state.finger_sensor_states:
-                label = str(finger_state.location).strip().lower()
-                if label == "mid":
-                    label = "middle"
-                if label in by_finger:
-                    self._drop_counts[f"sensor:{key}"] = self._drop_counts.get(f"sensor:{key}", 0) + 1
-                    return
-                by_finger[label] = finger_state
-
-            forces = np.zeros((len(finger_order), point_count, 3), dtype=np.float32)
-            sums = np.zeros((len(finger_order), 3), dtype=np.float32)
-            temperatures = np.zeros((len(finger_order), 20), dtype=np.int32)
-            temperature_means = np.zeros(len(finger_order), dtype=np.float32)
-            valid = np.zeros(len(finger_order), dtype=np.bool_)
-            temperature_valid = np.zeros(len(finger_order), dtype=np.bool_)
-            for index, finger in enumerate(finger_order):
-                item = by_finger.get(str(finger))
-                if item is None:
-                    continue
-                raw = np.asarray([(v.x, v.y, v.z) for v in item.raw_force], dtype=np.float64)
-                calc = np.asarray((item.calc_force.x, item.calc_force.y, item.calc_force.z), dtype=np.float64)
-                if raw.shape == (point_count, 3) and np.isfinite(raw).all() and np.isfinite(calc).all():
-                    forces[index] = raw.astype(np.float32)
-                    sums[index] = calc.astype(np.float32)
-                    valid[index] = True
-                raw_temp = np.asarray(item.raw_temperature, dtype=np.float64)
-                calc_temp = float(item.calc_temperature)
-                if (raw_temp.shape == (20,) and np.isfinite(raw_temp).all()
-                        and np.equal(raw_temp, np.rint(raw_temp)).all()
-                        and raw_temp.min(initial=0) >= np.iinfo(np.int32).min
-                        and raw_temp.max(initial=0) <= np.iinfo(np.int32).max
-                        and np.isfinite(calc_temp)):
-                    temperatures[index] = raw_temp.astype(np.int32)
-                    temperature_means[index] = calc_temp
-                    temperature_valid[index] = self._runtime_mode != "sim"
-
-            sample = {
-                "force_raw": forces, "force_sum": sums,
-                "temperature_raw": temperatures, "temperature_mean": temperature_means,
-                "valid": valid, "temperature_valid": temperature_valid,
-            }
             ts = _stamp_sec(msg.header, now) if stream_spec.timestamp_mode == "source_header" else now
             with self._buf_lock:
                 dq = self._sensor_buf[key]
@@ -828,6 +844,7 @@ class DataCollectNode(Node):
                     if getattr(self._schema, "frozen", None) is not None else {}
                 ),
                 "recording_mode": self._runtime_mode,
+                "provenance": {"codecs": DEFAULT_CODECS.manifest()},
                 "source_revisions": {
                     "description_revision": getattr(self._schema, "frozen", None).metadata.get("description_revision")
                     if getattr(self._schema, "frozen", None) is not None else None,

@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(morla_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -98,4 +99,5 @@ install(DIRECTORY include/
   DESTINATION include
 )
 
+ament_target_dependencies(wujihand_driver_node morla_interfaces)
 ament_package()

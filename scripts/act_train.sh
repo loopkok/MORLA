@@ -38,6 +38,11 @@
 #   - --dry-run 只打印要执行的命令，不真跑。
 set -euo pipefail
 
+if [[ "${1:-}" == "--spec" ]]; then
+    shift
+    exec "${MORLA_LEARNING_PYTHON:-python3}" -m morla_learning.cli "$@"
+fi
+
 LEROBOT_TRAIN="${LEROBOT_TRAIN:-/home/robot/miniconda3/envs/lerobot/bin/lerobot-train}"
 
 MODE="" DATASET="" REPO_ID="" CHECKPOINT="" OUTPUT_DIR="" STEPS="" JOB_NAME=""

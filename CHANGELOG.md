@@ -1,5 +1,17 @@
 # Changelog（MORLA）
 
+## 2026-10-28
+
+### 可组合机器人架构重构（未完成部署验收）
+
+- 新增组件描述、装配/部署编译器、冻结契约与哈希、插件发现和 SDK；保留 12 个旧 Profile 的兼容快照。
+- 新增统一 Runtime、物理资源互斥、租约/epoch/命令时效网关、异步生命周期操作、原生驱动桥、相机与单场景 MuJoCo 组合。
+- 抽象移动端、手柄、姿态输入和 controller，支持同源 deadman、重连释放、关节/Cartesian 控制及既有手部重定向。
+- Schema v3 分离 state/action，支持自定义相机与传感器；贯通采集、来源记录、对齐与导出，修复 PyAV 19 帧率有理数兼容。
+- 新增训练/模型契约、ACT/OpenPI 桥、策略握手、过期预测拒绝和冻结契约回放；Web 新增组合配置、版本保存、预检、手机配对及运行控制。
+- 提供独立对抗性审查、回归反例、分层测试和 CI 配置。提交前实际复验：纯逻辑 103 通过/1 跳过，数据/策略/Web 23 通过，场景 7 通过；TypeScript/Vite 构建通过。
+- 尚未完成 ROS Humble 全量编译、实机、真实训练/模型推理、长稳及全部最终审查验收；不能据此标记计划全部完成。详见[详细提交日志](docs/architecture_refactor/CHANGE_LOG_2026-10-28.md)、[实施状态](docs/architecture_refactor/progress.md)及[推送回执](docs/architecture_refactor/PUSH_LOG_2026-10-28.md)。
+
 ## 2026-10-27
 
 - 归档10月23日新主机用户曲谱交付记录，补充[本轮详细日志](docs/piano/DEBUG_LOG_2026-10-27.md)，与MORLA-piano的卡农/克罗地亚狂想曲CSV、来源及哈希清单对应。本体仅更新文档，没有驱动、Web代码或前端产物改动。

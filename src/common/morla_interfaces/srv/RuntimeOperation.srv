@@ -1,0 +1,8 @@
+string request_id
+string session_id
+string operation
+string[] component_ids
+---
+string request_id
+string status
+string error

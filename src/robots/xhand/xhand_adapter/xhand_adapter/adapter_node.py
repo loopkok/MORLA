@@ -24,6 +24,8 @@ from xhand_adapter.core import (
 class XHandAdapterNode(Node):
     def __init__(self):
         super().__init__("xhand_adapter")
+        from morla_core.device_guard import LegacyDeviceGuard
+        self._morla_device_guard = LegacyDeviceGuard()
         self.declare_parameter("side", "left")
         self.declare_parameter("hand_id", 0)
         self.declare_parameter("state_topic", "")
@@ -99,6 +101,12 @@ class XHandAdapterNode(Node):
             f"XHand adapter side={self.side} hand_id={self.hand_id}; "
             f"standard={self.topics['command']} -> native={self.topics['native_command']}"
         )
+
+    def destroy_node(self):
+        try:
+            return super().destroy_node()
+        finally:
+            self._morla_device_guard.close()
 
     def _topic(self, parameter, default):
         value = str(self.get_parameter(parameter).value).strip()

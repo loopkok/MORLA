@@ -34,6 +34,7 @@ from morla_core.schema import (
     upgrade_v1_schema,
 )
 from morla_core.profile import ProfileRegistry
+from morla_core.contracts.features import SchemaV3
 
 # stream keys whose values we can obtain at inference time as *state feedback*.
 # blocks that do NOT have a standalone command topic we can write (waist is
@@ -124,7 +125,7 @@ class ObsLayout:
     """
 
     def __init__(self, schema: CollectSchema | FrozenSchema, *, strict_names=False):
-        self.schema = schema if isinstance(schema, FrozenSchema) else upgrade_v1_schema(schema.to_dict())
+        self.schema = schema if isinstance(schema, (FrozenSchema, SchemaV3)) else upgrade_v1_schema(schema.to_dict())
         self.blocks = tuple(self.schema.state_blocks)
         self.action_blocks = tuple(self.schema.action_blocks)
         self.state_dim = self.schema.state_dim

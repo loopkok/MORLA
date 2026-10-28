@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://morla.local/schemas/component.schema.json",
+  "type": "object",
+  "properties": {
+    "descriptor_version": {
+      "const": 1
+    },
+    "plugin_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plugin_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "api_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "enum": [
+        "actuator",
+        "input",
+        "sensor",
+        "controller",
+        "device_session"
+      ]
+    },
+    "ports": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "direction": {
+            "enum": [
+              "input",
+              "output"
+            ]
+          },
+          "semantic": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dim": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "codec": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dtype": {
+            "type": "string",
+            "minLength": 1
+          },
+          "frame": {
+            "type": "string",
+            "minLength": 1
+          },
+          "clock": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "qos": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "direction",
+          "semantic",
+          "dim",
+          "unit"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "joints": {
+      "type": "array"
+    },
+    "features": {
+      "type": "array"
+    },
+    "backend_variants": {
+      "type": "object"
+    },
+    "resources": {
+      "type": "object"
+    },
+    "operations": {
+      "type": "object"
+    },
+    "geometry": {
+      "type": "object"
+    },
+    "configuration_schema": {
+      "type": "object"
+    },
+    "defaults": {
+      "type": "object"
+    },
+    "validation_artifacts": {
+      "type": "array"
+    },
+    "source": {
+      "type": "object"
+    },
+    "command_modes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "controller_types": {
+      "type": "object"
+    },
+    "joint_variants": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array"
+      }
+    }
+  },
+  "required": [
+    "descriptor_version",
+    "plugin_id",
+    "plugin_version",
+    "kind",
+    "ports",
+    "backend_variants"
+  ],
+  "additionalProperties": false
+}

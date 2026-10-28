@@ -235,6 +235,7 @@ async def _handle(
     websocket, infer_fn, reset_fn, packer, model: str, action_dim: int,
     rtc_guided: bool, rtc_horizon: int, layout_id: str,
     layout_hash: str, model_capacity: int, kinematics_hash: str,
+    model_manifest: dict | None = None,
 ) -> None:
     import websockets.exceptions
 
@@ -253,6 +254,7 @@ async def _handle(
             "layout_id": layout_id, "layout_hash": layout_hash,
             "model_capacity": model_capacity,
             "kinematics_hash": kinematics_hash,
+            **({"model_manifest":model_manifest} if model_manifest else {}),
         }))
         while True:
             data = await websocket.recv()
@@ -279,6 +281,7 @@ async def _serve(
     rtc_guided: bool = False, rtc_horizon: int = 10, layout_id: str = "",
     layout_hash: str = "", model_capacity: int | None = None,
     kinematics_hash: str = "",
+    model_manifest: dict | None = None,
 ) -> None:
     from websockets.asyncio.server import serve
 
@@ -289,7 +292,7 @@ async def _serve(
     async with serve(
         lambda ws: _handle(ws, infer_fn, reset_fn, packer, model, action_dim,
                             rtc_guided, rtc_horizon, layout_id, layout_hash, capacity,
-                            kinematics_hash),
+                            kinematics_hash,model_manifest),
         host,
         port,
         compression=None,
@@ -305,6 +308,8 @@ def main() -> None:
                         help="模型族：act(lerobot) | pi05(openpi)")
     parser.add_argument("--checkpoint-dir", required=True,
                         help="act=lerobot checkpoint；pi05=openpi 格式 checkpoint")
+    parser.add_argument('--model-manifest',default='',help='schema v3 checkpoint manifest, hash checked before loading')
+    parser.add_argument('--training-spec',default='',help='OpenPI composed TrainingSpec; avoids fixed embodiment transforms')
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8001)
     parser.add_argument("--action-dim", type=int, default=8, help="act 用")
@@ -340,6 +345,18 @@ def main() -> None:
         help="JSON: model slot -> model feature image key（须与模型 input_features 一致）",
     )
     args = parser.parse_args()
+    args.model_manifest_value=None
+    if args.model_manifest:
+        from morla_learning import ModelManifest
+        from morla_learning.backends import checkpoint_hash
+        manifest=ModelManifest.from_dict(json.loads(pathlib.Path(args.model_manifest).read_text()))
+        if manifest.checkpoint_hash!=checkpoint_hash(args.checkpoint_dir): parser.error('checkpoint content hash mismatch')
+        if manifest.backend!=('act' if args.model=='act' else 'openpi'): parser.error('manifest/backend mismatch')
+        if manifest.validation!='inference_verified': parser.error('model manifest has no inference verification')
+        args.model_manifest_value=manifest.to_dict()
+        args.action_dim=len(manifest.features['action_features'])
+        args.model_capacity=manifest.capacity
+        args.slot_map=json.dumps(manifest.camera_map)
     if args.rtc_execution_horizon < 1:
         parser.error("--rtc-execution-horizon must be >= 1")
     if args.rtc_guided and args.model != "pi05":
@@ -389,6 +406,7 @@ def main() -> None:
             infer_fn, reset_fn, args.host, args.port, args.model, args.action_dim,
             args.rtc_guided, args.rtc_execution_horizon, args.layout_id,
             args.layout_hash, args.model_capacity, args.kinematics_hash,
+            args.model_manifest_value,
         ))
     except KeyboardInterrupt:
         print(f"serve[{args.model}] stopped")

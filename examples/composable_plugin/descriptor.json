@@ -1,0 +1,194 @@
+{
+  "descriptor_version": 1,
+  "api_version": "1.0",
+  "plugin_id": "lab.reference.arm",
+  "plugin_version": "1.0.0",
+  "kind": "actuator",
+  "ports": {
+    "position": {
+      "direction": "output",
+      "semantic": "joint_state",
+      "dim": 3,
+      "unit": "rad",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "velocity": {
+      "direction": "output",
+      "semantic": "joint_velocity",
+      "dim": 3,
+      "unit": "rad/s",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "joint_target": {
+      "direction": "input",
+      "semantic": "joint_targets",
+      "dim": 3,
+      "unit": "rad",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "position_target": {
+      "direction": "input",
+      "semantic": "joint_targets",
+      "dim": 3,
+      "unit": "rad",
+      "codec": "numeric",
+      "dtype": "float64"
+    }
+  },
+  "joints": [
+    {
+      "name": "joint1",
+      "unit": "rad",
+      "type": "revolute",
+      "limits": [
+        -3.141593,
+        3.141593
+      ],
+      "max_velocity": 1.0,
+      "lower": -3.141593,
+      "upper": 3.141593,
+      "limit_source": "fake_only_defaults"
+    },
+    {
+      "name": "joint2",
+      "unit": "rad",
+      "type": "revolute",
+      "limits": [
+        -3.141593,
+        3.141593
+      ],
+      "max_velocity": 1.0,
+      "lower": -3.141593,
+      "upper": 3.141593,
+      "limit_source": "fake_only_defaults"
+    },
+    {
+      "name": "joint3",
+      "unit": "rad",
+      "type": "revolute",
+      "limits": [
+        -3.141593,
+        3.141593
+      ],
+      "max_velocity": 1.0,
+      "lower": -3.141593,
+      "upper": 3.141593,
+      "limit_source": "fake_only_defaults"
+    }
+  ],
+  "command_modes": [
+    "position"
+  ],
+  "backend_variants": {
+    "fake": {
+      "available": true,
+      "validation_level": "protocol"
+    },
+    "sim": {
+      "available": false,
+      "validation_level": "unverified"
+    },
+    "real": {
+      "available": false,
+      "validation_level": "unverified"
+    }
+  },
+  "resources": {
+    "session_family": "morla.fake.arm",
+    "sharing": "exclusive",
+    "stop_policy": "hold"
+  },
+  "operations": {
+    "prepare": {
+      "moves": false
+    },
+    "enable": {
+      "moves": false
+    },
+    "stop": {
+      "moves": false
+    }
+  },
+  "geometry": {
+    "frames": [
+      "base",
+      "flange",
+      "mount",
+      "optical"
+    ],
+    "collision_verified": false,
+    "calibration_required": true
+  },
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "board_scope_verified": {
+        "type": "boolean"
+      },
+      "unselected_joints_policy": {
+        "type": "string",
+        "enum": [
+          "disabled",
+          "held"
+        ]
+      },
+      "initial_position": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "can_channel": {
+        "type": "string"
+      },
+      "control_board_ip": {
+        "type": "string"
+      },
+      "local_port": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 65535
+      },
+      "serial_number": {
+        "type": "string"
+      },
+      "port_name": {
+        "type": "string"
+      },
+      "hand_id": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "rate_hz": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "side": {
+        "type": "string",
+        "enum": [
+          "left",
+          "right"
+        ]
+      },
+      "device_id": {
+        "type": "string"
+      },
+      "max_sample_age_ms": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      }
+    },
+    "additionalProperties": false
+  },
+  "defaults": {
+    "rate_hz": 100
+  },
+  "validation_artifacts": [],
+  "source": {
+    "package": "morla_reference",
+    "version": "1.0.0"
+  }
+}

@@ -59,20 +59,22 @@ def log_episode(episode_dir: str, *, log=print) -> None:
         n = len(ts)
         t0 = float(ts[0]) if n else 0.0
 
-        # 静态：曲线命名 + 任务文本
-        blocks = schema.get("state_blocks", [])
-        for b in blocks:
-            names = [nm for nm in state_names if nm.startswith(f"{b['name']}_")]
-            rr.log(f"{root}/state/{b['name']}", rr.SeriesLines(names=names), static=True)
-            rr.log(f"{root}/action/{b['name']}", rr.SeriesLines(names=names), static=True)
+        from morla_data_collect.schema import pipeline_schema_from_dict, action_blocks, action_names
+        view = pipeline_schema_from_dict(schema)
+        layouts = {"state": view.state_blocks(), "action": action_blocks(view)}
+        names_by_kind = {"state": view.state_names(), "action": action_names(view)}
+        columns = {}
+        for kind, blocks in layouts.items():
+            offset = 0
+            columns[kind] = []
+            for block in blocks:
+                indices = list(getattr(block, "indices", ()) or range(offset, offset + block.dim))
+                columns[kind].append((block.name, indices))
+                names = [names_by_kind[kind][j] for j in indices]
+                rr.log(f"{root}/{kind}/{block.name}", rr.SeriesLines(names=names), static=True)
+                offset += block.dim
         rr.log(f"{root}/task", rr.TextDocument(f"# episode {ep_index:06d}\n\n{task}"), static=True)
-
         log(f"  logging {root}: {n} frames @ {fps}Hz, cams={cams}, task={task!r}")
-        col_offsets = []
-        off = 0
-        for b in blocks:
-            col_offsets.append((b["name"], off, off + b["dim"]))
-            off += b["dim"]
 
         for i in range(n):
             # rerun >= 0.24: set_time_seconds 废弃，改用 set_time(timestamp=秒)
@@ -81,9 +83,9 @@ def log_episode(episode_dir: str, *, log=print) -> None:
                 img = _decode(imgs[i])
                 if img is not None:
                     rr.log(f"{root}/camera/{cam}", rr.Image(img))
-            for name, c0, c1 in col_offsets:
-                rr.log(f"{root}/state/{name}", rr.Scalars(state[i, c0:c1].tolist()))
-                rr.log(f"{root}/action/{name}", rr.Scalars(action[i, c0:c1].tolist()))
+            for kind, values in (("state", state), ("action", action)):
+                for name, indices in columns[kind]:
+                    rr.log(f"{root}/{kind}/{name}", rr.Scalars(values[i, indices].tolist()))
             if quality[i]:
                 rr.log(
                     f"{root}/quality",

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://morla.local/schemas/model.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "backend",
+    "backend_revision",
+    "feature_hash",
+    "geometry_hash",
+    "normalization_hash",
+    "checkpoint_hash",
+    "dataset_fingerprint",
+    "features",
+    "camera_map",
+    "capacity",
+    "validation"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "backend": {
+      "enum": [
+        "act",
+        "openpi"
+      ]
+    },
+    "backend_revision": {
+      "type": "string"
+    },
+    "feature_hash": {
+      "type": "string"
+    },
+    "geometry_hash": {
+      "type": "string"
+    },
+    "normalization_hash": {
+      "type": "string"
+    },
+    "checkpoint_hash": {
+      "type": "string"
+    },
+    "dataset_fingerprint": {
+      "type": "string"
+    },
+    "features": {
+      "type": "object"
+    },
+    "camera_map": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "capacity": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "validation": {
+      "enum": [
+        "config_valid",
+        "loader_verified",
+        "inference_verified"
+      ]
+    }
+  }
+}

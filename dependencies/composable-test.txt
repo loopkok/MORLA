@@ -1,0 +1,16 @@
+# Python 3.10 (ROS Humble) / 3.12; learning algorithms have independent environments.
+pytest==8.4.1
+PyYAML==6.0.2
+numpy==2.2.6
+scipy==1.15.3
+jsonschema==4.24.0
+h5py==3.14.0
+pyarrow==20.0.0
+opencv-python-headless==4.11.0.86
+fastapi==0.115.14
+httpx==0.28.1
+uvicorn==0.34.3
+websockets==15.0.1
+hypothesis==6.135.26
+tqdm==4.67.1
+av>=15,<20

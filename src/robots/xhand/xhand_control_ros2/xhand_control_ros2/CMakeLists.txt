@@ -10,6 +10,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # 找到所需的依赖项
 find_package(ament_cmake REQUIRED)
+find_package(morla_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
@@ -92,4 +93,5 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+ament_target_dependencies(${PROJECT_NAME}_node morla_interfaces)
 ament_package()

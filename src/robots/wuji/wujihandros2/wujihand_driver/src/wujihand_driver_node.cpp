@@ -28,6 +28,7 @@ const std::array<std::string, WujiHandDriverNode::NUM_JOINTS> WujiHandDriverNode
 WujiHandDriverNode::WujiHandDriverNode() : Node("wujihand_driver"), hardware_connected_(false) {
   // Declare parameters
   this->declare_parameter("serial_number", "");
+  this->declare_parameter("auto_enable", true);
   this->declare_parameter("hand_side", "");
   this->declare_parameter("name_by_handedness", false);
   this->declare_parameter("publish_rate", 1000.0);
@@ -138,7 +139,9 @@ bool WujiHandDriverNode::connect_hardware() {
     hand_->disable_thread_safe_check();
 
     // Enable all joints
-    hand_->write<wujihandcpp::data::joint::Enabled>(true);
+    if (this->get_parameter("auto_enable").as_bool()) {
+      hand_->write<wujihandcpp::data::joint::Enabled>(true);
+    }
 
     // Read handedness (0 = right, 1 = left)
     auto handedness_value = hand_->read<wujihandcpp::data::hand::Handedness>();

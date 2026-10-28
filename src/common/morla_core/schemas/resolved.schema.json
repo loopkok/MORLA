@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://morla.local/schemas/resolved.schema.json",
+  "type": "object",
+  "properties": {
+    "resolved_version": {},
+    "compiler_version": {},
+    "assembly_id": {},
+    "revision": {},
+    "assembly_revision": {},
+    "assembly_hash": {},
+    "deployment_hash": {},
+    "feature_contract_hash": {},
+    "geometry_hash": {},
+    "input_mapping_hash": {},
+    "instances": {},
+    "device_sessions": {},
+    "bindings": {},
+    "control_groups": {},
+    "mounts": {},
+    "geometry_contract": {},
+    "feature_contract": {},
+    "capture_schema": {},
+    "launch_plan": {},
+    "diagnostics": {},
+    "lockfile": {},
+    "status": {},
+    "source_assembly": {},
+    "source_deployment": {},
+    "resolved_hash": {}
+  },
+  "required": [
+    "resolved_version",
+    "instances",
+    "device_sessions",
+    "capture_schema",
+    "resolved_hash"
+  ],
+  "additionalProperties": false
+}

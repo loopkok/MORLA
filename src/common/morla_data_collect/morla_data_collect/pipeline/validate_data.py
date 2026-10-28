@@ -175,7 +175,7 @@ def _check_aligned(rep: _Report, f: h5py.File, schema) -> None:
     elif not np.allclose(np.diff(ts), 1 / schema.dataset_fps, rtol=0, atol=1e-5):
         rep.fail("F6", "aligned timestamps are not a uniform fps grid")
     for key, value in [("state", state), ("action", action)]:
-        if value.shape != (n, schema.state_dim) or not np.all(np.isfinite(value)):
+        if value.shape != (n, schema.state_dim if key == "state" else schema.action_dim) or not np.all(np.isfinite(value)):
             rep.fail("F6", f"aligned {key} invalid shape or NaN/Inf")
     for attr in ("fps", "schema", "state_names"):
         if attr not in f.attrs:
@@ -186,11 +186,11 @@ def _check_aligned(rep: _Report, f: h5py.File, schema) -> None:
         other = pipeline_schema_from_json(f.attrs["schema"])
         if training_contract(other) != training_contract(schema):
             rep.fail("F6", "aligned schema differs from meta schema")
-    if schema.action_source == "next_state" and state.shape == action.shape and n > 0:
-        if not np.allclose(action[:-1], state[1:], atol=1e-6, rtol=0, equal_nan=False):
-            rep.fail("F6", "aligned next_state action relationship broken")
-        if not np.allclose(action[-1], state[-1], atol=1e-6, rtol=0, equal_nan=False):
-            rep.fail("F6", "aligned next_state terminal hold is broken")
+    if state.shape == (n, schema.state_dim) and action.shape == (n, schema.action_dim) and n > 0:
+        from morla_data_collect.schema import rebuild_actions
+        expected = rebuild_actions(schema, state, action)
+        if not np.allclose(action, expected, atol=1e-6, rtol=0, equal_nan=False):
+            rep.fail("F6", "aligned next_state action relationship or terminal hold is broken")
     q = f["quality"][:]
     if q.shape != (n,):
         rep.fail("F6", "aligned quality length mismatch")
@@ -226,17 +226,9 @@ def _check_aligned(rep: _Report, f: h5py.File, schema) -> None:
         group = sensor_root[key]
         npoints = int(sensor.get("point_count_per_finger", 120))
         n_fingers = len(sensor.get("finger_order", ("thumb", "index", "middle", "ring", "pinky")))
-        expected = {
-            "force_raw": (n, n_fingers, npoints, 3),
-            "force_sum": (n, n_fingers, 3),
-            "temperature_raw": (n, n_fingers, 20),
-            "temperature_mean": (n, n_fingers),
-            "valid": (n, n_fingers),
-            "temperature_valid": (n, n_fingers),
-            "source_index": (n,),
-            "source_timestamps": (n,),
-            "source_offsets": (n,),
-        }
+        from morla_data_collect.codecs import sensor_fields
+        expected = {name: (n,) + shape for name, (shape, dtype) in sensor_fields(sensor).items()}
+        expected.update({"source_index": (n,), "source_timestamps": (n,), "source_offsets": (n,)})
         for name, shape in expected.items():
             if name not in group or group[name].shape != shape:
                 rep.fail("F6", f"aligned sensor {key}/{name} missing/shape mismatch")
@@ -308,6 +300,9 @@ def validate_episode(
         rep.fail("F1", f"meta.json unreadable: {exc}")
         return rep
 
+    if meta.get("recording_status") not in {None, "complete"}:
+        rep.fail("F1", f"recording is not complete: {meta.get('recording_status')}")
+
     if meta.get("legacy_validity_unknown"):
         rep.warn("W10", "legacy XNero cache validity/command timing is unknown; review provenance before training")
 
@@ -334,6 +329,19 @@ def validate_episode(
                 if values.ndim == 2 and values.shape[1] != dim and len(ts) > 0:
                     rep.fail("F6", f"stream {name} dim {values.shape[1]} != schema {dim}")
                 _check_stream(rep, name, ts, values, max_gap_s)
+                group = fr[f"streams/{name}"]
+                masks = {key: group[key][:] for key in ('valid', 'measured', 'synthetic', 'command_echo') if key in group}
+                if any(mask.shape != (len(ts),) for mask in masks.values()):
+                    rep.fail('F6', f'stream {name}: provenance count mismatch')
+                elif masks:
+                    measured = masks.get('measured', np.zeros(len(ts), bool))
+                    synthetic = masks.get('synthetic', np.zeros(len(ts), bool))
+                    echo = masks.get('command_echo', np.zeros(len(ts), bool))
+                    if np.any(measured & (synthetic | echo)):
+                        rep.fail('F6', f'stream {name}: contradictory measured provenance')
+                    if 'valid' in masks and len(ts) and not masks['valid'].all():
+                        rep.fail('F7', f'stream {name}: invalid required samples in provenance')
+
 
             # Non-joint profile streams have dedicated sidecar storage and never
             # participate in the model state/action vector.
@@ -350,11 +358,8 @@ def validate_episode(
                 group = fr[path]
                 fingers = len(sensor.get("finger_order", ("thumb", "index", "middle", "ring", "pinky")))
                 points = int(sensor.get("point_count_per_finger", 120))
-                expected = {
-                    "force_raw": (fingers, points, 3), "force_sum": (fingers, 3),
-                    "temperature_raw": (fingers, 20), "temperature_mean": (fingers,),
-                    "valid": (fingers,), "temperature_valid": (fingers,),
-                }
+                from morla_data_collect.codecs import sensor_fields
+                expected = {name: shape for name, (shape, dtype) in sensor_fields(sensor).items()}
                 ts = group["timestamps"][:] if "timestamps" in group else np.empty(0)
                 for field, shape in expected.items():
                     if field not in group or group[field].shape != (len(ts),) + shape:

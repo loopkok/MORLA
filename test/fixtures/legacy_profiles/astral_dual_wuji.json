@@ -1,0 +1,2933 @@
+{
+  "action_blocks": [
+    {
+      "action_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "block_id": "left_arm",
+      "command_stream": "left_arm_cmd",
+      "dim": 7,
+      "feature_names": [
+        "left_arm_0",
+        "left_arm_1",
+        "left_arm_2",
+        "left_arm_3",
+        "left_arm_4",
+        "left_arm_5",
+        "left_arm_6"
+      ],
+      "limits": [
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ]
+      ],
+      "semantics": "next_state",
+      "unit": "rad",
+      "writable": true,
+      "writer_id": "left_arm"
+    },
+    {
+      "action_indices": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "block_id": "right_arm",
+      "command_stream": "right_arm_cmd",
+      "dim": 7,
+      "feature_names": [
+        "right_arm_0",
+        "right_arm_1",
+        "right_arm_2",
+        "right_arm_3",
+        "right_arm_4",
+        "right_arm_5",
+        "right_arm_6"
+      ],
+      "limits": [
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ]
+      ],
+      "semantics": "next_state",
+      "unit": "rad",
+      "writable": true,
+      "writer_id": "right_arm"
+    },
+    {
+      "action_indices": [
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33
+      ],
+      "block_id": "left_ee",
+      "command_stream": "left_hand_cmd",
+      "dim": 20,
+      "feature_names": [
+        "left_ee_0",
+        "left_ee_1",
+        "left_ee_2",
+        "left_ee_3",
+        "left_ee_4",
+        "left_ee_5",
+        "left_ee_6",
+        "left_ee_7",
+        "left_ee_8",
+        "left_ee_9",
+        "left_ee_10",
+        "left_ee_11",
+        "left_ee_12",
+        "left_ee_13",
+        "left_ee_14",
+        "left_ee_15",
+        "left_ee_16",
+        "left_ee_17",
+        "left_ee_18",
+        "left_ee_19"
+      ],
+      "limits": [
+        [
+          -0.0448,
+          1.6508
+        ],
+        [
+          -0.1659,
+          0.9339
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ]
+      ],
+      "semantics": "next_state",
+      "unit": "rad",
+      "writable": true,
+      "writer_id": "left_hand"
+    },
+    {
+      "action_indices": [
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53
+      ],
+      "block_id": "right_ee",
+      "command_stream": "right_hand_cmd",
+      "dim": 20,
+      "feature_names": [
+        "right_ee_0",
+        "right_ee_1",
+        "right_ee_2",
+        "right_ee_3",
+        "right_ee_4",
+        "right_ee_5",
+        "right_ee_6",
+        "right_ee_7",
+        "right_ee_8",
+        "right_ee_9",
+        "right_ee_10",
+        "right_ee_11",
+        "right_ee_12",
+        "right_ee_13",
+        "right_ee_14",
+        "right_ee_15",
+        "right_ee_16",
+        "right_ee_17",
+        "right_ee_18",
+        "right_ee_19"
+      ],
+      "limits": [
+        [
+          -0.0448,
+          1.6508
+        ],
+        [
+          -0.1659,
+          0.9339
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ]
+      ],
+      "semantics": "next_state",
+      "unit": "rad",
+      "writable": true,
+      "writer_id": "right_hand"
+    }
+  ],
+  "backend_requirements": {
+    "action_semantics": "absolute_position",
+    "camera_map": {
+      "base": "base",
+      "left_wrist": "left_wrist",
+      "right_wrist": "right_wrist"
+    },
+    "model_capacity": 32,
+    "model_layout_id": "astral_dual_wuji_v1",
+    "optional_sensors": [],
+    "requires_model_kinematics_handshake": true,
+    "requires_model_layout_handshake": true,
+    "requires_named_features": true
+  },
+  "camera_specs": [
+    {
+      "device_fingerprint": null,
+      "image_size": null,
+      "label": "base",
+      "slot": 0
+    },
+    {
+      "device_fingerprint": null,
+      "image_size": null,
+      "label": "left_wrist",
+      "slot": 1
+    },
+    {
+      "device_fingerprint": null,
+      "image_size": null,
+      "label": "right_wrist",
+      "slot": 2
+    }
+  ],
+  "cameras": [
+    "base",
+    "left_wrist",
+    "right_wrist"
+  ],
+  "capabilities": {
+    "damping": true,
+    "enable": true,
+    "estop": true,
+    "grippers": false,
+    "hands": true,
+    "head": false,
+    "home": true,
+    "position": true,
+    "ready": true,
+    "reanchor": true,
+    "tactile": false,
+    "waist": false,
+    "workpos": true
+  },
+  "components": [
+    {
+      "command_topic": "/left_arm/joint_commands",
+      "component_id": "left_arm",
+      "description_model_id": "astral_left_arm",
+      "driver_package": "astral_robot_control",
+      "driver_params_file": "config/astral_robot.yaml",
+      "enabled": true,
+      "joint_names": [
+        "left_shoulder_pitch",
+        "left_shoulder_roll",
+        "left_elbow_roll",
+        "left_elbow_pitch",
+        "left_forearm_roll",
+        "left_wrist_pitch",
+        "left_wrist_roll"
+      ],
+      "limits": [
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ]
+      ],
+      "max_joint_velocity_rad_s": 6.0,
+      "package": "astral_arm_teleop",
+      "params_file": "config/astral_arm_teleop_left.yaml",
+      "side": "left",
+      "state_topic": "/left_arm/joint_states",
+      "type": "arm",
+      "unit": "rad"
+    },
+    {
+      "command_topic": "/right_arm/joint_commands",
+      "component_id": "right_arm",
+      "description_model_id": "astral_right_arm",
+      "driver_package": "astral_robot_control",
+      "driver_params_file": "config/astral_robot.yaml",
+      "enabled": true,
+      "joint_names": [
+        "right_shoulder_pitch",
+        "right_shoulder_roll",
+        "right_elbow_roll",
+        "right_elbow_pitch",
+        "right_forearm_roll",
+        "right_wrist_pitch",
+        "right_wrist_roll"
+      ],
+      "limits": [
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ]
+      ],
+      "max_joint_velocity_rad_s": 6.0,
+      "package": "astral_arm_teleop",
+      "params_file": "config/astral_arm_teleop_right.yaml",
+      "side": "right",
+      "state_topic": "/right_arm/joint_states",
+      "type": "arm",
+      "unit": "rad"
+    },
+    {
+      "command_topic": "/left_hand/joint_commands",
+      "component_id": "left_ee",
+      "description_model_id": "wuji_left_hand",
+      "enabled": true,
+      "joint_names": [
+        "finger1_joint1",
+        "finger1_joint2",
+        "finger1_joint3",
+        "finger1_joint4",
+        "finger2_joint1",
+        "finger2_joint2",
+        "finger2_joint3",
+        "finger2_joint4",
+        "finger3_joint1",
+        "finger3_joint2",
+        "finger3_joint3",
+        "finger3_joint4",
+        "finger4_joint1",
+        "finger4_joint2",
+        "finger4_joint3",
+        "finger4_joint4",
+        "finger5_joint1",
+        "finger5_joint2",
+        "finger5_joint3",
+        "finger5_joint4"
+      ],
+      "limits": [
+        [
+          -0.0448,
+          1.6508
+        ],
+        [
+          -0.1659,
+          0.9339
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ]
+      ],
+      "package": "morla_wuji_hand",
+      "params_file": "config/components/wuji_left.yaml",
+      "retarget_package": "wujihand_retargeting",
+      "retarget_params_file": "config/retarget_dexpilot_left.yml",
+      "side": "left",
+      "state_topic": "/left_hand/joint_states",
+      "type": "wuji_hand",
+      "unit": "rad"
+    },
+    {
+      "command_topic": "/right_hand/joint_commands",
+      "component_id": "right_ee",
+      "description_model_id": "wuji_right_hand",
+      "enabled": true,
+      "joint_names": [
+        "finger1_joint1",
+        "finger1_joint2",
+        "finger1_joint3",
+        "finger1_joint4",
+        "finger2_joint1",
+        "finger2_joint2",
+        "finger2_joint3",
+        "finger2_joint4",
+        "finger3_joint1",
+        "finger3_joint2",
+        "finger3_joint3",
+        "finger3_joint4",
+        "finger4_joint1",
+        "finger4_joint2",
+        "finger4_joint3",
+        "finger4_joint4",
+        "finger5_joint1",
+        "finger5_joint2",
+        "finger5_joint3",
+        "finger5_joint4"
+      ],
+      "limits": [
+        [
+          -0.0448,
+          1.6508
+        ],
+        [
+          -0.1659,
+          0.9339
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ]
+      ],
+      "package": "morla_wuji_hand",
+      "params_file": "config/components/wuji_right.yaml",
+      "retarget_package": "wujihand_retargeting",
+      "retarget_params_file": "config/retarget_dexpilot_right.yml",
+      "side": "right",
+      "state_topic": "/right_hand/joint_states",
+      "type": "wuji_hand",
+      "unit": "rad"
+    }
+  ],
+  "coordinate_contract": {
+    "arms": {
+      "left": {
+        "description_model_id": "astral_left_arm",
+        "joint_convention": "hardware",
+        "physical_flange_frame": "left_link7",
+        "sdk_flange_frame": "unverified_vendor_sdk_frame",
+        "solver_adapter_id": "astral_geometric_poe_link7_v1",
+        "solver_base_frame": "left_base_link",
+        "solver_tip_frame": "left_link7",
+        "tool": {
+          "calibration_status": "physical_tool_unverified",
+          "frame": "left_link7",
+          "id": "legacy_solver_tip",
+          "source": "urdf_named_frame"
+        }
+      },
+      "right": {
+        "description_model_id": "astral_right_arm",
+        "joint_convention": "hardware",
+        "physical_flange_frame": "right_link7",
+        "sdk_flange_frame": "unverified_vendor_sdk_frame",
+        "solver_adapter_id": "astral_geometric_poe_link7_v1",
+        "solver_base_frame": "right_base_link",
+        "solver_tip_frame": "right_link7",
+        "tool": {
+          "calibration_status": "physical_tool_unverified",
+          "frame": "right_link7",
+          "id": "legacy_solver_tip",
+          "source": "urdf_named_frame"
+        }
+      }
+    },
+    "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+    "input_basis_id": "quest3_canonical_legacy_v1",
+    "input_frame_policy": "incremental_operator_aligned",
+    "input_rotation_source": "legacy_astral_identity_axis_alignment",
+    "input_rotation_to_robot_body": [
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "kinematics_hash": "e8a8eb580d5a7720714e368de2d1bce8d9d78e521c6d24d5e8ff2cd55290dec4",
+    "robot_body_frame": "body_link",
+    "robot_id": "astral",
+    "version": 1
+  },
+  "data": {
+    "action_source": "next_state",
+    "data_root": "${MORLA_DATA_ROOT:-${SDK_ROOT}/morla_data}",
+    "dataset_fps": 30,
+    "hold_frames": 10,
+    "legacy_validity_unknown": false,
+    "max_gap_ms": 100.0
+  },
+  "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+  "frozen_schema": {
+    "action_blocks": [
+      {
+        "action_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "block_id": "left_arm",
+        "command_stream": "left_arm_cmd",
+        "dim": 7,
+        "feature_names": [
+          "left_arm_0",
+          "left_arm_1",
+          "left_arm_2",
+          "left_arm_3",
+          "left_arm_4",
+          "left_arm_5",
+          "left_arm_6"
+        ],
+        "limits": [
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ]
+        ],
+        "semantics": "next_state",
+        "unit": "rad",
+        "writable": true,
+        "writer_id": "left_arm"
+      },
+      {
+        "action_indices": [
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ],
+        "block_id": "right_arm",
+        "command_stream": "right_arm_cmd",
+        "dim": 7,
+        "feature_names": [
+          "right_arm_0",
+          "right_arm_1",
+          "right_arm_2",
+          "right_arm_3",
+          "right_arm_4",
+          "right_arm_5",
+          "right_arm_6"
+        ],
+        "limits": [
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ]
+        ],
+        "semantics": "next_state",
+        "unit": "rad",
+        "writable": true,
+        "writer_id": "right_arm"
+      },
+      {
+        "action_indices": [
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33
+        ],
+        "block_id": "left_ee",
+        "command_stream": "left_hand_cmd",
+        "dim": 20,
+        "feature_names": [
+          "left_ee_0",
+          "left_ee_1",
+          "left_ee_2",
+          "left_ee_3",
+          "left_ee_4",
+          "left_ee_5",
+          "left_ee_6",
+          "left_ee_7",
+          "left_ee_8",
+          "left_ee_9",
+          "left_ee_10",
+          "left_ee_11",
+          "left_ee_12",
+          "left_ee_13",
+          "left_ee_14",
+          "left_ee_15",
+          "left_ee_16",
+          "left_ee_17",
+          "left_ee_18",
+          "left_ee_19"
+        ],
+        "limits": [
+          [
+            -0.0448,
+            1.6508
+          ],
+          [
+            -0.1659,
+            0.9339
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.32695,
+            1.63595
+          ],
+          [
+            -0.495,
+            0.495
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.32695,
+            1.63595
+          ],
+          [
+            -0.495,
+            0.495
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.32695,
+            1.63595
+          ],
+          [
+            -0.495,
+            0.495
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.32695,
+            1.63595
+          ],
+          [
+            -0.495,
+            0.495
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ]
+        ],
+        "semantics": "next_state",
+        "unit": "rad",
+        "writable": true,
+        "writer_id": "left_hand"
+      },
+      {
+        "action_indices": [
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          52,
+          53
+        ],
+        "block_id": "right_ee",
+        "command_stream": "right_hand_cmd",
+        "dim": 20,
+        "feature_names": [
+          "right_ee_0",
+          "right_ee_1",
+          "right_ee_2",
+          "right_ee_3",
+          "right_ee_4",
+          "right_ee_5",
+          "right_ee_6",
+          "right_ee_7",
+          "right_ee_8",
+          "right_ee_9",
+          "right_ee_10",
+          "right_ee_11",
+          "right_ee_12",
+          "right_ee_13",
+          "right_ee_14",
+          "right_ee_15",
+          "right_ee_16",
+          "right_ee_17",
+          "right_ee_18",
+          "right_ee_19"
+        ],
+        "limits": [
+          [
+            -0.0448,
+            1.6508
+          ],
+          [
+            -0.1659,
+            0.9339
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.32695,
+            1.63595
+          ],
+          [
+            -0.495,
+            0.495
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.32695,
+            1.63595
+          ],
+          [
+            -0.495,
+            0.495
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.32695,
+            1.63595
+          ],
+          [
+            -0.495,
+            0.495
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.32695,
+            1.63595
+          ],
+          [
+            -0.495,
+            0.495
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ]
+        ],
+        "semantics": "next_state",
+        "unit": "rad",
+        "writable": true,
+        "writer_id": "right_hand"
+      }
+    ],
+    "action_dim": 54,
+    "action_source": "next_state",
+    "cameras": [
+      "base",
+      "left_wrist",
+      "right_wrist"
+    ],
+    "dataset_fps": 30,
+    "hold_frames": 10,
+    "kinematics_hash": "e8a8eb580d5a7720714e368de2d1bce8d9d78e521c6d24d5e8ff2cd55290dec4",
+    "layout_hash": "b97f29add4521570939058c8b60ff97c12e30c651a80218a00d44c8add11d656",
+    "max_gap_ms": 100.0,
+    "metadata": {
+      "coordinate_contract": {
+        "arms": {
+          "left": {
+            "description_model_id": "astral_left_arm",
+            "joint_convention": "hardware",
+            "physical_flange_frame": "left_link7",
+            "sdk_flange_frame": "unverified_vendor_sdk_frame",
+            "solver_adapter_id": "astral_geometric_poe_link7_v1",
+            "solver_base_frame": "left_base_link",
+            "solver_tip_frame": "left_link7",
+            "tool": {
+              "calibration_status": "physical_tool_unverified",
+              "frame": "left_link7",
+              "id": "legacy_solver_tip",
+              "source": "urdf_named_frame"
+            }
+          },
+          "right": {
+            "description_model_id": "astral_right_arm",
+            "joint_convention": "hardware",
+            "physical_flange_frame": "right_link7",
+            "sdk_flange_frame": "unverified_vendor_sdk_frame",
+            "solver_adapter_id": "astral_geometric_poe_link7_v1",
+            "solver_base_frame": "right_base_link",
+            "solver_tip_frame": "right_link7",
+            "tool": {
+              "calibration_status": "physical_tool_unverified",
+              "frame": "right_link7",
+              "id": "legacy_solver_tip",
+              "source": "urdf_named_frame"
+            }
+          }
+        },
+        "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+        "input_basis_id": "quest3_canonical_legacy_v1",
+        "input_frame_policy": "incremental_operator_aligned",
+        "input_rotation_source": "legacy_astral_identity_axis_alignment",
+        "input_rotation_to_robot_body": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "kinematics_hash": "e8a8eb580d5a7720714e368de2d1bce8d9d78e521c6d24d5e8ff2cd55290dec4",
+        "robot_body_frame": "body_link",
+        "robot_id": "astral",
+        "version": 1
+      },
+      "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+      "kinematics_hash": "e8a8eb580d5a7720714e368de2d1bce8d9d78e521c6d24d5e8ff2cd55290dec4"
+    },
+    "profile_id": "astral_dual_wuji",
+    "profile_version": 1,
+    "robot_id": "astral",
+    "schema_hash": "e18657d2360dfe22fcd173669267f5c607936e64ab0a7d8c60078c9114648c61",
+    "schema_version": 2,
+    "sensor_specs": [],
+    "state_blocks": [
+      {
+        "block_id": "left_arm",
+        "dim": 7,
+        "feature_names": [
+          "left_arm_0",
+          "left_arm_1",
+          "left_arm_2",
+          "left_arm_3",
+          "left_arm_4",
+          "left_arm_5",
+          "left_arm_6"
+        ],
+        "limits": [
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ]
+        ],
+        "physical_joint_names": [
+          "left_shoulder_pitch",
+          "left_shoulder_roll",
+          "left_elbow_roll",
+          "left_elbow_pitch",
+          "left_forearm_roll",
+          "left_wrist_pitch",
+          "left_wrist_roll"
+        ],
+        "state_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "stream_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "stream_key": "left_arm_state",
+        "unit": "rad"
+      },
+      {
+        "block_id": "right_arm",
+        "dim": 7,
+        "feature_names": [
+          "right_arm_0",
+          "right_arm_1",
+          "right_arm_2",
+          "right_arm_3",
+          "right_arm_4",
+          "right_arm_5",
+          "right_arm_6"
+        ],
+        "limits": [
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ]
+        ],
+        "physical_joint_names": [
+          "right_shoulder_pitch",
+          "right_shoulder_roll",
+          "right_elbow_roll",
+          "right_elbow_pitch",
+          "right_forearm_roll",
+          "right_wrist_pitch",
+          "right_wrist_roll"
+        ],
+        "state_indices": [
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ],
+        "stream_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "stream_key": "right_arm_state",
+        "unit": "rad"
+      },
+      {
+        "block_id": "left_ee",
+        "dim": 20,
+        "feature_names": [
+          "left_ee_0",
+          "left_ee_1",
+          "left_ee_2",
+          "left_ee_3",
+          "left_ee_4",
+          "left_ee_5",
+          "left_ee_6",
+          "left_ee_7",
+          "left_ee_8",
+          "left_ee_9",
+          "left_ee_10",
+          "left_ee_11",
+          "left_ee_12",
+          "left_ee_13",
+          "left_ee_14",
+          "left_ee_15",
+          "left_ee_16",
+          "left_ee_17",
+          "left_ee_18",
+          "left_ee_19"
+        ],
+        "limits": [
+          [
+            -0.0448,
+            1.6508
+          ],
+          [
+            -0.1659,
+            0.9339
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.32695,
+            1.63595
+          ],
+          [
+            -0.495,
+            0.495
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.32695,
+            1.63595
+          ],
+          [
+            -0.495,
+            0.495
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.32695,
+            1.63595
+          ],
+          [
+            -0.495,
+            0.495
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.32695,
+            1.63595
+          ],
+          [
+            -0.495,
+            0.495
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ]
+        ],
+        "physical_joint_names": [
+          "finger1_joint1",
+          "finger1_joint2",
+          "finger1_joint3",
+          "finger1_joint4",
+          "finger2_joint1",
+          "finger2_joint2",
+          "finger2_joint3",
+          "finger2_joint4",
+          "finger3_joint1",
+          "finger3_joint2",
+          "finger3_joint3",
+          "finger3_joint4",
+          "finger4_joint1",
+          "finger4_joint2",
+          "finger4_joint3",
+          "finger4_joint4",
+          "finger5_joint1",
+          "finger5_joint2",
+          "finger5_joint3",
+          "finger5_joint4"
+        ],
+        "state_indices": [
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33
+        ],
+        "stream_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ],
+        "stream_key": "left_hand_state",
+        "unit": "rad"
+      },
+      {
+        "block_id": "right_ee",
+        "dim": 20,
+        "feature_names": [
+          "right_ee_0",
+          "right_ee_1",
+          "right_ee_2",
+          "right_ee_3",
+          "right_ee_4",
+          "right_ee_5",
+          "right_ee_6",
+          "right_ee_7",
+          "right_ee_8",
+          "right_ee_9",
+          "right_ee_10",
+          "right_ee_11",
+          "right_ee_12",
+          "right_ee_13",
+          "right_ee_14",
+          "right_ee_15",
+          "right_ee_16",
+          "right_ee_17",
+          "right_ee_18",
+          "right_ee_19"
+        ],
+        "limits": [
+          [
+            -0.0448,
+            1.6508
+          ],
+          [
+            -0.1659,
+            0.9339
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.32695,
+            1.63595
+          ],
+          [
+            -0.495,
+            0.495
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.32695,
+            1.63595
+          ],
+          [
+            -0.495,
+            0.495
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.32695,
+            1.63595
+          ],
+          [
+            -0.495,
+            0.495
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.32695,
+            1.63595
+          ],
+          [
+            -0.495,
+            0.495
+          ],
+          [
+            -0.4932,
+            1.6272
+          ],
+          [
+            -0.4932,
+            1.6272
+          ]
+        ],
+        "physical_joint_names": [
+          "finger1_joint1",
+          "finger1_joint2",
+          "finger1_joint3",
+          "finger1_joint4",
+          "finger2_joint1",
+          "finger2_joint2",
+          "finger2_joint3",
+          "finger2_joint4",
+          "finger3_joint1",
+          "finger3_joint2",
+          "finger3_joint3",
+          "finger3_joint4",
+          "finger4_joint1",
+          "finger4_joint2",
+          "finger4_joint3",
+          "finger4_joint4",
+          "finger5_joint1",
+          "finger5_joint2",
+          "finger5_joint3",
+          "finger5_joint4"
+        ],
+        "state_indices": [
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          52,
+          53
+        ],
+        "stream_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ],
+        "stream_key": "right_hand_state",
+        "unit": "rad"
+      }
+    ],
+    "state_dim": 54,
+    "streams": [
+      {
+        "dtype": "float32",
+        "joint_names": [
+          "left_shoulder_pitch",
+          "left_shoulder_roll",
+          "left_elbow_roll",
+          "left_elbow_pitch",
+          "left_forearm_roll",
+          "left_wrist_pitch",
+          "left_wrist_roll"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          7
+        ],
+        "source_kind": "state",
+        "stream_key": "left_arm_state",
+        "timestamp_mode": "source_header",
+        "topic": "/left_arm/joint_states",
+        "unit": "rad"
+      },
+      {
+        "dtype": "float32",
+        "joint_names": [
+          "left_shoulder_pitch",
+          "left_shoulder_roll",
+          "left_elbow_roll",
+          "left_elbow_pitch",
+          "left_forearm_roll",
+          "left_wrist_pitch",
+          "left_wrist_roll"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          7
+        ],
+        "source_kind": "command",
+        "stream_key": "left_arm_cmd",
+        "timestamp_mode": "arrival",
+        "topic": "/left_arm/joint_commands",
+        "unit": "rad"
+      },
+      {
+        "dtype": "float32",
+        "joint_names": [
+          "right_shoulder_pitch",
+          "right_shoulder_roll",
+          "right_elbow_roll",
+          "right_elbow_pitch",
+          "right_forearm_roll",
+          "right_wrist_pitch",
+          "right_wrist_roll"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          7
+        ],
+        "source_kind": "state",
+        "stream_key": "right_arm_state",
+        "timestamp_mode": "source_header",
+        "topic": "/right_arm/joint_states",
+        "unit": "rad"
+      },
+      {
+        "dtype": "float32",
+        "joint_names": [
+          "right_shoulder_pitch",
+          "right_shoulder_roll",
+          "right_elbow_roll",
+          "right_elbow_pitch",
+          "right_forearm_roll",
+          "right_wrist_pitch",
+          "right_wrist_roll"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          7
+        ],
+        "source_kind": "command",
+        "stream_key": "right_arm_cmd",
+        "timestamp_mode": "arrival",
+        "topic": "/right_arm/joint_commands",
+        "unit": "rad"
+      },
+      {
+        "dtype": "float32",
+        "joint_names": [
+          "finger1_joint1",
+          "finger1_joint2",
+          "finger1_joint3",
+          "finger1_joint4",
+          "finger2_joint1",
+          "finger2_joint2",
+          "finger2_joint3",
+          "finger2_joint4",
+          "finger3_joint1",
+          "finger3_joint2",
+          "finger3_joint3",
+          "finger3_joint4",
+          "finger4_joint1",
+          "finger4_joint2",
+          "finger4_joint3",
+          "finger4_joint4",
+          "finger5_joint1",
+          "finger5_joint2",
+          "finger5_joint3",
+          "finger5_joint4"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          20
+        ],
+        "source_kind": "state",
+        "stream_key": "left_hand_state",
+        "timestamp_mode": "source_header",
+        "topic": "/left_hand/joint_states",
+        "unit": "rad"
+      },
+      {
+        "dtype": "float32",
+        "joint_names": [
+          "finger1_joint1",
+          "finger1_joint2",
+          "finger1_joint3",
+          "finger1_joint4",
+          "finger2_joint1",
+          "finger2_joint2",
+          "finger2_joint3",
+          "finger2_joint4",
+          "finger3_joint1",
+          "finger3_joint2",
+          "finger3_joint3",
+          "finger3_joint4",
+          "finger4_joint1",
+          "finger4_joint2",
+          "finger4_joint3",
+          "finger4_joint4",
+          "finger5_joint1",
+          "finger5_joint2",
+          "finger5_joint3",
+          "finger5_joint4"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          20
+        ],
+        "source_kind": "command",
+        "stream_key": "left_hand_cmd",
+        "timestamp_mode": "arrival",
+        "topic": "/left_hand/joint_commands",
+        "unit": "rad"
+      },
+      {
+        "dtype": "float32",
+        "joint_names": [
+          "finger1_joint1",
+          "finger1_joint2",
+          "finger1_joint3",
+          "finger1_joint4",
+          "finger2_joint1",
+          "finger2_joint2",
+          "finger2_joint3",
+          "finger2_joint4",
+          "finger3_joint1",
+          "finger3_joint2",
+          "finger3_joint3",
+          "finger3_joint4",
+          "finger4_joint1",
+          "finger4_joint2",
+          "finger4_joint3",
+          "finger4_joint4",
+          "finger5_joint1",
+          "finger5_joint2",
+          "finger5_joint3",
+          "finger5_joint4"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          20
+        ],
+        "source_kind": "state",
+        "stream_key": "right_hand_state",
+        "timestamp_mode": "source_header",
+        "topic": "/right_hand/joint_states",
+        "unit": "rad"
+      },
+      {
+        "dtype": "float32",
+        "joint_names": [
+          "finger1_joint1",
+          "finger1_joint2",
+          "finger1_joint3",
+          "finger1_joint4",
+          "finger2_joint1",
+          "finger2_joint2",
+          "finger2_joint3",
+          "finger2_joint4",
+          "finger3_joint1",
+          "finger3_joint2",
+          "finger3_joint3",
+          "finger3_joint4",
+          "finger4_joint1",
+          "finger4_joint2",
+          "finger4_joint3",
+          "finger4_joint4",
+          "finger5_joint1",
+          "finger5_joint2",
+          "finger5_joint3",
+          "finger5_joint4"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          20
+        ],
+        "source_kind": "command",
+        "stream_key": "right_hand_cmd",
+        "timestamp_mode": "arrival",
+        "topic": "/right_hand/joint_commands",
+        "unit": "rad"
+      },
+      {
+        "dtype": "uint8",
+        "joint_names": [],
+        "message_type": "sensor_msgs/msg/CompressedImage",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          null,
+          null,
+          3
+        ],
+        "source_kind": "camera",
+        "stream_key": "camera:base",
+        "timestamp_mode": "source_header",
+        "topic": "/quest3_video_streamer/collect/base",
+        "unit": "rgb"
+      },
+      {
+        "dtype": "uint8",
+        "joint_names": [],
+        "message_type": "sensor_msgs/msg/CompressedImage",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          null,
+          null,
+          3
+        ],
+        "source_kind": "camera",
+        "stream_key": "camera:left_wrist",
+        "timestamp_mode": "source_header",
+        "topic": "/quest3_video_streamer/collect/left_wrist",
+        "unit": "rgb"
+      },
+      {
+        "dtype": "uint8",
+        "joint_names": [],
+        "message_type": "sensor_msgs/msg/CompressedImage",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          null,
+          null,
+          3
+        ],
+        "source_kind": "camera",
+        "stream_key": "camera:right_wrist",
+        "timestamp_mode": "source_header",
+        "topic": "/quest3_video_streamer/collect/right_wrist",
+        "unit": "rgb"
+      }
+    ]
+  },
+  "hardware": {
+    "astral_driver_package": "astral_robot_control",
+    "board_id": "local_profile",
+    "driver_params_file": "config/astral_robot.yaml"
+  },
+  "input": {
+    "landmark_preprocess": "raw",
+    "legacy_packets_allowed": false,
+    "source": "quest",
+    "strict_packets": true
+  },
+  "kinematics_hash": "e8a8eb580d5a7720714e368de2d1bce8d9d78e521c6d24d5e8ff2cd55290dec4",
+  "layout_hash": "b97f29add4521570939058c8b60ff97c12e30c651a80218a00d44c8add11d656",
+  "mode_default": "sim",
+  "profile_id": "astral_dual_wuji",
+  "profile_version": 1,
+  "robot_id": "astral",
+  "schema_hash": "e18657d2360dfe22fcd173669267f5c607936e64ab0a7d8c60078c9114648c61",
+  "sensors": [],
+  "state_blocks": [
+    {
+      "block_id": "left_arm",
+      "dim": 7,
+      "feature_names": [
+        "left_arm_0",
+        "left_arm_1",
+        "left_arm_2",
+        "left_arm_3",
+        "left_arm_4",
+        "left_arm_5",
+        "left_arm_6"
+      ],
+      "limits": [
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ]
+      ],
+      "physical_joint_names": [
+        "left_shoulder_pitch",
+        "left_shoulder_roll",
+        "left_elbow_roll",
+        "left_elbow_pitch",
+        "left_forearm_roll",
+        "left_wrist_pitch",
+        "left_wrist_roll"
+      ],
+      "state_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "stream_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "stream_key": "left_arm_state",
+      "unit": "rad"
+    },
+    {
+      "block_id": "right_arm",
+      "dim": 7,
+      "feature_names": [
+        "right_arm_0",
+        "right_arm_1",
+        "right_arm_2",
+        "right_arm_3",
+        "right_arm_4",
+        "right_arm_5",
+        "right_arm_6"
+      ],
+      "limits": [
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ]
+      ],
+      "physical_joint_names": [
+        "right_shoulder_pitch",
+        "right_shoulder_roll",
+        "right_elbow_roll",
+        "right_elbow_pitch",
+        "right_forearm_roll",
+        "right_wrist_pitch",
+        "right_wrist_roll"
+      ],
+      "state_indices": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "stream_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "stream_key": "right_arm_state",
+      "unit": "rad"
+    },
+    {
+      "block_id": "left_ee",
+      "dim": 20,
+      "feature_names": [
+        "left_ee_0",
+        "left_ee_1",
+        "left_ee_2",
+        "left_ee_3",
+        "left_ee_4",
+        "left_ee_5",
+        "left_ee_6",
+        "left_ee_7",
+        "left_ee_8",
+        "left_ee_9",
+        "left_ee_10",
+        "left_ee_11",
+        "left_ee_12",
+        "left_ee_13",
+        "left_ee_14",
+        "left_ee_15",
+        "left_ee_16",
+        "left_ee_17",
+        "left_ee_18",
+        "left_ee_19"
+      ],
+      "limits": [
+        [
+          -0.0448,
+          1.6508
+        ],
+        [
+          -0.1659,
+          0.9339
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ]
+      ],
+      "physical_joint_names": [
+        "finger1_joint1",
+        "finger1_joint2",
+        "finger1_joint3",
+        "finger1_joint4",
+        "finger2_joint1",
+        "finger2_joint2",
+        "finger2_joint3",
+        "finger2_joint4",
+        "finger3_joint1",
+        "finger3_joint2",
+        "finger3_joint3",
+        "finger3_joint4",
+        "finger4_joint1",
+        "finger4_joint2",
+        "finger4_joint3",
+        "finger4_joint4",
+        "finger5_joint1",
+        "finger5_joint2",
+        "finger5_joint3",
+        "finger5_joint4"
+      ],
+      "state_indices": [
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33
+      ],
+      "stream_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "stream_key": "left_hand_state",
+      "unit": "rad"
+    },
+    {
+      "block_id": "right_ee",
+      "dim": 20,
+      "feature_names": [
+        "right_ee_0",
+        "right_ee_1",
+        "right_ee_2",
+        "right_ee_3",
+        "right_ee_4",
+        "right_ee_5",
+        "right_ee_6",
+        "right_ee_7",
+        "right_ee_8",
+        "right_ee_9",
+        "right_ee_10",
+        "right_ee_11",
+        "right_ee_12",
+        "right_ee_13",
+        "right_ee_14",
+        "right_ee_15",
+        "right_ee_16",
+        "right_ee_17",
+        "right_ee_18",
+        "right_ee_19"
+      ],
+      "limits": [
+        [
+          -0.0448,
+          1.6508
+        ],
+        [
+          -0.1659,
+          0.9339
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.32695,
+          1.63595
+        ],
+        [
+          -0.495,
+          0.495
+        ],
+        [
+          -0.4932,
+          1.6272
+        ],
+        [
+          -0.4932,
+          1.6272
+        ]
+      ],
+      "physical_joint_names": [
+        "finger1_joint1",
+        "finger1_joint2",
+        "finger1_joint3",
+        "finger1_joint4",
+        "finger2_joint1",
+        "finger2_joint2",
+        "finger2_joint3",
+        "finger2_joint4",
+        "finger3_joint1",
+        "finger3_joint2",
+        "finger3_joint3",
+        "finger3_joint4",
+        "finger4_joint1",
+        "finger4_joint2",
+        "finger4_joint3",
+        "finger4_joint4",
+        "finger5_joint1",
+        "finger5_joint2",
+        "finger5_joint3",
+        "finger5_joint4"
+      ],
+      "state_indices": [
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53
+      ],
+      "stream_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "stream_key": "right_hand_state",
+      "unit": "rad"
+    }
+  ],
+  "streams": [
+    {
+      "dtype": "float32",
+      "joint_names": [
+        "left_shoulder_pitch",
+        "left_shoulder_roll",
+        "left_elbow_roll",
+        "left_elbow_pitch",
+        "left_forearm_roll",
+        "left_wrist_pitch",
+        "left_wrist_roll"
+      ],
+      "message_type": "sensor_msgs/msg/JointState",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        7
+      ],
+      "source_kind": "state",
+      "stream_key": "left_arm_state",
+      "timestamp_mode": "source_header",
+      "topic": "/left_arm/joint_states",
+      "unit": "rad"
+    },
+    {
+      "dtype": "float32",
+      "joint_names": [
+        "left_shoulder_pitch",
+        "left_shoulder_roll",
+        "left_elbow_roll",
+        "left_elbow_pitch",
+        "left_forearm_roll",
+        "left_wrist_pitch",
+        "left_wrist_roll"
+      ],
+      "message_type": "sensor_msgs/msg/JointState",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        7
+      ],
+      "source_kind": "command",
+      "stream_key": "left_arm_cmd",
+      "timestamp_mode": "arrival",
+      "topic": "/left_arm/joint_commands",
+      "unit": "rad"
+    },
+    {
+      "dtype": "float32",
+      "joint_names": [
+        "right_shoulder_pitch",
+        "right_shoulder_roll",
+        "right_elbow_roll",
+        "right_elbow_pitch",
+        "right_forearm_roll",
+        "right_wrist_pitch",
+        "right_wrist_roll"
+      ],
+      "message_type": "sensor_msgs/msg/JointState",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        7
+      ],
+      "source_kind": "state",
+      "stream_key": "right_arm_state",
+      "timestamp_mode": "source_header",
+      "topic": "/right_arm/joint_states",
+      "unit": "rad"
+    },
+    {
+      "dtype": "float32",
+      "joint_names": [
+        "right_shoulder_pitch",
+        "right_shoulder_roll",
+        "right_elbow_roll",
+        "right_elbow_pitch",
+        "right_forearm_roll",
+        "right_wrist_pitch",
+        "right_wrist_roll"
+      ],
+      "message_type": "sensor_msgs/msg/JointState",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        7
+      ],
+      "source_kind": "command",
+      "stream_key": "right_arm_cmd",
+      "timestamp_mode": "arrival",
+      "topic": "/right_arm/joint_commands",
+      "unit": "rad"
+    },
+    {
+      "dtype": "float32",
+      "joint_names": [
+        "finger1_joint1",
+        "finger1_joint2",
+        "finger1_joint3",
+        "finger1_joint4",
+        "finger2_joint1",
+        "finger2_joint2",
+        "finger2_joint3",
+        "finger2_joint4",
+        "finger3_joint1",
+        "finger3_joint2",
+        "finger3_joint3",
+        "finger3_joint4",
+        "finger4_joint1",
+        "finger4_joint2",
+        "finger4_joint3",
+        "finger4_joint4",
+        "finger5_joint1",
+        "finger5_joint2",
+        "finger5_joint3",
+        "finger5_joint4"
+      ],
+      "message_type": "sensor_msgs/msg/JointState",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        20
+      ],
+      "source_kind": "state",
+      "stream_key": "left_hand_state",
+      "timestamp_mode": "source_header",
+      "topic": "/left_hand/joint_states",
+      "unit": "rad"
+    },
+    {
+      "dtype": "float32",
+      "joint_names": [
+        "finger1_joint1",
+        "finger1_joint2",
+        "finger1_joint3",
+        "finger1_joint4",
+        "finger2_joint1",
+        "finger2_joint2",
+        "finger2_joint3",
+        "finger2_joint4",
+        "finger3_joint1",
+        "finger3_joint2",
+        "finger3_joint3",
+        "finger3_joint4",
+        "finger4_joint1",
+        "finger4_joint2",
+        "finger4_joint3",
+        "finger4_joint4",
+        "finger5_joint1",
+        "finger5_joint2",
+        "finger5_joint3",
+        "finger5_joint4"
+      ],
+      "message_type": "sensor_msgs/msg/JointState",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        20
+      ],
+      "source_kind": "command",
+      "stream_key": "left_hand_cmd",
+      "timestamp_mode": "arrival",
+      "topic": "/left_hand/joint_commands",
+      "unit": "rad"
+    },
+    {
+      "dtype": "float32",
+      "joint_names": [
+        "finger1_joint1",
+        "finger1_joint2",
+        "finger1_joint3",
+        "finger1_joint4",
+        "finger2_joint1",
+        "finger2_joint2",
+        "finger2_joint3",
+        "finger2_joint4",
+        "finger3_joint1",
+        "finger3_joint2",
+        "finger3_joint3",
+        "finger3_joint4",
+        "finger4_joint1",
+        "finger4_joint2",
+        "finger4_joint3",
+        "finger4_joint4",
+        "finger5_joint1",
+        "finger5_joint2",
+        "finger5_joint3",
+        "finger5_joint4"
+      ],
+      "message_type": "sensor_msgs/msg/JointState",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        20
+      ],
+      "source_kind": "state",
+      "stream_key": "right_hand_state",
+      "timestamp_mode": "source_header",
+      "topic": "/right_hand/joint_states",
+      "unit": "rad"
+    },
+    {
+      "dtype": "float32",
+      "joint_names": [
+        "finger1_joint1",
+        "finger1_joint2",
+        "finger1_joint3",
+        "finger1_joint4",
+        "finger2_joint1",
+        "finger2_joint2",
+        "finger2_joint3",
+        "finger2_joint4",
+        "finger3_joint1",
+        "finger3_joint2",
+        "finger3_joint3",
+        "finger3_joint4",
+        "finger4_joint1",
+        "finger4_joint2",
+        "finger4_joint3",
+        "finger4_joint4",
+        "finger5_joint1",
+        "finger5_joint2",
+        "finger5_joint3",
+        "finger5_joint4"
+      ],
+      "message_type": "sensor_msgs/msg/JointState",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        20
+      ],
+      "source_kind": "command",
+      "stream_key": "right_hand_cmd",
+      "timestamp_mode": "arrival",
+      "topic": "/right_hand/joint_commands",
+      "unit": "rad"
+    },
+    {
+      "dtype": "uint8",
+      "message_type": "sensor_msgs/msg/CompressedImage",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        null,
+        null,
+        3
+      ],
+      "source_kind": "camera",
+      "stream_key": "camera:base",
+      "timestamp_mode": "source_header",
+      "topic": "/quest3_video_streamer/collect/base",
+      "unit": "rgb"
+    },
+    {
+      "dtype": "uint8",
+      "message_type": "sensor_msgs/msg/CompressedImage",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        null,
+        null,
+        3
+      ],
+      "source_kind": "camera",
+      "stream_key": "camera:left_wrist",
+      "timestamp_mode": "source_header",
+      "topic": "/quest3_video_streamer/collect/left_wrist",
+      "unit": "rgb"
+    },
+    {
+      "dtype": "uint8",
+      "message_type": "sensor_msgs/msg/CompressedImage",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        null,
+        null,
+        3
+      ],
+      "source_kind": "camera",
+      "stream_key": "camera:right_wrist",
+      "timestamp_mode": "source_header",
+      "topic": "/quest3_video_streamer/collect/right_wrist",
+      "unit": "rgb"
+    }
+  ],
+  "title": "Astral Dual Wuji",
+  "writers": [
+    {
+      "ack_topic": "/teleop/ownership_ack",
+      "command_stream": "left_arm_cmd",
+      "component_id": "left_arm",
+      "prepare_reanchor_service": "/astral_arm_teleop_left/prepare_reanchor",
+      "writer_id": "left_arm"
+    },
+    {
+      "ack_topic": "/teleop/ownership_ack",
+      "command_stream": "right_arm_cmd",
+      "component_id": "right_arm",
+      "prepare_reanchor_service": "/astral_arm_teleop_right/prepare_reanchor",
+      "writer_id": "right_arm"
+    },
+    {
+      "ack_topic": "/teleop/ownership_ack",
+      "command_stream": "left_hand_cmd",
+      "component_id": "left_ee",
+      "writer_id": "left_hand"
+    },
+    {
+      "ack_topic": "/teleop/ownership_ack",
+      "command_stream": "right_hand_cmd",
+      "component_id": "right_ee",
+      "writer_id": "right_hand"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://morla.local/schemas/capture.schema.json",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 3
+    },
+    "profile_version": {},
+    "profile_id": {},
+    "robot_id": {},
+    "streams": {},
+    "state_blocks": {},
+    "action_blocks": {},
+    "cameras": {},
+    "dataset_fps": {},
+    "action_source": {},
+    "hold_frames": {},
+    "max_gap_ms": {},
+    "sensor_specs": {},
+    "metadata": {}
+  },
+  "required": [
+    "schema_version",
+    "profile_id",
+    "robot_id",
+    "streams",
+    "state_blocks",
+    "action_blocks"
+  ],
+  "additionalProperties": false
+}

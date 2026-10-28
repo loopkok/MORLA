@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-28",
+  "timezone": "Asia/Shanghai",
+  "scope": "R1 ROS IDL / R3 runtime / R4 native, camera, composed MuJoCo adapters",
+  "runs": [
+    {
+      "command": "PYTHONPATH=src/common/morla_runtime:src/common/morla_core /opt/anaconda3/bin/python -m pytest -q src/common/morla_runtime/test",
+      "exit_code": 0,
+      "result": "54 passed in 2.52s"
+    },
+    {
+      "command": "Bundled Python3.12 with /tmp/morla-composable-deps and src/common package roots: pytest -q morla_runtime/test morla_web_manager/test/test_composable_api.py morla_core/test/contracts",
+      "exit_code": 0,
+      "result": "90 passed, 1 skipped, 1 warning in 4.57s",
+      "skip_reason": "mujoco absent in bundled3.12; actual physics rerun using conda3.13"
+    },
+    {
+      "command": "Conda3.13 pytest -q src/common/morla_runtime/test/test_sim_mujoco.py src/robot_description/test/test_composable_scene.py",
+      "exit_code": 0,
+      "result": "10 passed in 1.86s"
+    },
+    {
+      "command": "Conda3.13 pytest Nero driver tests + XHand adapter tests + Astral test_driver_log.py, ignoring ROS-only test_flange_pose_topics.py",
+      "exit_code": 0,
+      "result": "68 passed, 26 skipped in 0.25s",
+      "skip_reason": "rclpy absent"
+    },
+    {
+      "command": "clang++ -std=c++14 -I src/common/morla_interfaces/include /tmp/morla_guard_compile.cpp -o /tmp/morla_guard_compile; execute using isolated lock root",
+      "exit_code": 0,
+      "result": "standalone shared C++ host lock header compiles and runs"
+    },
+    {
+      "command": "Full legacy ROS driver pytest collection",
+      "exit_code": 3,
+      "result": "BLOCKED_ENV",
+      "reason": "rclpy unavailable; Astral service integration script sys.exit(0) at import causes pytest INTERNALERROR; Nero flange ROS test imports rclpy directly"
+    }
+  ],
+  "independent_review_fixes": [
+    "resolved hash removal bypass rejected",
+    "failed native stop retains enabled and retries",
+    "Astral command echo is ratio mapped and never measured/ready",
+    "failed stop cannot reset estop latch",
+    "Nero ACK exact sequence correlated to Trigger response; stale ACK rejected"
+  ],
+  "limitations": [
+    "ROS Humble IDL colcon build NOT_RUN",
+    "Nero/Astral/XHand/Wuji physical deployment/watchdog validation NOT_RUN",
+    "Physical UVC and ROS camera acquisition NOT_RUN",
+    "Actual offscreen graphics context NOT_RUN; explicit renderer failure path tested",
+    "ros2_control GenericSystem ROS launch NOT_RUN",
+    "Native staged HOME/workpos requests report DISPATCHED with pending operator confirmation; never report trajectory complete from service acceptance"
+  ],
+  "no_hardware_opened": true
+}

@@ -74,11 +74,14 @@ def _block_masks(ep_dir: str, n_dim: int) -> tuple[np.ndarray | None, np.ndarray
     try:
         with open(os.path.join(ep_dir, "meta.json"), encoding="utf-8") as f:
             meta = json.load(f)
-        arm, ee = [], []
+        arm, ee = np.zeros(n_dim, dtype=bool), np.zeros(n_dim, dtype=bool)
+        offset = 0
         schema = pipeline_schema_from_dict(meta["schema"])
         for b in schema.state_blocks():
-            arm += ["arm" in b.name] * b.dim
-            ee += ["ee" in b.name] * b.dim
+            indices = list(getattr(b, "indices", ()) or range(offset, offset + b.dim))
+            arm[indices] = "arm" in b.name
+            ee[indices] = "ee" in b.name
+            offset += b.dim
         if len(arm) == n_dim:
             return np.asarray(arm, dtype=bool), np.asarray(ee, dtype=bool)
     except Exception:  # noqa: BLE001
@@ -406,14 +409,17 @@ def repair_episode(ep_dir: str, out_ep_dir: str, fps: int | None, dry_run: bool,
             if "arm" in block.name:
                 cmd = _load_cmd(ep_dir, block.name)
                 mask = np.zeros(state.shape[1], dtype=bool)
-                mask[col:col+block.dim] = True
+                mask[list(getattr(block, "indices", ()) or range(col, col + block.dim))] = True
                 if cmd is None:
                     intent_mask[:] = True  # Unknown intent must not be deleted.
                 else:
                     intent_mask |= _intent_hold_mask(state, ts_all, cmd[0], cmd[1], mask)
             col += block.dim
     args = (state, quality, cam_images, cam_offsets, cam_ts)
-    if mode == "uniformize":
+    if not np.any(arm_mask):
+        # Unknown component semantics cannot authorize motion-based deletion.
+        r = None
+    elif mode == "uniformize":
         r = resample_frames_uniform(*args, speed_ref, fps, float(ts_all[0]),
                                     arm_mask, ee_mask, intent_mask, flat_v, min_hold)
     else:
@@ -423,14 +429,8 @@ def repair_episode(ep_dir: str, out_ep_dir: str, fps: int | None, dry_run: bool,
         idx = np.arange(len(state))
         r = (state, original_action, quality, ts_all, idx, cam_images, cam_offsets, cam_ts)
     state_new, action_new, quality_new, ts_new, idx, cam_new, _, ts_cam_new = r
-    if schema.action_source == "command":
-        action_new = original_action[idx].copy()
-        col = 0
-        for block in schema.state_blocks():
-            if block.cmd_stream is None:
-                action_new[:-1, col:col+block.dim] = state_new[1:, col:col+block.dim]
-                action_new[-1, col:col+block.dim] = state_new[-1, col:col+block.dim]
-            col += block.dim
+    from morla_data_collect.schema import rebuild_actions
+    action_new = rebuild_actions(schema, state_new, original_action[idx])
     before = np.abs(np.diff(state, axis=0)).max(axis=0) * fps
     after = np.abs(np.diff(state_new, axis=0)).max(axis=0) * fps
     if np.any(after > np.maximum(before, 4.0) + 1e-6):

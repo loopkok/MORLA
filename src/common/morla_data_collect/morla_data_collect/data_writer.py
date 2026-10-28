@@ -34,6 +34,7 @@ class StreamDataWriter:
         self._ts: dict[str, h5py.Dataset] = {}
         self._sizes: dict[str, int] = {}
         self._idx: dict[str, int] = {}
+        self._provenance = {}
         self._sensors: dict[str, dict[str, h5py.Dataset]] = {}
         self._sensor_idx: dict[str, int] = {}
         self._sensor_valid_counts: dict[str, np.ndarray] = {}
@@ -53,6 +54,12 @@ class StreamDataWriter:
                 "timestamps", shape=(0,), maxshape=(None,), dtype="f8",
                 chunks=(min(CHUNK_SIZE, 1024),),
             )
+            self._provenance[name] = {}
+            for field in ('valid', 'measured', 'synthetic', 'command_echo'):
+                self._provenance[name][field] = g.create_dataset(field, shape=(0,), maxshape=(None,), dtype='bool', chunks=(256,))
+            for field in ('source_time_ns', 'received_time_ns'):
+                self._provenance[name][field] = g.create_dataset(field, shape=(0,), maxshape=(None,), dtype='int64', chunks=(256,))
+            self._provenance[name]['source'] = g.create_dataset('source', shape=(0,), maxshape=(None,), dtype=h5py.string_dtype('utf-8'), chunks=(256,))
             self._sizes[name] = 0
             self._idx[name] = 0
         if self._sensor_specs:
@@ -64,17 +71,9 @@ class StreamDataWriter:
                 group.attrs["finger_order"] = __import__("json").dumps(
                     list(spec.get("finger_order", ("thumb", "index", "middle", "ring", "pinky")))
                 )
-                shapes = {
-                    "force_raw": (fingers, points, 3),
-                    "force_sum": (fingers, 3),
-                    "temperature_raw": (fingers, 20),
-                    "temperature_mean": (fingers,),
-                    "valid": (fingers,),
-                    "temperature_valid": (fingers,),
-                }
+                from morla_data_collect.codecs import sensor_fields
                 datasets = {}
-                for field, shape in shapes.items():
-                    dtype = "bool" if field.endswith("valid") else ("i4" if field == "temperature_raw" else "f4")
+                for field, (shape, dtype) in sensor_fields(spec).items():
                     datasets[field] = group.create_dataset(
                         field, shape=(0,) + shape, maxshape=(None,) + shape,
                         dtype=dtype, chunks=(1,) + shape,
@@ -85,11 +84,12 @@ class StreamDataWriter:
                     )
                 self._sensors[key] = datasets
                 self._sensor_idx[key] = 0
-                self._sensor_valid_counts[key] = np.zeros(fingers, dtype=np.int64)
-                self._sensor_temperature_valid_counts[key] = np.zeros(fingers, dtype=np.int64)
+                self._sensor_valid_counts[key] = np.zeros(datasets["valid"].shape[1:], dtype=np.int64)
+                self._sensor_temperature_valid_counts[key] = np.zeros(
+                    datasets["temperature_valid"].shape[1:] if "temperature_valid" in datasets else (), dtype=np.int64)
         return self
 
-    def write(self, name: str, values: np.ndarray, timestamp: float) -> None:
+    def write(self, name: str, values: np.ndarray, timestamp: float, provenance=None) -> None:
         if self._file is None or name not in self._values:
             return
         i = self._idx[name]
@@ -100,6 +100,11 @@ class StreamDataWriter:
             self._ts[name].resize((self._sizes[name],))
         self._values[name][i] = np.asarray(values, dtype=np.float32).reshape(-1)
         self._ts[name][i] = timestamp
+        provenance = dict(provenance or {})
+        defaults = {'valid': True, 'measured': False, 'synthetic': False, 'command_echo': False, 'source': 'unknown', 'source_time_ns': 0, 'received_time_ns': 0}
+        for field, dataset in self._provenance[name].items():
+            dataset.resize((i + 1,))
+            dataset[i] = provenance.get(field, defaults[field])
         self._idx[name] = i + 1
 
     def count(self, name: str) -> int:
@@ -116,12 +121,23 @@ class StreamDataWriter:
             return
         i = self._sensor_idx[key]
         fields = self._sensors[key]
-        for name, value in sample.items():
-            if name not in fields or name in {"timestamps", "arrival_timestamps"}:
-                continue
+        expected = {name for name in fields if name not in {"timestamps", "arrival_timestamps"}}
+        if set(sample) != expected:
+            raise ValueError(f"sensor {key}: expected fields {sorted(expected)}")
+        prepared = {}
+        for name in expected:
+            dataset = fields[name]
+            from morla_data_collect.codecs import checked_array
+            value = checked_array(sample[name], dataset.dtype)
+            if value.shape != dataset.shape[1:]:
+                raise ValueError(f"sensor {key}/{name}: shape mismatch")
+            if np.issubdtype(value.dtype, np.number) and not np.isfinite(value).all():
+                raise ValueError(f"sensor {key}/{name}: nonfinite sample")
+            prepared[name] = value
+        for name, value in prepared.items():
             dataset = fields[name]
             dataset.resize((i + 1,) + dataset.shape[1:])
-            dataset[i] = np.asarray(value, dtype=dataset.dtype)
+            dataset[i] = value
         for name, value in (("timestamps", timestamp), ("arrival_timestamps", arrival_timestamp)):
             dataset = fields[name]
             dataset.resize((i + 1,))
@@ -137,10 +153,10 @@ class StreamDataWriter:
                 self._sensor_temperature_valid_counts[key] += valid.astype(np.int64)
 
     def sensor_valid_counts(self) -> dict[str, list[int]]:
-        return {key: values.astype(int).tolist() for key, values in self._sensor_valid_counts.items()}
+        return {key: values.astype(int).reshape(-1).tolist() for key, values in self._sensor_valid_counts.items()}
 
     def sensor_temperature_valid_counts(self) -> dict[str, list[int]]:
-        return {key: values.astype(int).tolist()
+        return {key: values.astype(int).reshape(-1).tolist()
                 for key, values in self._sensor_temperature_valid_counts.items()}
 
     def close(self) -> dict[str, int]:

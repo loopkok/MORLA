@@ -12,6 +12,9 @@ data_collect:
     # 空值按 MORLA_DATA_ROOT 或 <SDK_ROOT>/morla_data/raw；profile 模式路径为
     # {save_root}/{profile_id}/{session}/episode{N:06d}/，旧 Astral schema 为
     # {save_root}/{session}/episode{N:06d}/。
+    # Compiled schema v3 JSON overrides legacy arms/EE/profile configuration.
+    # Independent state/action dimensions and camera-free captures are supported.
+    capture_schema_json: ""
     profile_id: ""
     runtime_mode: "unknown" # unknown | sim | real；用于标记合成/实测传感来源
     save_root: ""

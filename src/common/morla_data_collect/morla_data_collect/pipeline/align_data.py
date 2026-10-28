@@ -31,12 +31,13 @@ from morla_data_collect.pipeline.artifacts import (
 )
 from morla_data_collect.data_writer import CAMERA_H5, META_JSON, ROBOT_H5
 from morla_core.schema import ACTION_COMMAND
-from morla_data_collect.schema import pipeline_schema_from_dict
+from morla_data_collect.schema import pipeline_schema_from_dict, action_blocks, action_names, rebuild_actions
 
 ALIGNED_H5 = "aligned_data.h5"
 
 # 每帧质量位（写入 /quality u8）
 FLAG_IMAGE_FAR = 0x01    # 最近图像帧偏差 > 1.5/fps
+FLAG_SENSOR_INVALID = 0x08  # Optional/invalid sidecar sample, retained for quality audit.
 FLAG_SYNTHETIC_HOLD = 0x04
 FLAG_STATE_GAP = 0x02    # 某数值流最近采样间隔 > max_gap_ms
 SENSOR_FIELDS = ("force_raw", "force_sum", "temperature_raw", "temperature_mean", "valid", "temperature_valid")
@@ -172,8 +173,18 @@ def align_episode(
             raw_sensors[key]["timestamps"] = ts
 
         # -- 时间网格：参考相机 = cameras 列表里第一个有数据的 -----------------------
-        ref_cam = schema.cameras[0]
-        ref_ts = cams[ref_cam][0]
+        if schema.cameras:
+            ref_ts = cams[schema.cameras[0]][0]
+        elif streams:
+            # Camera-free captures use the overlap of required numeric streams.
+            selected = [streams[k][0] for k in schema.required_streams() if k in streams]
+            selected = selected or [entry[0] for entry in streams.values()]
+            ref_ts = np.array([max(t[0] for t in selected), min(t[-1] for t in selected)])
+        elif raw_sensors:
+            selected = [entry["timestamps"] for entry in raw_sensors.values()]
+            ref_ts = np.array([max(t[0] for t in selected), min(t[-1] for t in selected)])
+        else:
+            raise ValueError("no time-bearing stream available for camera-free capture")
         t0 = float(ref_ts[0])
         t_end = float(ref_ts[-1])
         _reject_pause_intervals(meta.get("events", []), t0, t_end)
@@ -196,6 +207,8 @@ def align_episode(
         # -- 逐网格点采样 ----------------------------------------------------------
         state = np.full((n_frames, state_dim), np.nan, dtype=np.float32)
         quality = np.zeros(n_frames, dtype=np.uint8)
+        if missing:
+            quality[:] |= FLAG_STATE_GAP
         max_gap_s = float(schema.max_gap_ms) / 1000.0
         img_far_s = 1.5 / fps
 
@@ -205,6 +218,7 @@ def align_episode(
             sname, sl = src
             ts, values = streams[sname]
             col = sum(b.dim for b in blocks[:bi])
+            columns = list(getattr(block, "indices", ()) or range(col, col + block.dim))
             for i, t in enumerate(grid):
                 j = (max(0, int(np.searchsorted(ts, t, side="right")) - 1)
                      if "gripper_ratio" in sname else find_nearest_idx(ts, float(t)))
@@ -212,27 +226,33 @@ def align_episode(
                     quality[i] |= FLAG_STATE_GAP
                 row = values[j]
                 if sl is not None:
-                    state[i, col:col + block.dim] = row[sl[0]:sl[1]]
+                    state[i, columns] = row[sl[0]:sl[1]]
                 elif getattr(block, "stream_indices", ()):
-                    state[i, col:col + block.dim] = row[list(block.stream_indices)]
+                    state[i, columns] = row[list(block.stream_indices)]
                 else:
-                    state[i, col:col + block.dim] = row[:block.dim]
+                    state[i, columns] = row[:block.dim]
 
         aligned_sensors: dict[str, dict[str, np.ndarray]] = {}
         for sensor in getattr(schema, "sensor_specs", ()):
             key = str(sensor.get("sensor_key", ""))
             source = raw_sensors.get(key)
             if source is None:
+                if getattr(getattr(schema, "frozen", None), "schema_version", 0) == 3:
+                    from morla_data_collect.codecs import sensor_fields
+                    result = {name: np.zeros((n_frames,) + shape, dtype=dtype)
+                              for name, (shape, dtype) in sensor_fields(sensor).items()}
+                    result.update({"source_index": np.full(n_frames, -1, dtype=np.int64),
+                                   "source_timestamps": np.zeros(n_frames),
+                                   "source_offsets": np.zeros(n_frames)})
+                    aligned_sensors[key] = result
+                    quality[:] |= FLAG_SENSOR_INVALID
                 continue
             source_ts = source["timestamps"]
             n_fingers = len(sensor.get("finger_order", ("thumb", "index", "middle", "ring", "pinky")))
             points = int(sensor.get("point_count_per_finger", 120))
             n_source = len(source_ts)
-            expected_shapes = {
-                "force_raw": (n_fingers, points, 3), "force_sum": (n_fingers, 3),
-                "temperature_raw": (n_fingers, 20), "temperature_mean": (n_fingers,),
-                "valid": (n_fingers,), "temperature_valid": (n_fingers,),
-            }
+            from morla_data_collect.codecs import sensor_fields
+            expected_shapes = {name: shape for name, (shape, dtype) in sensor_fields(sensor).items()}
             for name, shape in expected_shapes.items():
                 if name not in source or source[name].shape != (n_source,) + shape:
                     raise ValueError(f"sensor {key}/{name}: expected shape {(n_source,) + shape}")
@@ -245,54 +265,40 @@ def align_episode(
                 if abs(delta) <= max_gap_s:
                     source_index[i] = j
             result = {name: np.zeros((n_frames,) + expected_shapes[name], dtype=source[name].dtype)
-                      for name in SENSOR_FIELDS}
+                      for name in expected_shapes}
             result.update({"source_index": source_index,
                            "source_timestamps": np.zeros(n_frames, dtype=np.float64),
                            "source_offsets": offsets})
             valid_rows = source_index >= 0
             result["source_timestamps"][valid_rows] = source_ts[source_index[valid_rows]]
-            for name in SENSOR_FIELDS:
+            for name in expected_shapes:
                 result[name][valid_rows] = source[name][source_index[valid_rows]]
             result["valid"][~valid_rows] = False
-            result["temperature_valid"][~valid_rows] = False
+            if "temperature_valid" in result:
+                result["temperature_valid"][~valid_rows] = False
+            invalid = np.any(~result["valid"].reshape(n_frames, -1), axis=1)
+            quality[invalid] |= FLAG_SENSOR_INVALID
             if sensor.get("required", False):
-                quality[np.any(~result["valid"], axis=1)] |= FLAG_STATE_GAP
+                quality[invalid] |= FLAG_STATE_GAP
             aligned_sensors[key] = result
 
-        # -- action ------------------------------------------------------------------
-        if schema.action_source == ACTION_COMMAND:
-            action = np.full((n_frames, state_dim), np.nan, dtype=np.float32)
-            for bi, block in enumerate(blocks):
-                col = sum(b.dim for b in blocks[:bi])
+        # Action columns and state columns have independent orders and sizes.
+        action = rebuild_actions(schema, state)
+        if schema.action_source != "next_state":
+            for block in action_blocks(schema):
                 if block.cmd_stream is None:
-                    action[:-1, col:col + block.dim] = state[1:, col:col + block.dim]
-                    action[-1, col:col + block.dim] = state[-1, col:col + block.dim]
                     continue
-                cmd_stream = schema.action_block_stream(block)
-                src = _resolve_block_source(
-                    block.name, cmd_stream,
-                    block.body_slice if cmd_stream == "body_state" else None,
-                    stream_counts,
-                )
-                if src is None:
+                if block.cmd_stream not in streams:
+                    action[:, list(block.indices)] = np.nan
+                    quality[:] |= FLAG_STATE_GAP
+                    missing.append("action:" + block.name)
                     continue
-                sname, sl = src
-                ts, values = streams[sname]
-                col = sum(b.dim for b in blocks[:bi])
+                ts, values = streams[block.cmd_stream]
                 for i, t in enumerate(grid):
                     j = max(0, int(np.searchsorted(ts, t, side="right")) - 1)
                     if t < ts[0] or abs(float(ts[j]) - t) > max_gap_s:
                         quality[i] |= FLAG_STATE_GAP
-                    if sl is not None:
-                        action[i, col:col + block.dim] = values[j][sl[0]:sl[1]]
-                    elif getattr(block, "stream_indices", ()):
-                        action[i, col:col + block.dim] = values[j][list(block.stream_indices)]
-                    else:
-                        action[i, col:col + block.dim] = values[j][:block.dim]
-        else:  # next_state
-            action = np.empty_like(state)
-            action[:-1] = state[1:]
-            action[-1] = state[-1]  # 末帧 hold
+                    action[i, list(block.indices)] = values[j, list(block.stream_indices)]
 
         # -- 图像：每网格点取最近帧（保留 JPEG 字节） ---------------------------------
         cam_idx: dict[str, np.ndarray] = {}
@@ -326,14 +332,16 @@ def align_episode(
             for result in aligned_sensors.values():
                 source_rows = np.flatnonzero(result["source_index"] >= 0)
                 carry_row = int(source_rows[-1]) if len(source_rows) else len(result["source_index"]) - 1
+                fields = [name for name in result if name not in {"source_index", "source_timestamps", "source_offsets"}]
                 carried = {name: result[name][carry_row:carry_row + 1].copy()
-                           for name in SENSOR_FIELDS}
+                           for name in fields}
                 last_index = int(result["source_index"][carry_row])
                 last_source_ts = float(result["source_timestamps"][carry_row])
-                for name in SENSOR_FIELDS:
+                for name in fields:
                     result[name] = np.concatenate([result[name], np.repeat(carried[name], hold, axis=0)])
                 result["valid"][-hold:] = False
-                result["temperature_valid"][-hold:] = False
+                if "temperature_valid" in result:
+                    result["temperature_valid"][-hold:] = False
                 result["source_index"] = np.concatenate([
                     result["source_index"], np.full(hold, last_index, dtype=np.int64)
                 ])
@@ -387,6 +395,8 @@ def align_episode(
             fo.attrs["hold_frames"] = hold
             fo.attrs["fps"] = fps
             fo.attrs["num_frames"] = total_frames
+            fo.attrs["action_dim"] = schema.action_dim
+            fo.attrs["action_names"] = json.dumps(action_names(schema))
             fo.attrs["state_dim"] = state_dim
             fo.attrs["state_names"] = json.dumps(schema.state_names())
             fo.attrs["schema"] = schema.to_json()

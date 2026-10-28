@@ -1,0 +1,56 @@
+{
+  "source_sha256": {
+    "compiler": "005c1226e67d56e321fa79cc38982abc7ed4c3e0a7b39cfe8a1dfcc4748a106d",
+    "runtime_session": "7d83f3f0d87c2d944dfe1ee8ff7f812b29ba46d2509341d25dcd55f80c65bdd7",
+    "benchmark": "6faa8c810cd7b8d6a15c0dd1ad9b6f50d4c34afbf0769efd35b08cff10b193e1"
+  },
+  "catalog_hash": "da0e9451aa342f26ce443dd91723da7a23ec6b1cf9952f6743bdc3f85bb54869",
+  "benchmark_version": 1,
+  "measured_at_utc": "2026-10-28T03:32:58Z",
+  "environment": {
+    "python": "3.12.14 (main, Aug 25 2026, 13:50:33) [Clang 22.1.3 ]",
+    "executable": "/Users/a1234/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "platform": "macOS-27.0-arm64-arm-64bit",
+    "processor": "arm"
+  },
+  "source": "fake",
+  "hardware_touched": false,
+  "ros_used": false,
+  "hard_realtime_claim": false,
+  "long_duration_claim": false,
+  "warmup_iterations": 100,
+  "catalog_discovery_ms": 16.850041,
+  "compile": {
+    "iterations": 10000,
+    "unit": "ms",
+    "p50": 0.512042,
+    "p95": 0.582542,
+    "p99": 0.65725,
+    "max": 5.100208,
+    "mean": 0.5228568983
+  },
+  "gateway_submit": {
+    "iterations": 10000,
+    "unit": "ms",
+    "p50": 0.018625,
+    "p95": 0.020041,
+    "p99": 0.034291,
+    "max": 4.872875,
+    "mean": 0.020058294
+  },
+  "workload": {
+    "state_dim": 14,
+    "action_dim": 7,
+    "actuators": 1,
+    "capture_disk_write_included": false,
+    "installed_catalog_discovery_in_compile_samples": false,
+    "clock": "perf_counter_ns",
+    "command_ttl_ns": 1000000000,
+    "resource_locking": "RuntimeSession.start host locks held during gateway samples"
+  },
+  "limits": [
+    "Single process/macOS/Python fake backend; does not measure SDK/device latency or ROS transport.",
+    "No background camera/network/disk contention workload included.",
+    "Percentiles describe this run and do not establish deadline or worst-case guarantees."
+  ]
+}

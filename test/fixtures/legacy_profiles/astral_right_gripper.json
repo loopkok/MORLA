@@ -1,0 +1,851 @@
+{
+  "action_blocks": [
+    {
+      "action_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "block_id": "right_arm",
+      "command_stream": "right_arm_cmd",
+      "dim": 7,
+      "feature_names": [
+        "right_arm_0",
+        "right_arm_1",
+        "right_arm_2",
+        "right_arm_3",
+        "right_arm_4",
+        "right_arm_5",
+        "right_arm_6"
+      ],
+      "limits": [
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ]
+      ],
+      "semantics": "next_state",
+      "unit": "rad",
+      "writable": true,
+      "writer_id": "right_arm"
+    },
+    {
+      "action_indices": [
+        7
+      ],
+      "block_id": "right_ee",
+      "command_stream": "right_gripper_ratio",
+      "dim": 1,
+      "feature_names": [
+        "right_ee_0"
+      ],
+      "limits": [
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "semantics": "next_state",
+      "unit": "ratio",
+      "writable": true,
+      "writer_id": "right_gripper"
+    }
+  ],
+  "backend_requirements": {
+    "action_semantics": "absolute_position",
+    "camera_map": {
+      "base": "base",
+      "right_wrist": "right_wrist"
+    },
+    "model_capacity": 32,
+    "model_layout_id": "astral_right_gripper_v1",
+    "optional_sensors": [],
+    "requires_model_kinematics_handshake": true,
+    "requires_model_layout_handshake": true,
+    "requires_named_features": true
+  },
+  "camera_specs": [
+    {
+      "device_fingerprint": null,
+      "image_size": null,
+      "label": "base",
+      "slot": 0
+    },
+    {
+      "device_fingerprint": null,
+      "image_size": null,
+      "label": "right_wrist",
+      "slot": 1
+    }
+  ],
+  "cameras": [
+    "base",
+    "right_wrist"
+  ],
+  "capabilities": {
+    "damping": true,
+    "enable": true,
+    "estop": true,
+    "grippers": true,
+    "hands": false,
+    "head": false,
+    "home": true,
+    "position": true,
+    "ready": true,
+    "reanchor": true,
+    "tactile": false,
+    "waist": false,
+    "workpos": true
+  },
+  "components": [
+    {
+      "command_topic": "/right_arm/joint_commands",
+      "component_id": "right_arm",
+      "description_model_id": "astral_right_arm",
+      "driver_package": "astral_robot_control",
+      "driver_params_file": "config/astral_robot.yaml",
+      "enabled": true,
+      "joint_names": [
+        "right_shoulder_pitch",
+        "right_shoulder_roll",
+        "right_elbow_roll",
+        "right_elbow_pitch",
+        "right_forearm_roll",
+        "right_wrist_pitch",
+        "right_wrist_roll"
+      ],
+      "limits": [
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ]
+      ],
+      "max_joint_velocity_rad_s": 6.0,
+      "package": "astral_arm_teleop",
+      "params_file": "config/astral_arm_teleop_right.yaml",
+      "side": "right",
+      "state_topic": "/right_arm/joint_states",
+      "type": "arm",
+      "unit": "rad"
+    },
+    {
+      "closed_rad": 0.0,
+      "command_semantics": "closure_ratio",
+      "command_topic": "/right_gripper/command",
+      "component_id": "right_ee",
+      "description_model_id": "astral_right_gripper",
+      "driver_package": "astral_robot_control",
+      "driver_params_file": "config/astral_robot.yaml",
+      "enabled": true,
+      "joint_names": [
+        "right_gripper_joint"
+      ],
+      "max_ratio_rate_per_s": 2.5,
+      "open_rad": 2.5,
+      "package": "astral_gripper_teleop",
+      "params_file": "config/gripper_teleop_right.yaml",
+      "side": "right",
+      "state_topic": "/right_gripper/command",
+      "type": "gripper",
+      "unit": "ratio"
+    }
+  ],
+  "coordinate_contract": {
+    "arms": {
+      "right": {
+        "description_model_id": "astral_right_arm",
+        "joint_convention": "hardware",
+        "physical_flange_frame": "right_link7",
+        "sdk_flange_frame": "unverified_vendor_sdk_frame",
+        "solver_adapter_id": "astral_geometric_poe_link7_v1",
+        "solver_base_frame": "right_base_link",
+        "solver_tip_frame": "right_link7",
+        "tool": {
+          "calibration_status": "physical_tool_unverified",
+          "frame": "right_link7",
+          "id": "legacy_solver_tip",
+          "source": "urdf_named_frame"
+        }
+      }
+    },
+    "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+    "input_basis_id": "quest3_canonical_legacy_v1",
+    "input_frame_policy": "incremental_operator_aligned",
+    "input_rotation_source": "legacy_astral_identity_axis_alignment",
+    "input_rotation_to_robot_body": [
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "kinematics_hash": "4a1f9d9bfbad5dc99699dfda19d228a18e50d1f7831673db2214d38ecd97e5e7",
+    "robot_body_frame": "body_link",
+    "robot_id": "astral",
+    "version": 1
+  },
+  "data": {
+    "action_source": "next_state",
+    "data_root": "${MORLA_DATA_ROOT:-${SDK_ROOT}/morla_data}",
+    "dataset_fps": 30,
+    "hold_frames": 10,
+    "legacy_validity_unknown": false,
+    "max_gap_ms": 100.0
+  },
+  "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+  "frozen_schema": {
+    "action_blocks": [
+      {
+        "action_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "block_id": "right_arm",
+        "command_stream": "right_arm_cmd",
+        "dim": 7,
+        "feature_names": [
+          "right_arm_0",
+          "right_arm_1",
+          "right_arm_2",
+          "right_arm_3",
+          "right_arm_4",
+          "right_arm_5",
+          "right_arm_6"
+        ],
+        "limits": [
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ]
+        ],
+        "semantics": "next_state",
+        "unit": "rad",
+        "writable": true,
+        "writer_id": "right_arm"
+      },
+      {
+        "action_indices": [
+          7
+        ],
+        "block_id": "right_ee",
+        "command_stream": "right_gripper_ratio",
+        "dim": 1,
+        "feature_names": [
+          "right_ee_0"
+        ],
+        "limits": [
+          [
+            0.0,
+            1.0
+          ]
+        ],
+        "semantics": "next_state",
+        "unit": "ratio",
+        "writable": true,
+        "writer_id": "right_gripper"
+      }
+    ],
+    "action_dim": 8,
+    "action_source": "next_state",
+    "cameras": [
+      "base",
+      "right_wrist"
+    ],
+    "dataset_fps": 30,
+    "hold_frames": 10,
+    "kinematics_hash": "4a1f9d9bfbad5dc99699dfda19d228a18e50d1f7831673db2214d38ecd97e5e7",
+    "layout_hash": "373028f3ad8763e6a08956ed91b9bb53d5c34ca957466f2909cf7a0b73d7b51d",
+    "max_gap_ms": 100.0,
+    "metadata": {
+      "coordinate_contract": {
+        "arms": {
+          "right": {
+            "description_model_id": "astral_right_arm",
+            "joint_convention": "hardware",
+            "physical_flange_frame": "right_link7",
+            "sdk_flange_frame": "unverified_vendor_sdk_frame",
+            "solver_adapter_id": "astral_geometric_poe_link7_v1",
+            "solver_base_frame": "right_base_link",
+            "solver_tip_frame": "right_link7",
+            "tool": {
+              "calibration_status": "physical_tool_unverified",
+              "frame": "right_link7",
+              "id": "legacy_solver_tip",
+              "source": "urdf_named_frame"
+            }
+          }
+        },
+        "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+        "input_basis_id": "quest3_canonical_legacy_v1",
+        "input_frame_policy": "incremental_operator_aligned",
+        "input_rotation_source": "legacy_astral_identity_axis_alignment",
+        "input_rotation_to_robot_body": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "kinematics_hash": "4a1f9d9bfbad5dc99699dfda19d228a18e50d1f7831673db2214d38ecd97e5e7",
+        "robot_body_frame": "body_link",
+        "robot_id": "astral",
+        "version": 1
+      },
+      "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+      "kinematics_hash": "4a1f9d9bfbad5dc99699dfda19d228a18e50d1f7831673db2214d38ecd97e5e7"
+    },
+    "profile_id": "astral_right_gripper",
+    "profile_version": 1,
+    "robot_id": "astral",
+    "schema_hash": "6c587ac2442e3e3948891f3817071aba2813f5e4615a16188151ec16d0e24c10",
+    "schema_version": 2,
+    "sensor_specs": [],
+    "state_blocks": [
+      {
+        "block_id": "right_arm",
+        "dim": 7,
+        "feature_names": [
+          "right_arm_0",
+          "right_arm_1",
+          "right_arm_2",
+          "right_arm_3",
+          "right_arm_4",
+          "right_arm_5",
+          "right_arm_6"
+        ],
+        "limits": [
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ],
+          [
+            -3.141593,
+            3.141593
+          ]
+        ],
+        "physical_joint_names": [
+          "right_shoulder_pitch",
+          "right_shoulder_roll",
+          "right_elbow_roll",
+          "right_elbow_pitch",
+          "right_forearm_roll",
+          "right_wrist_pitch",
+          "right_wrist_roll"
+        ],
+        "state_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "stream_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "stream_key": "right_arm_state",
+        "unit": "rad"
+      },
+      {
+        "block_id": "right_ee",
+        "dim": 1,
+        "feature_names": [
+          "right_ee_0"
+        ],
+        "limits": [
+          [
+            0.0,
+            1.0
+          ]
+        ],
+        "physical_joint_names": [],
+        "state_indices": [
+          7
+        ],
+        "stream_indices": [
+          0
+        ],
+        "stream_key": "right_gripper_ratio",
+        "unit": "ratio"
+      }
+    ],
+    "state_dim": 8,
+    "streams": [
+      {
+        "dtype": "float32",
+        "joint_names": [
+          "right_shoulder_pitch",
+          "right_shoulder_roll",
+          "right_elbow_roll",
+          "right_elbow_pitch",
+          "right_forearm_roll",
+          "right_wrist_pitch",
+          "right_wrist_roll"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          7
+        ],
+        "source_kind": "state",
+        "stream_key": "right_arm_state",
+        "timestamp_mode": "source_header",
+        "topic": "/right_arm/joint_states",
+        "unit": "rad"
+      },
+      {
+        "dtype": "float32",
+        "joint_names": [
+          "right_shoulder_pitch",
+          "right_shoulder_roll",
+          "right_elbow_roll",
+          "right_elbow_pitch",
+          "right_forearm_roll",
+          "right_wrist_pitch",
+          "right_wrist_roll"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          7
+        ],
+        "source_kind": "command",
+        "stream_key": "right_arm_cmd",
+        "timestamp_mode": "arrival",
+        "topic": "/right_arm/joint_commands",
+        "unit": "rad"
+      },
+      {
+        "dtype": "float32",
+        "joint_names": [
+          "right_gripper_joint"
+        ],
+        "message_type": "std_msgs/msg/Float64",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          1
+        ],
+        "source_kind": "command",
+        "stream_key": "right_gripper_ratio",
+        "timestamp_mode": "arrival",
+        "topic": "/right_gripper/command",
+        "unit": "ratio"
+      },
+      {
+        "dtype": "float32",
+        "joint_names": [
+          "right_gripper_joint"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "best_effort_keep_last_1",
+        "required": false,
+        "shape": [
+          1
+        ],
+        "source_kind": "command_echo",
+        "stream_key": "right_gripper_rad",
+        "timestamp_mode": "source_header",
+        "topic": "/right_gripper/joint_states",
+        "unit": "rad"
+      },
+      {
+        "dtype": "uint8",
+        "joint_names": [],
+        "message_type": "sensor_msgs/msg/CompressedImage",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          null,
+          null,
+          3
+        ],
+        "source_kind": "camera",
+        "stream_key": "camera:base",
+        "timestamp_mode": "source_header",
+        "topic": "/quest3_video_streamer/collect/base",
+        "unit": "rgb"
+      },
+      {
+        "dtype": "uint8",
+        "joint_names": [],
+        "message_type": "sensor_msgs/msg/CompressedImage",
+        "qos": "best_effort_keep_last_1",
+        "required": true,
+        "shape": [
+          null,
+          null,
+          3
+        ],
+        "source_kind": "camera",
+        "stream_key": "camera:right_wrist",
+        "timestamp_mode": "source_header",
+        "topic": "/quest3_video_streamer/collect/right_wrist",
+        "unit": "rgb"
+      }
+    ]
+  },
+  "hardware": {
+    "astral_driver_package": "astral_robot_control",
+    "board_id": "local_profile",
+    "driver_params_file": "config/astral_robot.yaml"
+  },
+  "input": {
+    "landmark_preprocess": "raw",
+    "legacy_packets_allowed": false,
+    "source": "quest",
+    "strict_packets": true
+  },
+  "kinematics_hash": "4a1f9d9bfbad5dc99699dfda19d228a18e50d1f7831673db2214d38ecd97e5e7",
+  "layout_hash": "373028f3ad8763e6a08956ed91b9bb53d5c34ca957466f2909cf7a0b73d7b51d",
+  "mode_default": "sim",
+  "profile_id": "astral_right_gripper",
+  "profile_version": 1,
+  "robot_id": "astral",
+  "schema_hash": "6c587ac2442e3e3948891f3817071aba2813f5e4615a16188151ec16d0e24c10",
+  "sensors": [],
+  "state_blocks": [
+    {
+      "block_id": "right_arm",
+      "dim": 7,
+      "feature_names": [
+        "right_arm_0",
+        "right_arm_1",
+        "right_arm_2",
+        "right_arm_3",
+        "right_arm_4",
+        "right_arm_5",
+        "right_arm_6"
+      ],
+      "limits": [
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ],
+        [
+          -3.141593,
+          3.141593
+        ]
+      ],
+      "physical_joint_names": [
+        "right_shoulder_pitch",
+        "right_shoulder_roll",
+        "right_elbow_roll",
+        "right_elbow_pitch",
+        "right_forearm_roll",
+        "right_wrist_pitch",
+        "right_wrist_roll"
+      ],
+      "state_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "stream_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "stream_key": "right_arm_state",
+      "unit": "rad"
+    },
+    {
+      "block_id": "right_ee",
+      "dim": 1,
+      "feature_names": [
+        "right_ee_0"
+      ],
+      "limits": [
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "physical_joint_names": [],
+      "state_indices": [
+        7
+      ],
+      "stream_indices": [
+        0
+      ],
+      "stream_key": "right_gripper_ratio",
+      "unit": "ratio"
+    }
+  ],
+  "streams": [
+    {
+      "dtype": "float32",
+      "joint_names": [
+        "right_shoulder_pitch",
+        "right_shoulder_roll",
+        "right_elbow_roll",
+        "right_elbow_pitch",
+        "right_forearm_roll",
+        "right_wrist_pitch",
+        "right_wrist_roll"
+      ],
+      "message_type": "sensor_msgs/msg/JointState",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        7
+      ],
+      "source_kind": "state",
+      "stream_key": "right_arm_state",
+      "timestamp_mode": "source_header",
+      "topic": "/right_arm/joint_states",
+      "unit": "rad"
+    },
+    {
+      "dtype": "float32",
+      "joint_names": [
+        "right_shoulder_pitch",
+        "right_shoulder_roll",
+        "right_elbow_roll",
+        "right_elbow_pitch",
+        "right_forearm_roll",
+        "right_wrist_pitch",
+        "right_wrist_roll"
+      ],
+      "message_type": "sensor_msgs/msg/JointState",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        7
+      ],
+      "source_kind": "command",
+      "stream_key": "right_arm_cmd",
+      "timestamp_mode": "arrival",
+      "topic": "/right_arm/joint_commands",
+      "unit": "rad"
+    },
+    {
+      "dtype": "float32",
+      "joint_names": [
+        "right_gripper_joint"
+      ],
+      "message_type": "std_msgs/msg/Float64",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        1
+      ],
+      "source_kind": "command",
+      "stream_key": "right_gripper_ratio",
+      "timestamp_mode": "arrival",
+      "topic": "/right_gripper/command",
+      "unit": "ratio"
+    },
+    {
+      "dtype": "float32",
+      "joint_names": [
+        "right_gripper_joint"
+      ],
+      "message_type": "sensor_msgs/msg/JointState",
+      "qos": "best_effort_keep_last_1",
+      "required": false,
+      "shape": [
+        1
+      ],
+      "source_kind": "command_echo",
+      "stream_key": "right_gripper_rad",
+      "timestamp_mode": "source_header",
+      "topic": "/right_gripper/joint_states",
+      "unit": "rad"
+    },
+    {
+      "dtype": "uint8",
+      "message_type": "sensor_msgs/msg/CompressedImage",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        null,
+        null,
+        3
+      ],
+      "source_kind": "camera",
+      "stream_key": "camera:base",
+      "timestamp_mode": "source_header",
+      "topic": "/quest3_video_streamer/collect/base",
+      "unit": "rgb"
+    },
+    {
+      "dtype": "uint8",
+      "message_type": "sensor_msgs/msg/CompressedImage",
+      "qos": "best_effort_keep_last_1",
+      "required": true,
+      "shape": [
+        null,
+        null,
+        3
+      ],
+      "source_kind": "camera",
+      "stream_key": "camera:right_wrist",
+      "timestamp_mode": "source_header",
+      "topic": "/quest3_video_streamer/collect/right_wrist",
+      "unit": "rgb"
+    }
+  ],
+  "title": "Astral Right Gripper",
+  "writers": [
+    {
+      "ack_topic": "/teleop/ownership_ack",
+      "command_stream": "right_arm_cmd",
+      "component_id": "right_arm",
+      "prepare_reanchor_service": "/astral_arm_teleop_right/prepare_reanchor",
+      "writer_id": "right_arm"
+    },
+    {
+      "ack_topic": "/teleop/ownership_ack",
+      "command_stream": "right_gripper_ratio",
+      "component_id": "right_ee",
+      "writer_id": "right_gripper"
+    }
+  ]
+}

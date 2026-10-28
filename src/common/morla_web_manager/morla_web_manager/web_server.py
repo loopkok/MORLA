@@ -42,6 +42,8 @@ from .launch_manager import (
 from .monitor_node import get_node, init_node, shutdown_node
 from .piano_manager import PianoManager
 from .piano_store import PianoConflict, PianoError, PianoStore
+from .composable_service import ComposableService
+from .composable_api import router as composable_router
 try:
     from morla_core.profile import ProfileRegistry
     from morla_bringup.robot_profile_launch import select_robot_stack
@@ -101,6 +103,14 @@ _selected_profile_id = (
     else next(iter(_robot_profiles), "")
 )
 _selected_operating_mode = "sim"
+_composable = ComposableService(
+    os.environ.get("MORLA_SYSTEM_STORE", str(Path.home() / ".local/share/morla")),
+    blockers=lambda: [label for label, manager in (("teleop", _launch_mgr), ("collection", _collect_mgr),
+                                                   ("policy", _policy_mgr))
+                      if manager.state not in {STOPPED, "start_failed"}]
+                     + (["piano"] if _piano_mgr.active else [])
+                     + (["ROS coordinator"] if _live_control_state() else []),
+)
 _web_dist = Path(config._web_env(
     "DIST", str(config.MORLA_WS / 'src/common/morla_web_manager/web/dist')
 ))
@@ -307,9 +317,20 @@ async def _lifespan(app: FastAPI):
     init_node()
     broadcaster = asyncio.create_task(_ui_state_broadcaster())
     preview = asyncio.create_task(_quest_preview_supervisor())
+    async def composable_tick():
+        while True:
+            await asyncio.to_thread(_composable.tick)
+            await asyncio.sleep(0.02)
+    composed = asyncio.create_task(composable_tick())
     try:
         yield
     finally:
+        composed.cancel()
+        try:
+            await composed
+        except asyncio.CancelledError:
+            pass
+        await asyncio.to_thread(_composable.close)
         await asyncio.to_thread(_piano_mgr.close)
         preview.cancel()
         try:
@@ -354,6 +375,14 @@ async def _ui_state_broadcaster() -> None:
 
 # --- app -------------------------------------------------------------------
 app = FastAPI(title="morla_web_manager", version="0.1.0", lifespan=_lifespan)
+app.include_router(composable_router(_composable))
+from .request_boundary import ConfigurationBoundary
+app.add_middleware(ConfigurationBoundary)
+
+
+@app.get("/mobile")
+def composable_mobile_page():
+    return FileResponse(Path(__file__).with_name("static") / "mobile.html")
 
 # Serialize all Web motion/lifecycle mutations with piano acquisition. Emergency
 # requests bypass the mutex so a slow legacy service cannot delay stopping.
@@ -386,6 +415,8 @@ async def piano_exclusion(request, call_next):
             return JSONResponse(status_code=503, content={"detail": str(exc)})
     guarded = path in _piano_legacy_controls or path.startswith(_piano_exclusive_paths)
     piano_mutation = path.startswith("/api/v1/piano/") and not path.endswith(("/heartbeat", "/stop", "/close"))
+    if (guarded or piano_mutation) and _composable.active:
+        return JSONResponse(status_code=409, content={"detail": "组合会话占用机器人；请停止组合会话后操作旧入口"})
     if guarded or piano_mutation:
         async with _motion_mutation_lock:
             if guarded and _piano_mgr.active:

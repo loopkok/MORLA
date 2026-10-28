@@ -36,6 +36,10 @@ raw and exported data under `/tmp` by default; set `MORLA_TEST_OUTPUT_ROOT` or
 
 Future architecture work, including declarative high-flexibility robot and
 actuator composition, is tracked in [`docs/TODO.md`](docs/TODO.md).
+The detailed [composable architecture refactoring plan](docs/COMPOSABLE_ARCHITECTURE_PLAN.md)
+covers mixed-brand hardware, input devices, runtime scheduling, Web assembly,
+data/training contracts, migration tasks and adversarial acceptance; it is a
+plan for subsequent implementation, not a claim of completed functionality.
 The [coordinate and kinematics optimization plan](docs/coordinate_kinematics_optimization_plan.md)
 records the implemented coordinate contract, Nero J2 zero correction, named
 URDF tool-chain resolver, measured-state TF bridge, and validation evidence.

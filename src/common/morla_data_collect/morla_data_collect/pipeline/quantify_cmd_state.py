@@ -260,7 +260,7 @@ def analyze_aligned(action: np.ndarray, state: np.ndarray | None, hz: int = 30,
     A = action if action.ndim == 2 else action[:, None]
     t = np.arange(len(A)) / hz           # 均匀网格时间戳（30Hz）
     zero_th = flat_v * (1.0 / hz)        # 每步"基本没动"的位置阈值
-    has_state = state is not None and state.shape[0] == A.shape[0]
+    has_state = state is not None and state.shape == A.shape
     D = (A - state) if has_state else None
     for j in range(d):
         s = _signal_stats(A[:, j:j + 1], t, flat_v, min_pause)
@@ -509,6 +509,12 @@ def main() -> int:
             state = (np.asarray(f["observation/state"], dtype=np.float64)
                      if "observation/state" in f else None)
             fps = int(f.attrs.get("fps", 30))
+            if state is not None and "schema" in f.attrs:
+                from morla_data_collect.schema import pipeline_schema_from_json, project_next_state
+                try:
+                    state = project_next_state(pipeline_schema_from_json(f.attrs["schema"]), state)
+                except ValueError:
+                    state = None  # No declared comparable feedback; report action-only statistics.
         rows.append({"h5": args.aligned, "stream": "action(next-state)",
                      "res": analyze_aligned(action, state, hz=fps, flat_v=args.flat_v,
                                             min_pause=args.min_pause)})

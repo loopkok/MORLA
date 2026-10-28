@@ -1,3 +1,4 @@
+#include "morla_interfaces/device_guard.hpp"
 // Copyright 2025 Wuji Robotics
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +16,7 @@
 #include "wujihand_driver/wujihand_driver_node.hpp"
 
 int main(int argc, char* argv[]) {
+  morla_interfaces::LegacyDeviceGuard morla_device_guard;
   rclcpp::init(argc, argv);
 
   try {

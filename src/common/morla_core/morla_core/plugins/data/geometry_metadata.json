@@ -1,0 +1,26 @@
+{
+  "morla.nero.arm": {
+    "asset_path": "src/robot_description/mjcf/xnero/xnero_dual.xml",
+    "asset_sha256": "65c20680ae40c09576da3302460c94cb7b032ab5d2fb778b639c42863634ff88",
+    "verification_level": "legacy_asset_kinematics",
+    "collision_verified": false
+  },
+  "morla.xhand.hand": {
+    "asset_path": "src/robot_description/mjcf/xnero/xnero_dual.xml",
+    "asset_sha256": "65c20680ae40c09576da3302460c94cb7b032ab5d2fb778b639c42863634ff88",
+    "verification_level": "legacy_asset_kinematics",
+    "collision_verified": false
+  },
+  "morla.astral.arm": {
+    "asset_path": "src/robot_description/mjcf/astral/astral_dual_clean.xml",
+    "asset_sha256": "e3acc162754230f9c4a054c5e2c71cbf13ab1677b72b815d45b5a3309a858f02",
+    "verification_level": "legacy_asset_kinematics",
+    "collision_verified": false
+  },
+  "morla.wuji.hand": {
+    "asset_path": "src/robot_description/mjcf/wuji/left.xml",
+    "asset_sha256": "731e50dc38a12441a0a381ff88a6d9738bfd1ed1bc42f413a3d725c42e158b6a",
+    "verification_level": "legacy_asset_kinematics",
+    "collision_verified": false
+  }
+}

@@ -1,0 +1,9 @@
+string session_id
+string component_id
+bool ready
+bool fresh
+bool measured
+bool synthetic
+string source
+uint64 sample_ns
+float64[] values
