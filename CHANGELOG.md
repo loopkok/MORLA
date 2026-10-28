@@ -1,5 +1,9 @@
 # Changelog（MORLA）
 
+## 2026-10-29
+
+- 补齐 CR5 / LoopHand 独立设备接入的[实际推送回执](docs/integrations/PUSH_LOG_2026-10-29.md)：主内容 `3095cb5` 已通过 SSH 推送，并在继续工作后 fetch 核对远端一致；保留 HTTPS 认证/HTTP2 失败的实际记录。该补记为文档归档，不增加实机或 VR 遥操验收结论。
+
 ## 2026-10-28
 
 ### 设备接入规范、CR5 / LoopHand 独立驱动与组合示例
