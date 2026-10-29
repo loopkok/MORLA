@@ -40,7 +40,9 @@ try {
   checks.push('descriptor-driven component/backend/side forms')
   await label('right_arm运行后端').selectOption('sim')
   await compile()
-  assert.match(await page.getByText('组件后端声明可用：', { exact: false }).innerText(), /false/)
+  // Astral ships MuJoCo assets, so its sim backend is declared available;
+  // the unverified real path is covered by the deployment check below.
+  assert.match(await page.getByText('组件后端声明可用：', { exact: false }).innerText(), /后端声明可用：true/)
   await label('right_arm运行后端').selectOption('fake')
   await page.getByText('安装关系与部署配置', { exact: true }).click()
   await label('部署配置').fill('{")invalid')

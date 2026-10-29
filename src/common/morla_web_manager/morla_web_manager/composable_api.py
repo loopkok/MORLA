@@ -173,13 +173,21 @@ def create_app(root=None,resource_root=None,*,mount_web=True):
         return FileResponse(Path(__file__).with_name("static")/"mobile.html")
     # Serve the same React build as the existing manager when installed.
     from fastapi.staticfiles import StaticFiles
+    import inspect
     dist=Path(__file__).parents[1]/"web/dist"
     if not dist.is_dir():
         try:
             from ament_index_python.packages import get_package_share_directory
             dist=Path(get_package_share_directory("morla_web_manager"))/"web/dist"
         except ImportError: pass
-    if mount_web and dist.is_dir(): app.mount("/",StaticFiles(directory=dist,html=True),name="web")
+    if mount_web and dist.is_dir():
+        options={"directory":dist,"html":True}
+        # colcon symlink installs leave the files as symlinks into the source
+        # tree; newer Starlette rejects those by default, so every asset would
+        # 404 while the build is present. Older versions always followed them.
+        if "follow_symlink" in inspect.signature(StaticFiles).parameters:
+            options["follow_symlink"]=True
+        app.mount("/",StaticFiles(**options),name="web")
     return app
 
 

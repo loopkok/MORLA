@@ -120,6 +120,15 @@ if not _web_dist.is_dir():
         _web_dist = Path(get_package_share_directory('morla_web_manager')) / 'web/dist'
     except Exception:
         pass
+def _static_options(directory):
+    """StaticFiles options that also serve colcon symlink-install entries."""
+    import inspect
+    options = {"directory": str(directory)}
+    # colcon --symlink-install leaves the build copy's files as symlinks into
+    # the source tree; newer Starlette rejects those by default.
+    if "follow_symlink" in inspect.signature(StaticFiles).parameters:
+        options["follow_symlink"] = True
+    return options
 
 
 def _live_control_state(snapshot: dict | None = None) -> dict | None:
@@ -1499,7 +1508,7 @@ async def ws_telemetry(websocket: WebSocket):
 if _web_dist.is_dir():
     assets = _web_dist / "assets"
     if assets.is_dir():
-        app.mount("/assets", StaticFiles(directory=str(assets)), name="assets")
+        app.mount("/assets", StaticFiles(**_static_options(assets)), name="assets")
 
     @app.get("/{full_path:path}")
     async def spa_fallback(full_path: str):
