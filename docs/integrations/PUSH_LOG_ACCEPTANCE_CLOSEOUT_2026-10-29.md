@@ -76,3 +76,10 @@ sudo apt install -y python3-fastapi python3-uvicorn python3-pydantic python3-msg
 - `rosdep check --from-paths src --ignore-src --rosdistro humble` 退出 0：`All system dependencies have been satisfied`（`b01-rosdep-pass.txt`）。
 - 运行时仍使用用户 site 的 pip 版本（fastapi 0.141.1、uvicorn 0.54.0、pydantic 2.13.4、msgpack 1.2.4、aiortc 1.15.0、pandas 2.3.3），apt 版本仅满足 rosdep 归属；仅 `pandas` 出现 numexpr/bottleneck 版本告警（自动回退，不影响功能）。
 - 能力核对：`rosbag2_py.get_registered_writers()` 含 `mcap`，`ros2 pkg executables usb_cam` 有 `usb_cam_node_exe`，`quest3_video_streamer` 42 passed，web manager 全量 288 passed/2 skipped（无回归）。真实相机/串流设备仍未接入，S01/S02/Q 组硬件结论不变。
+
+## 补记：EPG 原厂 SDK（2026-10-29 22:23）
+
+- 用户提供 `/home/loopkok/JodellTool-0.1.5-py3-none-any.whl`，sha256 `b651a7f25e5b8ce97433a62f362a83ded93d6dd3105ebc0f512d72127c036963`，与 `src/robots/jodell/morla_epg_driver/PROVENANCE.json` 记录的原文件一致。
+- `python3 -m pip install --user` 安装成功，附带 `modbus-tk 1.1.5`；`jodellSdk.jodellSdkDemo.EpgClawControl` 与 `modbus_tk` 均可导入。
+- `morla_epg_driver` 测试 **17 passed**，无 skip：此前因缺 SDK 跳过的两项真实 SDK 契约测试现实际执行（真实 `EpgClawControl` + 记录型 Modbus master 的寄存器序列；real 打开路径的只读/超时/独占参数）。
+- 边界：真实固件、RS485 接线、物理停止（SDK `0x03FF` 与手册 `0x03E8` 位差异）和掉线行为仍需实物验证，E01/E02/E03 维持 BLOCKED_ENV。证据：`epg-sdk-install.txt`。
