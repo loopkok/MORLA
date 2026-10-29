@@ -5,7 +5,7 @@
   <description>ROS-free shared schemas, profile validation, resource lookup, joint mapping and ownership leases.</description>
   <maintainer email="maintainers@morla.dev">MORLA maintainers</maintainer>
   <license>Apache-2.0</license>
-  <buildtool_depend>ament_python</buildtool_depend>
+
   <exec_depend>python3-yaml</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>ament_index_python</exec_depend>

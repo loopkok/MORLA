@@ -5,7 +5,7 @@
   <description>Strict named JointState conversion and policy ownership gate for XHand.</description>
   <maintainer email="maintainers@morla.dev">MORLA maintainers</maintainer>
   <license>Apache-2.0</license>
-  <buildtool_depend>ament_python</buildtool_depend>
+
   <exec_depend>rclpy</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>

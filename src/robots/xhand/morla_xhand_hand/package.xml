@@ -5,7 +5,7 @@
   <description>XHand 12-joint hand component package</description>
   <maintainer email="maintainers@morla.dev">MORLA maintainers</maintainer>
   <license>Apache-2.0</license>
-  <buildtool_depend>ament_python</buildtool_depend>
+
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>xhand_adapter</exec_depend>
   <exec_depend>xhand_retargeting</exec_depend>

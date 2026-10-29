@@ -4,10 +4,13 @@
   <description>Independent Jodell EPG50-060 RS485 gripper component and ROS2 driver.</description>
   <maintainer email="maintainers@morla.dev">MORLA maintainers</maintainer>
   <license>Apache-2.0</license>
-  <buildtool_depend>ament_python</buildtool_depend>
+
   <exec_depend>morla_core</exec_depend><exec_depend>morla_runtime</exec_depend>
   <exec_depend>rclpy</exec_depend><exec_depend>sensor_msgs</exec_depend>
-  <exec_depend>python3-serial</exec_depend><exec_depend>python3-modbus-tk</exec_depend>
+  <exec_depend>python3-serial</exec_depend>
+  <!-- modbus-tk has no rosdep key; setup.py install_requires pulls it from PyPI
+       together with the vendor SDK wheel. -->
+
   <exec_depend>launch</exec_depend><exec_depend>launch_ros</exec_depend>
   <export><build_type>ament_python</build_type></export>
 </package>

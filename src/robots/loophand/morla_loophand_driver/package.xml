@@ -4,7 +4,7 @@
   <description>Independent loophand_driver ROS 2 and MORLA component</description>
   <maintainer email="maintainers@morla.dev">MORLA maintainers</maintainer>
   <license>Apache-2.0</license>
-  <buildtool_depend>ament_python</buildtool_depend>
+
   <exec_depend>morla_core</exec_depend><exec_depend>morla_runtime</exec_depend>
   <exec_depend>rclpy</exec_depend><exec_depend>sensor_msgs</exec_depend>
   <exec_depend>python3-numpy</exec_depend><exec_depend>python3-serial</exec_depend>

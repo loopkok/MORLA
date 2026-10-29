@@ -14,8 +14,9 @@
   <depend>sensor_msgs</depend>
   <depend>wujihand_msgs</depend>
 
-  <depend>wujihandcpp</depend>
-
+  <!-- wujihandcpp is a vendor C++ SDK without a rosdep key. Provide it via
+       WUJIHANDCPP_PREFIX, ~/.local/opt/wujihandcpp, or the in-tree source
+       layout; see scripts/setup_wujihandcpp_user.sh and CMakeLists.txt. -->
   <export>
     <build_type>ament_cmake</build_type>
   </export>
