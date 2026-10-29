@@ -47,6 +47,7 @@ ament_target_dependencies(${PROJECT_NAME}_node
 target_include_directories(${PROJECT_NAME}_node PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/xhand_control/include/
+  ${morla_interfaces_INCLUDE_DIRS}
 )
 
 # 链接库

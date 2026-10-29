@@ -39,6 +39,10 @@ except ImportError:  # pragma: no cover
         "head_yaw",
         "head_pitch",
     ]
+    # Motor ids used by ``set_target_positions``; only reached in dry-run
+    # because the SDK owns the real mapping.
+    LEFT_ARM_IDS: Tuple[int, ...] = tuple(range(7))
+    RIGHT_ARM_IDS: Tuple[int, ...] = tuple(range(7, 14))
 
 NUM_JOINTS = 18
 NUM_ARM_JOINTS = 7

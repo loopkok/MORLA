@@ -14,6 +14,7 @@
   <depend>std_srvs</depend>
   <depend>geometry_msgs</depend>
   <depend>xhand_control_interfaces</depend>
+  <depend>morla_interfaces</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
@@ -25,5 +26,4 @@
   <export>
     <build_type>ament_cmake</build_type>
   </export>
-  <depend>morla_interfaces</depend>
 </package>

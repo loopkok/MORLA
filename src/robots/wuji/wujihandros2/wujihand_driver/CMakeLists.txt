@@ -63,6 +63,7 @@ target_include_directories(wujihand_driver_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
   ${WUJIHANDCPP_INCLUDE_DIR}
+  ${morla_interfaces_INCLUDE_DIRS}
 )
 
 ament_target_dependencies(wujihand_driver_node
