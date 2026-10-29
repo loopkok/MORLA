@@ -68,3 +68,5 @@ NOT_RUN：Linux Humble colcon/IDL/真实ROS传输、USB/2.4G实体与固件、�
 提交前通过此前已验证的SSH443及本机已有代理fetch远端main，退出0；HEAD和origin/main均为基线，左右计数0/0。永久origin保持原HTTPS地址，使用现有Git身份与SSH密钥，不修改全局配置或关闭主机密钥校验。
 
 主内容按当前main普通提交及fast-forward推送，不force或重写历史；成功后fetch并读回远端ref。随后补交实际推送回执并再次推送，最终核对HEAD、origin/main和远端main一致及工作区干净。实际结果以回执和最终命令返回为准。
+
+主内容 `90fcddafead1095b2db2ce80724fc2ed1346e819` 已成功推送并fetch读回，实际命令结果、统计与时间见[推送回执](PUSH_LOG_VADER5_2026-10-29.md)。

@@ -15,7 +15,7 @@
 - 配置化按钮角色与冲突检查、启动释放、组合急停优先、序号/epoch/源时效、即时释放与按钮边沿记录；激活/采集调用已有Service API并去重，不重复发送旧操作话题。策略持权时输入只观察/录制，不自动抢权。
 - 本轮pure 172 passed（含11项新增输入/整链）、fake集成23 passed、原SDK unittest 5 passed，独立input wheel发现/加载验证通过；SDK迁至同级目录后复验5项SDK及11项输入专项通过。没有ROS/实体设备验收。
 - 提供CR5/EPG fake、真实手柄覆盖及Nero/Astral示例；默认robot state/action契约保持，手柄意图为auxiliary，训练/推理/回放复用已有链路。软件证据与硬件未验收边界见[接入记录](docs/integrations/vader5.md)及[操作说明](src/common/morla_vader5_input/README.md)。
-- 最终范围、参数、目录/许可与验证依据见[本轮详细提交日志](docs/integrations/CHANGE_LOG_VADER5_2026-10-29.md)；实际提交号与远端读回结果在推送成功后归档。
+- 最终范围、参数、目录/许可与验证依据见[本轮详细提交日志](docs/integrations/CHANGE_LOG_VADER5_2026-10-29.md)；主内容及主机测试交接 `90fcdda` 已推送并fetch读回，见[实际提交推送回执](docs/integrations/PUSH_LOG_VADER5_2026-10-29.md)。
 
 ### Jodell EPG50-060 夹爪独立接入
 

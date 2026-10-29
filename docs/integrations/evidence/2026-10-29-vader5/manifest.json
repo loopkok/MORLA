@@ -13,12 +13,13 @@
     "sha256": "521e5475ac48b806260f7afd3777cb508b7b19743ba3d0ef694a26c71bed773d"
   },
   "files": {
-    "CHANGELOG.md": "ff28c61e0f4adde46150778fc5937277af446a9f9873a073469697234447813e",
+    "CHANGELOG.md": "a47e69e6113706d7b87f41207c38d519b1192dbb31d6067371d4ae3848769720",
     "README.md": "c82f2de87ebe42f2b38dd3b879a7f9b3216b54006eb66b7765157d0abb37069e",
     "docs/architecture_refactor/SDK.md": "90617a44df0b3826c474750bb92f0a6d64030c5265457f55d3685951a217d148",
     "docs/architecture_refactor/progress.md": "66fb308131434da2815872132bed2632e86fd3e08b85fc1ec7da129bc7e3725f",
     "docs/device_integration_guide.md": "d0d57adaf23c9695a7b6442aaaef4f4ec29556b4146c81ba42cd80c4320fcdf7",
-    "docs/integrations/CHANGE_LOG_VADER5_2026-10-29.md": "7b25a2f1635cd93a5cfc422c0086b1ffcc5ab8f95abf13d82300093ef12d5fae",
+    "docs/integrations/CHANGE_LOG_VADER5_2026-10-29.md": "8646fb1b80e18870839d8cb17859c3e377a62d01c4b0f47f19ae12610c7f5feb",
+    "docs/integrations/PUSH_LOG_VADER5_2026-10-29.md": "a915ffeb745aca9a6f931c59cb03b90896bc5bcec1c3e05860dc440d4e1f09b4",
     "docs/integrations/evidence/2026-10-29-vader5/fake.txt": "00c951b21eccd66a97303df97994abf36243bbe050b5d99222886004bf7eafe4",
     "docs/integrations/evidence/2026-10-29-vader5/installed.txt": "c7c80a71c9ab553ff48a86d8aad4708c4b600b842c449603467abcd36c56d9cd",
     "docs/integrations/evidence/2026-10-29-vader5/precommit.txt": "f692a1edaaa965a1cc3d3517db9be9b53e05b20308b504b9a17de8d197c06112",
@@ -99,5 +100,11 @@
     "fake_ros_helper": "docs/testing/fake_ros_gateway_smoke.py",
     "helper_validation": "AST, help and snapshot guards only; ROS/DDS NOT_RUN",
     "command_blocks_syntax_checked": 27
+  },
+  "push_receipt": {
+    "main_commit": "90fcddafead1095b2db2ce80724fc2ed1346e819",
+    "path": "docs/integrations/PUSH_LOG_VADER5_2026-10-29.md",
+    "main_push_fetch_verified": true,
+    "note": "Receipt commit is identified by Git history; final remote verification follows its push."
   }
 }
