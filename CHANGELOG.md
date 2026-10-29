@@ -53,6 +53,17 @@
 - 已知未通过/阻塞：B01 rosdep仍有未满足apt项（本机无sudo，fastapi/uvicorn/aiortc/msgpack等仅用户site）；web manager钢琴用例7项因同级`MORLA-piano`引擎版本（b68a4b5）语义变化失败；无CR5/EPG/LoopHand/Vader5/Quest硬件，相关组均为BLOCKED_ENV。
 - 验收后修复已入库：CI依赖修复`7029a83`（Pillow/pandas/msgpack）推送后`contracts (3.10)`、`contracts (3.12)`、`web`全部通过；Nero/XHand资产按owner确认重签`1d3a293`（4个唯一target哈希、8个model+4个asset条目、12个profile revision与legacy golden），`check_assets.py --require-regular-install --loaders`恢复`PASS 28 models, 358 assets`。
 
+### 新主机部署脚本、CAN 映射与 XHand 串口入库
+
+- 新增 `scripts/nero_can_mapping.py` 与 `scripts/can_muti_activate.sh`：新主机使用独立 USB-CAN 映射，不再沿用旧机端口号。映射工具只读检查 `ethtool -i` 的 bus-info，要求 bitrate 固定 1000000、左右不得同口、每个端口唯一匹配且目标接口未被占用，任一条件不满足即退出且不改动任何接口；激活脚本读取 `config/nero_can_ports.local.json`，保留旧机控制主体并增加重复目标名检查，激活失败以非零码回传给一键启动脚本。
+- `config/nero_can_ports.local.json` 按部署记录登记新机映射：左 `1-2.2:1.0`、右 `1-2.1:1.0`。该文件是主机本地配置，硬件接入后仍应执行 `bash scripts/can_muti_activate.sh --status` 沿线核对；本次未在本机复验硬件，未执行控制器复位、使能或运动。
+- `scripts/nero_web_start.sh` 过滤 `ip -j link show type can` 中缺少 `ifname` 的行，避免空 JSON 行触发 `KeyError`；无两路 CAN 时仍按原逻辑给出设备缺失提示。
+- `scripts/setup_operator_audio.sh` 在下载 Vosk 模型时输出 URL、已下载/总大小与百分比，并在校验、解压前打印阶段；校验和不匹配仍拒绝安装。
+- `nero_dual_xhand.yaml` 将左右 XHand RS485 串口从 `configure_on_host` 固定为新机 by-id 路径（左 `FTAEFQWY`、右 `FTAAUYUK`）；该改动不改变 profile schema/layout 哈希，仅同步 `test/fixtures/legacy_profiles/index.json` 的 `source_sha256`。
+- 新增[新主机钢琴部署记录](docs/piano/DEPLOYMENT_192_168_0_84_2026-10-23.md)：Web 依赖与编译安装、旧机标定和 10 份曲谱迁移校验、8 个演奏预设 60 BPM 时序预检；测试服务已退出，未初始化 CAN、未使能、未发送硬件运动指令。
+- `.gitignore` 增加 `src/common/morla_web_manager/web/browser-api.pid`，避免运行时 PID 文件被误提交。
+- 代码提交 `1563387` 的推送与核对过程见[新主机部署推送回执](docs/integrations/PUSH_LOG_HOST84_2026-10-29.md)；硬件未接入时映射校验按设计拒绝执行，未修改任何接口。
+
 ## 2026-10-28
 
 ### 设备接入规范、CR5 / LoopHand 独立驱动与组合示例
@@ -85,7 +96,12 @@
 
 ### 新主机钢琴用户曲谱
 
-- 192.168.0.84的Web新增《卡农》《克罗地亚狂想曲》60 BPM单音简化预设，外部项目保存CSV及逐小节转换记录。当前实测配置的完整软件演奏、Web预检通过；原10份曲谱与标定不变，无真机运动或驱动代码修改。《诀别书》源PDF为空白，待补有效谱面。证据 `.morla_piano/diagnostics/user_scores_20261023/validation.json`；详见外部项目 `docs/USER_SCORE_PRESETS_2026-10-23.md`。
+- 192.168.0.84的Web新增《卡农》《克罗地亚狂想曲》60 BPM单音简化预设（Web ID `3d7be51175b34afda9a13eafbab7af86`、`519cf07de29c423fa4adaeb83f35c6e1`），外部项目保存CSV及逐小节转换记录。当前实测配置的完整软件演奏、Web预检通过；原10份曲谱与标定不变，无真机运动或驱动代码修改。《诀别书》源PDF为空白，待补有效谱面。证据 `.morla_piano/diagnostics/user_scores_20261023/validation.json`；详见外部项目 `docs/USER_SCORE_PRESETS_2026-10-23.md`。
+
+### 钢琴部署到192.168.0.84
+
+- 补齐系统Python Web依赖、morla_bringup/morla_web_manager及缺失的wujihand_control安装；迁移并校验旧机标定和10份Web曲谱。Web启动、软件会话、8个演奏预设60 BPM预检通过；测试服务已退出，未执行硬件动作。
+- 安装新机独立CAN映射脚本与配置模板；硬件尚未接入，左右USB bus-info待现场确认，未配置时阻止激活。修复启动脚本对空CAN JSON行的处理。详见 docs/piano/DEPLOYMENT_192_168_0_84_2026-10-23.md。
 
 ### 本轮入库与本地复验
 
