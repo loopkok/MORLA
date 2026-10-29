@@ -1,4 +1,5 @@
 """Manifest loading is data-only. Package installation is a separate trusted action."""
+import os
 from pathlib import Path
 from .registry import Catalog
 from morla_core.composition.parser import load_document
@@ -18,9 +19,12 @@ def discover_ament():
         contents,prefix=get_resource('morla_components',package)
         root=Path(prefix).resolve()
         for relative in contents.splitlines():
-            path=(root/relative.strip()).resolve()
-            if root not in path.parents: raise ValueError('manifest escaped installed package prefix')
-            manifests.append(path)
+            candidate=root/relative.strip()
+            # Check lexically: symlink installs point into the source tree, so
+            # resolving the file itself would legitimately leave the prefix.
+            check=Path(os.path.abspath(candidate))
+            if root not in check.parents: raise ValueError('manifest escaped installed package prefix')
+            manifests.append(candidate)
     return load_catalog(manifests)
 
 
