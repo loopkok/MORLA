@@ -83,7 +83,7 @@
   {
     "profile_id": "nero_dual_xhand",
     "source_path": "src/robots/nero/morla_nero_robot/config/profiles/nero_dual_xhand.yaml",
-    "source_sha256": "17e22af40945c7ddc4fb41df7103148cecef8ed9a2cac4ef567bb4ba6df3a701",
+    "source_sha256": "32c388620b7d40b68ce624218ab24b66075518a0a1aeeb73c84fbd1a7e5795ba",
     "schema_hash": "0a513539f288b2ac1067821e0cce80eabc9277a85cbc1b2cc591b9d6faf97b1f",
     "layout_hash": "6ff0cd51f0fed20ef4129408116481d3f63504575ea82d101b8ebe5863367df3",
     "state_dim": 38,

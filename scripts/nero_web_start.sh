@@ -79,7 +79,7 @@ if $USE_QUEST; then command -v adb >/dev/null || die '缺少 adb；安装后重�
 cd -- "$WS"
 
 log '1/7 检查 USB-CAN 和串口设备'
-mapfile -t CAN_DEVICES < <(ip -j link show type can | /usr/bin/python3 -c 'import json,sys; print("\n".join(row["ifname"] for row in json.load(sys.stdin)))')
+mapfile -t CAN_DEVICES < <(ip -j link show type can | /usr/bin/python3 -c 'import json,sys; print("\n".join(row["ifname"] for row in json.load(sys.stdin) if row.get("ifname")))')
 ((${#CAN_DEVICES[@]} >= 2)) || die '未检测到两路 CAN 接口；检查双臂 USB-CAN 接线、电源和 gs_usb 驱动'
 printf 'CAN：%s\n' "${CAN_DEVICES[*]}"
 shopt -s nullglob
@@ -97,7 +97,7 @@ if ! $DRY_RUN; then
     /usr/bin/python3 - <<'PY'
 import json, subprocess, sys
 rows=json.loads(subprocess.check_output(['ip','-details','-json','link','show','type','can']))
-rows={r['ifname']:r for r in rows}
+rows={r['ifname']:r for r in rows if r.get('ifname')}
 for name in ('can_nero_left','can_nero_right'):
     row=rows.get(name,{})
     details=row.get('linkinfo',{}).get('info_data',{})

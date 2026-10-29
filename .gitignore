@@ -41,6 +41,8 @@ pi05_infer_test_log/
 .morla_piano/
 .pnpm-store/
 .pytest_cache/
+# Web manager 本地进程 PID（运行时生成，因 web/ 目录被跟踪而会显示为未跟踪文件）
+src/common/morla_web_manager/web/browser-api.pid
 
 # Property-based testing local cache
 .hypothesis/

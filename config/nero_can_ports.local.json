@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "bitrate": 1000000,
+  "left_bus_info": "1-2.2:1.0",
+  "right_bus_info": "1-2.1:1.0"
+}

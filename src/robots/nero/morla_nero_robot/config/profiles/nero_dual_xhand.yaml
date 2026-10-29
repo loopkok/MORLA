@@ -795,10 +795,10 @@ hardware:
   xhand:
     left:
       hand_id: 0
-      serial_port: configure_on_host
+      serial_port: /dev/serial/bi-id/usb-FTDI_USB-RS485-WE_FTAEFQWY-if00-port0
     right:
       hand_id: 0
-      serial_port: configure_on_host
+      serial_port: /dev/serial/bi-id/usb-FTDI_USB-RS485-WE_FTAAUYUK-if00-port0
 description_revision: sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3
 mode_default: sim
 input:
