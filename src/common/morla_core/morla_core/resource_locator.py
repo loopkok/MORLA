@@ -19,6 +19,22 @@ def package_share(package_name: str) -> Path:
         raise ResourceLookupError(f"ament package {package_name!r} is not installed") from exc
 
 
+def _inside_named_package(target: Path, package_name: str) -> bool:
+    """True when the path lives in a directory that is this package's own tree.
+
+    colcon --symlink-install installs data files as symlinks back into the
+    build/source tree, so a legitimate resource resolves outside the share.
+    Accept that only when an enclosing directory carries the package name and
+    build metadata; symlinks into arbitrary locations stay rejected.
+    """
+    for parent in target.parents:
+        if parent.name == package_name and any(
+                (parent / marker).is_file()
+                for marker in ("package.xml", "setup.py", "CMakeLists.txt")):
+            return True
+    return False
+
+
 def resolve_package_resource(package_name: str, relative_path: str, *, must_exist: bool = True) -> Path:
     """Resolve a relative path inside a package share, rejecting path escape."""
     relative = Path(relative_path)
@@ -26,7 +42,7 @@ def resolve_package_resource(package_name: str, relative_path: str, *, must_exis
         raise ResourceLookupError(f"resource path must stay within package share: {relative_path!r}")
     base = package_share(package_name)
     target = (base / relative).resolve()
-    if not target.is_relative_to(base):
+    if not target.is_relative_to(base) and not _inside_named_package(target, package_name):
         raise ResourceLookupError(f"resource symlink escapes package share: {relative_path!r}")
     if must_exist and not target.exists():
         raise ResourceLookupError(f"resource does not exist: {package_name}/{relative_path}")
@@ -72,16 +88,13 @@ def resolve_robot_asset(model_id: str) -> Path:
     try:
         import yaml
 
-        try:
-            manifest_path = resolve_package_resource("robot_description", manifest_relative)
-        except ResourceLookupError:
-            # colcon --symlink-install places the resource tree outside install/share.
-            # Permit that only when the manifest symlink resolves into the matching
-            # robot_description source package; arbitrary escaping symlinks stay blocked.
-            manifest_path = (share / manifest_relative).resolve(strict=True)
-            source_share = manifest_path.parent.parent
-            if source_share.name != "robot_description" or not (source_share / "CMakeLists.txt").is_file():
-                raise
+        manifest_path = resolve_package_resource("robot_description", manifest_relative)
+        # Under colcon --symlink-install the manifest resolves back into the
+        # package source tree; keep supplemental catalogs and asset paths
+        # relative to that same package root instead of the install share.
+        package_root = manifest_path.parent.parent
+        if package_root != share and package_root.name == "robot_description":
+            source_share = package_root
         manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
     except ResourceLookupError:
         raise
