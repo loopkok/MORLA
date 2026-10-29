@@ -17,6 +17,7 @@ import threading
 import time
 import numpy as np
 import re
+import uuid
 from typing import Optional, Tuple
 
 from morla_input.latency_meter import LatencyMeter
@@ -251,6 +252,7 @@ class Quest3UDPMocap(Node):
         # Mixed/IOBT: Touch 6DoF also published on quest3/{side}_wrist_pose so
         # existing arm IK keeps tracking the held controller.
         self.declare_parameter("controller_as_wrist", True)
+        self.declare_parameter("publish_teleop_events", False)
         self.declare_parameter("max_packet_age_s", 0.5)
         self.declare_parameter("input_timeout_s", 0.5)
         self.declare_parameter("allow_legacy_packets", False)
@@ -302,6 +304,12 @@ class Quest3UDPMocap(Node):
                 "checks are bypassed for unwrapped packets"
             )
         self.controller_as_wrist = bool(self.get_parameter("controller_as_wrist").value)
+        self._teleop_events_enabled = bool(self.get_parameter("publish_teleop_events").value)
+        self._teleop_epoch = uuid.uuid4().hex
+        self._teleop_sequence = 0
+        event_qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
+                               history=HistoryPolicy.KEEP_LAST, depth=16)
+        self._teleop_events_pub = self.create_publisher(String, 'quest3/right_teleop_events', event_qos)
         self.publish_landmarks_left = bool(
             self.get_parameter("publish_landmarks_left").value
         )
@@ -635,6 +643,7 @@ class Quest3UDPMocap(Node):
     def _signal_input_epoch(self, reason: str, details: dict | None = None) -> None:
         """Invalidate receiver caches and notify the common control gate."""
         self._stream_health.clear()
+        self._teleop_epoch = uuid.uuid4().hex
         self._input_disarm_pub.publish(Bool(data=True))
         self.landmark_cache_right.fill(0.0)
         self.landmark_cache_left.fill(0.0)
@@ -724,6 +733,16 @@ class Quest3UDPMocap(Node):
         msg.data = mix
         self.mix_pub.publish(msg)
 
+    def _publish_teleop_event(self, side, kind, source, frame_id, values, arrival_time):
+        if side != 'right' or not getattr(self, '_teleop_events_enabled', False):
+            return
+        self._teleop_sequence += 1
+        row = {'version': 1, 'side': side, 'kind': kind, 'source': source,
+               'epoch': self._teleop_epoch, 'sequence': self._teleop_sequence,
+               'sent_ns': int((arrival_time or time.time()) * 1e9),
+               'frame_id': frame_id, 'values': values}
+        self._teleop_events_pub.publish(String(data=json.dumps(row, allow_nan=False)))
+
     def _note_wrist_gap(self, side: str, arrival_time: float) -> None:
         if not self._print_latency or arrival_time <= 0.0:
             return
@@ -758,6 +777,8 @@ class Quest3UDPMocap(Node):
             # Drop the transition sample; a fresh sample must follow the event.
             return
         self._published_pose_frame = frame_id
+        self._publish_teleop_event(side, 'pose', src, frame_id,
+                                   [*map(float, pos), *map(float, quat)], arrival_time)
         pose_msg = self._make_pose_stamped(
             pos, quat, arrival_time, frame_id
         )
@@ -808,6 +829,8 @@ class Quest3UDPMocap(Node):
         msg.axes = [trigger, grip, stick_x, stick_y]
         msg.buttons = [(mask >> i) & 1 for i in range(6)]
         (self.joy_pub_right if side == "right" else self.joy_pub_left).publish(msg)
+        self._publish_teleop_event(side, 'grip', 'controller', msg.header.frame_id,
+                                   grip, arrival_time)
 
     def _process_body_line(self, line: str, arrival_time: float) -> None:
         """Parse ``body iobt | fid=High: hips,x,y,z,qx,qy,qz,qw spine-lower,...``.
@@ -1010,6 +1033,10 @@ class Quest3UDPMocap(Node):
             return
         if side == "left" and not self.publish_landmarks_left:
             return
+        # Deadman uses current raw canonical landmarks, never an old EMA hand pose.
+        if side in ('left', 'right'):
+            self._publish_teleop_event(side, 'landmarks', 'hand', f'hand_{side}',
+                                       landmarks.tolist(), arrival_time)
         if side == 'right':
             self.landmark_cache_right = self.ema_alpha * landmarks + (1 - self.ema_alpha) * self.landmark_cache_right
             landmarks = self.landmark_cache_right

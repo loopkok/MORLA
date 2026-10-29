@@ -34,7 +34,7 @@ ros2 launch morla_cr5_driver cr5_driver.launch.py resolved_path:=/tmp/cr5.resolv
 
 配置模板为本包 `config/deployment.real.example.yaml`。填写实际设备身份、IP 与 6 个 joint_lower/joint_upper（rad），然后使用 compile 的 `--deployment` 参数编译。模板 verified/stop_verified=false 保留至现场证据齐全；descriptor 的 ±2π 仅是外层保护范围，不是认证物理限位。
 
-真实 CR5、固件兼容、设备停止/断网 watchdog、旧动作缓存、零位/方向、安装 TCP 和长稳均未验收。主机超时保护不能替代设备 watchdog。CR5 URDF/IK 和笛卡尔 controller 尚未接入，可先用具名关节目标或 joint jog；不应选 Nero/Astral 专用 IK。
+真实 CR5、固件兼容、设备停止/断网 watchdog、旧动作缓存、零位/方向、安装 TCP 和长稳均未验收。主机超时保护不能替代设备 watchdog。现已提供基于纯 CR5 URDF / Pinocchio 的本地数值 IK 和右侧 VR controller；不使用 Nero/Astral 参数或控制器内置 IK。动力学仿真尚未接入。
 
 ## 独立验证与组合
 
@@ -43,7 +43,21 @@ ros2 launch morla_cr5_driver cr5_driver.launch.py resolved_path:=/tmp/cr5.resolv
 ```bash
 PYTHONPATH=src/common/morla_core:src/common/morla_runtime:src/robots/dobot/morla_cr5_driver \
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q \
-  src/robots/dobot/morla_cr5_driver/test
+  src/robots/dobot/morla_cr5_driver/test/test_cr5_driver.py
 ```
 
 与其他末端的组合只在 Assembly/Deployment 中表达。双设备示例见 [examples/cr5_loophand](../../../../examples/cr5_loophand/README.md)，不要求安装额外的 CR5+手联合驱动包。详见 [CR5 接入记录](../../../../docs/integrations/cr5.md)。
+
+## 右手柄 / 右手追踪 VR 遥操（2026-10-29）
+
+已补齐来源明确的 Quest 输入、右握把/右手捏合 deadman、相对建锚、姿态滤波、异步本地 URDF / Pinocchio FK/IK、统一 runtime 输出和本机控制页。启动保持 disarmed，来源切换/断流后重新激活建锚。fake 与 real 共用实际 CR5 几何模型和 IK，fake 反馈仍为合成数据；真实跟随尚需现场验收。
+
+在已构建本包与公共 morla_web_manager 的 Humble 环境，配置 ADB reverse TCP 8000 后运行：
+
+```bash
+ros2 launch morla_cr5_driver cr5_vr.launch.py
+```
+
+默认 fake；浏览器打开 http://127.0.0.1:8080/。真实参数、只读本地正逆解检查、控制手势和完整步骤见 [CR5 VR 操作指南](../../../../docs/integrations/cr5_vr.md)。本包新增 controller.json 与 morla.controllers 注册，需重新构建/source；旧冻结快照重新编译。单独关节驱动不需要启动 Web 宿主。
+
+VR controller/输入及可选控制页的整链回归通过仓库 `scripts/test_composable.sh --layer pure` 执行，需要公共输入/遥操/学习/Web 源码及测试依赖。未安装可选 Web 模块时，对应整链/页面测试明确跳过；不能据此宣称该层已通过。

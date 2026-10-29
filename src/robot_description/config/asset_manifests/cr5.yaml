@@ -1,0 +1,128 @@
+schema_version: 1
+package: robot_description
+models:
+- model_id: cr5_arm
+  path: urdf/cr5/cr5.urdf
+  format: urdf
+  purpose: arm_only_local_pinocchio_ik
+  robot: cr5
+  side: single
+  source_path: /Users/a1234/Desktop/CR5机械臂/robot-descriptions-dobot/cr5_description/xacro/arm.xacro
+  source_sha256: ec6d8485fb8e97d4c616be4ae0ad5054bfea8fad0d2ba3e5b7c580a79d834c30
+  target_sha256: bf3df73a243f8dff6b1f4810b340a661780e3dd27f0bfbbfb3ec8d99ac7d5a73
+  base_link: base_link
+  end_links:
+  - Link6
+  movable_joints:
+  - joint1
+  - joint2
+  - joint3
+  - joint4
+  - joint5
+  - joint6
+  ros_to_urdf_joint_map:
+  - ros_joint: joint1
+    urdf_joint: joint1
+    sign: 1.0
+    offset: 0.0
+  - ros_joint: joint2
+    urdf_joint: joint2
+    sign: 1.0
+    offset: 0.0
+  - ros_joint: joint3
+    urdf_joint: joint3
+    sign: 1.0
+    offset: 0.0
+  - ros_joint: joint4
+    urdf_joint: joint4
+    sign: 1.0
+    offset: 0.0
+  - ros_joint: joint5
+    urdf_joint: joint5
+    sign: 1.0
+    offset: 0.0
+  - ros_joint: joint6
+    urdf_joint: joint6
+    sign: 1.0
+    offset: 0.0
+  mesh_closure:
+  - path: meshes/cr5/collision/Link1_0.stl
+    exists: true
+    sha256: 6f847621e90bacd476bad629a881d2b28d57efd65b2ea046deda420204a46d15
+  - path: meshes/cr5/collision/Link1_1.stl
+    exists: true
+    sha256: 12f02b711c0e2f22e476838c6bd8dd036b7d2edae477def8146b3aac8e1e8bba
+  - path: meshes/cr5/collision/Link2_0.stl
+    exists: true
+    sha256: dd1ff62f1868715844e93a3c94263412bb2721576fa0dce2f193e654498a2c2e
+  - path: meshes/cr5/collision/Link2_1.stl
+    exists: true
+    sha256: d7e714df89fee8549b6c880dd553ae645743504a79358286ade7a233fee49a90
+  - path: meshes/cr5/collision/Link2_2.stl
+    exists: true
+    sha256: c32a9d6bfab5db6a3d8c86337083c4efa19850ce0a5034708e392069fabd58c8
+  - path: meshes/cr5/collision/Link3_0.stl
+    exists: true
+    sha256: a97e720350513925069f20abeb8debbbd8f12d7e81fcde23f2c07fd3c62d2a59
+  - path: meshes/cr5/collision/Link3_1.stl
+    exists: true
+    sha256: 7b226df8751f00a73ea929cc65c4ea187d85c278fca6ff64e6f7b3a6ede36780
+  - path: meshes/cr5/collision/Link3_2.stl
+    exists: true
+    sha256: 6f25762c8a6b340e78a8169f28265eaeebec0ed38ff4ea7f28fb74be78924046
+  - path: meshes/cr5/collision/Link4.stl
+    exists: true
+    sha256: 2dd07cec3955427afa6ae5a8734e740fac21fb1455a4d77794bfe1ccaa43abce
+  - path: meshes/cr5/collision/Link5.stl
+    exists: true
+    sha256: e2d23752e4f2150c329dd03d07a354ecb2890f6e9a81aeb1d7c83b189f223ea9
+  - path: meshes/cr5/collision/Link6.stl
+    exists: true
+    sha256: 2c2ed95c2fc6616317780edeffe916c6bc0d615098d5d99c5ccf3a4ec8ac1a22
+  - path: meshes/cr5/collision/base_link.stl
+    exists: true
+    sha256: cf8cae00f3b7efa224bfe14b7529f49efc7b0c0a1e5257a3564edb6eb16f31cf
+  - path: meshes/cr5/visual/Link1.mtl
+    exists: true
+    sha256: ed4ced16be54e5d097cefef0e0b686bcf8f8c990605ab8dae447b02cf8090f2d
+  - path: meshes/cr5/visual/Link1.obj
+    exists: true
+    sha256: e73cd73e8a19bfe2c3e693f3b0313b41c5068f5406319729fe7400112a26c40d
+  - path: meshes/cr5/visual/Link2.mtl
+    exists: true
+    sha256: 5f9be6032d722167aa4ebf6b6acad0bcc3cd9774c7b542b6593574c104d7f7b1
+  - path: meshes/cr5/visual/Link2.obj
+    exists: true
+    sha256: 1547bc83b7c789f3a4beac8ecb18204620ef3a543c1dbaff56046ee71621ba4d
+  - path: meshes/cr5/visual/Link3.mtl
+    exists: true
+    sha256: 6c3eba82b7b5e1adc2818e35f795d89be3edf0ed312d4259abe10a6b2561f9d6
+  - path: meshes/cr5/visual/Link3.obj
+    exists: true
+    sha256: b086061b45b3b0c90689f83397975a54eaf49d69a65e0ca51bac49347d3223e5
+  - path: meshes/cr5/visual/Link4.mtl
+    exists: true
+    sha256: 6c3eba82b7b5e1adc2818e35f795d89be3edf0ed312d4259abe10a6b2561f9d6
+  - path: meshes/cr5/visual/Link4.obj
+    exists: true
+    sha256: f6d0a92a81cb5579e6ee3b83c56c22975112af66133a2bbda3386a1a64095408
+  - path: meshes/cr5/visual/Link5.mtl
+    exists: true
+    sha256: bca4e861a049434c3cac72f532058a9fd77b43ff200ff3620d35e36b99c801c4
+  - path: meshes/cr5/visual/Link5.obj
+    exists: true
+    sha256: 00c3a7a3bf4d7edb1fb62677c7d84835d6ad9cff472368e1b3bffde2ed8f5acb
+  - path: meshes/cr5/visual/Link6.mtl
+    exists: true
+    sha256: 8aec6ed825d84ea76eb3b258b1e4e9f11826660e74bba298df94c3ecf9ac7188
+  - path: meshes/cr5/visual/Link6.obj
+    exists: true
+    sha256: 92795fec35175cea8253341063d60c1e170f081a0566de068399edbc1d327931
+  - path: meshes/cr5/visual/base_link.mtl
+    exists: true
+    sha256: bdbf4fa229c70434af7375818abd9b9b680445677dee0a6cca555926e7258896
+  - path: meshes/cr5/visual/base_link.obj
+    exists: true
+    sha256: 0483a375e88be8d58e602ba3b37a67452612b8d8c9c55b44d6ec8469692907b6
+  license: MIT
+  provenance: docs/cr5/PROVENANCE.json

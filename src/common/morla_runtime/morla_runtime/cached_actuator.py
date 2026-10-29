@@ -27,7 +27,7 @@ class CachedActuatorAdapter:
         self.pending = None
         self.sample = {'ready':False,'sample_ns':0,'source':'unavailable',
                        'measured':False,'synthetic':False,'values':[]}
-        self.last_command = 0
+        self.last_command = None
 
     def validate_configuration(self):
         """Device subclasses validate deployment parameters without connecting."""
@@ -53,7 +53,8 @@ class CachedActuatorAdapter:
                 with self.io:
                     with self.lock:
                         pending,self.pending = self.pending,None
-                        expired = self.active and self.clock()-self.last_command > int(self.parameters['command_timeout_s']*1e9)
+                        expired = (self.active and self.last_command is not None and
+                            self.clock()-self.last_command > int(self.parameters['command_timeout_s']*1e9))
                     if expired:
                         self._stop_locked()
                         raise TimeoutError('Command watchdog expired')
@@ -104,7 +105,8 @@ class CachedActuatorAdapter:
             self.prepare()
             self.transport.activate()
             with self.lock:
-                self.last_command=self.clock(); self.active=True; self.pending=None
+                # Wait for an explicitly authorized first target; activation is not a command stream.
+                self.last_command=None; self.active=True; self.pending=None
         return True
 
     def submit(self, target):
@@ -123,7 +125,7 @@ class CachedActuatorAdapter:
 
     def _stop_locked(self):
         with self.lock:
-            self.active=False; self.pending=None
+            self.active=False; self.pending=None; self.last_command=None
         self.transport.stop()
 
     def stop(self):

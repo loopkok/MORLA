@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CR5 右侧 VR 遥操</title>
+<style>
+body{font:16px system-ui;margin:0;background:#101720;color:#edf2f7}main{max-width:940px;margin:auto;padding:32px 20px}
+h1{font-size:28px;margin-bottom:8px}p{line-height:1.7;color:#c1cedb}.card{background:#1b2634;border:1px solid #354457;border-radius:12px;padding:20px;margin:18px 0}
+button{font:inherit;border:0;border-radius:8px;padding:12px 20px;margin:5px;background:#284964;color:white;cursor:pointer}button:hover{background:#346384}button.danger{background:#a32437}button:disabled{opacity:.4;cursor:wait}
+.status{font-size:22px;color:#79d7b0}#backend{color:#ffce7a}#error{color:#ffb6b6;white-space:pre-wrap}pre{overflow:auto;font-size:13px;line-height:1.5}code{color:#a8ceff}
+</style><main>
+<h1>CR5 · 右侧 VR 遥操</h1><div id="backend">读取会话…</div>
+<p>右手柄握住握把跟随，右手追踪捏合拇指与食指跟随。激活后先松开握把或张开手指，再按住或捏合建锚；第一帧保持机器人当前位置。松开、切换来源或失联后，需要重新激活并建锚。</p>
+<section class="card"><div class="status" id="status">连接中…</div><p id="input">等待 Quest 数据</p><p id="authority">尚未取得跟随控制权</p><p id="joints">—</p></section>
+<section class="card">
+<button data-op="prepare">准备</button><button data-op="activate">激活</button><button data-op="disarm">暂停 / 撤权</button>
+<button class="danger" data-op="estop">软件急停</button><button data-op="reset">复位</button><button data-op="stop">停止会话</button>
+<p>准备和激活是显式设备操作。软件急停通过驱动停止，物理急停按设备现场规范操作；复位不会自动恢复跟随。</p>
+<button id="record">开始录制</button><button id="save">结束并保存</button><span id="recording">未录制</span>
+<div id="error" role="alert"></div></section>
+<details class="card"><summary>会话与操作结果</summary><pre id="details"></pre></details>
+</main><script>
+let sid=null,lastReply=null;
+async function request(path,body){const r=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});const x=await r.json();if(!r.ok)throw new Error(typeof x.detail==='string'?x.detail:JSON.stringify(x));return x;}
+async function action(op){try{lastReply=await request(`/api/v2/sessions/${sid}/operations`,{operation:op,request_id:crypto.randomUUID()});document.getElementById('error').textContent=lastReply.error||'';}catch(e){document.getElementById('error').textContent=e.message;}}
+for(const b of document.querySelectorAll('[data-op]'))b.onclick=async()=>{if(!sid)return;b.disabled=true;try{await action(b.dataset.op);}finally{b.disabled=false;}};
+document.getElementById('record').onclick=async()=>{try{lastReply=await request(`/api/v2/sessions/${sid}/recordings`,{task:'CR5 right VR demonstration'});}catch(e){document.getElementById('error').textContent=e.message;}};
+document.getElementById('save').onclick=async()=>{try{lastReply=await request(`/api/v2/sessions/${sid}/recordings/stop`,{});}catch(e){document.getElementById('error').textContent=e.message;}};
+async function poll(){try{if(!sid){const boot=await request('/cr5-vr/session');sid=boot.session_id;document.getElementById('backend').textContent=boot.backends.arm==='fake'?'FAKE 演练 · CR5 URDF 本地 IK，合成关节反馈':'REAL 设备 · CR5 URDF 本地 IK，使用现场标定与部署';}
+const s=await request(`/api/v2/sessions/${sid}/state`);document.getElementById('status').textContent=s.status;
+const q=s.inputs.quest;document.getElementById('input').textContent=q?`右侧来源：${q.mode==='hand'?'手追踪':q.mode==='controller'?'手柄':'尚未识别'} · ${q.fresh?'输入新鲜':'等待新鲜输入'}`:'等待 Quest 输入';
+document.getElementById('authority').textContent=s.authority?'正在持有跟随控制权':'未跟随：激活后，先释放再按住 / 捏合';
+const arm=s.components.arm;document.getElementById('joints').textContent=arm?`关节 rad：${(arm.values||[]).map(x=>x.toFixed(3)).join('  ')} · ${arm.source} · ${arm.fresh?'反馈新鲜':'反馈过期'}`:'无有效反馈';
+document.getElementById('recording').textContent=s.recording?'正在录制':'未录制';
+const errors=Object.values(s.input_errors||{});if(errors.length)document.getElementById('error').textContent=errors.join('\n');
+document.getElementById('details').textContent=JSON.stringify({session_id:sid,reply:lastReply,operations:s.operations,input_errors:s.input_errors,close_errors:s.controller_close_errors},null,2);
+}catch(e){document.getElementById('status').textContent='连接失败';document.getElementById('error').textContent=e.message;}setTimeout(poll,200);}poll();
+</script></html>

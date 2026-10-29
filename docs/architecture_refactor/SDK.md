@@ -87,3 +87,11 @@ stop() -> bool | dict
 `compile_system(assembly,deployment=None,registry=None)` 纯逻辑返回 detached JSON snapshot，不启动设备。`verify_resolved(snapshot,registry=None)` 校验快照 hash 与 trusted catalog 重新编译结果。运行/采集使用同一快照；旧数据通过显式 `to_v3` 转换保留来源版本/hash。
 
 Schema v3 独立保存 state/action 布局、任意相机数据键、raw auxiliary 与 sensor_specs。修改输入而模型特征不变时，feature_contract_hash 保持；几何/标定内容变化更新 geometry_hash；输入映射另有 input_mapping_hash。相机模型槽位映射、归一化、feature 名称/单位/语义都必须通过学习握手。
+
+## 七、异步笛卡尔 controller 扩展示例
+
+CR5 的 `morla.cr5.cartesian_delta` 通过同一 morla.controllers 机制注册，静态 controller descriptor 随编译锁文件冻结。组合宿主在显式激活前加载所选 controller，factory context 除 instance/binding 外可包含 `clock` 和 Adapter 可选的只读 `kinematics_provider`；未提供该能力的 Adapter 不受影响。CR5 当前改用独立 URDF / Pinocchio 本地求解器，不使用该可选 provider，也不回退控制器内置 IK。
+
+controller 的 `reset()` 必须隔离迟到的异步结果；持有线程的 controller 实现 `close()`，宿主在会话退出时回收。绑定的 max_age_ms 已传给 BindingController。参考 [CR5 VR 操作与实现](../integrations/cr5_vr.md)，该例不能替代其他设备自己的运动学和实机验收。
+
+可选 controller 标记 `requires_fresh_input=True` 时，宿主在激活前及 ACTIVE 的人工控制/等待阶段调用 BindingController.input_fresh，检查源、位姿和 bool deadman 的独立时效；缺输入不会先使能再等命令。原 controller 默认不启用该附加要求，CR5 真实 VR 后端显式启用。

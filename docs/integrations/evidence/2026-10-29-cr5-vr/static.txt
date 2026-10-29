@@ -1,0 +1,5 @@
+PASS: changed Python AST / JSON / YAML / XML: {'.py': 22, '.json': 3, '.yaml': 2, '.xml': 1}
+PASS: control-page inline JavaScript node --check
+PASS: git diff --check and new files trailing whitespace
+PASS: operation/implementation documentation relative links
+NOT_RUN: ROS Humble colcon/IDL, actual ROS transport, Quest, CR5, physical calibration, stop/watchdog, long stability

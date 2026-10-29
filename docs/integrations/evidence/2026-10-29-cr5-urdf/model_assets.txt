@@ -1,0 +1,4 @@
+BASELINE global asset audit: robot_description check failed: target hash mismatch: nero_left_arm -> urdf/nero/xhand_nero_description.urdf (existing Nero asset; not modified in this change)
+CR5 targeted model/material/mesh manifest hash closure PASS
+Actual CR5 Pinocchio geometry load PASS 6 DOF 7 visuals 12 colliders
+Ament index queries mapped to source packages; not a ROS/colcon test

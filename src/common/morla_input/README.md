@@ -265,3 +265,11 @@ quest3_udp_mocap
 | 2026-08 | 腕改回世界系 | 取消 wrist 相对 head；head 与 wrist 同属 `robot_world`/`vr_world` |
 | 2026-08 | convert_to_robot | 启动可选 Unity→机器人轴 |
 详见顶层 [README](../../README.md) 与 [CHANGELOG.md](../../CHANGELOG.md)。
+
+## 来源明确的右侧遥操输入（2026-10-29）
+
+可选参数 `publish_teleop_events:=true` 在 `/quest3/right_teleop_events` 输出 v1 JSON 事件，包含 side/source/kind、接收器 epoch、递增 sequence、host wall sent_ns、frame_id 和 values。pose 明确来自 controller 或 hand；grip 来自控制器，landmarks 来自当前原始 canonical 21 点，不使用历史 EMA。默认关闭，原腕/手柄/关键点话题保持原接口。
+
+新增静态组件 `morla.input.quest_right`，ROS 输入宿主使用 `QuestRightSource` 产生 `right_pose/right_hold`。右握把或右手拇指/食指捏合充当 deadman；来源/epoch/frame 改变、过期、重连均要求重新释放/按下。旧手柄按键不能在手追踪模式下授权；腕和 deadman 独立限龄。该输入不绑定任何机器人型号。
+
+CR5 的启动、fake 演练与现场配置见 [CR5 VR 指南](../../../docs/integrations/cr5_vr.md)。

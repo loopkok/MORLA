@@ -51,13 +51,13 @@
       "name": "joint3",
       "unit": "rad",
       "type": "revolute",
-      "lower": -6.283185307179586,
-      "upper": 6.283185307179586,
+      "lower": -2.7925,
+      "upper": 2.7925,
       "limits": [
-        -6.283185307179586,
-        6.283185307179586
+        -2.7925,
+        2.7925
       ],
-      "limit_source": "outer_guard_REQUIRES_deployment_limits"
+      "limit_source": "URDF_outer_guard_REQUIRES_deployment_limits"
     },
     {
       "name": "joint4",
@@ -136,7 +136,11 @@
       "mount"
     ],
     "calibration_required": true,
-    "collision_verified": false
+    "collision_verified": false,
+    "model_id": "cr5_arm",
+    "model_sha256": "bf3df73a243f8dff6b1f4810b340a661780e3dd27f0bfbbfb3ec8d99ac7d5a73",
+    "solver_base_frame": "base_link",
+    "solver_tip_frame": "Link6"
   },
   "configuration_schema": {
     "type": "object",
@@ -179,6 +183,25 @@
         },
         "minItems": 6,
         "maxItems": 6
+      },
+      "kinematics_verified": {
+        "type": "boolean"
+      },
+      "urdf_joint_signs": {
+        "type": "array",
+        "minItems": 6,
+        "maxItems": 6,
+        "items": {
+          "type": "number"
+        }
+      },
+      "urdf_joint_offsets": {
+        "type": "array",
+        "minItems": 6,
+        "maxItems": 6,
+        "items": {
+          "type": "number"
+        }
       }
     },
     "additionalProperties": false
@@ -187,7 +210,24 @@
     "rate_hz": 20,
     "timeout_s": 0.2,
     "command_timeout_s": 0.3,
-    "max_step_rad": 0.05
+    "max_step_rad": 0.05,
+    "kinematics_verified": false,
+    "urdf_joint_signs": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "urdf_joint_offsets": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
   },
   "source": {
     "package": "morla_cr5_driver",

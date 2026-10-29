@@ -196,6 +196,14 @@ class RuntimeSession:
                     if not params.get('image_topic'): missing.append('explicit_image_topic')
                 else:
                     missing.append('camera_backend')
+            elif backend == 'real' and instance.get('kind') == 'input':
+                if module_missing('rclpy'): missing.append('rclpy')
+                missing_probe = 'external_input_host_and_guarded_source_required'
+                checks.append({'instance_id': key, 'backend': backend,
+                               'backend_available': not missing, 'missing': missing,
+                               'deployment_verified': bool(instance.get('deployment_verified')),
+                               'probe': missing_probe, 'render_context_verified': None})
+                continue
             elif backend == 'real':
                 # External adapters may use a direct TCP/serial SDK without ROS.
                 # Inspect installed metadata only; preflight must not load device code.

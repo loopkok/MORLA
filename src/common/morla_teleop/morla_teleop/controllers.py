@@ -74,6 +74,28 @@ class BindingController:
         for plugin in self.registry.plugins.values():
             if hasattr(plugin,'reset'): plugin.reset()
 
+    def close(self):
+        self.reset()
+        for plugin in self.registry.plugins.values():
+            if hasattr(plugin,'close'): plugin.close()
+
+    def input_fresh(self, frame):
+        now=self.clock()
+        if (frame is None or not frame.valid or
+                frame.source_id!=self.binding['source'].split('.',1)[0] or
+                not 0<=now-frame.received_ns<=self.max_age_ns):return False
+        metadata=frame.port_metadata or {}
+        for reference in (self.binding['source'],self.binding['deadman']):
+            port=reference.split('.',1)[1]
+            if port not in frame.ports:return False
+            stamp=metadata.get(port,{}).get('received_ns',frame.received_ns)
+            if type(stamp) is not int or not 0<=now-stamp<=self.max_age_ns:return False
+        return type(frame.ports[self.binding['deadman'].split('.',1)[1]]) is bool
+
+    @property
+    def requires_fresh_input(self):
+        return any(getattr(plugin,'requires_fresh_input',False) for plugin in self.registry.plugins.values())
+
     def step(self, frame, measured):
         now = self.clock()
         if frame is None or not frame.valid or not 0 <= now - frame.received_ns <= self.max_age_ns:

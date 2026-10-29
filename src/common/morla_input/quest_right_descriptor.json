@@ -1,0 +1,55 @@
+{
+  "descriptor_version": 1,
+  "api_version": "1.0",
+  "plugin_id": "morla.input.quest_right",
+  "plugin_version": "1.0.0",
+  "kind": "input",
+  "ports": {
+    "right_pose": {
+      "direction": "output",
+      "semantic": "pose6d",
+      "dim": 7,
+      "unit": "m_rad",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "right_hold": {
+      "direction": "output",
+      "semantic": "scalar",
+      "dim": 1,
+      "unit": "ratio",
+      "codec": "numeric",
+      "dtype": "bool"
+    }
+  },
+  "backend_variants": {
+    "fake": {
+      "available": true,
+      "validation_level": "protocol"
+    },
+    "real": {
+      "available": true,
+      "requires": [
+        "rclpy",
+        "guarded Quest receiver with teleop events"
+      ],
+      "validation_level": "requires_physical_acceptance"
+    }
+  },
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "input_topic": {
+        "type": "string"
+      }
+    },
+    "additionalProperties": false
+  },
+  "defaults": {
+    "input_topic": "/quest3/right_teleop_events"
+  },
+  "source": {
+    "package": "morla_input",
+    "version": "0.0.0"
+  }
+}

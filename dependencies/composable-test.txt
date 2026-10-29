@@ -14,3 +14,6 @@ websockets==15.0.1
 hypothesis==6.135.26
 tqdm==4.67.1
 av>=15,<20
+
+# Local CR5 URDF IK regression; PyPI package is pin (module pinocchio).
+pin==4.1.0

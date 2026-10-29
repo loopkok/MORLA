@@ -114,6 +114,23 @@ class CR5Transport:
         numbers = ','.join(f'{math.degrees(v):.6f}' for v in values)
         self.motion.request('ServoJ(' + numbers + ',t=0.100000,lookahead_time=50.000000,gain=500.000000)')
 
+    @staticmethod
+    def _six_reply(raw):
+        values = [float(v) for v in raw.split(',')]
+        if len(values) != 6 or not all(map(math.isfinite, values)):
+            raise ValueError('CR5 malformed FK/IK result')
+        return values
+
+    def forward_kinematics(self, joints):
+        numbers = ','.join(f'{math.degrees(v):.6f}' for v in joints)
+        return self._six_reply(self.dashboard.request('PositiveSolution(' + numbers + ',0,0)'))
+
+    def inverse_kinematics(self, pose, seed):
+        numbers = ','.join(f'{v:.6f}' for v in pose)
+        near = ','.join(f'{math.degrees(v):.6f}' for v in seed)
+        command = 'InverseSolution(' + numbers + ',0,0,1,{' + near + '})'
+        return self._six_reply(self.dashboard.request(command))
+
     def stop(self):
         # Disable rather than a zero-position command; real stop latency requires acceptance.
         self.dashboard.request('DisableRobot()')

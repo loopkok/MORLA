@@ -749,8 +749,8 @@ bash scripts/test_ros.sh
 以下是对本文基线源码的核对结果，后续接入必须逐项判断是否涉及。它们不是要求所有设备一次性补完全部功能。
 
 1. **输入不是通用自动插件宿主。** ComposableService.start 对所有 input 注入 InputIngressAdapter；安装 `morla.adapters` 的新 input factory 不会在该路径自动替换它。新输入必须接 ingest_frame 及 source 生命周期，或扩展受信 input source 注册/宿主。
-2. **ROS 输入驱动未自动拉起。** connect_inputs 启动订阅器；RosInputManager 仅有 gamepad/xbox、Quest、glove 分支，Quest/hand topics 多为固定路径。新 VR/外骨骼、source_namespace、驱动启动/退出需要额外接线。
-3. **元数据参数不保证生效。** 当前 GamepadAdapter 默认 deadzone=0.08，RosInputManager 未把实例 deadzone/device_name 传入；BindingController 默认 250 ms，组合宿主未把 binding.max_age_ms 传入。runtime 默认反馈新鲜度为 500 ms，不能假定端口 max_age_ms 自动改变它。按现场需求补接并做参数生效测试，不直接修改冻结 snapshot 绕过校验。
+2. **ROS 输入驱动未自动拉起。** connect_inputs 启动订阅器；RosInputManager 有 gamepad/xbox、Quest、glove 和来源明确的 quest_right 分支，Quest/hand topics 多为固定路径。新 VR/外骨骼、source_namespace、驱动启动/退出需要额外接线。
+3. **元数据参数不保证生效。** 当前 GamepadAdapter 默认 deadzone=0.08，RosInputManager 未把实例 deadzone/device_name 传入；BindingController 默认 250 ms；CR5 VR 接入时已将 binding.max_age_ms 接入组合宿主。runtime 默认反馈新鲜度为 500 ms，不能假定端口 max_age_ms 自动改变它。按现场需求补接并做参数生效测试，不直接修改冻结 snapshot 绕过校验。
 4. **插件预检仅提供元数据结论。** CR5/LoopHand 接入时已补充外部 real adapter entry point 检查，不再把直接 TCP/串口插件一律按内置 ROS 品牌处理；该分支仍不加载插件、不验证设备或其全部依赖，报告 dependencies_unchecked。输入 descriptor 的 real available 也不能当作完整输入可用性判断。安装后应验证实际加载、依赖和设备反馈，更不能靠改 backend=fake 绕过。
 5. **资源声明与实际锁需核验。** 编译器检查 resources 列表；当前 RuntimeSession.start 主要按 DeviceSession.resource_key 获取设备锁，并持有独占 host lane。一个插件涉及多个物理资源时要核实实际覆盖，不能只写 resources 列表就宣称全部锁住。主机锁也不能替代远端控制器/其他主机的访问协调。
 6. **IK 与仿真资产有内置分支。** 新臂需要 controller/solver；新 MJCF 需要资产/场景构建接线。只添加 URDF、descriptor 或 controller 名不足以自动生效。
@@ -765,7 +765,7 @@ bash scripts/test_ros.sh
 
 ## 13. 每次接入的交付模板
 
-已按本指南独立接入：[CR5](integrations/cr5.md)、[Aero Hand Open](integrations/loophand.md)；[组合示例](../examples/cr5_loophand/README.md) 只引用两包的组件。验收记录保留当前真实手只读及停止/watchdog 限制。
+已按本指南独立接入：[CR5](integrations/cr5.md)、[Aero Hand Open](integrations/loophand.md)；CR5 另有 [右手柄/右手 VR 链路](integrations/cr5_vr.md)，使用独立 URDF / Pinocchio 本地 IK，纯本体资源位于统一 robot_description；软件已接通、实机待验收；[组合示例](../examples/cr5_loophand/README.md) 只引用两包的组件。验收记录保留当前真实手只读及停止/watchdog 限制。
 
 建议每台/类新设备在 `docs/integrations/<device>.md` 留下以下记录；该目录是建议交付位置，按实际项目组织创建。
 

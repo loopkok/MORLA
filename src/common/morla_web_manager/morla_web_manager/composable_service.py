@@ -138,6 +138,17 @@ class ComposableService:
         self.policy=None
         self.policy_error=None
         self.last_policy_ns=0
+        self.controller_close_errors=[]
+        self.input_errors={}
+
+    def _reset_bindings(self, close=False):
+        for controller in self.bindings.values():
+            try:
+                controller.close() if close else controller.reset()
+            except Exception as exc:
+                if not close:raise
+                self.controller_close_errors.append(str(exc))
+        if close:self.bindings={}
 
     def compile(self, assembly, deployment=None):
         return compile_system(assembly, deployment, registry=self.catalog)
@@ -180,8 +191,10 @@ class ComposableService:
             self.session=session
             session.on_command(self.capture_command)
             session.on_event(self.capture_event)
+            self._reset_bindings(close=True)
             self.inputs={}; self.bindings={}; self.sequence=0
             self.active_input_sources=set()
+            self.input_errors={}
             self.requests[request_id]=(identity,session.state())
             return session.state()
 
@@ -195,9 +208,11 @@ class ComposableService:
             session=self.require(session_id)
             result=session.state()
             result["inputs"]={key:{"connected":item.connected,"fresh":item.read() is not None,
-                                    "epoch":item.epoch} for key,item in self.inputs.items()}
+                                    "epoch":item.epoch,"mode":getattr(item,'mode',None)} for key,item in self.inputs.items()}
             result["recording"] = self.recorder is not None
             result["policy"]={"running":self.policy is not None and not self.policy.closed,"error":self.policy_error}
+            result['controller_close_errors']=list(self.controller_close_errors)
+            result['input_errors']=dict(self.input_errors)
             return result
 
     def operation(self, session_id, raw):
@@ -208,11 +223,23 @@ class ComposableService:
                 raise ServiceError("request_id required",422)
             operation=raw.get("operation")
             if operation=="prepare": return session.prepare(request,raw.get("component_ids"))
-            if operation=="activate": return session.activate(request)
+            if operation=="activate":
+                if request in session.operations or session.status!='READY_DISARMED':
+                    return session.activate(request)
+                self._reset_bindings()
+                # Resolve selected controllers/calibration before any physical enable.
+                for binding in session.resolved.get('bindings',[]):
+                    controller=self._binding_controller(binding)
+                    source=self.inputs.get(binding['source'].split('.',1)[0])
+                    if controller.requires_fresh_input and not controller.input_fresh(source.read() if source else None):
+                        raise ServiceError('Fresh pose and deadman input required before activation')
+                return session.activate(request)
             if operation=="disarm":
+                self._reset_bindings()
                 self.stop_policy(session_id)
                 return session.revoke(reason=operation)
             if operation=="estop":
+                self._reset_bindings()
                 self.stop_policy(session_id)
                 return session.estop()
             if operation=="reset": return session.reset(request)
@@ -229,6 +256,7 @@ class ComposableService:
                 self.inputs.update(manager.sources)
                 return {'status':'SUCCEEDED','sources':list(manager.sources)}
             if operation=="stop":
+                self._reset_bindings(close=True)
                 self.stop_policy(session_id)
                 self.stop_recording()
                 if self.ros_inputs is not None:
@@ -236,6 +264,33 @@ class ComposableService:
                 for source in self.inputs.values(): source.disconnect()
                 return session.stop(request)
             raise ServiceError("unsupported operation",422)
+
+    def _binding_controller(self, binding):
+        controller=self.bindings.get(binding['id'])
+        if controller is not None:return controller
+        target=binding['target'].split('.',1)[0]
+        instance=self.session.instances[target]
+        adapter=self.session.adapters[target]
+        names=[j['name'] if isinstance(j,dict) else j for j in instance['joints']]
+        age=binding.get('max_age_ms',250)
+        if isinstance(age,bool) or not isinstance(age,(int,float)) or age<=0:
+            raise ServiceError('binding max_age_ms must be positive',422)
+        registry=ControllerRegistry()
+        if binding['controller'] in {'morla.cartesian_delta_ik','morla.gamepad_cartesian_jog'}:
+            from morla_teleop.kinematics import install_kinematics
+            install_kinematics(registry,instance)
+        elif binding['controller'] in {'morla.xhand.retarget','morla.wuji.retarget'}:
+            from morla_teleop.retargeting import install_retargeting
+            install_retargeting(registry,instance)
+        elif binding['controller'] not in {'morla.joint_jog','morla.scalar_map'}:
+            from morla_teleop.retargeting import install_controller_plugin
+            install_controller_plugin(registry,binding['controller'],context={
+                'instance':instance,'binding':binding,'clock':self.clock,
+                'kinematics_provider':getattr(adapter,'kinematics_provider',None)})
+        controller=BindingController(binding,names,registry=registry,clock=self.clock,
+                                     max_age_ns=int(age*1_000_000))
+        self.bindings[binding['id']]=controller
+        return controller
 
     def pair(self, session_id, input_id):
         with self.lock:
@@ -273,6 +328,19 @@ class ComposableService:
             return self.ingest_frame(session_id,frame)
 
     def ingest_frame(self,session_id,frame):
+        try:
+            return self._ingest_frame(session_id,frame)
+        except Exception as exc:
+            with self.lock:
+                self.input_errors[getattr(frame,'source_id','unknown')]=str(exc)
+                self._reset_bindings()
+                session=self.require(session_id)
+                if session.status=='ACTIVE' and (session.lease is None or session.lease['producer']=='human_mobile'):
+                    session.revoke(reason='input_or_controller_failed')
+                self.active_input_sources.clear()
+            raise
+
+    def _ingest_frame(self,session_id,frame):
         with self.lock:
             session=self.require(session_id)
             input_id=frame.source_id
@@ -280,6 +348,10 @@ class ComposableService:
                 raise ServiceError('unregistered input source',422)
             adapter=session.adapters.get(input_id)
             if hasattr(adapter,'feed'): adapter.feed(frame)
+            # Disarmed input may be observed, but must never establish an active-motion anchor.
+            if session.status!='ACTIVE':
+                self._reset_bindings()
+                return {'accepted':False,'reason':'explicit_activation_required'}
             command_rows=[]
             for binding in session.resolved.get("bindings",[]):
                 if binding["source"].split(".",1)[0]!=input_id:
@@ -293,20 +365,7 @@ class ComposableService:
                 measured=health.get("values")
                 if measured is None:
                     raise ServiceError("adapter does not expose measured positions",409)
-                controller=self.bindings.get(binding['id'])
-                if controller is None:
-                    registry=ControllerRegistry()
-                    if binding['controller'] in {'morla.cartesian_delta_ik','morla.gamepad_cartesian_jog'}:
-                        from morla_teleop.kinematics import install_kinematics
-                        install_kinematics(registry,instance)
-                    elif binding['controller'] in {'morla.xhand.retarget','morla.wuji.retarget'}:
-                        from morla_teleop.retargeting import install_retargeting
-                        install_retargeting(registry,instance)
-                    elif binding['controller'] not in {'morla.joint_jog','morla.scalar_map'}:
-                        from morla_teleop.retargeting import install_controller_plugin
-                        install_controller_plugin(registry,binding['controller'],context={'instance':instance,'binding':binding})
-                    controller=BindingController(binding,names,registry=registry,clock=self.clock)
-                    self.bindings[binding['id']]=controller
+                controller=self._binding_controller(binding)
                 values=controller.step(frame,measured)
                 if values is not None:
                     command_rows.append({"component_id":target,"names":names,"values":values,
@@ -347,6 +406,17 @@ class ComposableService:
         with self.lock:
             if self.session is None: return
             self.session.tick()
+            if (self.session.status=='ACTIVE' and
+                    (self.session.lease is None or self.session.lease['producer']=='human_mobile')):
+                for binding in self.session.resolved.get('bindings',[]):
+                    controller=self.bindings.get(binding['id'])
+                    source=self.inputs.get(binding['source'].split('.',1)[0])
+                    if (controller and controller.requires_fresh_input and
+                            not controller.input_fresh(source.read() if source else None)):
+                        self._reset_bindings()
+                        self.session.revoke(reason='required_input_expired')
+                        self.active_input_sources.clear()
+                        break
             if (self.session.lease and self.session.lease["producer"]=="human_mobile"
                     and any(self.inputs.get(key) is None or self.inputs[key].read() is None for key in self.active_input_sources)):
                 self.session.revoke(reason="input_expired")
@@ -488,6 +558,7 @@ class ComposableService:
 
     def close(self):
         with self.lock:
+            self._reset_bindings(close=True)
             self.stop_recording()
             if self.policy: self.policy.close()
             if self.ros_inputs is not None:

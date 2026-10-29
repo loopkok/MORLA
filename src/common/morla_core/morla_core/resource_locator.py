@@ -87,9 +87,24 @@ def resolve_robot_asset(model_id: str) -> Path:
         raise
     except Exception as exc:  # keep optional parser errors behind a stable API
         raise ResourceLookupError("failed to load robot_description asset manifest") from exc
+    # Supplemental catalogs add independent models without rewriting the frozen
+    # manifest revision referenced by existing robot profiles.
+    models = list(manifest.get("models", []))
+    catalog_root = source_share if source_share is not None else share
+    for supplement in sorted((catalog_root / "config" / "asset_manifests").glob("*.yaml")):
+        resolved = supplement.resolve()
+        if not resolved.is_relative_to(catalog_root):
+            raise ResourceLookupError("supplemental model manifest escapes package share")
+        try:
+            extra = yaml.safe_load(resolved.read_text(encoding="utf-8"))
+            if extra.get("package") != "robot_description" or extra.get("schema_version") != 1:
+                raise ValueError("unsupported supplemental manifest")
+            models.extend(extra.get("models", []))
+        except Exception as exc:
+            raise ResourceLookupError("failed to load supplemental model manifest") from exc
     matches = [
         item
-        for item in manifest.get("models", [])
+        for item in models
         if isinstance(item, dict) and item.get("model_id") == model_id
     ]
     if len(matches) != 1:

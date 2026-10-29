@@ -153,6 +153,7 @@ def compile_system(assembly, deployment=None, registry=None):
         if accepted is None:
             desc=catalog.get(controller)
             if desc['kind']!='controller': raise CompilationError('binding controller is not controller plugin',bid)
+            descriptors.append(desc)
             types=desc.get('controller_types',{}); accepted=(set(types.get('inputs',[])),set(types.get('outputs',[])))
         if sport['semantic'] not in accepted[0] or tport['semantic'] not in accepted[1]: raise CompilationError('incompatible input/controller/target capability',bid,code='PORT_MISMATCH')
         if controller=='morla.identity' and (sport['dim']!=tport['dim'] or sport['unit']!=tport['unit']): raise CompilationError('identity mapping requires equal dimensions and units',bid)

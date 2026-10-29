@@ -1,0 +1,7 @@
+PASS: changed Python AST / JSON / YAML / XML / URDF: {'.py': 26, '.json': 5, '.yaml': 3, '.urdf': 1, '.xml': 1}
+PASS: inline JavaScript node --check; git diff --check
+PASS: current operation/implementation/provenance documentation links
+PASS: existing robot profiles and primary asset_manifest byte-identical to HEAD
+PASS: Python 3.10 composable-test dependency resolution (uv; not an execution test)
+BASELINE FAILURE: full asset audit finds old Nero URDF hash mismatch; CR5 targeted closure and actual geometry loading PASS (model_assets.txt)
+NOT_RUN: ROS Humble colcon/IDL, actual ROS transport, Quest, CR5, physical calibration, stop/watchdog, collision/long stability

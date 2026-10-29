@@ -1,0 +1,65 @@
+assembly_version: 1
+assembly_id: cr5_quest_right
+revision: 1
+instances:
+  arm:
+    plugin: morla.dobot.cr5
+    version: 1.0.0
+    backend: fake
+    parameters:
+      rate_hz: 50
+  quest:
+    plugin: morla.input.quest_right
+    version: 1.0.0
+    backend: fake
+bindings:
+- id: right_vr
+  source: quest.right_pose
+  target: arm.position_target
+  controller: morla.cr5.cartesian_delta
+  deadman: quest.right_hold
+  max_age_ms: 250
+  parameters:
+    position_scale: 0.25
+    input_rotation:
+    - - 1
+      - 0
+      - 0
+    - - 0
+      - 1
+      - 0
+    - - 0
+      - 0
+      - 1
+    solver_tip_from_tool:
+    - - 1
+      - 0
+      - 0
+      - 0
+    - - 0
+      - 1
+      - 0
+      - 0
+    - - 0
+      - 0
+      - 1
+      - 0
+    - - 0
+      - 0
+      - 0
+      - 1
+    max_joint_step: 0.15
+    max_joint_velocity: 0.3
+    calibration_verified: false
+    smoothing_alpha: 0.35
+capture:
+  state:
+  - arm.position
+  action:
+  - arm.position_target
+  images: {}
+  auxiliary:
+  - quest.right_pose
+  - quest.right_hold
+  action_source: command
+  hold_frames: 0

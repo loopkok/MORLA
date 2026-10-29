@@ -71,7 +71,10 @@ adapter factory, deployment configuration, launch entry point and tests.
 `CachedActuatorAdapter` in `cached_actuator.py` provides optional brand-neutral
 cached I/O, command watchdog and target guards. A device subclass supplies its
 transport, configuration validation, feedback provenance and watchdog capability;
-this helper imports no robot or hand packages. It does not certify hardware stop.
+this helper imports no robot or hand packages. Its command watchdog starts after
+the first authorized target, so activation can wait for a clutch edge; the
+teleop host must independently monitor required input while waiting. It does not
+certify hardware stop.
 
 The generic `joint_state_runtime_node` uses the same ROS command/operation/
 authority gateway as `runtime_node`, with per-actuator `~/<instance>/joint_states`

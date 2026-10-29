@@ -40,6 +40,14 @@ def main(argv: list[str] | None = None) -> int:
     models = manifest.get("models")
     if not isinstance(models, list):
         fail("manifest models must be a list")
+    models = list(models)
+    for supplement in sorted(((source_share or share) / "config" / "asset_manifests").glob("*.yaml")):
+        if not supplement.resolve().is_relative_to(source_share or share):
+            fail("supplemental manifest escapes package share")
+        extra = yaml.safe_load(supplement.read_text(encoding="utf-8"))
+        if extra.get("package") != "robot_description" or extra.get("schema_version") != 1:
+            fail("unsupported supplemental manifest")
+        models.extend(extra.get("models", []))
     by_id = {}
     for model in models:
         mid = model.get("model_id")

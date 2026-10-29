@@ -1,0 +1,5 @@
+PASS: upstream source file provenance hashes
+PASS: 6 joint origins/axes/parent-child/limits match source macro + TF values exactly
+PASS: all 7 link inertial origin/mass/inertia records preserved
+PASS: 26 mesh/material files copied byte-for-byte
+No gripper, ros2_control, OCS2 or scene assets copied

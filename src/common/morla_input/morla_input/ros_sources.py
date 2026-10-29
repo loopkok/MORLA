@@ -28,7 +28,26 @@ class RosInputManager:
         self.executor=SingleThreadedExecutor(); self.executor.add_node(self.node)
         for instance in self.instances:
             iid=instance['instance_id']; plugin=instance['plugin_id']
-            if 'gamepad' in plugin or 'xbox' in plugin:
+            if plugin=='morla.input.quest_right':
+                import json
+                from .quest_right import QuestRightSource
+                source=QuestRightSource(iid, clock=self.clock,
+                    on_transition=lambda iid=iid:self.on_disconnect(iid))
+                self.sources[iid]=source
+                topic=instance.get('parameters',{}).get('input_topic','/quest3/right_teleop_events')
+                def event(msg,iid=iid):
+                    def action():
+                        if len(msg.data)>16384:raise InputError('Quest event oversized')
+                        row=json.loads(msg.data)
+                        source=self.sources[iid]
+                        frame=source.event(row)
+                        if source.control_event(row,frame):self.on_frame(frame)
+                    self._guarded(iid,action)
+                from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
+                event_qos=QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
+                    history=HistoryPolicy.KEEP_LAST,depth=16)
+                self.node.create_subscription(String,topic,event,event_qos)
+            elif 'gamepad' in plugin or 'xbox' in plugin:
                 source=GamepadAdapter(iid,clock=self.clock); source.reconnect(); self.sources[iid]=source
                 topic=instance.get('parameters',{}).get('input_topic','/joy')
                 self.node.create_subscription(Joy,topic,lambda msg,iid=iid:self._joy(iid,msg),qos_profile_sensor_data)

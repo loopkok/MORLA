@@ -2,6 +2,22 @@
 
 ## 2026-10-29
 
+### CR5 纯本体 URDF 与本地 Pinocchio 数值 IK
+
+- 从用户提供的 robot-descriptions-dobot 迁入 CR5 六关节本体 URDF、视觉/碰撞网格及 MIT 来源记录到统一 `src/robot_description`；没有迁入夹爪、场景、ros2_control 或 OCS2。补充独立模型清单，保留既有 Nero/Astral 冻结资源清单及配置哈希。
+- CR5 新增独立 `IKSolver`（URDF / Pinocchio SE(3) 阻尼最小二乘），fake/real 默认遥操均使用该求解器，替换此前控制器内置 IK 与合成 fake 几何；无控制器 IK 回退。具备实测关节播种、正负号/零偏映射、模型/部署限位交集、局部连续性、线搜索、时间/迭代边界及 FK 位置/姿态硬回验。
+- 贯通右手柄和右手追踪到本地求解、runtime 与 ServoJ；更新只读检查工具、安装依赖、操作文档和数学/整链验证。模型与实物方向/零位/TCP 对齐、ROS Humble、Quest/CR5 实机、停止/watchdog 仍待现场验收。详见 [本轮记录](docs/integrations/CR5_URDF_IK_2026-10-29.md)。
+- 最终本地 IK 版本提交前复验 pure 144 passed、fake 23 passed；模型等价/网格加载与安装资源验证通过。全库资产审计仍有既有 Nero URDF 哈希不一致，不计为通过。
+- 补充[遥操频率与参数核对](docs/integrations/teleoperation_rates_and_parameters.md)，明确固定循环与输入驱动、CR5 I/O等待周期、源反馈/缓存/显示刷新区别以及各包平滑系数方向；未修改Nero/Astral控制参数。详细提交范围与验证见[本轮提交日志](docs/integrations/CHANGE_LOG_2026-10-29.md)，实际推送结果随后归档回执。
+
+### CR5 VR 初版软件链（控制器 IK 阶段，已由上述本地 IK 替代）
+
+- 新增独立右侧 Quest 输入组件与来源明确的可选 ROS 事件流，支持右握把保持控制和右手拇指/食指捏合保持控制；按端口保留源时效，拒绝重放、旧会话和无效手部数据。来源切换、释放或断流撤权并清除锚点。
+- 新增 CR5 controller 插件，复用公共相对位姿/TCP 控制层，使用 CR5 V3 Dashboard 的带实测关节参考的 FK/IK；网络求解在后台执行，检查部署限位、FK 回验、耗时与结果年龄，限制输出关节速度。fake 使用明确标记的合成运动学，不是 CR5 几何仿真。
+- 提供组合配置、`cr5_vr.launch.py`、独立本地控制页及只读 `cr5_kinematics_check`。真实激活前检查输入、运动学与标定声明；启动不自动使能/跟随。CR5 与 LoopHand 继续分别接入，裸手捏合不驱动灵巧手。
+- 补齐公共 controller 生命周期、绑定时效及异常撤权；命令 watchdog 从首次授权目标计时，真实输入在等待首次目标期间持续检查。原 Nero/Astral 求解算法未改动，旧 Quest 话题保留。
+- 本轮纯软件测试 **138 passed**、fake 集成 **23 passed**；两个最终 wheel 的插件发现、实际 controller 加载、HTTP 页面、右手柄动作与释放清理通过。没有执行 ROS Humble/Quest/CR5 实机、停止/watchdog 或物理标定验收。详见[操作说明](docs/integrations/cr5_vr.md)与[实现及验证记录](docs/integrations/CR5_VR_IMPLEMENTATION_2026-10-29.md)。
+
 - 补齐 CR5 / LoopHand 独立设备接入的[实际推送回执](docs/integrations/PUSH_LOG_2026-10-29.md)：主内容 `3095cb5` 已通过 SSH 推送，并在继续工作后 fetch 核对远端一致；保留 HTTPS 认证/HTTP2 失败的实际记录。该补记为文档归档，不增加实机或 VR 遥操验收结论。
 
 ## 2026-10-28

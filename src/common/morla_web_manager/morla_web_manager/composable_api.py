@@ -133,7 +133,7 @@ def router(service):
     return api
 
 
-def create_app(root=None,resource_root=None):
+def create_app(root=None,resource_root=None,*,mount_web=True):
     service=ComposableService(root or os.environ.get("MORLA_SYSTEM_STORE",str(Path.home()/".local/share/morla")),
                               resource_root=resource_root)
     @asynccontextmanager
@@ -175,7 +175,7 @@ def create_app(root=None,resource_root=None):
             from ament_index_python.packages import get_package_share_directory
             dist=Path(get_package_share_directory("morla_web_manager"))/"web/dist"
         except ImportError: pass
-    if dist.is_dir(): app.mount("/",StaticFiles(directory=dist,html=True),name="web")
+    if mount_web and dist.is_dir(): app.mount("/",StaticFiles(directory=dist,html=True),name="web")
     return app
 
 

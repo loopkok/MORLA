@@ -1,0 +1,3 @@
+Resolved installed model: /private/var/folders/p5/r7py6pbn6xndz56xl9n_c3vc0000gn/T/morla-cr5-vr-installed-m5xfcgrm/share/robot_description/urdf/cr5/cr5.urdf prefix: /private/var/folders/p5/r7py6pbn6xndz56xl9n_c3vc0000gn/T/morla-cr5-vr-installed-m5xfcgrm
+Installed CR5 URDF + input/driver wheels: static discovery, controller entry point, UI HTTP, right-controller motion, release and cleanup PASS
+Ament index queries substituted; all runtime/controller/adapter code loaded normally; no ROS or hardware acceptance claimed

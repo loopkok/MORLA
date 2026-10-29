@@ -43,6 +43,10 @@ work, and acceptance checklist against the actual code.
 packages and composable plugins. Their [combined example](examples/cr5_loophand/README.md)
 contains assembly/deployment configuration only. Real-hardware gates and the
 hand's current read-only boundary are documented explicitly.
+The [CR5 right-controller / hand-tracking VR guide](docs/integrations/cr5_vr.md)
+uses the migrated arm-only URDF and local Pinocchio IK, with disarmed startup,
+fake rehearsal and real deployment steps; physical
+teleoperation acceptance remains pending.
 The composable architecture implementation was committed on 2026-10-28; see the
 [implementation record](docs/architecture_refactor/CHANGE_LOG_2026-10-28.md) and
 [remaining acceptance gates](docs/architecture_refactor/progress.md).

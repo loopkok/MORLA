@@ -1,0 +1,2 @@
+Installed input/CR5 wheels: static discovery, controller entry point, UI HTTP, right-controller motion, release and cleanup PASS
+Ament index queries substituted; all runtime/controller/adapter code loaded normally; no ROS or hardware acceptance claimed

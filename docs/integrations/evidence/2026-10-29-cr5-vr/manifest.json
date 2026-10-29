@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-29",
+  "base_commit": "c7dbec01d48641cf7c47029116edf130b6e9281b",
+  "validation": {
+    "pure_passed": 138,
+    "fake_passed": 23,
+    "installed_wheels": "PASS; ament index queries substituted",
+    "hardware": "NOT_RUN"
+  },
+  "files": {
+    "CHANGELOG.md": "a588fda404010b5747ecd498320a3ffe0e9d3321a9efabad840ad875940daee5",
+    "README.md": "d3b452e1577dd635a2bebab93b9fbf466c8394203eacdcc4dc9a428b9f08d35e",
+    "docs/architecture_refactor/SDK.md": "f1e223dcb6fcff865bdc2108bcfed01d33052745c82a2ec2f2fe7c8b2453e808",
+    "docs/device_integration_guide.md": "ff5db74ee9427df17d199c48dedd2acf5b3b1d68f0260ddc9964975d6bb90434",
+    "docs/integrations/CR5_VR_IMPLEMENTATION_2026-10-29.md": "83a8e62877c0e80ef97047e2bd91e5e7ee200dcbaa9647815645efc61e4d48eb",
+    "docs/integrations/cr5.md": "5b23a464d16e3a378ad8aa3ff477e36338c0b4d771066cd00aa1c47a94b90097",
+    "docs/integrations/cr5_vr.md": "8eb10e2583593fd9dc3064994b000ac4402dfb0b361c9402aac58df97895bca4",
+    "docs/integrations/evidence/2026-10-29-cr5-vr/fake.txt": "7899c1543b7ea50f68b50c2a76d7087c4de1cb876a990440b215b57b7513bf2b",
+    "docs/integrations/evidence/2026-10-29-cr5-vr/installed.txt": "9f527ebf5c47cd7a8ccfaeb9adff7e868c6f30647cff9489c49b277664b83261",
+    "docs/integrations/evidence/2026-10-29-cr5-vr/pure.txt": "0df80894a919263681beadabbc2106de3525c492138c3972e726eceaa7a3c119",
+    "docs/integrations/evidence/2026-10-29-cr5-vr/verify_wheels.py": "0ed97ec5bc3ab84babb22650163d3c66e6acf97942dbacc7a33c2ca76213edc7",
+    "scripts/test_composable.sh": "aad5a5eb26b4560f97ff21240c196573e88b01606d626ae15799877defa0e64d",
+    "src/common/morla_core/morla_core/composition/compiler.py": "a5359bf8a40cd8c2386a5b6b304bdba80bdf639af1450d9285c6f92ec7c7f0c3",
+    "src/common/morla_input/README.md": "1e5729044c9691dda36036f62e8fec2c5e6daab8d775be67e61920572087c0c4",
+    "src/common/morla_input/morla_input/quest3_udp_mocap.py": "c0388be959f3db47e122d1dda5d581fcdc416599325249f7a46e0a45ee330494",
+    "src/common/morla_input/morla_input/quest_right.py": "55cbf1d0cf73508a02cbc800a582911f70cb74b43c21b0428b6679a141521bf2",
+    "src/common/morla_input/morla_input/ros_sources.py": "d5690881bde7a143e64c734a4e587764646eb0a8438b17aca50188213d4e1413",
+    "src/common/morla_input/quest_right_descriptor.json": "a3abb27d2520ad25fc1903cc5585636d7f8907749f59eeabc5429bba02a3fd1b",
+    "src/common/morla_input/resource/morla_input_components": "1117c5b829e3dae7f0fc8d09ef7a6680311af54837a4893c6692bfd0dc728dcb",
+    "src/common/morla_input/setup.py": "434ecd430774d7198058e938c1cfc288b591e714d9c566001124bac090ca81eb",
+    "src/common/morla_input/test/test_quest_right.py": "7879a448e9c80c467ee4d11d9a211350026380415199726fd736ebac12cfdd1b",
+    "src/common/morla_runtime/README.md": "a38eb260891d4d77673393702c4db4221fd6f7bba315d0cd587ba61445415055",
+    "src/common/morla_runtime/morla_runtime/cached_actuator.py": "57410d8b50d7a7e4a509b7dc340dc5afc570f7eda427e9ab2a0a80d424f8b9a1",
+    "src/common/morla_runtime/morla_runtime/session.py": "6226dbd9a25e659b95b64e416b88066dd36325e4ec239240645f20456b8782d4",
+    "src/common/morla_teleop/morla_teleop/controllers.py": "045241f58744fcd9540717302bda172e8d601a8ac7a262f06a41a0d2540fa941",
+    "src/common/morla_web_manager/morla_web_manager/composable_api.py": "269ed48cd53324416ad56b66a57dfb15260562c7de37152792b0311b0a1398aa",
+    "src/common/morla_web_manager/morla_web_manager/composable_service.py": "e485bc8d85a0790bf39c183642de442ca55422847f285514594716773f4267ce",
+    "src/robots/dobot/morla_cr5_driver/README.md": "770d9ed8b05ea4f4f5f031f4e5eb9ec36b8182b8f4e194ad119cbd8c2e1df2d3",
+    "src/robots/dobot/morla_cr5_driver/config/quest_right.fake.yaml": "38d441bfbb905e3cdf5436003942dac906f56d70393813249f21ec0d6a1abda3",
+    "src/robots/dobot/morla_cr5_driver/config/quest_right.real.example.yaml": "4988da51eef9b2925fa7cf1a9307634c5a8b3a5677ff293ec8b96ea0a96ee82c",
+    "src/robots/dobot/morla_cr5_driver/controller.json": "4b4463cbc694518bcec0aea98cddac06d862e293bc6c5ee717fe6c19cd85d24e",
+    "src/robots/dobot/morla_cr5_driver/descriptor.json": "7e3367e7300eef0e206c96ebd0982e64579c4029afc6cd536b3904f5caeed212",
+    "src/robots/dobot/morla_cr5_driver/launch/cr5_vr.launch.py": "3cdf19f5550708ff40966e339e78af54f919a602b37293013607b74567d78198",
+    "src/robots/dobot/morla_cr5_driver/morla_cr5_driver/adapter.py": "3d45209669db699bed84bf062d970d544126b23024c3ec2f53b46f14ced703e8",
+    "src/robots/dobot/morla_cr5_driver/morla_cr5_driver/kinematics.py": "a376f156d64b874851c9089d3983c16b522d359063e8cc98796d16a7287a3c11",
+    "src/robots/dobot/morla_cr5_driver/morla_cr5_driver/kinematics_check.py": "a3a38594db0d4547804216454cf0d02a5e675bd41d78c616a8729585fa260051",
+    "src/robots/dobot/morla_cr5_driver/morla_cr5_driver/static/cr5_vr.html": "d39c8e68eecbfa52a9e3e87d569422d711bf906dd7cee5256648311b5cd9f5a9",
+    "src/robots/dobot/morla_cr5_driver/morla_cr5_driver/transport.py": "23b8d0d616a2d50f45350ec89fb3c003574815a2154e7d43396c8dc1f72c80e5",
+    "src/robots/dobot/morla_cr5_driver/morla_cr5_driver/vr_controller.py": "343c01373f92dfb8a687ba87edf248242ddbdee856969d03b562185c5f6b22d3",
+    "src/robots/dobot/morla_cr5_driver/morla_cr5_driver/vr_session.py": "d58b1a10333578503de928a23b5885d0fb3b3c1d9ef999980853dcca7c7df41f",
+    "src/robots/dobot/morla_cr5_driver/package.xml": "a102b966eaa41fd68b4e05cddd50fed9ee14f419889c27878c932e56cd024505",
+    "src/robots/dobot/morla_cr5_driver/resource/morla_cr5_driver_components": "54a03f172a2410bc57e91fb6258682d1298575ba766b0a536d92e926ced1744a",
+    "src/robots/dobot/morla_cr5_driver/setup.py": "1b6a784d5a734b520f2998d195c4d9c85a2eb190280243968712c426f1e9857d",
+    "src/robots/dobot/morla_cr5_driver/test/test_cr5_driver.py": "051b4be561b85b0a09f63e9fa84b4ed03bb95fd1e231349d8bd7120df8da1257",
+    "src/robots/dobot/morla_cr5_driver/test/test_cr5_vr.py": "df7908226b2b158ed0329bc4e5e91d0a323eac17e84478e8004621a291d66eb2",
+    "docs/integrations/evidence/2026-10-29-cr5-vr/static.txt": "cbb5d9c79a2df597b264c3a03fae2ebd60df25f2ae0895ce6f02d340e3cc06cb"
+  },
+  "wheels": [
+    {
+      "package": "morla_input",
+      "filename": "morla_input-0.0.0-py3-none-any.whl",
+      "sha256": "ecdd5fe4bea2929363c9f8638c36f27d635aea3215cef750e72bdedc4a4bf388"
+    },
+    {
+      "package": "morla_cr5_driver",
+      "filename": "morla_cr5_driver-0.1.0-py3-none-any.whl",
+      "sha256": "24e2744d541029a4d837853b2e88b03ab30d33a7d3d3085a28ecb325c9fef6e4"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+deployment_version: 1
+deployment_id: cr5_quest_right_real
+instances:
+  arm:
+    backend: real
+    device_id: REPLACE_CR5_SERIAL
+    resource_key: cr5:REPLACE_CR5_SERIAL
+    parameters:
+      host: REPLACE_CONTROLLER_IP
+      kinematics_verified: false
+      # q_URDF = signs * q_hardware + offsets(rad); verify on this robot.
+      urdf_joint_signs: [1, 1, 1, 1, 1, 1]
+      urdf_joint_offsets: [0, 0, 0, 0, 0, 0]
+    verified: false
+    stop_verified: false
+  quest:
+    backend: real
+    device_id: quest_right_guarded
+    resource_key: quest:tracking:8000
+    verified: false
+    stop_verified: false
+calibrations: {}
+metadata:
+  required: Fill joint_lower/upper radians and verified input/base/tool transforms
+    before real activation.

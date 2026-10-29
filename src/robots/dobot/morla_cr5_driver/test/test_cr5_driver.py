@@ -51,6 +51,9 @@ def test_worker_feedback_step_guard_watchdog_and_close():
         while not adapter.health(time.monotonic_ns())['ready'] and time.monotonic()<deadline:time.sleep(.005)
         assert adapter.health(time.monotonic_ns())['measured']
         adapter.activate()
+        time.sleep(.08)
+        assert adapter.active and adapter.health(time.monotonic_ns())['ready']
+        assert not adapter.health(time.monotonic_ns()).get('fault')
         target={'component_id':'arm','names':[j['name'] for j in instance['joints']],
                 'values':[.1]*6,'mode':'position','units':['rad']*6}
         with pytest.raises(ValueError,match='step'):adapter.submit(target)

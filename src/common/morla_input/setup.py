@@ -10,6 +10,8 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/ament_index/resource_index/morla_components', ['resource/morla_input_components']),
+        ('share/' + package_name, ['quest_right_descriptor.json']),
         ('share/' + package_name + '/config', ['config/quest3_mocap.yaml']),
     ],
     install_requires=['setuptools'],
