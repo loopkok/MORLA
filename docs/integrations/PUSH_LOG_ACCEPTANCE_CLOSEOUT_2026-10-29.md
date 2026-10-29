@@ -83,3 +83,10 @@ sudo apt install -y python3-fastapi python3-uvicorn python3-pydantic python3-msg
 - `python3 -m pip install --user` 安装成功，附带 `modbus-tk 1.1.5`；`jodellSdk.jodellSdkDemo.EpgClawControl` 与 `modbus_tk` 均可导入。
 - `morla_epg_driver` 测试 **17 passed**，无 skip：此前因缺 SDK 跳过的两项真实 SDK 契约测试现实际执行（真实 `EpgClawControl` + 记录型 Modbus master 的寄存器序列；real 打开路径的只读/超时/独占参数）。
 - 边界：真实固件、RS485 接线、物理停止（SDK `0x03FF` 与手册 `0x03E8` 位差异）和掉线行为仍需实物验证，E01/E02/E03 维持 BLOCKED_ENV。证据：`epg-sdk-install.txt`。
+
+## 补记：EPG 真机台架检查脚本（2026-10-29 22:31）
+
+- 提交 `3c5813e`（`feat(epg): add a guarded real-hardware bench check script`）：新增 `src/robots/jodell/morla_epg_driver/scripts/epg_real_check.py`，经已安装的 ROS 服务/话题驱动单个 real EPG，不直接调用 SDK；README 增加使用说明，CHANGELOG 增加条目。
+- 默认只读：核对节点 `resolved_path`、等待健康状态、打印状态与设备报告宽度、执行 `prepare`，不使能、不写寄存器。运动需 `--confirm-motion --target-width`，并核对 `deployment_verified`、`watchdog_verified`、`activation_motion_verified`、`position_feedback_verified`、`device_watchdog_verified` 全为真（与适配器门禁一致）；单次步长上限 5 mm，10 Hz 流式发送覆盖 0.3 s 命令 watchdog，等反馈后 `stop`，异常时先 stop 再 revoke。
+- 提交前验证：`flake8 --max-line-length 99` 无告警；fake 快照被拒绝（"only drives a real EPG snapshot"）；未声明验证标志的 real 快照在运动前被拒绝。**该脚本未在真实 EPG 上运行过**，因此不改变 E01–E03 的 BLOCKED_ENV 结论。
+- CI：run `40891953174`，`contracts (3.10)`、`contracts (3.12)`、`web` 三个任务均 success；远端 `origin/main` 与本地均为 `3c5813ea9dff36a0fc7a8d484fe4dc8229b52a04`。
