@@ -7,7 +7,7 @@ from morla_web_manager.piano_manager import PianoManager
 from morla_web_manager.piano_maintenance import wait_maintenance
 from morla_web_manager.piano_maintenance import maintenance_interface_ready
 from types import SimpleNamespace
-from test_piano_lane import store, manager, open_software, wait_job
+from test_piano_lane import store, manager, open_software, wait_job, use_virtual_clock
 
 
 @pytest.mark.parametrize("side", ["left", "right"])
@@ -76,7 +76,8 @@ def test_manager_validates_before_enqueue_and_enqueues_only_reset(store):
         manager._active = False
 
 
-def test_live_worker_reports_maintenance_disabled_for_software_and_claimed_session(manager):
+def test_live_worker_reports_maintenance_disabled_for_software_and_claimed_session(manager, tmp_path):
+    use_virtual_clock(manager, tmp_path)
     token = open_software(manager)
     state = manager.snapshot()
     assert state["motion_claimed"] is False and state["maintenance_allowed"] is False

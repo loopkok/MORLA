@@ -462,15 +462,22 @@ def main():
                     active_job[0] = message.get("job_id")
                     job_epoch[0] = message["cancel_epoch"]
                     emit("snapshot", **status())
+                    job_id = active_job[0]
                     try:
                         if job_epoch[0] != cancel_epoch[0] and message["operation"] not in ("stop", "shutdown", "estop"):
                             raise Stopped("排队的操作已取消")
                         result = execute(message)
-                        emit("result", job_id=active_job[0], ok=engine.state != "FAULT", result=result, **engine.status())
+                        outcome = dict(ok=engine.state != "FAULT", result=result, **engine.status())
                     except Exception as exc:
-                        emit("result", job_id=active_job[0], ok=False, **{**engine.status(), "error": str(exc)})
+                        outcome = dict(ok=False, **{**engine.status(), "error": str(exc)})
                     active_job[0] = None
+                    # The concluding snapshot must precede the result: the manager
+                    # clears its job when the result arrives and exposes that job as
+                    # finished. Result-first left the caller observing the pre-job
+                    # state (e.g. CONNECTED after a successful prepare), so an
+                    # immediate follow-up command was rejected as if not ready.
                     emit("snapshot", **status())
+                    emit("result", job_id=job_id, **outcome)
                     if message["operation"] == "shutdown":
                         break
                 if not parent_alive.is_set() or time.monotonic() - parent_seen[0] > 2:

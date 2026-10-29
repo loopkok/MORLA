@@ -10,7 +10,7 @@ import pytest
 from scipy.spatial.transform import Rotation
 
 from morla_web_manager.piano_calibration import CalibrationMotion, WORK_POSE_DEG, validate_command, validate_work_poses
-from test_piano_lane import store, manager, open_software, wait_job
+from test_piano_lane import store, manager, open_software, wait_job, use_virtual_clock
 from test_piano_lane import wait_until
 
 
@@ -196,7 +196,8 @@ def test_native_work_path_preserves_original_four_points_then_new_work_pose(moti
     assert motion.engine.state == "CALIBRATION_IDLE"
 
 
-def test_software_worker_streams_measured_positions_and_invalidates_ready(manager):
+def test_software_worker_streams_measured_positions_and_invalidates_ready(manager, tmp_path):
+    use_virtual_clock(manager, tmp_path)
     token = open_software(manager)
     assert wait_job(manager, manager.command(token, "prepare"), token)["ok"]
     initial = manager.snapshot()["positions"]
@@ -259,7 +260,7 @@ def test_manual_joint_claims_and_commands_only_selected_part(motion,side,part):
 
 
 @pytest.mark.parametrize('offender', [0,1])
-def test_arrival_timeout_identifies_moving_or_holding_joint_before_estop(motion,offender):
+def test_arrival_timeout_identifies_moving_or_holding_joint_before_normal_stop(motion,offender):
     import copy
     b,e=motion.backend,motion.engine
     initial=b.snapshot()
@@ -275,8 +276,12 @@ def test_arrival_timeout_identifies_moving_or_holding_joint_before_estop(motion,
     event=next(row for row in e.events if row['event']=='arrival_timeout')
     assert set(event['joints'])=={'left_arm'}
     assert math.degrees(event['joints']['left_arm']['error_rad'][offender])==pytest.approx(6 if offender==0 else 4)
-    assert e.events.index(event)<next(i for i,row in enumerate(e.events) if row['event']=='fault')
-    assert b.stopped and e.state=='FAULT'
+    events=[row['event'] for row in e.events]
+    # Unconfirmed arrival keeps power and releases fingers: normal stop plus an
+    # explicit motion_unconfirmed event, not FAULT/emergency stop.
+    assert events.index('arrival_timeout')<events.index('motion_unconfirmed')
+    assert 'fault' not in events
+    assert not b.stopped and e.state=='STOPPED' and e.pressed is None
 
 
 @pytest.mark.parametrize('error_deg,passed', [(2.62,True),(2.99,True),(3.01,False)])
@@ -297,7 +302,8 @@ def test_arm_joint_manual_arrival_three_degrees_with_dwell(motion,error_deg,pass
     else:
         with pytest.raises(RuntimeError,match='J5.*容差=3.000'):
             motion.execute('joint',request)
-        assert b.stopped
+        assert not b.stopped and e.state=='STOPPED'
+        assert any(row['event']=='motion_unconfirmed' for row in e.events)
     assert e.c['timing']==timing
 
 

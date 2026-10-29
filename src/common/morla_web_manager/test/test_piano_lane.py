@@ -5,6 +5,7 @@ import copy
 import json
 import os
 from pathlib import Path
+import shutil
 import sys
 import threading
 import time
@@ -53,14 +54,34 @@ def open_software(manager):
     return result["token"]
 
 
-def wait_job(manager, job, token):
+def wait_job(manager, job, token, timeout=8):
     def completed():
         manager.heartbeat(token)
         state = manager.snapshot()
         result = state.get("result")
         if result and result.get("job_id") == job["id"]:
             return result
-    return wait_until(completed)
+    return wait_until(completed, timeout)
+
+
+def use_virtual_clock(manager, tmp_path):
+    """Run the worker against a project copy whose engine Clock advances virtually.
+
+    Real software prepare moves the fake arm through the full work trajectory at
+    the configured conservative speed (~90 s). Tests that only assert manager and
+    worker behaviour use the same virtual-clock swap as the replay test.
+    """
+    project = tmp_path / "project"
+    for name in ("morla_piano", "config", "scores"):
+        source = manager.store.project / name
+        if source.is_dir():
+            shutil.copytree(source, project / name,
+                            ignore=shutil.ignore_patterns("__pycache__"))
+    engine = project / "morla_piano/engine.py"
+    engine.write_text(engine.read_text() + "\nClock = VirtualClock\n")
+    manager.store.project = project
+    manager.store._model = None
+    return project
 
 
 def test_placeholder_and_seeded_score_preflight(store):
@@ -142,7 +163,8 @@ def test_session_is_exclusive_and_editing_is_locked(manager):
     assert wait_job(manager, manager.command(token, "capture"), token)["ok"]
 
 
-def test_full_software_prepare_finger_shift_return_and_play(manager):
+def test_full_software_prepare_finger_shift_return_and_play(manager, tmp_path):
+    use_virtual_clock(manager, tmp_path)
     token = open_software(manager)
     score = {"tempo_bpm": 120, "gate": .5, "events": [
         {"start": 0, "duration": 1, "hand": "left", "note": "C3"},
@@ -162,7 +184,9 @@ def test_parallel_operations_and_stale_ready_are_rejected(manager):
     job = manager.command(token, "prepare")
     with pytest.raises(PianoConflict, match="正在执行"):
         manager.command(token, "capture")
-    assert wait_job(manager, job, token)["ok"]
+    # Real-clock software prepare walks the five work-pose stages at the
+    # configured speed, so it needs more than the default job wait.
+    assert wait_job(manager, job, token, timeout=180)["ok"]
     moved = manager.command(token, "shift", side="left", shift_white=1)
     assert wait_job(manager, moved, token)["ok"]
     manager.store.seed()
