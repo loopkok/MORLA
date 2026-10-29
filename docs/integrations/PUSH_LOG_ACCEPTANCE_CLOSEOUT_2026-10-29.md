@@ -5,7 +5,7 @@
 ## 提交内容
 
 | 提交 | 主题 | 范围 |
-|---|---|---|
+| --- | --- | --- |
 | `e1dae63` | `fix(piano): report the final state before the job result` | `piano_worker.py`、3 个钢琴测试文件 |
 | `e6b395b` | `fix(packaging): drop invalid ament_python and vendor-only rosdep keys` | 15 个 `package.xml`、`VENDORED_IN_XNERO.md` |
 | `a6d09da` | `docs(changelog): record acceptance closeout for piano, R04 and rosdep` | `CHANGELOG.md` |
@@ -60,4 +60,19 @@ git status --short --branch
 
 ## 边界
 
-本回执不改变硬件验收结论：无 CR5/EPG/LoopHand/Vader5/Quest/相机硬件接入，C/Q/L/V/E/N/S/D(real)/P 组仍为 BLOCKED_ENV，L03 真实运动为 BLOCKED_CAPABILITY，R04 的注入为 fake+源码层、不等于真机时序；B01 仍需有 sudo 的主机按 rosdep 安装后复测。本文件与 `CHANGELOG.md` 的收尾说明另作一个文档提交推送，其自身 SHA 由 Git 历史记录，推送结果以实际命令返回和远端 SHA 核对为准。
+本回执不改变硬件验收结论：无 CR5/EPG/LoopHand/Vader5/Quest/相机硬件接入，C/Q/L/V/E/N/S/D(real)/P 组仍为 BLOCKED_ENV，L03 真实运动为 BLOCKED_CAPABILITY，R04 的注入为 fake+源码层、不等于真机时序。本文件与 `CHANGELOG.md` 的收尾说明另作一个文档提交推送，其自身 SHA 由 Git 历史记录，推送结果以实际命令返回和远端 SHA 核对为准。
+
+## 补记：B01 依赖关闭（2026-10-29 22:11）
+
+操作员以 sudo 直接 apt 安装（rosdep 在 root 下因 `raw.githubusercontent.com` 超时未能 `update`，改用已知包名）：
+
+```bash
+sudo apt install -y python3-fastapi python3-uvicorn python3-pydantic python3-msgpack \
+  python3-serial python3-aiortc python3-pandas \
+  ros-humble-realsense2-camera ros-humble-usb-cam ros-humble-rosbag2-storage-mcap
+```
+
+- 安装版本：aiortc 1.3.0-3、fastapi 0.63.0-2ubuntu0.1、msgpack 1.0.3-1build1、pandas 1.3.5+dfsg-3、pydantic 1.8.2-1、serial 3.5-1、uvicorn 0.15.0-2ubuntu1、realsense2-camera 4.58.4、usb-cam 0.8.1、rosbag2-storage-mcap 0.15.17。
+- `rosdep check --from-paths src --ignore-src --rosdistro humble` 退出 0：`All system dependencies have been satisfied`（`b01-rosdep-pass.txt`）。
+- 运行时仍使用用户 site 的 pip 版本（fastapi 0.141.1、uvicorn 0.54.0、pydantic 2.13.4、msgpack 1.2.4、aiortc 1.15.0、pandas 2.3.3），apt 版本仅满足 rosdep 归属；仅 `pandas` 出现 numexpr/bottleneck 版本告警（自动回退，不影响功能）。
+- 能力核对：`rosbag2_py.get_registered_writers()` 含 `mcap`，`ros2 pkg executables usb_cam` 有 `usb_cam_node_exe`，`quest3_video_streamer` 42 passed，web manager 全量 288 passed/2 skipped（无回归）。真实相机/串流设备仍未接入，S01/S02/Q 组硬件结论不变。
