@@ -49,8 +49,8 @@
 - 修复验收暴露的代码/打包缺陷：symlink安装时component manifest被误判逃逸安装前缀（改为词法包含检查）；编译快照lockfile写入元组导致JSON往返后`RESOLVED_TAMPERED`（改写出列表）；astral_robot_control在无SDK时缺少`LEFT_ARM_IDS/RIGHT_ARM_IDS`回退；vendor `xhand_control_ros2`的`<depend>morla_interfaces</depend>`位于`<export>`后导致XML校验失败。
 - 修复Web静态托管：colcon symlink安装的`web/dist`文件为符号链接，新版Starlette默认拒绝，导致API根路径与assets全404；`composable_api`/`web_server`在支持时启用`follow_symlink`。修正`composable_browser.mjs`中与descriptor现状不符的sim后端可用性断言。
 - 补齐声明缺失的依赖：`morla_policy_inference`运行时需要`msgpack`（package.xml/setup.py/composable-test.txt）；离线测试环境补`Pillow`、`pandas` pin，后者是远端CI在`ae935b3`上pure层失败的根因（`test_ros_raw_padded_rgb_image...`因缺Pillow返回空端口）。
-- 本机结果：symlink与regular各40包构建通过；colcon 832 tests/0 errors/47 failures（均为vendor `xhand_control_ros2`的copyright/lint_cmake/uncrustify，CTest计数与xunit重复）；clean checkout pure 167 passed/3 skipped、fake 23、sim 7、Vader SDK 5、policy 159、offline data 88 passed/2 skipped；R01–R03通过，R04编译维度与联合反馈通过、故障注入未执行；W01 npm构建、18项node测试与Playwright浏览器端到端6项检查通过。
-- 已知未通过/阻塞：B01 rosdep仍有未满足apt项（本机无sudo，fastapi/uvicorn/aiortc/msgpack等仅用户site）；colcon 47项vendor lint仍红；web manager钢琴用例7项因同级`MORLA-piano`引擎版本（b68a4b5）语义变化失败；无CR5/EPG/LoopHand/Vader5/Quest硬件，相关组均为BLOCKED_ENV。
+- 本机结果：symlink与regular各40包构建通过；colcon 784 tests/0 errors/0 failures/232 skipped（vendor `xhand_control_ros2` 的copyright/lint_cmake/uncrustify按上游归属在CMakeLists排除，其余lint照常）；clean checkout pure 167 passed/3 skipped、fake 23、sim 7、Vader SDK 5、policy 159、offline data 88 passed/2 skipped；R01–R03通过，R04编译维度与联合反馈通过、故障注入未执行；W01 npm构建、18项node测试与Playwright浏览器端到端6项检查通过。
+- 已知未通过/阻塞：B01 rosdep仍有未满足apt项（本机无sudo，fastapi/uvicorn/aiortc/msgpack等仅用户site）；web manager钢琴用例7项因同级`MORLA-piano`引擎版本（b68a4b5）语义变化失败；无CR5/EPG/LoopHand/Vader5/Quest硬件，相关组均为BLOCKED_ENV。
 - 验收后修复已入库：CI依赖修复`7029a83`（Pillow/pandas/msgpack）推送后`contracts (3.10)`、`contracts (3.12)`、`web`全部通过；Nero/XHand资产按owner确认重签`1d3a293`（4个唯一target哈希、8个model+4个asset条目、12个profile revision与legacy golden），`check_assets.py --require-regular-install --loaders`恢复`PASS 28 models, 358 assets`。
 
 ## 2026-10-28
