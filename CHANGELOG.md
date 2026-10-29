@@ -10,6 +10,8 @@
 - R04 组合故障注入补测：`r04-faults.py` 在 `cr5-loophand`/`cr5-epg` 两个 fake 装配上通过 `RuntimeSession` 注入同组设备 `submit` 失败，11/11 项通过（激活幂等、整组 acquire、部分 dispatch 拒绝并独立停止各设备、撤销授权置 `FAULTED`、故障后与释放后命令拒绝、旧 epoch/重复序号拒绝、`group_stopped` 事件），结果 `r04-faults.json` `passed:true`；迟到 IK 结果仍由 CR5 VR 既有源码测试覆盖，不等于真机时序。
 - 复验：当前树 pure **170 passed, 2 skipped**（用户改动已提交后同步 `nero_dual_xhand` fixture 哈希）、fake 23、sim 7；symlink 与 regular 各 40 包构建 `finished`。证据仍归档于 `$HOME/morla-acceptance/20261029-hostcheck/`，报告已更新 T01/R04/B01 与钢琴集成结论。
 
+### 重构后主机编译与真机测试交接
+
 - 新增[主机测试手册](docs/testing/host_build_and_hardware_acceptance.md)与[报告模板](docs/testing/host_acceptance_report_template.md)：区分本机已通过证据、目标环境待执行及能力阻塞，覆盖Humble开发/普通安装、IDL/C++/DDS、授权与资源互斥、CR5/VR/LoopHand/Vader5/EPG、旧Nero/Astral回归、相机/脚踏/传感器、数据与真实模型、Web、性能长稳和回退。
 - 提供仅接受单fake执行器快照的ROS网关检查脚本，供主机检查真实DDS服务、有效目标/反馈及序号/权限/时效/名称/单位拒绝；本机仅核对静态语法、帮助和fake配置门禁，DDS执行仍待主机验证。明确保留Nero模型哈希、LoopHand停止/watchdog及Astral夹爪反馈等阻塞。
 
