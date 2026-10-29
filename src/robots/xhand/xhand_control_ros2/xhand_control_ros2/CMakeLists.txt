@@ -91,6 +91,15 @@ install(DIRECTORY config launch
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_cpplint_FOUND TRUE)
+  # Vendored XHand SDK wrapper: keep upstream sources and CMake files
+  # byte-identical so they can be refreshed from the vendor. Copyright
+  # headers, CMake style and uncrustify formatting are owned upstream;
+  # run the remaining ament_lint_auto checks for this package only.
+  set(AMENT_LINT_AUTO_EXCLUDE
+    ament_cmake_copyright
+    ament_cmake_lint_cmake
+    ament_cmake_uncrustify
+  )
   ament_lint_auto_find_test_dependencies()
 endif()
 
