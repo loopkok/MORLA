@@ -21,7 +21,7 @@ setup(
         (os.path.join("share", package_name, "config"), _existing(glob("config/*"))),
         (os.path.join("share", package_name, "launch"), _existing(glob("launch/*.launch.py"))),
     ],
-    install_requires=["setuptools", "numpy"],
+    install_requires=["setuptools", "numpy", "msgpack"],
     zip_safe=False,
     maintainer="loopkok",
     maintainer_email="loopkok@todo.todo",
