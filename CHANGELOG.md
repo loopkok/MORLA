@@ -8,7 +8,7 @@
 - 修复全量复跑暴露的产品侧竞态：`piano_worker` 原先先发 `result` 再发收尾 `snapshot`，管理器收到 `result` 即清空当前作业，导致调用方在作业完成瞬间仍看到作业前状态（`test_finished_shifted_performance_can_explicitly_prepare_and_replay` 偶发 `演奏前先准备到初始位`，浏览器点“演奏”同样可能命中）。改为先清空 `active_job`、发收尾 `snapshot`、再发 `result`，并注释说明顺序约束。修复后 web manager 全量套件连续两轮 **288 passed, 2 skipped**，钢琴子集 228 passed。
 - 修正 `package.xml` 的 rosdep 键错误：13 个第一方包的 `<buildtool_depend>ament_python</buildtool_depend>` 无效（`ament_python` 是 build type 不是 rosdep key，保留 `<export><build_type>` 即可）；`wujihand_driver`/`wujihand_bringup`/`morla_epg_driver` 移除无 rosdep 键的 `wujihandcpp`、`wuji_description`、`python3-modbus-tk` 并就地注释来源，`VENDORED_IN_XNERO.md` 同步说明。`rosdep check` 未知键清零，仅剩 10 个真实 apt 包（需 sudo 主机）：fastapi、uvicorn、pydantic、msgpack、serial、aiortc、pandas、realsense2-camera、usb-cam、rosbag2-storage-mcap。
 - R04 组合故障注入补测：`r04-faults.py` 在 `cr5-loophand`/`cr5-epg` 两个 fake 装配上通过 `RuntimeSession` 注入同组设备 `submit` 失败，11/11 项通过（激活幂等、整组 acquire、部分 dispatch 拒绝并独立停止各设备、撤销授权置 `FAULTED`、故障后与释放后命令拒绝、旧 epoch/重复序号拒绝、`group_stopped` 事件），结果 `r04-faults.json` `passed:true`；迟到 IK 结果仍由 CR5 VR 既有源码测试覆盖，不等于真机时序。
-- 复验：当前树 pure **170 passed, 2 skipped**（用户改动已提交后同步 `nero_dual_xhand` fixture 哈希）、fake 23、sim 7；symlink 与 regular 各 40 包构建 `finished`。证据仍归档于 `$HOME/morla-acceptance/20261029-hostcheck/`，报告已更新 T01/R04/B01 与钢琴集成结论。
+- 复验：当前树 pure **170 passed, 2 skipped**（用户改动已提交后同步 `nero_dual_xhand` fixture 哈希）、fake 23、sim 7；symlink 与 regular 各 40 包构建 `finished`。证据仍归档于 `$HOME/morla-acceptance/20261029-hostcheck/`，报告已更新 T01/R04/B01 与钢琴集成结论。提交、验证与 CI 结果见[本轮推送回执](docs/integrations/PUSH_LOG_ACCEPTANCE_CLOSEOUT_2026-10-29.md)。
 
 ### 重构后主机编译与真机测试交接
 
