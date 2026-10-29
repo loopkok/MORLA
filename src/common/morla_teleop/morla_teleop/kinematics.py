@@ -83,5 +83,7 @@ class CartesianController:
 def install_kinematics(registry,instance,solver=None):
     solver=solver or solver_for(instance)
     registry.register('morla.cartesian_delta_ik',CartesianController(solver))
-    registry.register('morla.gamepad_cartesian_jog',CartesianController(solver,jog=True))
+    jog=CartesianController(solver,jog=True)
+    jog.requires_fresh_input=instance.get('backend')=='real'
+    registry.register('morla.gamepad_cartesian_jog',jog)
     return registry

@@ -1,0 +1,6 @@
+PASS SDK relocated to src/common/vader5_sdk alongside src/common/morla_vader5_input; old directory absent
+PASS all original SDK runtime source, tests, pyproject, LICENSE and NOTICE hashes unchanged
+PASS SDK README only updates installation path; COLCON_IGNORE added; provenance hashes match new paths
+PASS previous manifest comparison: only six documentation/provenance files changed; ROS/runtime/IK source unchanged
+PASS new-path SDK unittest 5; input/integration subset 11; git diff --check
+NOT_RUN Linux ROS/colcon and device/hardware acceptance; earlier wheel was built before documentation/layout update

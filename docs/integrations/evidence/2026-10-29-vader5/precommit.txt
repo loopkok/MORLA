@@ -1,0 +1,9 @@
+PASS pre-document-edit manifest: 65 current source/evidence hashes matched; SDK provenance 11 hashes matched
+PASS runtime, tests and SDK code unchanged since recorded pure 172 / fake 23 / SDK 5; relocated input subset 11 / SDK 5
+PASS final changed/new static parse: 31 Python, 4 JSON, 6 YAML, 1 XML, 1 TOML; local links in 11 Markdown files
+PASS host guide 27 Bash command blocks parsed with bash -n; embedded Python AST parsed; no commands executed
+PASS fake ROS helper --help without ROS; snapshot guard accepts one fake actuator and refuses empty/real/multi/input before ROS import
+PASS bash -n scripts/test_composable.sh and git diff --check
+PASS existing Nero URDF/main asset manifest, pyAgxArm, LoopHand, Astral and Nero code unchanged against HEAD
+NOT_RUN helper actual DDS, Humble full/ordinary builds, physical input/robot/camera/stop/watchdog, actual model backend and long stability
+NOTE automated link check excludes fenced/inline code, so historical code syntax is not treated as a Markdown link

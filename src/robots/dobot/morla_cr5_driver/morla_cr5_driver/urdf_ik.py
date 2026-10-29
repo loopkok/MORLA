@@ -36,7 +36,8 @@ class IKSolver:
 
     def __init__(self, *, joint_lower=None, joint_upper=None, joint_signs=None,
                  joint_offsets=None, urdf_path=None, max_iterations=100,
-                 max_solve_s=.05, clock=time.monotonic):
+                 max_solve_s=.05, clock=time.monotonic,
+                 position_tolerance_m=.0002, angle_tolerance_rad=.002):
         import pinocchio as pin
         self.pin = pin
         self.path = default_urdf_path() if urdf_path is None else urdf_path
@@ -68,6 +69,10 @@ class IKSolver:
             raise ValueError('Invalid CR5 IK iteration bound')
         if not np.isfinite(max_solve_s) or not 0<max_solve_s<=.25:
             raise ValueError('Invalid CR5 IK deadline')
+        if (not np.isfinite(position_tolerance_m) or not 1e-7<=position_tolerance_m<=.0002 or
+                not np.isfinite(angle_tolerance_rad) or not 1e-6<=angle_tolerance_rad<=.002):
+            raise ValueError('Invalid CR5 IK tolerance')
+        self.position_tolerance_m=position_tolerance_m;self.angle_tolerance_rad=angle_tolerance_rad
         self.max_iterations, self.max_solve_s, self.clock = max_iterations, max_solve_s, clock
         self.seed = None
         self.last_report = {}
@@ -104,12 +109,12 @@ class IKSolver:
             error=self.pin.log6(delta).vector
             pos=float(np.linalg.norm(current.translation-desired.translation))
             angle=float(np.linalg.norm(self.pin.log3(current.rotation.T@desired.rotation)))
-            if pos<=.0002 and angle<=.002:
+            if pos<=self.position_tolerance_m and angle<=self.angle_tolerance_rad:
                 # Independent FK acceptance on the exact returned hardware vector.
                 actual=self.fk(q)
                 accepted=(np.isfinite(q).all() and np.all(q>=lo) and np.all(q<=hi)
-                          and np.linalg.norm(actual[:3,3]-target[:3,3])<=.0002
-                          and np.linalg.norm(self.pin.log3(actual[:3,:3].T@target[:3,:3]))<=.002
+                          and np.linalg.norm(actual[:3,3]-target[:3,3])<=self.position_tolerance_m
+                          and np.linalg.norm(self.pin.log3(actual[:3,:3].T@target[:3,:3]))<=self.angle_tolerance_rad
                           and self.clock()-started<=self.max_solve_s)
                 if accepted:
                     self.last_report={'success':True,'iterations':iteration,'position_error_m':pos,

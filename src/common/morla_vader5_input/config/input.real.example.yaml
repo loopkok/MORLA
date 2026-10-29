@@ -1,0 +1,11 @@
+deployment_version: 1
+deployment_id: vader5_real_input_fake_robot
+instances:
+  pad:
+    backend: real
+    device_id: REPLACE_VADER5_ASSET
+    resource_key: vader5:events:REPLACE_VADER5_ASSET
+    verified: false
+metadata:
+  scope: Real gamepad with fake robot; fill asset identity; this does not authorize
+    physical robot deployment

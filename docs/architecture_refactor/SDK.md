@@ -95,3 +95,12 @@ CR5 的 `morla.cr5.cartesian_delta` 通过同一 morla.controllers 机制注册�
 controller 的 `reset()` 必须隔离迟到的异步结果；持有线程的 controller 实现 `close()`，宿主在会话退出时回收。绑定的 max_age_ms 已传给 BindingController。参考 [CR5 VR 操作与实现](../integrations/cr5_vr.md)，该例不能替代其他设备自己的运动学和实机验收。
 
 可选 controller 标记 `requires_fresh_input=True` 时，宿主在激活前及 ACTIVE 的人工控制/等待阶段调用 BindingController.input_fresh，检查源、位姿和 bool deadman 的独立时效；缺输入不会先使能再等命令。原 controller 默认不启用该附加要求，CR5 真实 VR 后端显式启用。
+
+
+### 可插拔ROS输入源
+
+输入设备可注册 `morla.ros_inputs` entry point（名称为plugin_id）。RosInputManager只加载当前选中的factory，传入instance、clock与on_transition；返回bridge包含source（InputStream）、topic、consume(JSON)、actions及control_event(frame)。订阅器将所有有效帧交给input_event观察/操作，再按control_event派发运动；未知旧会话、断连或坏包撤销旧输入权。Vader实现位于morla_vader5_input，不在公共宿主硬编码品牌。
+
+动作名复用teleop_start/teleop_pause/record_start/record_stop，另有estop；组合Service调用现有生命周期/数采API并以输入epoch/sequence去重，不能再同时转发旧Profile操作话题。动作回执不等于硬件完成；新设备必须给出按钮冲突与启动已按住处理策略。
+
+InputFrame.synthetic用于明确fake源，InputIngressAdapter保留标量与向量端口的来源时间；录制按钮边沿另存事件。scalar_map可连接一维joint_targets并可用max_velocity（目标单位/秒）限速，多关节不允许标量误连。已有不传max_velocity的映射行为保持。

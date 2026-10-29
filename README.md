@@ -43,6 +43,11 @@ work, and acceptance checklist against the actual code.
 packages and composable plugins. Their [combined example](examples/cr5_loophand/README.md)
 contains assembly/deployment configuration only. Real-hardware gates and the
 hand's current read-only boundary are documented explicitly.
+The [Vader 5 Pro input component](src/common/morla_vader5_input/README.md)
+reuses the supplied SDK and common controllers for gamepad teleoperation,
+recording and the same training/policy contracts as other inputs.
+The [host build and hardware acceptance guide](docs/testing/host_build_and_hardware_acceptance.md)
+lists remaining post-refactor checks, target-host commands and per-device evidence requirements.
 The [Jodell EPG50-060 gripper driver](src/robots/jodell/morla_epg_driver/README.md)
 wraps the supplied Python SDK as an independent ROS 2 / MORLA component;
 real motion requires commissioning of activation, feedback and stop/watchdog behavior.

@@ -1,0 +1,7 @@
+PASS static parse of new/modified Python, JSON, YAML, XML: {'.py': 30, '.json': 3, '.yaml': 6, '.xml': 1}
+PASS current README/integration-guide relative links and git diff --check
+PASS original SDK file hashes unchanged; no second HID/IMU decoder
+PASS existing Nero model/primary resource manifest unchanged
+PASS input wheel discovery/selected ROS-source/service/runtime path without SDK or other robot package imports (ament query substitution; common source)
+PASS pure 172, fake integration 23, upstream SDK unittest 5
+NOT_RUN Linux Humble colcon/IDL/real ROS transport, USB/2.4G hardware/firmware/mapping/IMU, physical robot/stop/watchdog/latency, actual model training/serving and long stability

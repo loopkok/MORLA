@@ -38,7 +38,7 @@ class InputIngressAdapter:
                 if isinstance(value,(list,tuple)):
                     ports[key]={'values':list(value),'valid':frame.valid,**(frame.port_metadata or {}).get(key,{})}
                 elif isinstance(value,(float,int)):
-                    ports[key]={'values':[float(value)],'valid':frame.valid}
+                    ports[key]={'values':[float(value)],'valid':frame.valid,**(frame.port_metadata or {}).get(key,{})}
             return {'ready':self.configured,'sample_ns':frame.received_ns,'source':'input_device',
-                    'measured':False,'synthetic':False,'source_epoch':frame.source_epoch,
+                    'measured':False,'synthetic':frame.synthetic,'source_epoch':frame.source_epoch,
                     'sequence':frame.sequence,'ports':ports}

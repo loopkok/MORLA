@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-29",
+  "sdk": "src/common/vader5_sdk / morla-vader5-sdk 0.1.0",
+  "license": "GPL-3.0-or-later",
+  "reuse": "SDK HID transport/parser are used unmodified, no new decoder or virtual controller",
+  "files": {
+    "src/common/vader5_sdk/LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "src/common/vader5_sdk/pyproject.toml": "166b731092bb685255f2cd86808724e788c6c15323530df48bf5efb3d6f5a9db",
+    "src/common/vader5_sdk/NOTICE": "f1fac8af5f69febc97330f9aaab97a73fce009a13931a73c4f97fbc81bb4cb08",
+    "src/common/vader5_sdk/README.md": "6a8b05eefa321277ff54ee713535079ebd718eaa219613dc94d0051cf55952ca",
+    "src/common/vader5_sdk/vader5_sdk/__init__.py": "490df5e8714d1dad7576a9d3228c9454673eaf7c3533731d0864588cb6e43279",
+    "src/common/vader5_sdk/vader5_sdk/__main__.py": "8781bf5becd09f91f548314070cc92514f16abb1154da7b10d1f4840370a07d1",
+    "src/common/vader5_sdk/tests/test_sdk.py": "849d7f7b6e185db1fb5c66f167929d3cd9e072131fc37355fceebb462eceab46",
+    "src/common/vader5_sdk/vader5_sdk/_vendor/device.py": "767d8bfe19409229106000977f2e38ebc69edb49381b1f64fe3724503af86a92",
+    "src/common/vader5_sdk/vader5_sdk/_vendor/protocol.py": "78fbd2e63e9d0ca7622ad603ac987f4ff38186f75555138c2e165eb7504e36a8",
+    "src/common/vader5_sdk/vader5_sdk/_vendor/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/common/vader5_sdk/COLCON_IGNORE": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "host_clock": "SDK received_at is host decode time, no hardware sampling clock",
+  "hardware": "NOT_RUN",
+  "original_readme_sha256": "0fcbb3dcd6455a4d57d691dad38b38a7463002c309aa14cb3a6ae3aa2b50a9bb",
+  "layout_changes": "SDK relocated alongside morla_vader5_input; README installation path updated and COLCON_IGNORE added; runtime source, tests, metadata, LICENSE and NOTICE unchanged"
+}

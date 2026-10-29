@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "morla-vader5-sdk"
+version = "0.1.0"
+description = "Minimal Linux USB input SDK for Flydigi Vader 5 Pro"
+requires-python = ">=3.9"
+license = {file = "LICENSE"}
+
+[tool.setuptools.packages.find]
+include = ["vader5_sdk*"]

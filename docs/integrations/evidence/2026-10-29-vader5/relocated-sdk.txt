@@ -1,0 +1,10 @@
+test_every_known_button_is_independent (test_sdk.ProtocolTests.test_every_known_button_is_independent) ... ok
+test_invalid_reports_and_report_id (test_sdk.ProtocolTests.test_invalid_reports_and_report_id) ... ok
+test_known_report_and_units (test_sdk.ProtocolTests.test_known_report_and_units) ... ok
+test_no_cached_state_on_timeout (test_sdk.ProtocolTests.test_no_cached_state_on_timeout) ... ok
+test_wrong_model_rejected (test_sdk.ProtocolTests.test_wrong_model_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.003s
+
+OK

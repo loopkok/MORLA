@@ -1,0 +1,2 @@
+PASS installed input wheel: descriptor without SDK/HID import, selected ROS-source entry point, normalized bridge, service button activation, runtime command, synthetic provenance, disarm/cleanup
+Ament query substitution only; no ROS transport or device/robot acceptance claimed

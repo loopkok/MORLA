@@ -140,6 +140,7 @@ class ComposableService:
         self.last_policy_ns=0
         self.controller_close_errors=[]
         self.input_errors={}
+        self.input_button_states={}
 
     def _reset_bindings(self, close=False):
         for controller in self.bindings.values():
@@ -195,6 +196,7 @@ class ComposableService:
             self.inputs={}; self.bindings={}; self.sequence=0
             self.active_input_sources=set()
             self.input_errors={}
+            self.input_button_states={}
             self.requests[request_id]=(identity,session.state())
             return session.state()
 
@@ -247,7 +249,8 @@ class ComposableService:
                 if self.ros_inputs is not None: return {'status':'SUCCEEDED','already_connected':True}
                 from morla_input.ros_sources import RosInputManager
                 manager=RosInputManager([x for x in session.instances.values() if x['kind']=='input'],
-                    lambda frame:self.ingest_frame(session_id,frame),self.disconnect_input,clock=self.clock)
+                    lambda frame:self.ingest_frame(session_id,frame),self.disconnect_input,clock=self.clock,
+                    on_event=lambda iid,frame,actions:self.input_event(session_id,iid,frame,actions))
                 try: manager.start()
                 except Exception as exc:
                     manager.close()
@@ -327,6 +330,43 @@ class ComposableService:
             frame=source.packet(raw)
             return self.ingest_frame(session_id,frame)
 
+    def input_event(self,session_id,input_id,frame,actions):
+        """Selected ROS input plugin emits named actions into existing service APIs.
+
+        Observe every button edge, even when motion is rate-limited. Never route
+        these composable events to the legacy Profile operator router as well.
+        """
+        with self.lock:
+            session=self.require(session_id)
+            source=self.inputs.get(input_id)
+            if (source is None or source.latest is not frame or source.read() is None or
+                    frame.source_id!=input_id):
+                raise ServiceError('Unregistered/stale input operation')
+            adapter=session.adapters.get(input_id)
+            if hasattr(adapter,'feed'):adapter.feed(frame)
+            buttons=frame.ports.get('buttons')
+            if buttons is not None:
+                identity=(frame.source_epoch,tuple(buttons))
+                if self.input_button_states.get(input_id)!=identity:
+                    self.input_button_states[input_id]=identity
+                    if self.recorder:
+                        self.recorder.event('input_buttons',{'input_id':input_id,'epoch':frame.source_epoch,
+                            'sequence':frame.sequence,'sample_ns':(frame.port_metadata or {}).get('buttons',{}).get('received_ns',frame.received_ns),
+                            'buttons':list(buttons),'actions':list(actions)})
+            for action in actions:
+                request='input-'+input_id+'-'+frame.source_epoch+'-'+str(frame.sequence)+'-'+action
+                def dispatch(action=action,request=request):
+                    if action in ('teleop_start','teleop_pause','estop'):
+                        op={'teleop_start':'activate','teleop_pause':'disarm','estop':'estop'}[action]
+                        return self.operation(session_id,{'operation':op,'request_id':request})
+                    if action=='record_start':return self.start_recording(session_id,'gamepad demonstration')
+                    if action=='record_stop':return self.stop_recording()
+                    raise ServiceError('Unsupported input operation')
+                with session.lock:
+                    result=session._operation(request+'-dispatch','input_'+action,dispatch)
+                if result['status']=='FAILED':self.input_errors[input_id]=result.get('error','input action failed')
+                session._event('input_operation',request_id=request,input_id=input_id,action=action,result=result)
+
     def ingest_frame(self,session_id,frame):
         try:
             return self._ingest_frame(session_id,frame)
@@ -352,6 +392,8 @@ class ComposableService:
             if session.status!='ACTIVE':
                 self._reset_bindings()
                 return {'accepted':False,'reason':'explicit_activation_required'}
+            if session.lease is not None and session.lease['producer']!='human_mobile':
+                return {'accepted':False,'reason':'authority_owned_by_other_producer'}
             command_rows=[]
             for binding in session.resolved.get("bindings",[]):
                 if binding["source"].split(".",1)[0]!=input_id:

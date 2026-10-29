@@ -23,6 +23,10 @@ def router(service):
             raise HTTPException(422,detail=getattr(exc,"diagnostics",str(exc))) from exc
         except RuntimeError as exc: raise HTTPException(409,str(exc)) from exc
 
+    @api.get('/active-session')
+    def active_session():
+        return None if service.session is None else call(service.state,service.session.session_id)
+
     @api.get("/components")
     def components(): return service.catalog.to_dict()
 

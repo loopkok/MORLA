@@ -34,7 +34,14 @@ class ControllerRegistry:
             out_lo, out_hi = parameters.get("output_range", [0.0, 1.0])
             if not lo < hi or not lo <= x <= hi:
                 raise ControllerError("scalar outside declared range")
-            return [out_lo + (x-lo)/(hi-lo)*(out_hi-out_lo)]
+            target=out_lo + (x-lo)/(hi-lo)*(out_hi-out_lo)
+            if 'max_velocity' in parameters:
+                speed=parameters['max_velocity']
+                if type(speed) not in (int,float) or not math.isfinite(speed) or speed<=0:
+                    raise ControllerError('invalid scalar max_velocity')
+                step=speed*min(.05,max(0.,dt))
+                target=measured[0]+max(-step,min(step,target-measured[0]))
+            return [target]
         if plugin_id in {"morla.joint_jog", "joint_jog"}:
             axes = parameters.get("axes_map")
             if not isinstance(value, dict) or not isinstance(axes, list) or len(axes) != len(measured):

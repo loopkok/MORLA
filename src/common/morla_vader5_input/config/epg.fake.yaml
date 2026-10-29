@@ -1,0 +1,46 @@
+assembly_version: 1
+assembly_id: vader5_epg
+revision: 1
+instances:
+  pad:
+    plugin: morla.input.vader5
+    version: 1.0.0
+    backend: fake
+  gripper:
+    plugin: morla.jodell.epg50_060
+    version: 1.0.0
+    backend: fake
+bindings:
+- id: gripper
+  source: pad.scalar
+  target: gripper.position_target
+  controller: morla.scalar_map
+  deadman: pad.hold_to_control
+  parameters:
+    input_range:
+    - 0
+    - 1
+    output_range:
+    - 0.05
+    - 0
+    max_velocity: 0.05
+capture:
+  state:
+  - gripper.position
+  action:
+  - gripper.position_target
+  images: {}
+  auxiliary:
+  - pad.axes
+  - pad.scalar
+  - pad.hold_to_control
+  - pad.raw_axes
+  - pad.buttons
+  - pad.gyro
+  - pad.accel
+  - pad.unknown_bits
+  - pad.raw_report
+  - pad.raw_length
+  action_source: command
+  hold_frames: 0
+  dataset_fps: 30

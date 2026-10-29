@@ -32,6 +32,7 @@ class InputFrame:
     clock_domain: str = "host_monotonic"
     valid: bool = True
     port_metadata: dict | None = None
+    synthetic: bool = False
 
 
 class InputStream:

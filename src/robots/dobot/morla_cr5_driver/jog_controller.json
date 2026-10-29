@@ -1,0 +1,30 @@
+{
+  "descriptor_version": 1,
+  "api_version": "1.0",
+  "plugin_id": "morla.cr5.cartesian_jog",
+  "plugin_version": "1.0.0",
+  "kind": "controller",
+  "ports": {},
+  "controller_types": {
+    "inputs": [
+      "axes_buttons"
+    ],
+    "outputs": [
+      "joint_targets"
+    ]
+  },
+  "backend_variants": {
+    "fake": {
+      "available": true,
+      "validation_level": "actual_URDF_IK_with_fake_joint_feedback"
+    },
+    "real": {
+      "available": true,
+      "validation_level": "requires_URDF_hardware_alignment_acceptance"
+    }
+  },
+  "source": {
+    "package": "morla_cr5_driver",
+    "version": "0.1.0"
+  }
+}

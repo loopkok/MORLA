@@ -1,0 +1,177 @@
+{
+  "descriptor_version": 1,
+  "api_version": "1.0",
+  "plugin_id": "morla.input.vader5",
+  "plugin_version": "1.0.0",
+  "kind": "input",
+  "ports": {
+    "axes": {
+      "direction": "output",
+      "semantic": "axes_buttons",
+      "dim": 6,
+      "unit": "ratio",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "scalar": {
+      "direction": "output",
+      "semantic": "scalar",
+      "dim": 1,
+      "unit": "ratio",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "hold_to_control": {
+      "direction": "output",
+      "semantic": "scalar",
+      "dim": 1,
+      "unit": "ratio",
+      "codec": "numeric",
+      "dtype": "bool"
+    },
+    "raw_axes": {
+      "direction": "output",
+      "semantic": "numeric",
+      "dim": 6,
+      "unit": "ratio",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "buttons": {
+      "direction": "output",
+      "semantic": "numeric",
+      "dim": 27,
+      "unit": "count",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "gyro": {
+      "direction": "output",
+      "semantic": "numeric",
+      "dim": 3,
+      "unit": "rad/s",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "accel": {
+      "direction": "output",
+      "semantic": "numeric",
+      "dim": 3,
+      "unit": "m/s2",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "unknown_bits": {
+      "direction": "output",
+      "semantic": "numeric",
+      "dim": 4,
+      "unit": "count",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "raw_report": {
+      "direction": "output",
+      "semantic": "numeric",
+      "dim": 64,
+      "unit": "count",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "raw_length": {
+      "direction": "output",
+      "semantic": "scalar",
+      "dim": 1,
+      "unit": "count",
+      "codec": "numeric",
+      "dtype": "float64"
+    }
+  },
+  "backend_variants": {
+    "fake": {
+      "available": true,
+      "validation_level": "protocol"
+    },
+    "real": {
+      "available": true,
+      "requires": [
+        "Linux",
+        "ROS2",
+        "morla-vader5-sdk",
+        "device/firmware verification"
+      ],
+      "validation_level": "NOT_RUN_hardware"
+    }
+  },
+  "resources": {
+    "session_family": "vader5_events",
+    "sharing": "exclusive",
+    "stop_policy": "disconnect_input"
+  },
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "input_topic": {
+        "type": "string"
+      },
+      "deadzone": {
+        "type": "number",
+        "minimum": 0,
+        "exclusiveMaximum": 1
+      },
+      "max_age_ms": {
+        "type": "number",
+        "minimum": 10,
+        "maximum": 250
+      },
+      "deadman_button": {
+        "type": "string"
+      },
+      "rotation_button": {
+        "type": "string"
+      },
+      "action_buttons": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "axis_signs": {
+        "type": "array",
+        "minItems": 6,
+        "maxItems": 6,
+        "items": {
+          "enum": [
+            -1,
+            1
+          ]
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "defaults": {
+    "input_topic": "/vader5/events",
+    "deadzone": 0.08,
+    "max_age_ms": 250,
+    "deadman_button": "M1",
+    "rotation_button": "M2",
+    "action_buttons": {
+      "START": "teleop_start",
+      "B": "teleop_pause",
+      "Y": "record_start",
+      "X": "record_stop"
+    },
+    "axis_signs": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ]
+  },
+  "source": {
+    "package": "morla_vader5_input",
+    "version": "0.1.0"
+  }
+}

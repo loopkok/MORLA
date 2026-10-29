@@ -1,0 +1,21 @@
+deployment_version: 1
+deployment_id: vader5_cr5_real
+instances:
+  arm:
+    backend: real
+    device_id: REPLACE_CR5_SERIAL
+    resource_key: cr5:REPLACE_CR5_SERIAL
+    verified: false
+    stop_verified: false
+    parameters:
+      host: REPLACE_CONTROLLER_IP
+      kinematics_verified: false
+  pad:
+    backend: real
+    device_id: REPLACE_VADER5_ASSET
+    resource_key: vader5:events:REPLACE_VADER5_ASSET
+    verified: false
+calibrations: {}
+metadata:
+  required: Verify input basis, Link6/TCP, joints/limits, board stop/watchdog; set
+    binding calibration_verified only after evidence

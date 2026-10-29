@@ -1,0 +1,8 @@
+Includes unmodified device.py and protocol.py from TJLawInOrbit/tux-invader
+https://github.com/TJLawInOrbit/tux-invader
+Retrieved 2026-10-29 from main; content hashes below.
+Copyright (C) 2026 tjlaw. GPL-3.0-or-later; see LICENSE.
+SDK wrapper and examples added 2026-10-29 under GPL-3.0-or-later.
+vader5/protocol.py: SHA256 78fbd2e63e9d0ca7622ad603ac987f4ff38186f75555138c2e165eb7504e36a8
+vader5/device.py: SHA256 767d8bfe19409229106000977f2e38ebc69edb49381b1f64fe3724503af86a92
+LICENSE: SHA256 3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986

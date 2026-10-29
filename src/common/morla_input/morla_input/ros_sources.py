@@ -11,8 +11,9 @@ from .adapters.normalized import InputStream,GamepadAdapter,InputFrame,InputErro
 
 
 class RosInputManager:
-    def __init__(self,instances,on_frame,on_disconnect,*,clock=time.monotonic_ns):
+    def __init__(self,instances,on_frame,on_disconnect,*,clock=time.monotonic_ns,on_event=None):
         self.instances=instances; self.on_frame=on_frame; self.on_disconnect=on_disconnect
+        self.on_event=on_event or (lambda iid,frame,actions:None)
         self.clock=clock; self.sources={}; self.cache={}; self.node=None
 
     def start(self):
@@ -28,7 +29,24 @@ class RosInputManager:
         self.executor=SingleThreadedExecutor(); self.executor.add_node(self.node)
         for instance in self.instances:
             iid=instance['instance_id']; plugin=instance['plugin_id']
-            if plugin=='morla.input.quest_right':
+            from importlib import metadata
+            factories=[e for e in metadata.entry_points(group='morla.ros_inputs') if e.name==plugin]
+            if len(factories)>1:raise InputError('Ambiguous ROS input source '+plugin)
+            if factories:
+                bridge=factories[0].load()(instance,clock=self.clock,
+                    on_transition=lambda iid=iid:self.on_disconnect(iid))
+                self.sources[iid]=bridge.source
+                def external(msg,iid=iid,bridge=bridge):
+                    def action():
+                        frame=bridge.consume(msg.data)
+                        if frame is not None:
+                            self.on_event(iid,frame,bridge.actions)
+                            if bridge.control_event(frame):self.on_frame(frame)
+                    self._guarded(iid,action)
+                from rclpy.qos import QoSProfile,ReliabilityPolicy
+                self.node.create_subscription(String,bridge.topic,external,
+                    QoSProfile(depth=64,reliability=ReliabilityPolicy.RELIABLE))
+            elif plugin=='morla.input.quest_right':
                 import json
                 from .quest_right import QuestRightSource
                 source=QuestRightSource(iid, clock=self.clock,

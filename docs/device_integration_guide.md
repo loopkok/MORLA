@@ -209,6 +209,10 @@ src/robots/<vendor>/morla_<device>/       # 执行器；输入/传感器也可�
 
 模型放 `src/robot_description` 或可定位的受信安装包；现场标定、序列号、认证信息通过 Deployment 绑定，示例中使用占位符。原始数据与现场文件另行保存，不在更新代码时覆盖。
 
+独立厂商SDK与对应ROS 2包放在同一父目录，不放入 `tools`。例如输入设备使用 `src/common/vader5_sdk/` 与 `src/common/morla_vader5_input/`，执行器使用 `src/robots/<vendor>/<device>_sdk/` 与 `src/robots/<vendor>/morla_<device>_driver/`。SDK保留自身构建、版本、许可和来源；普通Python SDK通过pip安装，并放置COLCON_IGNORE供colcon跳过。ROS驱动使用已安装SDK的公开接口，不靠临时sys.path或相对目录加载。无再分发许可时仍由部署环境单独安装，不能为满足目录布局而擅自复制原厂二进制。
+
+现有布局尚未全部统一：CR5仅在驱动内vendor保留Dobot反馈报文布局，LoopHand在驱动内vendor保留所需SDK模块；Nero源码在 `third_party/pyAgxArm`，Astral依赖外部安装的 `astral_robot_sdk`，当前仓库不含该SDK。它们不能视为已符合上述同级目录约定；后续迁移应同时更新导入、安装脚本、来源记录和部署验证。
+
 ### 4.2 Descriptor 和发现
 
 完整参照 [三自由度 descriptor](../examples/composable_plugin/descriptor.json) 与 [registry.py](../src/common/morla_core/morla_core/plugins/registry.py)。
@@ -749,8 +753,8 @@ bash scripts/test_ros.sh
 以下是对本文基线源码的核对结果，后续接入必须逐项判断是否涉及。它们不是要求所有设备一次性补完全部功能。
 
 1. **输入不是通用自动插件宿主。** ComposableService.start 对所有 input 注入 InputIngressAdapter；安装 `morla.adapters` 的新 input factory 不会在该路径自动替换它。新输入必须接 ingest_frame 及 source 生命周期，或扩展受信 input source 注册/宿主。
-2. **ROS 输入驱动未自动拉起。** connect_inputs 启动订阅器；RosInputManager 有 gamepad/xbox、Quest、glove 和来源明确的 quest_right 分支，Quest/hand topics 多为固定路径。新 VR/外骨骼、source_namespace、驱动启动/退出需要额外接线。
-3. **元数据参数不保证生效。** 当前 GamepadAdapter 默认 deadzone=0.08，RosInputManager 未把实例 deadzone/device_name 传入；BindingController 默认 250 ms；CR5 VR 接入时已将 binding.max_age_ms 接入组合宿主。runtime 默认反馈新鲜度为 500 ms，不能假定端口 max_age_ms 自动改变它。按现场需求补接并做参数生效测试，不直接修改冻结 snapshot 绕过校验。
+2. **ROS 输入驱动未自动拉起。** connect_inputs 启动订阅器；RosInputManager 有 gamepad/xbox、Quest、glove 和来源明确的 quest_right 分支，并支持按morla.ros_inputs entry point加载所选外部源（Vader接入使用此机制），Quest/hand topics 多为固定路径。新 VR/外骨骼、source_namespace、驱动启动/退出需要额外接线。
+3. **元数据参数不保证生效。** 当前旧SDL GamepadAdapter分支默认deadzone=0.08，RosInputManager未把其实例deadzone/device_name传入；Vader插件使用自己冻结的输入参数传入公共归一化器；BindingController 默认 250 ms；CR5 VR 接入时已将 binding.max_age_ms 接入组合宿主。runtime 默认反馈新鲜度为 500 ms，不能假定端口 max_age_ms 自动改变它。按现场需求补接并做参数生效测试，不直接修改冻结 snapshot 绕过校验。
 4. **插件预检仅提供元数据结论。** CR5/LoopHand 接入时已补充外部 real adapter entry point 检查，不再把直接 TCP/串口插件一律按内置 ROS 品牌处理；该分支仍不加载插件、不验证设备或其全部依赖，报告 dependencies_unchecked。输入 descriptor 的 real available 也不能当作完整输入可用性判断。安装后应验证实际加载、依赖和设备反馈，更不能靠改 backend=fake 绕过。
 5. **资源声明与实际锁需核验。** 编译器检查 resources 列表；当前 RuntimeSession.start 主要按 DeviceSession.resource_key 获取设备锁，并持有独占 host lane。一个插件涉及多个物理资源时要核实实际覆盖，不能只写 resources 列表就宣称全部锁住。主机锁也不能替代远端控制器/其他主机的访问协调。
 6. **IK 与仿真资产有内置分支。** 新臂需要 controller/solver；新 MJCF 需要资产/场景构建接线。只添加 URDF、descriptor 或 controller 名不足以自动生效。
@@ -765,7 +769,9 @@ bash scripts/test_ros.sh
 
 ## 13. 每次接入的交付模板
 
-已按本指南独立接入：[Jodell EPG50-060](integrations/epg50_060.md)、[CR5](integrations/cr5.md)、[Aero Hand Open](integrations/loophand.md)；CR5 另有 [右手柄/右手 VR 链路](integrations/cr5_vr.md)，使用独立 URDF / Pinocchio 本地 IK，纯本体资源位于统一 robot_description；软件已接通、实机待验收；[组合示例](../examples/cr5_loophand/README.md) 只引用两包的组件。验收记录保留当前真实手只读及停止/watchdog 限制。
+目标主机编译、安装、ROS fake与逐设备真机验收按[主机测试手册](testing/host_build_and_hardware_acceptance.md)执行，使用[报告模板](testing/host_acceptance_report_template.md)留证；该手册区分当前已验证与待执行范围，不代替本指南的接入接口要求。
+
+已按本指南独立接入：[Vader 5 Pro输入](integrations/vader5.md)、[Jodell EPG50-060](integrations/epg50_060.md)、[CR5](integrations/cr5.md)、[Aero Hand Open](integrations/loophand.md)；CR5 另有 [右手柄/右手 VR 链路](integrations/cr5_vr.md)，使用独立 URDF / Pinocchio 本地 IK，纯本体资源位于统一 robot_description；软件已接通、实机待验收；[组合示例](../examples/cr5_loophand/README.md) 只引用两包的组件。验收记录保留当前真实手只读及停止/watchdog 限制。
 
 建议每台/类新设备在 `docs/integrations/<device>.md` 留下以下记录；该目录是建议交付位置，按实际项目组织创建。
 

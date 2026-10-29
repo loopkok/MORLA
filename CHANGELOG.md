@@ -2,6 +2,21 @@
 
 ## 2026-10-29
 
+### 重构后主机编译与真机测试交接
+
+- 新增[主机测试手册](docs/testing/host_build_and_hardware_acceptance.md)与[报告模板](docs/testing/host_acceptance_report_template.md)：区分本机已通过证据、目标环境待执行及能力阻塞，覆盖Humble开发/普通安装、IDL/C++/DDS、授权与资源互斥、CR5/VR/LoopHand/Vader5/EPG、旧Nero/Astral回归、相机/脚踏/传感器、数据与真实模型、Web、性能长稳和回退。
+- 提供仅接受单fake执行器快照的ROS网关检查脚本，供主机检查真实DDS服务、有效目标/反馈及序号/权限/时效/名称/单位拒绝；本机仅核对静态语法、帮助和fake配置门禁，DDS执行仍待主机验证。明确保留Nero模型哈希、LoopHand停止/watchdog及Astral夹爪反馈等阻塞。
+
+### Vader 5 Pro 同级输入设备与公共手柄接线
+
+- 新增独立morla_vader5_input / morla.input.vader5，原样调用src/common/vader5_sdk，不重复实现HID协议。提供ROS reader、Joy/Imu诊断、来源事件、27按钮/摇杆/扳机/IMU/raw端口和配置；输入kind与Quest同级，IMU不冒充绝对6DoF。
+- 按SDK同级目录要求，将Vader5 SDK置于 `src/common/vader5_sdk`，与ROS输入包并列；同步pip安装路径、来源哈希及接入规范，添加COLCON_IGNORE。SDK运行时代码保持原样；核对并记录CR5/LoopHand包内vendor、Nero third_party及Astral外部依赖的现状。
+- 复用公共GamepadAdapter/InputStream、CartesianController、scalar_map及既有IK；补充品牌无关morla.ros_inputs接线和公共组合会话宿主。CR5新增共用求解/worker的jog入口，精细小步采用更严格容差，原VR默认值保留；Nero/Astral示例沿用公共jog。
+- 配置化按钮角色与冲突检查、启动释放、组合急停优先、序号/epoch/源时效、即时释放与按钮边沿记录；激活/采集调用已有Service API并去重，不重复发送旧操作话题。策略持权时输入只观察/录制，不自动抢权。
+- 本轮pure 172 passed（含11项新增输入/整链）、fake集成23 passed、原SDK unittest 5 passed，独立input wheel发现/加载验证通过；SDK迁至同级目录后复验5项SDK及11项输入专项通过。没有ROS/实体设备验收。
+- 提供CR5/EPG fake、真实手柄覆盖及Nero/Astral示例；默认robot state/action契约保持，手柄意图为auxiliary，训练/推理/回放复用已有链路。软件证据与硬件未验收边界见[接入记录](docs/integrations/vader5.md)及[操作说明](src/common/morla_vader5_input/README.md)。
+- 最终范围、参数、目录/许可与验证依据见[本轮详细提交日志](docs/integrations/CHANGE_LOG_VADER5_2026-10-29.md)；实际提交号与远端读回结果在推送成功后归档。
+
 ### Jodell EPG50-060 夹爪独立接入
 
 - 为 EPG50-060-0PF-L200-C7-N-A-P40-S00 新增独立 `morla_epg_driver` / `morla.jodell.epg50_060`，封装用户提供的 JodellTool 0.1.5 RS485/Modbus SDK，包含ROS入口、静态descriptor、fake/real配置、launch、只读probe和来源记录；不依赖机械臂或其他手包，不再分发许可不明的原厂SDK。

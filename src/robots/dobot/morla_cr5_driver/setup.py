@@ -7,7 +7,7 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/morla_cr5_driver']),
         ('share/ament_index/resource_index/morla_components', ['resource/morla_cr5_driver_components']),
-        ('share/morla_cr5_driver', ['package.xml', 'descriptor.json', 'controller.json', 'README.md', 'PROVENANCE.json', 'LICENSE', 'LICENSE-DOBOT']),
+        ('share/morla_cr5_driver', ['package.xml', 'descriptor.json', 'controller.json', 'jog_controller.json', 'README.md', 'PROVENANCE.json', 'LICENSE', 'LICENSE-DOBOT']),
         ('share/morla_cr5_driver/config', glob('config/*.yaml')),
         ('share/morla_cr5_driver/launch', glob('launch/*.launch.py')),
     ],
@@ -21,7 +21,8 @@ setup(
             'morla.dobot.cr5:real = morla_cr5_driver.adapter:create_adapter',
             'morla.dobot.cr5:fake = morla_cr5_driver.adapter:create_adapter',
         ],
-        'morla.controllers': ['morla.cr5.cartesian_delta = morla_cr5_driver.vr_controller:create_controller'],
+        'morla.controllers': ['morla.cr5.cartesian_delta = morla_cr5_driver.vr_controller:create_controller',
+                              'morla.cr5.cartesian_jog = morla_cr5_driver.vr_controller:create_jog_controller'],
         'console_scripts': ['cr5_driver = morla_cr5_driver.node:main',
                             'cr5_vr_session = morla_cr5_driver.vr_session:main',
                             'cr5_kinematics_check = morla_cr5_driver.kinematics_check:main'],

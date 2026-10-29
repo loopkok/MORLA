@@ -13,7 +13,7 @@ _CONTROLLERS={
     'morla.cartesian_delta_ik':({'pose6d'},{'joint_targets'}),
     'morla.gamepad_cartesian_jog':({'axes_buttons'},{'joint_targets'}),
     'morla.joint_jog':({'axes_buttons','joint_targets'},{'joint_targets'}),
-    'morla.scalar_map':({'scalar'},{'scalar'}),
+    'morla.scalar_map':({'scalar'},{'scalar','joint_targets'}),
     'morla.xhand.retarget':({'hand_landmarks'},{'joint_targets'}),
     'morla.wuji.retarget':({'hand_landmarks'},{'joint_targets'}),
     'morla.identity':({'joint_targets','scalar','numeric'},{'joint_targets','scalar','numeric'}),
@@ -156,6 +156,8 @@ def compile_system(assembly, deployment=None, registry=None):
             descriptors.append(desc)
             types=desc.get('controller_types',{}); accepted=(set(types.get('inputs',[])),set(types.get('outputs',[])))
         if sport['semantic'] not in accepted[0] or tport['semantic'] not in accepted[1]: raise CompilationError('incompatible input/controller/target capability',bid,code='PORT_MISMATCH')
+        if controller=='morla.scalar_map' and (sport['dim']!=1 or tport['dim']!=1 or len(target['joints'])!=1):
+            raise CompilationError('scalar mapping requires one scalar input and one target joint',bid,code='PORT_MISMATCH')
         if controller=='morla.identity' and (sport['dim']!=tport['dim'] or sport['unit']!=tport['unit']): raise CompilationError('identity mapping requires equal dimensions and units',bid)
         target_identity=(target['instance_id'], 'command')
         if target_identity in target_writers: raise CompilationError('multiple input bindings write same component',bid)

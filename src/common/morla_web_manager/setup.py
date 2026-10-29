@@ -30,6 +30,7 @@ setup(
         "console_scripts": [
             "morla_web_manager = morla_web_manager.web_server:main",
             "morla-composable-web = morla_web_manager.composable_api:main",
+            "morla-composable-session = morla_web_manager.session_cli:main",
         ],
     },
 )

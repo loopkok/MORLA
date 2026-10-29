@@ -1,0 +1,79 @@
+assembly_version: 1
+assembly_id: vader5_astral
+revision: 1
+instances:
+  arm:
+    plugin: morla.astral.arm
+    version: 1.0.0
+    backend: fake
+    parameters:
+      side: right
+  pad:
+    plugin: morla.input.vader5
+    version: 1.0.0
+    backend: fake
+bindings:
+- id: arm_jog
+  source: pad.axes
+  target: arm.position_target
+  controller: morla.gamepad_cartesian_jog
+  deadman: pad.hold_to_control
+  max_age_ms: 250
+  parameters:
+    axes_map:
+      x: x
+      y: y
+      z: z
+      roll: roll
+      pitch: pitch
+      yaw: yaw
+    input_rotation:
+    - - 1
+      - 0
+      - 0
+    - - 0
+      - 1
+      - 0
+    - - 0
+      - 0
+      - 1
+    solver_tip_from_tool:
+    - - 1
+      - 0
+      - 0
+      - 0
+    - - 0
+      - 1
+      - 0
+      - 0
+    - - 0
+      - 0
+      - 1
+      - 0
+    - - 0
+      - 0
+      - 0
+      - 1
+    linear_speed: 0.02
+    angular_speed: 0.15
+    max_joint_step: 0.15
+capture:
+  state:
+  - arm.position
+  action:
+  - arm.position_target
+  images: {}
+  auxiliary:
+  - pad.axes
+  - pad.scalar
+  - pad.hold_to_control
+  - pad.raw_axes
+  - pad.buttons
+  - pad.gyro
+  - pad.accel
+  - pad.unknown_bits
+  - pad.raw_report
+  - pad.raw_length
+  action_source: command
+  hold_frames: 0
+  dataset_fps: 30
