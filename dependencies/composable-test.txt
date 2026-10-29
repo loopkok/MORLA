@@ -14,6 +14,11 @@ websockets==15.0.1
 hypothesis==6.135.26
 tqdm==4.67.1
 av>=15,<20
+# Policy websocket wire protocol (morla_policy_inference/protocol.py).
+msgpack==1.2.4
+# LeRobot v3 task-table conversion (pandas) and camera sample fixtures (Pillow).
+pandas==2.3.3
+Pillow==12.3.0
 
 # Local CR5 URDF IK regression; PyPI package is pin (module pinocchio).
 pin==4.1.0
