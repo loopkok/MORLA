@@ -2,8 +2,8 @@
   {
     "profile_id": "astral_dual_gripper",
     "source_path": "src/robots/astral/morla_astral_robot/config/profiles/astral_dual_gripper.yaml",
-    "source_sha256": "32a9bf172bc9b5d86c4237ebe64d91496f9210fcba7dde8ebedf827f8a3e0446",
-    "schema_hash": "84147a3c13b0ebe1e8837032e7c4accc070e11b1e775b6834abf73b8b4b8a593",
+    "source_sha256": "536c314afde7b99caf84d53e05a0d6c06ecf5b8519d5b6de284d16084e0d7ba7",
+    "schema_hash": "2e9df65346e227c9363ba61d1e6118bd16ebc58808a56cec4291b7c98c986133",
     "layout_hash": "73ebff5be09c77493b2d86a3f9021d347bb2625f6574ffe9424d4ea2059bd836",
     "state_dim": 16,
     "action_dim": 16
@@ -11,8 +11,8 @@
   {
     "profile_id": "astral_dual_gripper_wuji",
     "source_path": "src/robots/astral/morla_astral_robot/config/profiles/astral_dual_gripper_wuji.yaml",
-    "source_sha256": "356678b40123770217f5926031c99c37c8961e2e1099ea9e7c552efd106e92e5",
-    "schema_hash": "d972d851d7f148f230fbba84821b159b529303614f6321ce4d9f0234d33b3e10",
+    "source_sha256": "8695abd2a0a67118201819f0d640fa9c4ddcca7988a504c50d74d72bb1e46be5",
+    "schema_hash": "92c10ecf618f051617690b94fcb6f691b20ce7c84c80e1a8022883880c97e65c",
     "layout_hash": "da300e1d50c2098d7957c0918071d50eb197b51c7aa7de4c62e2a7f6ce9d431e",
     "state_dim": 35,
     "action_dim": 35
@@ -20,8 +20,8 @@
   {
     "profile_id": "astral_dual_wuji",
     "source_path": "src/robots/astral/morla_astral_robot/config/profiles/astral_dual_wuji.yaml",
-    "source_sha256": "bb3131ecdd8f904c61919a814232672f02406cfb017814102b9d94396dab0b48",
-    "schema_hash": "e18657d2360dfe22fcd173669267f5c607936e64ab0a7d8c60078c9114648c61",
+    "source_sha256": "b275b166335de03dea2db720b95f753b63d6e36336129338d2ba65587ea61b2f",
+    "schema_hash": "258efd249153152598a91f8455f96856fdbfa44c57e39be45a96cf52eeca9d67",
     "layout_hash": "b97f29add4521570939058c8b60ff97c12e30c651a80218a00d44c8add11d656",
     "state_dim": 54,
     "action_dim": 54
@@ -29,8 +29,8 @@
   {
     "profile_id": "astral_left_gripper",
     "source_path": "src/robots/astral/morla_astral_robot/config/profiles/astral_left_gripper.yaml",
-    "source_sha256": "a3c789a23466549887a2dbdea2cf7ced38f3d042844ff0e3fba5e664df3db90f",
-    "schema_hash": "07ee068fe405a81eb36c8a54fa2de4943fa48f6d27a14e7552dd46fb74f09f0e",
+    "source_sha256": "a12b45cda27bca7f32e01c353d2a04dabefbd7032b72a3357c130c95558ece28",
+    "schema_hash": "5d60f679988e24dbd607eea86ceabf0d24b1417998b9b3f2e01c14628b5355d6",
     "layout_hash": "1cc062d70ffbdb8e3a760b68bebc364fb79879c7d1146d96f409f421305638bf",
     "state_dim": 8,
     "action_dim": 8
@@ -38,8 +38,8 @@
   {
     "profile_id": "astral_left_gripper_3cam",
     "source_path": "src/robots/astral/morla_astral_robot/config/profiles/astral_left_gripper_3cam.yaml",
-    "source_sha256": "bebc158ae21ae3dc13bb22e36af8a0c04351e5ce0c2553661034d3703d71c48b",
-    "schema_hash": "04819c1fa31d754ed67685fbcd073474b42e7276bf1d55b31536a473ffadd69e",
+    "source_sha256": "7748b54dc5417664d7a53412a0b364075201518028f408f7d3ad0a17238f168a",
+    "schema_hash": "ef548f81cc1bf34c1a825958d2dff9c318281318ea70ba3c105a1da93d9867f0",
     "layout_hash": "675fe5d7a1a9dd371d96277591766f381395402e400bd99297c2ccc4fda498a6",
     "state_dim": 8,
     "action_dim": 8
@@ -47,8 +47,8 @@
   {
     "profile_id": "astral_left_wuji",
     "source_path": "src/robots/astral/morla_astral_robot/config/profiles/astral_left_wuji.yaml",
-    "source_sha256": "06c2975fde342b3c64412bd55ff2490dacc7590ce67d634284ce98f0f1aa770f",
-    "schema_hash": "3c3a6847175b5179d7ec506aef4c9553f5240e067a03e86f84771eda658aec4c",
+    "source_sha256": "9a101662331abd9a31e23a85931c7c1a6b85705233a9128ea28f4358277b807b",
+    "schema_hash": "f1ebce83597ce3140048011b568bf37ae996e2bdbf2c6ed4e03f141f1a2f7e82",
     "layout_hash": "046c703fa2b72de19963fc110bb53f13b3a7f3b8a96283cccf7d8f4dcb68e642",
     "state_dim": 27,
     "action_dim": 27
@@ -56,8 +56,8 @@
   {
     "profile_id": "astral_right_gripper",
     "source_path": "src/robots/astral/morla_astral_robot/config/profiles/astral_right_gripper.yaml",
-    "source_sha256": "baa83eca73a10b694d7750cada55bd2f937c93308d9fa6b70619e184f3a79ad5",
-    "schema_hash": "6c587ac2442e3e3948891f3817071aba2813f5e4615a16188151ec16d0e24c10",
+    "source_sha256": "c5d5271e5415978394d8987985a7bdbfeb0d3c084fa2dff5f29fdd8f5a5b60d2",
+    "schema_hash": "a3388de002fd4527e013de9381b630b8619c3bb0f089df4d129a3a29856841f0",
     "layout_hash": "373028f3ad8763e6a08956ed91b9bb53d5c34ca957466f2909cf7a0b73d7b51d",
     "state_dim": 8,
     "action_dim": 8
@@ -65,8 +65,8 @@
   {
     "profile_id": "astral_right_wuji",
     "source_path": "src/robots/astral/morla_astral_robot/config/profiles/astral_right_wuji.yaml",
-    "source_sha256": "c9f43a7b21212f97587a1eef6ef3b3b2a681dd08aa8f409081cb94d6f702e0a1",
-    "schema_hash": "9aab1b75d4547579cd932c906c3b51e330048d012f3ddf96f561e926817f7f7c",
+    "source_sha256": "c0ed23c20d228fd638b407cfb71dfad197790106f21dcf4853dc6510b46e5f99",
+    "schema_hash": "60e393acfe6bdbe646ec68f5bed9b9ebdfbbe875b7f7a812c7f8e062a2bcbc32",
     "layout_hash": "44e9aa84634a5d804c32b883e2da72962559c712032b6655c517d2a9f870697b",
     "state_dim": 27,
     "action_dim": 27
@@ -74,8 +74,8 @@
   {
     "profile_id": "nero_dual_arms",
     "source_path": "src/robots/nero/morla_nero_robot/config/profiles/nero_dual_arms.yaml",
-    "source_sha256": "d1f7c52bc58ef92c58c8a59642d556822bee013941dadedcd30918c38a484a39",
-    "schema_hash": "994c84d6337a18b1bcb513bdc6b73817134f80b833c293b8852d1ec6c47aa142",
+    "source_sha256": "f1cbd0a6dfec4c92cb1d25893bf4895edbb4d8e8097567b86101804507f5b106",
+    "schema_hash": "5fc01bd989d16c12cf420692ef3d58bcd973250c376f7963fa61ca68b26c45f6",
     "layout_hash": "1034b5bc51a23cbb89339203953a6285dbde988c5811f7052735610215ad84b3",
     "state_dim": 14,
     "action_dim": 14
@@ -83,8 +83,8 @@
   {
     "profile_id": "nero_dual_xhand",
     "source_path": "src/robots/nero/morla_nero_robot/config/profiles/nero_dual_xhand.yaml",
-    "source_sha256": "1cb19c860fbfbac5f15c6dbb8257a50f8848971070e462d61b82e2741a3b3378",
-    "schema_hash": "7591242a86c1560c821b392c0329c52edffd3969d5787e388dd3e0e02ca4f52c",
+    "source_sha256": "17e22af40945c7ddc4fb41df7103148cecef8ed9a2cac4ef567bb4ba6df3a701",
+    "schema_hash": "0a513539f288b2ac1067821e0cce80eabc9277a85cbc1b2cc591b9d6faf97b1f",
     "layout_hash": "6ff0cd51f0fed20ef4129408116481d3f63504575ea82d101b8ebe5863367df3",
     "state_dim": 38,
     "action_dim": 38
@@ -92,8 +92,8 @@
   {
     "profile_id": "nero_left_xhand",
     "source_path": "src/robots/nero/morla_nero_robot/config/profiles/nero_left_xhand.yaml",
-    "source_sha256": "410dbd8b78ea21f3400a7c45829d45f33ec84a9dce33e84aea41260d0ed86354",
-    "schema_hash": "6eb05628bf0e89c4b1a5051b3546c4b5f5a91e369f8f4d8361c6fc93d1b4b143",
+    "source_sha256": "b4ba61ad22fc69aa69f2a9c0a0d608c839da3eff7c7cb9d43f7fa02328c6ae59",
+    "schema_hash": "a8151aa526cc3062c038f5869c99d58c45409522c20d8944faa4955d6a089a01",
     "layout_hash": "ee691afd7529c3ca2ca01d1ee5d7bb0b3a5fc2159c5cc0cf2b80a5e7256c4a6b",
     "state_dim": 19,
     "action_dim": 19
@@ -101,8 +101,8 @@
   {
     "profile_id": "nero_right_xhand",
     "source_path": "src/robots/nero/morla_nero_robot/config/profiles/nero_right_xhand.yaml",
-    "source_sha256": "fca656685d4db05f274b692911d603247b511a034b1093f13f61761e9d1a7bc9",
-    "schema_hash": "4b3307aaa9c33706bcf8c256fb1b9bccdeac9155733419b3ebf19df676c07120",
+    "source_sha256": "1dce1048ec6a3720877a68140a8cb4e14c77ba49789612a3b2f08a627e62a21f",
+    "schema_hash": "3c837ea5ecb11be689b1667e6a36ff5d15ae7cde8d306f40d57f40142220be19",
     "layout_hash": "e1307f3dbb4a33e24ea67027fec730859d9effadd32b1d7e6dbd8a1a721d267b",
     "state_dim": 19,
     "action_dim": 19

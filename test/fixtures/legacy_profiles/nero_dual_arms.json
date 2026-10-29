@@ -344,7 +344,7 @@
         }
       }
     },
-    "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+    "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
     "input_basis_id": "quest3_canonical_legacy_v1",
     "input_frame_policy": "incremental_operator_aligned",
     "input_rotation_source": "algebraically_derived_from_legacy_arm_rotations_and_urdf_mounts",
@@ -372,7 +372,7 @@
     "legacy_validity_unknown": false,
     "max_gap_ms": 100.0
   },
-  "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+  "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
   "frozen_schema": {
     "action_blocks": [
       {
@@ -536,7 +536,7 @@
             }
           }
         },
-        "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+        "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
         "input_basis_id": "quest3_canonical_legacy_v1",
         "input_frame_policy": "incremental_operator_aligned",
         "input_rotation_source": "algebraically_derived_from_legacy_arm_rotations_and_urdf_mounts",
@@ -556,13 +556,13 @@
         "robot_id": "nero",
         "version": 1
       },
-      "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+      "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
       "kinematics_hash": "9deadffa7c271be784c51841a5e4259ef3fe29d62d460d50277ccb57771e2ed6"
     },
     "profile_id": "nero_dual_arms",
     "profile_version": 1,
     "robot_id": "nero",
-    "schema_hash": "994c84d6337a18b1bcb513bdc6b73817134f80b833c293b8852d1ec6c47aa142",
+    "schema_hash": "5fc01bd989d16c12cf420692ef3d58bcd973250c376f7963fa61ca68b26c45f6",
     "schema_version": 2,
     "sensor_specs": [],
     "state_blocks": [
@@ -885,7 +885,7 @@
   "profile_id": "nero_dual_arms",
   "profile_version": 1,
   "robot_id": "nero",
-  "schema_hash": "994c84d6337a18b1bcb513bdc6b73817134f80b833c293b8852d1ec6c47aa142",
+  "schema_hash": "5fc01bd989d16c12cf420692ef3d58bcd973250c376f7963fa61ca68b26c45f6",
   "sensors": [],
   "state_blocks": [
     {

@@ -737,7 +737,7 @@
         }
       }
     },
-    "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+    "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
     "input_basis_id": "quest3_canonical_legacy_v1",
     "input_frame_policy": "incremental_operator_aligned",
     "input_rotation_source": "algebraically_derived_from_legacy_arm_rotations_and_urdf_mounts",
@@ -765,7 +765,7 @@
     "legacy_validity_unknown": false,
     "max_gap_ms": 100.0
   },
-  "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+  "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
   "frozen_schema": {
     "action_blocks": [
       {
@@ -1103,7 +1103,7 @@
             }
           }
         },
-        "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+        "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
         "input_basis_id": "quest3_canonical_legacy_v1",
         "input_frame_policy": "incremental_operator_aligned",
         "input_rotation_source": "algebraically_derived_from_legacy_arm_rotations_and_urdf_mounts",
@@ -1123,13 +1123,13 @@
         "robot_id": "nero",
         "version": 1
       },
-      "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+      "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
       "kinematics_hash": "930e744138645543ab849223550240f90c2881227644851b4310bbaf29a2b503"
     },
     "profile_id": "nero_dual_xhand",
     "profile_version": 1,
     "robot_id": "nero",
-    "schema_hash": "7591242a86c1560c821b392c0329c52edffd3969d5787e388dd3e0e02ca4f52c",
+    "schema_hash": "0a513539f288b2ac1067821e0cce80eabc9277a85cbc1b2cc591b9d6faf97b1f",
     "schema_version": 2,
     "sensor_specs": [
       {
@@ -1868,7 +1868,7 @@
   "profile_id": "nero_dual_xhand",
   "profile_version": 1,
   "robot_id": "nero",
-  "schema_hash": "7591242a86c1560c821b392c0329c52edffd3969d5787e388dd3e0e02ca4f52c",
+  "schema_hash": "0a513539f288b2ac1067821e0cce80eabc9277a85cbc1b2cc591b9d6faf97b1f",
   "sensors": [
     {
       "action_observation_only": true,

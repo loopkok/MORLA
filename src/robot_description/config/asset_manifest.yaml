@@ -1756,7 +1756,7 @@ models:
   side: left
   source_path: xnero_ws/src/xhand_nero_description/urdf/xhand_nero_description.urdf
   source_sha256: 4ae7ac42ab0b2606022e59e4c0128d2f5aaf39597e3020bf746d307cdffb9a63
-  target_sha256: c0d063752ce433c437befc6c0e0e0552f5927980666ae621d602930d8eb06961
+  target_sha256: 2166c21974da0f0cd7a0be105191404b97b0d4de122a2fb5e4aabb00cea9c511
   base_link: world
   end_links:
   - world
@@ -3572,7 +3572,7 @@ models:
   side: right
   source_path: xnero_ws/src/xhand_nero_description/urdf/xhand_nero_description.urdf
   source_sha256: 4ae7ac42ab0b2606022e59e4c0128d2f5aaf39597e3020bf746d307cdffb9a63
-  target_sha256: c0d063752ce433c437befc6c0e0e0552f5927980666ae621d602930d8eb06961
+  target_sha256: 2166c21974da0f0cd7a0be105191404b97b0d4de122a2fb5e4aabb00cea9c511
   base_link: world
   end_links:
   - world
@@ -5388,7 +5388,7 @@ models:
   side: both
   source_path: xnero_ws/src/xhand_nero_description/urdf/xhand_nero_description.urdf
   source_sha256: 4ae7ac42ab0b2606022e59e4c0128d2f5aaf39597e3020bf746d307cdffb9a63
-  target_sha256: c0d063752ce433c437befc6c0e0e0552f5927980666ae621d602930d8eb06961
+  target_sha256: 2166c21974da0f0cd7a0be105191404b97b0d4de122a2fb5e4aabb00cea9c511
   base_link: world
   end_links:
   - world
@@ -8332,8 +8332,8 @@ models:
   robot: xhand
   side: left
   source_path: xnero_ws/src/xhand_retargeting/urdf/xhand_left.urdf
-  source_sha256: 0a873edce6d5e1fb883c6ea498c9cc1623d28ada7e571783746859e3f09ddd94
-  target_sha256: 0a873edce6d5e1fb883c6ea498c9cc1623d28ada7e571783746859e3f09ddd94
+  source_sha256: 810a35f3662bf1c85eb7206f397e80056e56ca748929cb6c0bdebbcdacb64835
+  target_sha256: 810a35f3662bf1c85eb7206f397e80056e56ca748929cb6c0bdebbcdacb64835
   base_link: left_hand_link
   end_links:
   - left_hand_link
@@ -8442,8 +8442,8 @@ models:
   robot: xhand
   side: left
   source_path: xnero_ws/src/xhand_retargeting/urdf/xhand_left.urdf
-  source_sha256: 0a873edce6d5e1fb883c6ea498c9cc1623d28ada7e571783746859e3f09ddd94
-  target_sha256: 0a873edce6d5e1fb883c6ea498c9cc1623d28ada7e571783746859e3f09ddd94
+  source_sha256: 810a35f3662bf1c85eb7206f397e80056e56ca748929cb6c0bdebbcdacb64835
+  target_sha256: 810a35f3662bf1c85eb7206f397e80056e56ca748929cb6c0bdebbcdacb64835
   base_link: left_hand_link
   end_links:
   - left_hand_link
@@ -8552,8 +8552,8 @@ models:
   robot: xhand
   side: right
   source_path: xnero_ws/src/xhand_retargeting/urdf/xhand_right.urdf
-  source_sha256: 5cd96ff24adc8568116330f9e3771bf071c1953bc79bfa21750d062718f3a904
-  target_sha256: 5cd96ff24adc8568116330f9e3771bf071c1953bc79bfa21750d062718f3a904
+  source_sha256: d47ec6eebeb2e1e557f8a64700513ade5e4ae11e85e79ad7973817bd01dcda84
+  target_sha256: d47ec6eebeb2e1e557f8a64700513ade5e4ae11e85e79ad7973817bd01dcda84
   base_link: base_link
   end_links:
   - base_link
@@ -8652,8 +8652,8 @@ models:
   robot: xhand
   side: right
   source_path: xnero_ws/src/xhand_retargeting/urdf/xhand_right.urdf
-  source_sha256: 5cd96ff24adc8568116330f9e3771bf071c1953bc79bfa21750d062718f3a904
-  target_sha256: 5cd96ff24adc8568116330f9e3771bf071c1953bc79bfa21750d062718f3a904
+  source_sha256: d47ec6eebeb2e1e557f8a64700513ade5e4ae11e85e79ad7973817bd01dcda84
+  target_sha256: d47ec6eebeb2e1e557f8a64700513ade5e4ae11e85e79ad7973817bd01dcda84
   base_link: base_link
   end_links:
   - base_link
@@ -8753,7 +8753,7 @@ models:
   side: both
   source_path: xnero_ws/src/xnero_mujoco_sim/assets/mjcf/xnero_dual.xml
   source_sha256: b79e8538012131a83b9baac9a804fb5af9233a565d59b86778088e253dbfcc06
-  target_sha256: c04624ca95abfb530891d9fd68115ce0e0a6d72ba12e7acce7db645f960f0890
+  target_sha256: 65c20680ae40c09576da3302460c94cb7b032ab5d2fb778b639c42863634ff88
   base_link: xhand_nero
   end_links: []
   movable_joints:
@@ -10201,7 +10201,7 @@ assets:
 - path: mjcf/xnero/xnero_dual.xml
   source_path: xnero_ws/src/xnero_mujoco_sim/assets/mjcf/xnero_dual.xml
   source_sha256: b79e8538012131a83b9baac9a804fb5af9233a565d59b86778088e253dbfcc06
-  target_sha256: c04624ca95abfb530891d9fd68115ce0e0a6d72ba12e7acce7db645f960f0890
+  target_sha256: 65c20680ae40c09576da3302460c94cb7b032ab5d2fb778b639c42863634ff88
 - path: urdf/astral/arm/astral_arm.pin.urdf
   source_path: astral_ws/src/astral_arm_description/urdf/astral_arm.pin.urdf
   source_sha256: fe596486fd5c54eea63c48382022b37d10cf4b9e8106dd509b5b94d9cd88e59a
@@ -10233,7 +10233,7 @@ assets:
 - path: urdf/nero/xhand_nero_description.urdf
   source_path: xnero_ws/src/xhand_nero_description/urdf/xhand_nero_description.urdf
   source_sha256: 4ae7ac42ab0b2606022e59e4c0128d2f5aaf39597e3020bf746d307cdffb9a63
-  target_sha256: c0d063752ce433c437befc6c0e0e0552f5927980666ae621d602930d8eb06961
+  target_sha256: 2166c21974da0f0cd7a0be105191404b97b0d4de122a2fb5e4aabb00cea9c511
 - path: urdf/wuji/wujihand_left.urdf
   source_path: astral_ws/src/wujihand_retargeting/urdf/wujihand_left.urdf
   source_sha256: 88617ad60afbc344a4d9282418d00ecebba4ee5d37070859438d7ecac23a1cf8
@@ -10548,12 +10548,12 @@ assets:
   target_sha256: b72fb10622ffc4ff96edb52f4191cae61c30df340ec5dcd2c48da8562f7fc4aa
 - path: urdf/xhand/xhand_left.urdf
   source_path: xnero_ws/src/xhand_retargeting/urdf/xhand_left.urdf
-  source_sha256: 0a873edce6d5e1fb883c6ea498c9cc1623d28ada7e571783746859e3f09ddd94
-  target_sha256: 0a873edce6d5e1fb883c6ea498c9cc1623d28ada7e571783746859e3f09ddd94
+  source_sha256: 810a35f3662bf1c85eb7206f397e80056e56ca748929cb6c0bdebbcdacb64835
+  target_sha256: 810a35f3662bf1c85eb7206f397e80056e56ca748929cb6c0bdebbcdacb64835
 - path: urdf/xhand/xhand_right.urdf
   source_path: xnero_ws/src/xhand_retargeting/urdf/xhand_right.urdf
-  source_sha256: 5cd96ff24adc8568116330f9e3771bf071c1953bc79bfa21750d062718f3a904
-  target_sha256: 5cd96ff24adc8568116330f9e3771bf071c1953bc79bfa21750d062718f3a904
+  source_sha256: d47ec6eebeb2e1e557f8a64700513ade5e4ae11e85e79ad7973817bd01dcda84
+  target_sha256: d47ec6eebeb2e1e557f8a64700513ade5e4ae11e85e79ad7973817bd01dcda84
 - path: docs/XHAND1_tactile_sensor.pdf
   source_path: xnero_ws/src/xhand_nero_description/XHAND1触觉传感器说明文档+(1).pdf
   source_sha256: 33963194f1bcc2d4fbee4bd3604b5971f4da26894bbf5cb79bfac63c56b63bfb

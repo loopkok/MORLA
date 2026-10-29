@@ -220,7 +220,7 @@
         }
       }
     },
-    "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+    "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
     "input_basis_id": "quest3_canonical_legacy_v1",
     "input_frame_policy": "incremental_operator_aligned",
     "input_rotation_source": "legacy_astral_identity_axis_alignment",
@@ -248,7 +248,7 @@
     "legacy_validity_unknown": false,
     "max_gap_ms": 100.0
   },
-  "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+  "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
   "frozen_schema": {
     "action_blocks": [
       {
@@ -360,7 +360,7 @@
             }
           }
         },
-        "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+        "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
         "input_basis_id": "quest3_canonical_legacy_v1",
         "input_frame_policy": "incremental_operator_aligned",
         "input_rotation_source": "legacy_astral_identity_axis_alignment",
@@ -380,13 +380,13 @@
         "robot_id": "astral",
         "version": 1
       },
-      "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+      "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
       "kinematics_hash": "4a1f9d9bfbad5dc99699dfda19d228a18e50d1f7831673db2214d38ecd97e5e7"
     },
     "profile_id": "astral_right_gripper",
     "profile_version": 1,
     "robot_id": "astral",
-    "schema_hash": "6c587ac2442e3e3948891f3817071aba2813f5e4615a16188151ec16d0e24c10",
+    "schema_hash": "a3388de002fd4527e013de9381b630b8619c3bb0f089df4d129a3a29856841f0",
     "schema_version": 2,
     "sensor_specs": [],
     "state_blocks": [
@@ -620,7 +620,7 @@
   "profile_id": "astral_right_gripper",
   "profile_version": 1,
   "robot_id": "astral",
-  "schema_hash": "6c587ac2442e3e3948891f3817071aba2813f5e4615a16188151ec16d0e24c10",
+  "schema_hash": "a3388de002fd4527e013de9381b630b8619c3bb0f089df4d129a3a29856841f0",
   "sensors": [],
   "state_blocks": [
     {

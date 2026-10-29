@@ -403,7 +403,7 @@ hardware:
       can_interface: socketcan
       firmware_version: default
   xhand: {}
-description_revision: sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6
+description_revision: sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3
 mode_default: sim
 input:
   source: quest

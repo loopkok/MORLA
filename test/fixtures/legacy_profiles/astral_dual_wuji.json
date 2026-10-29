@@ -818,7 +818,7 @@
         }
       }
     },
-    "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+    "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
     "input_basis_id": "quest3_canonical_legacy_v1",
     "input_frame_policy": "incremental_operator_aligned",
     "input_rotation_source": "legacy_astral_identity_axis_alignment",
@@ -846,7 +846,7 @@
     "legacy_validity_unknown": false,
     "max_gap_ms": 100.0
   },
-  "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+  "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
   "frozen_schema": {
     "action_blocks": [
       {
@@ -1280,7 +1280,7 @@
             }
           }
         },
-        "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+        "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
         "input_basis_id": "quest3_canonical_legacy_v1",
         "input_frame_policy": "incremental_operator_aligned",
         "input_rotation_source": "legacy_astral_identity_axis_alignment",
@@ -1300,13 +1300,13 @@
         "robot_id": "astral",
         "version": 1
       },
-      "description_revision": "sha256:ac0ad609c2fad0d8a5b1251fd9ed6da168d1b9efe5ef9c4e8363f524d3bacef6",
+      "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
       "kinematics_hash": "e8a8eb580d5a7720714e368de2d1bce8d9d78e521c6d24d5e8ff2cd55290dec4"
     },
     "profile_id": "astral_dual_wuji",
     "profile_version": 1,
     "robot_id": "astral",
-    "schema_hash": "e18657d2360dfe22fcd173669267f5c607936e64ab0a7d8c60078c9114648c61",
+    "schema_hash": "258efd249153152598a91f8455f96856fdbfa44c57e39be45a96cf52eeca9d67",
     "schema_version": 2,
     "sensor_specs": [],
     "state_blocks": [
@@ -2115,7 +2115,7 @@
   "profile_id": "astral_dual_wuji",
   "profile_version": 1,
   "robot_id": "astral",
-  "schema_hash": "e18657d2360dfe22fcd173669267f5c607936e64ab0a7d8c60078c9114648c61",
+  "schema_hash": "258efd249153152598a91f8455f96856fdbfa44c57e39be45a96cf52eeca9d67",
   "sensors": [],
   "state_blocks": [
     {
