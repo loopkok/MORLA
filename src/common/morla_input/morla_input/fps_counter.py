@@ -1,6 +1,5 @@
 """Simple sliding-window FPS counter for real-time monitoring."""
 import time
-import numpy as np
 
 
 class FPSCounter:

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Standalone Quest3 HTS mocap receiver (no ROS).
+"""
+Standalone Quest3 HTS mocap receiver (no ROS).
 
 Mirrors ``morla_input.quest3_udp_mocap`` processing:
 
@@ -30,7 +31,7 @@ import socket
 import sys
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, Optional, Tuple
 
@@ -39,7 +40,7 @@ import numpy as np
 from morla_core.coordinates import UNITY_TO_QUEST3_CANONICAL
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from morla_input.packet_guard import PacketGuard
+from morla_input.packet_guard import PacketGuard  # noqa: E402
 
 LOG = logging.getLogger("quest3_mocap")
 
@@ -969,7 +970,11 @@ def run_matplotlib_viz(receiver: Quest3MocapStandalone) -> None:
 
     while receiver.is_running and plt.fignum_exists(fig.number):
         with receiver._viz_lock:
-            left = None if receiver._viz_state["left"] is None else receiver._viz_state["left"].copy()
+            left = (
+                None
+                if receiver._viz_state["left"] is None
+                else receiver._viz_state["left"].copy()
+            )
             right = (
                 None
                 if receiver._viz_state["right"] is None
@@ -1102,7 +1107,9 @@ def _parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     )
     p.add_argument("--udp-port", type=int, default=9000)
     p.add_argument("--tcp-port", type=int, default=8000)
-    p.add_argument("--port", type=int, default=None, help="Override udp-port or tcp-port by protocol.")
+    p.add_argument(
+        "--port", type=int, default=None,
+        help="Override udp-port or tcp-port by protocol.")
     p.add_argument("--arm-side", choices=("left", "right", "both"), default="both")
     p.add_argument("--ema-alpha", type=float, default=0.7)
     p.add_argument(
@@ -1128,7 +1135,9 @@ def _parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         action="store_false",
         help="Keep Unity axes (landmarks only legacy X flip).",
     )
-    p.add_argument("--allow-legacy-packets", action="store_true", help="Compatibility only: no source-age protection")
+    p.add_argument(
+        "--allow-legacy-packets", action="store_true",
+        help="Compatibility only: no source-age protection")
     p.add_argument("--max-packet-age-s", type=float, default=0.5)
     p.add_argument("--viz", action="store_true", help="Matplotlib 3D visualization.")
     p.add_argument(
@@ -1207,7 +1216,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
 
     def on_body(body: BodyJoints) -> None:
-        maybe_print("body", f"joints={len(body.names)} frame={body.poses[0].frame_id if body.poses else '-'}")
+        frame = body.poses[0].frame_id if body.poses else '-'
+        maybe_print("body", f"joints={len(body.names)} frame={frame}")
 
     def on_landmarks(msg: HandLandmarks) -> None:
         tip = msg.points[8]
@@ -1235,10 +1245,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     signal.signal(signal.SIGTERM, _handle_sig)
 
     receiver.start()
+    axis_contract = ('quest3_tracking_world_canonical X=left Y=back Z=up'
+                     if args.convert_to_robot else 'quest3_tracking_world_unity')
     print(
         "Running. Mixed: controller+hand; IOBT: body + head/hand in hips frame. "
-        f"convert_to_robot={args.convert_to_robot} "
-        f"({'quest3_tracking_world_canonical X=left Y=back Z=up' if args.convert_to_robot else 'quest3_tracking_world_unity'}). "
+        f"convert_to_robot={args.convert_to_robot} ({axis_contract}). "
         "Ctrl+C to stop.",
         flush=True,
     )

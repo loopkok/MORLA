@@ -1,5 +1,7 @@
 """Exercise the receiver's real disconnect/timer wiring without network sockets."""
 
+from morla_input.stream_health import StreamHealth
+from morla_input.quest3_udp_mocap import Quest3UDPMocap as Receiver
 import threading
 import time
 from types import SimpleNamespace
@@ -9,8 +11,6 @@ import numpy as np
 import pytest
 
 pytest.importorskip("rclpy")
-from morla_input.quest3_udp_mocap import Quest3UDPMocap as Receiver
-from morla_input.stream_health import StreamHealth
 
 
 def receiver():

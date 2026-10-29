@@ -36,7 +36,7 @@ _WRIST_SETTLE_S = 1.0
 
 
 def _stream_qos() -> QoSProfile:
-    """腕/头/身体/Joy：只留最新一帧，避免下游 IK 吃到排队旧样本。"""
+    """Keep only the newest sample per wrist/head/body/Joy stream."""
     return QoSProfile(
         reliability=ReliabilityPolicy.BEST_EFFORT,
         history=HistoryPolicy.KEEP_LAST,
@@ -56,11 +56,13 @@ def _latched_event_qos() -> QoSProfile:
 
 class FPSCounter:
     """Simple sliding-window FPS counter."""
+
     def __init__(self, window=100, print_interval=5.0):
         self._window = window
         self._print_interval = print_interval
         self._times = []
         self._last_print = time.time()
+
     def tick(self):
         now = time.time()
         self._times.append(now)
@@ -69,6 +71,7 @@ class FPSCounter:
         if len(self._times) < 2:
             return 0.0
         return (len(self._times) - 1) / max(1e-9, self._times[-1] - self._times[0])
+
     def should_print(self):
         now = time.time()
         if now - self._last_print >= self._print_interval:
@@ -79,6 +82,7 @@ class FPSCounter:
 
 class BandwidthMeter:
     """Bytes-per-second meter for a network link, printed on an interval."""
+
     def __init__(self, print_interval=2.0):
         self._print_interval = print_interval
         self._bytes = 0
@@ -142,7 +146,8 @@ def pose_in_parent_frame(
     child_pos: np.ndarray,
     child_quat: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Express child world pose in parent frame: ``T_p_c = inv(T_w_p) @ T_w_c``.
+    """
+    Express child world pose in parent frame: ``T_p_c = inv(T_w_p) @ T_w_c``.
 
     Computed in Unity axes; convert to robot with :func:`unity_pose_to_robot` after.
     """
@@ -161,7 +166,7 @@ UNITY_TO_ROBOT = UNITY_TO_QUEST3_CANONICAL
 
 
 def _quat_to_matrix(q: np.ndarray) -> np.ndarray:
-    """Unit quaternion ``[x, y, z, w]`` → 3×3 rotation matrix."""
+    """Convert unit quaternion ``[x, y, z, w]`` to a 3x3 rotation matrix."""
     q = _quat_normalize(q)
     x, y, z, w = q
     return np.array(
@@ -277,7 +282,8 @@ class Quest3UDPMocap(Node):
             )
         self.convert_to_robot = bool(self.get_parameter("convert_to_robot").value)
         self.coordinate_basis_id = str(self.get_parameter("coordinate_basis_id").value).strip()
-        self.coordinate_contract_version = int(self.get_parameter("coordinate_contract_version").value)
+        self.coordinate_contract_version = int(
+            self.get_parameter("coordinate_contract_version").value)
         self.kinematics_hash = str(self.get_parameter("kinematics_hash").value)
         expected_basis = (
             "quest3_canonical_legacy_v1" if self.convert_to_robot else "unity_left_handed_v1"
@@ -309,7 +315,8 @@ class Quest3UDPMocap(Node):
         self._teleop_sequence = 0
         event_qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                                history=HistoryPolicy.KEEP_LAST, depth=16)
-        self._teleop_events_pub = self.create_publisher(String, 'quest3/right_teleop_events', event_qos)
+        self._teleop_events_pub = self.create_publisher(
+            String, 'quest3/right_teleop_events', event_qos)
         self.publish_landmarks_left = bool(
             self.get_parameter("publish_landmarks_left").value
         )
@@ -331,8 +338,10 @@ class Quest3UDPMocap(Node):
             f"Quest 3 Hand Mocap: side=[{self.arm_side.upper()}], "
             f"protocol={self.protocol}, "
             f"preprocess={self.landmark_preprocess}, "
-            f"convert_to_robot={self.convert_to_robot}, basis={self.coordinate_basis_id}, "
-            f"contract={self.coordinate_contract_version}, kinematics={self.kinematics_hash[:12]}, "
+            f"convert_to_robot={self.convert_to_robot}, "
+            f"basis={self.coordinate_basis_id}, "
+            f"contract={self.coordinate_contract_version}, "
+            f"kinematics={self.kinematics_hash[:12]}, "
             f"controller_as_wrist={self.controller_as_wrist}, "
             f"landmarks_L={self.publish_landmarks_left}, "
             f"landmarks_R={self.publish_landmarks_right}"
@@ -413,7 +422,8 @@ class Quest3UDPMocap(Node):
         self.input_epoch_pub = self.create_publisher(
             String, "quest3/input_epoch", _latched_event_qos()
         )
-        self._input_disarm_pub = self.create_publisher(Bool, "/teleop/disarm", _latched_event_qos())
+        self._input_disarm_pub = self.create_publisher(
+            Bool, "/teleop/disarm", _latched_event_qos())
         # Touch controller button/thumbstick state (sensor_msgs/Joy).
         # axes = [trigger, grip, stickX, stickY]; buttons = [primary, secondary,
         # stickPress, menu, triggerClick, gripClick].
@@ -423,15 +433,20 @@ class Quest3UDPMocap(Node):
         self.joy_pub_left = self.create_publisher(
             Joy, "quest3/left_controller_joy", stream_qos
         )
-        
+
         # 新增：RViz 可视化发布者
         if self.viz:
-            self.right_marker_pub = self.create_publisher(MarkerArray, "quest3/right_hand_markers", 10)
-            self.left_marker_pub = self.create_publisher(MarkerArray, "quest3/left_hand_markers", 10)
-            self.marker_pub = self.create_publisher(MarkerArray, f"quest3/{self.arm_side}_hand_markers", 10)
+            self.right_marker_pub = self.create_publisher(
+                MarkerArray, "quest3/right_hand_markers", 10)
+            self.left_marker_pub = self.create_publisher(
+                MarkerArray, "quest3/left_hand_markers", 10)
+            self.marker_pub = self.create_publisher(
+                MarkerArray, f"quest3/{self.arm_side}_hand_markers", 10)
 
         # 腕部数据的正则解析器
-        self.wrist_pattern = re.compile(r'wrist:,?\s*([-\d\.]+),\s*([-\d\.]+),\s*([-\d\.]+),\s*([-\d\.]+),\s*([-\d\.]+),\s*([-\d\.]+),\s*([-\d\.]+)')
+        self.wrist_pattern = re.compile(
+            r'wrist:,?\s*([-\d\.]+),\s*([-\d\.]+),\s*([-\d\.]+),'
+            r'\s*([-\d\.]+),\s*([-\d\.]+),\s*([-\d\.]+),\s*([-\d\.]+)')
 
         self.is_running = True
         self._input_health_timer = self.create_timer(0.05, self._check_input_timeout)
@@ -664,7 +679,8 @@ class Quest3UDPMocap(Node):
         )
 
     def _pose_frame_settled(self) -> bool:
-        """True once the head/wrist/controller frame is known.
+        """
+        Return True once the head/wrist/controller frame is known.
 
         Suppresses pose publish until either a body packet has arrived (frame is
         quest3_operator_body_*) or _WRIST_SETTLE_S has elapsed with no body packet (frame is
@@ -798,7 +814,8 @@ class Quest3UDPMocap(Node):
         self._note_wrist_gap(side, arrival_time)
 
     def _process_buttons_line(self, line: str, arrival_time: float) -> None:
-        """Parse ``Left buttons:, trigger, grip, stickX, stickY, mask`` → Joy.
+        """
+        Parse ``Left buttons:, trigger, grip, stickX, stickY, mask`` to Joy.
 
         mask bits: 0=primary(X/A) 1=secondary(Y/B) 2=thumbstick press
                     3=menu 4=trigger click 5=grip click
@@ -833,7 +850,8 @@ class Quest3UDPMocap(Node):
                                    grip, arrival_time)
 
     def _process_body_line(self, line: str, arrival_time: float) -> None:
-        """Parse ``body iobt | fid=High: hips,x,y,z,qx,qy,qz,qw spine-lower,...``.
+        """
+        Parse ``body iobt | fid=High: hips,x,y,z,qx,qy,qz,qw spine-lower,...``.
 
         Quest streams hips in Unity world (re-axed torso frame) and every other
         joint already expressed in the hips frame — matching the body-relative
@@ -984,7 +1002,8 @@ class Quest3UDPMocap(Node):
         # 2. 手指：Unity 腕局部 → robot 轴，再 raw/mano + EMA
         if "landmarks" in line.lower():
             parts = line.split(":")
-            if len(parts) < 2: return
+            if len(parts) < 2:
+                return
             values_str = parts[1].split(",")
             values = [float(v.strip()) for v in values_str if v.strip()]
 
@@ -1001,8 +1020,9 @@ class Quest3UDPMocap(Node):
                     mapped[:, 2] = landmarks[:, 2]
                 processed_landmarks = self.process_landmarks(mapped, side)
                 self.publish_mocap_data(processed_landmarks, side, arrival_time)
+
     def publish_hand_markers(self, hand_data, hand):
-        """新增：将关节点转化为 RViz 的球体列表"""
+        """Publish hand joints as an RViz sphere marker list."""
         m = Marker()
         m.header.frame_id = 'world'  # RViz 的固定坐标系
         m.header.stamp = self.get_clock().now().to_msg()
@@ -1010,20 +1030,27 @@ class Quest3UDPMocap(Node):
         m.id = 0
         m.type = Marker.SPHERE_LIST
         m.action = Marker.ADD
-        m.scale.x = 0.015; m.scale.y = 0.015; m.scale.z = 0.015
+        m.scale.x = 0.015
+        m.scale.y = 0.015
+        m.scale.z = 0.015
         m.color.a = 1.0
-        
+
         if hand == "right":
-            m.color.r = 0.9; m.color.g = 0.2; m.color.b = 0.2 # 右手红色
+            m.color.r = 0.9
+            m.color.g = 0.2
+            m.color.b = 0.2  # 右手红色
             publisher = self.right_marker_pub
         else:
-            m.color.r = 0.2; m.color.g = 0.6; m.color.b = 0.9 # 左手蓝色
+            m.color.r = 0.2
+            m.color.g = 0.6
+            m.color.b = 0.9  # 左手蓝色
             publisher = self.left_marker_pub
-            
+
         for i in range(hand_data.shape[0]):
-            point = Point(x=float(hand_data[i, 0]), y=float(hand_data[i, 1]), z=float(hand_data[i, 2]))
+            point = Point(x=float(hand_data[i, 0]), y=float(
+                hand_data[i, 1]), z=float(hand_data[i, 2]))
             m.points.append(point)
-            
+
         ma = MarkerArray()
         ma.markers.append(m)
         publisher.publish(ma)
@@ -1038,10 +1065,12 @@ class Quest3UDPMocap(Node):
             self._publish_teleop_event(side, 'landmarks', 'hand', f'hand_{side}',
                                        landmarks.tolist(), arrival_time)
         if side == 'right':
-            self.landmark_cache_right = self.ema_alpha * landmarks + (1 - self.ema_alpha) * self.landmark_cache_right
+            self.landmark_cache_right = self.ema_alpha * landmarks + \
+                (1 - self.ema_alpha) * self.landmark_cache_right
             landmarks = self.landmark_cache_right
         elif side == 'left':
-            self.landmark_cache_left = self.ema_alpha * landmarks + (1 - self.ema_alpha) * self.landmark_cache_left
+            self.landmark_cache_left = self.ema_alpha * landmarks + \
+                (1 - self.ema_alpha) * self.landmark_cache_left
             landmarks = self.landmark_cache_left
         else:
             return
@@ -1072,6 +1101,7 @@ class Quest3UDPMocap(Node):
             self.tcp_server.close()
         super().destroy_node()
 
+
 def main(args=None):
     rclpy.init(args=args)
     node = Quest3UDPMocap()
@@ -1082,6 +1112,7 @@ def main(args=None):
     finally:
         node.destroy_node()
         rclpy.try_shutdown()
+
 
 if __name__ == "__main__":
     main()

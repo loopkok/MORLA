@@ -17,7 +17,8 @@ def finite(value):
         return all(isinstance(k, str) and finite(v) for k, v in value.items())
     if isinstance(value, (list, tuple)):
         return len(value) <= 1024 and all(finite(v) for v in value)
-    return isinstance(value, (str, bool)) or (isinstance(value, (int, float)) and math.isfinite(value))
+    return (isinstance(value, (str, bool))
+            or (isinstance(value, (int, float)) and math.isfinite(value)))
 
 
 @dataclass(frozen=True)
@@ -74,7 +75,8 @@ class InputStream:
         return self.latest
 
     def read(self):
-        if not self.connected or self.latest is None or not 0 <= self.clock() - self.latest.received_ns <= self.max_age_ns:
+        if (not self.connected or self.latest is None
+                or not 0 <= self.clock() - self.latest.received_ns <= self.max_age_ns):
             return None
         return self.latest
 
@@ -82,9 +84,10 @@ class InputStream:
 class GamepadAdapter(InputStream):
     AXES = ("left_x", "left_y", "right_x", "right_y", "left_trigger", "right_trigger")
     # SDL_GameController button enumeration, used by ROS game_controller_node.
-    BUTTONS = ("a", "b", "x", "y", "back", "guide", "start", "left_stick", "right_stick",
-               "left_shoulder", "right_shoulder", "dpad_up", "dpad_down", "dpad_left", "dpad_right",
-               "misc1", "paddle1", "paddle2", "paddle3", "paddle4", "touchpad")
+    BUTTONS = ("a", "b", "x", "y", "back", "guide", "start", "left_stick",
+               "right_stick", "left_shoulder", "right_shoulder", "dpad_up",
+               "dpad_down", "dpad_left", "dpad_right", "misc1", "paddle1",
+               "paddle2", "paddle3", "paddle4", "touchpad")
 
     def __init__(self, source_id, *, deadzone=0.08, **kwargs):
         super().__init__(source_id, **kwargs)
@@ -93,9 +96,10 @@ class GamepadAdapter(InputStream):
         self.deadzone = deadzone
 
     def joy(self, axes, buttons):
-        if len(axes) != len(self.AXES) or len(buttons) not in (15,len(self.BUTTONS)):
+        if len(axes) != len(self.AXES) or len(buttons) not in (15, len(self.BUTTONS)):
             raise InputError("SDL game_controller_node mapping required; unknown layout")
-        if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or abs(v) > 1 for v in axes):
+        if any(isinstance(v, bool) or not isinstance(v, (int, float))
+               or not math.isfinite(v) or abs(v) > 1 for v in axes):
             raise InputError("gamepad axes must be finite [-1,1]")
         if any(type(v) not in (bool, int) or v not in (0, 1) for v in buttons):
             raise InputError("invalid gamepad button")
@@ -115,7 +119,8 @@ class MobileAdapter(InputStream):
 
     def packet(self, raw):
         fields = {"epoch", "sequence", "axes", "scalar", "hold_to_control", "source_time_ns"}
-        if not isinstance(raw, dict) or set(raw) - fields or not {"epoch", "sequence", "hold_to_control"} <= set(raw):
+        if (not isinstance(raw, dict) or set(raw) - fields
+                or not {"epoch", "sequence", "hold_to_control"} <= set(raw)):
             raise InputError("invalid mobile packet fields")
         axes = raw.get("axes", {})
         if not isinstance(axes, dict) or set(axes) - {"x", "y", "z", "roll", "pitch", "yaw"}:
@@ -124,7 +129,8 @@ class MobileAdapter(InputStream):
         if type(raw["hold_to_control"]) is not bool:
             raise InputError("deadman must be boolean")
         for v in list(axes.values()) + [scalar]:
-            if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or abs(v) > 1:
+            if (isinstance(v, bool) or not isinstance(v, (int, float))
+                    or not math.isfinite(v) or abs(v) > 1):
                 raise InputError("mobile values must be finite [-1,1]")
         return self.accept({"axes": axes, "scalar": scalar,
                             "hold_to_control": raw["hold_to_control"]}, raw["sequence"],
@@ -133,9 +139,12 @@ class MobileAdapter(InputStream):
 
 class PoseAdapter(InputStream):
     """Quest/glove bridge after their own device protocol and clock guards."""
+
     def pose(self, port, position, quaternion, *, frame_id, sequence, epoch):
-        numbers=[*position,*quaternion]
-        if len(position) != 3 or len(quaternion) != 4 or any(isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) for v in numbers):
+        numbers = [*position, *quaternion]
+        if (len(position) != 3 or len(quaternion) != 4
+                or any(isinstance(v, bool) or not isinstance(v, (int, float))
+                       or not math.isfinite(v) for v in numbers)):
             raise InputError("invalid pose shape")
         norm = sum(v*v for v in quaternion)
         if not math.isclose(norm, 1.0, abs_tol=1e-3):
