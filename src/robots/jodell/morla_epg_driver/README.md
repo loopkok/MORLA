@@ -63,6 +63,24 @@ ros2 launch morla_epg_driver epg_driver.launch.py resolved_path:=/tmp/epg.real.j
 
 模板默认只读。现场验证完成后才可设置Deployment `verified/stop_verified`及参数 `activation_motion_verified/position_feedback_verified/device_watchdog_verified`。这些声明不由fake测试自动获得。真实activate先只读检查0x03FD，IO模式时拒绝而不自动改模式；随后显式发使能，并等待新读取的gACT=1、gSTA=3、gGTO=0、无故障；**使能可能开合寻程**，不是无动作准备。prepare仅检查状态，不寻程、不改参数模式。
 
+## 真实台架检查脚本
+
+`scripts/epg_real_check.py` 通过已安装的ROS服务/话题驱动一个real EPG，不直接调用SDK；必须先 `source install/setup.bash`（插件注册来自安装树）。
+
+```bash
+# 只读：核对节点使用的快照、打印状态/宽度、执行prepare，不使能、不写寄存器
+python3 src/robots/jodell/morla_epg_driver/scripts/epg_real_check.py \
+  --resolved /tmp/epg.real.json
+
+# 运动：需显式确认与目标宽度；目标与当前反馈之差不得超过5 mm
+python3 src/robots/jodell/morla_epg_driver/scripts/epg_real_check.py \
+  --resolved /tmp/epg.real.json --confirm-motion --target-width 0.045
+```
+
+脚本在运动前会核对快照的 `deployment_verified`、`watchdog_verified` 与三个参数声明，任一为假即拒绝（与适配器门禁一致）；只有 `--confirm-motion` 才会 activate/acquire/发命令。命令以10 Hz流式发送，覆盖0.3 s命令watchdog；结束后执行`stop`，异常时尝试`stop`再撤权。`--target-width 0`为闭合、`0.05`为全开，单次移动超过5 mm会被拒绝，需分多次。
+
+首次使能本身可能产生寻程动作：确认夹爪空载、行程内无工件、24 V电源开关或物理急停在手边。mcap录制非本脚本职责。
+
 ## 数值与协议约定
 
 - 标准EPG50-060：名义总行程50 mm，手册单指夹持力10–60 N；无定制指尖CAD/安装标定，未制作URDF或碰撞模型。
