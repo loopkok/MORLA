@@ -1,0 +1,5 @@
+PASS Python AST, descriptor/JSON, config/YAML, package XML and diff whitespace
+PASS document links and package resource/SDK separation (no redistributed vendor binary/manual)
+PASS installed wheel discovery, selected factory, runtime units/authority/aux feedback and cleanup
+PASS real vendor SDK 0.1.5 with recording Modbus master and mocked serial (no physical device)
+NOT_RUN ROS Humble colcon/IDL/launch; actual RS485/EPG full-variant firmware, moving initialization, measured position, physical stop/watchdog, force/TCP calibration and long stability

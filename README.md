@@ -43,6 +43,9 @@ work, and acceptance checklist against the actual code.
 packages and composable plugins. Their [combined example](examples/cr5_loophand/README.md)
 contains assembly/deployment configuration only. Real-hardware gates and the
 hand's current read-only boundary are documented explicitly.
+The [Jodell EPG50-060 gripper driver](src/robots/jodell/morla_epg_driver/README.md)
+wraps the supplied Python SDK as an independent ROS 2 / MORLA component;
+real motion requires commissioning of activation, feedback and stop/watchdog behavior.
 The [CR5 right-controller / hand-tracking VR guide](docs/integrations/cr5_vr.md)
 uses the migrated arm-only URDF and local Pinocchio IK, with disarmed startup,
 fake rehearsal and real deployment steps; physical

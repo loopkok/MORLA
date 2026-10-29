@@ -1,0 +1,21 @@
+deployment_version: 1
+deployment_id: epg50_060_bench
+instances:
+  gripper:
+    backend: real
+    device_id: REPLACE_EPG_ASSET_ID
+    resource_key: epg:REPLACE_EPG_ASSET_ID
+    parameters:
+      port: /dev/serial/by-id/REPLACE_USB_RS485
+      slave_id: 9
+      baudrate: 115200
+      activation_motion_verified: false
+      position_feedback_verified: false
+      device_watchdog_verified: false
+    verified: false
+    stop_verified: false
+calibrations: {}
+metadata:
+  model: EPG50-060-0PF-L200-C7-N-A-P40-S00
+  required: Verify interface/ID, moving activation, feedback semantics, rSTOP and
+    physical disconnect/watchdog; ID9 is a manual example, not proven factory ID

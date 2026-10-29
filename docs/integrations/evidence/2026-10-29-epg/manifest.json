@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-29",
+  "base_commit": "0eb3110ba8ba9bda6e4d60d7ac95c80815f8f926",
+  "model": "EPG50-060-0PF-L200-C7-N-A-P40-S00",
+  "tests": {
+    "epg": 17,
+    "pure": 161,
+    "fake": 23,
+    "vendor_sdk": "actual SDK with recording master/mocked serial",
+    "hardware": "NOT_RUN"
+  },
+  "wheel": {
+    "filename": "morla_epg_driver-0.1.0-py3-none-any.whl",
+    "sha256": "6abcbba12cc3e14dc835084d4bee83d2b7ce6275bfd067336fe0da91f5fc071d"
+  },
+  "files": {
+    "CHANGELOG.md": "512342b6e5d9471824027a5e1105de8c5469e8d7daed018c41b14a91ec1c6b2c",
+    "README.md": "74ca5c14da52a07cda9776544f6622473a8166d1c3ba03fd02d051d3fd6c57fe",
+    "docs/device_integration_guide.md": "3a661fc84f553f65119960ed537cac236ea05780476cc9fcf1963fc492176376",
+    "docs/integrations/CHANGE_LOG_EPG_2026-10-29.md": "15eb63f4e4132f367926c144dc4c680f49a3e0613f338a35b0fa5a9a162a6f48",
+    "docs/integrations/epg50_060.md": "35554d9c520b13bfa8590f0b4ad8714d91e2e1107b95ed911430e241202e72b8",
+    "docs/integrations/evidence/2026-10-29-epg/fake.txt": "6c13a890187a2e84e0ef6830a8311a2ae2c44345dc05d6416726e926e8d3b634",
+    "docs/integrations/evidence/2026-10-29-epg/installed.txt": "cb5cdfca85a38fae0c22eb021cd919326e5e297f0d4caa20a994f9cb3f0de5dd",
+    "docs/integrations/evidence/2026-10-29-epg/pure.txt": "267edab5e60bd590d2c709cb526571ccaf552e3a92c3e10a3c57f901fb61ca50",
+    "docs/integrations/evidence/2026-10-29-epg/static.txt": "f1626bb45c0f39fdc52ad39616ef9940dd1961ddb4d130f6c4aad6345920c4b1",
+    "docs/integrations/evidence/2026-10-29-epg/verify_install.py": "00a0bb8a4b2fc87218313d147e534637eade49d240e734cb6828ab75c86c6986",
+    "examples/cr5_epg/README.md": "175f375d5cf141d1ccf61309a76e617e4ae51739159a3725d133b4361a541d24",
+    "examples/cr5_epg/assembly.fake.yaml": "38be64c5fe022bdc9a1f96ffbffff6839f6687e41c7c966df199de9119f0dba1",
+    "scripts/test_composable.sh": "ed39ec0cfca40cc73ec14495daacad2eccf9495c48a073cc8060a1d168259d10",
+    "src/robots/jodell/morla_epg_driver/LICENSE": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+    "src/robots/jodell/morla_epg_driver/PROVENANCE.json": "0633eddb756355f4ca7f5dac564f4dcb1a8a80e913c94e4350774b618440585d",
+    "src/robots/jodell/morla_epg_driver/README.md": "942e02ca34c41c368b0d980c17663a7e57b4d3f97ed32caa0bfa545e1fa68aa3",
+    "src/robots/jodell/morla_epg_driver/config/assembly.fake.yaml": "7c921a696503c9747bb5d7f8a2002531befb84e99aec5ed0aa4a466e74237285",
+    "src/robots/jodell/morla_epg_driver/config/deployment.real.example.yaml": "a717b041bf3308ce9d41d0765dd72d5e1afdb63d8fe986d0964be96948b88336",
+    "src/robots/jodell/morla_epg_driver/descriptor.json": "d89a42985a1f29749165405e60331bf7d35645c43780c38af434d6375bc70ec1",
+    "src/robots/jodell/morla_epg_driver/launch/epg_driver.launch.py": "780d34acbd27fdbdfa19c96ae965cfc63c9dec85ab572f70163467243f518491",
+    "src/robots/jodell/morla_epg_driver/morla_epg_driver/__init__.py": "89fe792d693cab80de812d483060009d21bdfd84f4785e7dd8c3bcd5af678667",
+    "src/robots/jodell/morla_epg_driver/morla_epg_driver/adapter.py": "5839543f6b554f33f0e1c58715a710ff67fc7dde83aaf2ea4d7fdf74e306b0e5",
+    "src/robots/jodell/morla_epg_driver/morla_epg_driver/fake.py": "9fac6f7ddab1de95c75f2c4a67716bd3e4249629e45df678d56950e47531570d",
+    "src/robots/jodell/morla_epg_driver/morla_epg_driver/node.py": "2374373a6d5faf2263784ebb0dcff01c64bff999af13a8d5c77aa9a234498e1a",
+    "src/robots/jodell/morla_epg_driver/morla_epg_driver/probe.py": "82f927d44b8d85061fca15f8570762d1cea92a4d2ea90dee1e66d8ed0256e2bf",
+    "src/robots/jodell/morla_epg_driver/morla_epg_driver/protocol.py": "4ba102bce9fe0e8ce05cf00d1ee1f15a3d71ae5ba284697e2db46b25069fd86e",
+    "src/robots/jodell/morla_epg_driver/morla_epg_driver/transport.py": "26217e8d1275783f949851f8747816695fe46b44980d5fe3c17d304c387d7136",
+    "src/robots/jodell/morla_epg_driver/package.xml": "679d918835f884d9dbdfb6fdcb1aa00a06a22d11654c65533442f681eb914098",
+    "src/robots/jodell/morla_epg_driver/resource/morla_epg_driver": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/robots/jodell/morla_epg_driver/resource/morla_epg_driver_components": "1869ad3fb830f60b399ab3f9f4625ce47605388fb6e49e24ca7a8cc4f053d0ba",
+    "src/robots/jodell/morla_epg_driver/setup.cfg": "7718b798ca8afc22013dd3d0246a06e0a0ae740fbd4f5132aa2f28f0a01aadd1",
+    "src/robots/jodell/morla_epg_driver/setup.py": "436c7c18ee931b493510249208e104523b2a3700fb7d73f38f5ac130ca506826",
+    "src/robots/jodell/morla_epg_driver/test/test_epg_driver.py": "2313139ea3851bec707dc4d68119f7f773a6d5723d2231099f79082d0a723264"
+  }
+}

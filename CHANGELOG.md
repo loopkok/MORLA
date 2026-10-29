@@ -2,6 +2,14 @@
 
 ## 2026-10-29
 
+### Jodell EPG50-060 夹爪独立接入
+
+- 为 EPG50-060-0PF-L200-C7-N-A-P40-S00 新增独立 `morla_epg_driver` / `morla.jodell.epg50_060`，封装用户提供的 JodellTool 0.1.5 RS485/Modbus SDK，包含ROS入口、静态descriptor、fake/real配置、launch、只读probe和来源记录；不依赖机械臂或其他手包，不再分发许可不明的原厂SDK。
+- 统一目标为开口宽度m（0闭合、0.05打开），辅助输出闭合比例、速度设定回读、电流标幺、温度、电压及原始状态；位置反馈有文档歧义，未验证时标记measured=false，不将电流映射成N。使能可能开合寻程，明确标注为移动操作。
+- 单线程SDK I/O、最新目标槽、反馈时效/步长/命令watchdog、模式检查、停止状态确认和取消迟到初始化；采用手册0x03E8 rSTOP，未使用SDK中与主表不一致的0x03FF停止地址。真实运动默认受部署、初始化、反馈、停止及设备watchdog验证声明约束，无实体验收。
+- 提供仅配置的CR5+EPG组合示例，不填造安装/TCP或碰撞模型。本轮EPG针对性17项、pure回归161项、fake集成23项通过；SDK录制总线与安装资源验证见[接入记录](docs/integrations/epg50_060.md)；ROS Humble、实物完整型号固件/接线、物理停止及掉线行为NOT_RUN。
+- 完整范围、参数与验证见[EPG详细提交日志](docs/integrations/CHANGE_LOG_EPG_2026-10-29.md)；实际推送结果随后单独记录。
+
 ### CR5 纯本体 URDF 与本地 Pinocchio 数值 IK
 
 - 从用户提供的 robot-descriptions-dobot 迁入 CR5 六关节本体 URDF、视觉/碰撞网格及 MIT 来源记录到统一 `src/robot_description`；没有迁入夹爪、场景、ros2_control 或 OCS2。补充独立模型清单，保留既有 Nero/Astral 冻结资源清单及配置哈希。

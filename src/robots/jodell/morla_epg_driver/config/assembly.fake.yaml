@@ -1,0 +1,23 @@
+assembly_version: 1
+assembly_id: epg50_060_only
+revision: 1
+instances:
+  gripper:
+    plugin: morla.jodell.epg50_060
+    version: 1.0.0
+    backend: fake
+capture:
+  state:
+  - gripper.position
+  action:
+  - gripper.position_target
+  images: {}
+  auxiliary:
+  - gripper.closure_ratio
+  - gripper.speed_setting
+  - gripper.motor_current
+  - gripper.voltage
+  - gripper.temperature
+  - gripper.status
+  action_source: command
+  hold_frames: 0

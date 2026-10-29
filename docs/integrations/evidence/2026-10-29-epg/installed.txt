@@ -1,0 +1,2 @@
+PASS installed wheel: static discovery without SDK import, selected factory, m-unit runtime command, aux feedback, stop/lock cleanup; no other robot package imports
+NOT_RUN ROS/serial/hardware; ament index query layer substituted, common framework from source

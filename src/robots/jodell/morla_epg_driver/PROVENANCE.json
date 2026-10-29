@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-29",
+  "model": "EPG50-060-0PF-L200-C7-N-A-P40-S00",
+  "sdk": "JodellTool 0.1.5, jodellSdk.jodellSdkDemo.EpgClawControl",
+  "upstream_files": {
+    "/Users/a1234/Desktop/EPG夹爪/JODELL钧舵EPG系列电动平行夹爪通用详细说明书A.2.pdf": {
+      "sha256": "6277ed7517ef4ee3532dbcd6c6d7a6c8a483bce7ea9f7e7035db8b931962edd0",
+      "bytes": 2354976
+    },
+    "/Users/a1234/Desktop/EPG夹爪/python/SDK开发说明(python版本).docx": {
+      "sha256": "1aa2462b3507091c1f3e710fad8b01ba65f2bdbaef6c63cc0b91b56b9fcf3998",
+      "bytes": 708720
+    },
+    "/Users/a1234/Desktop/EPG夹爪/python/JodellTool-0.1.5-py3-none-any.whl": {
+      "sha256": "b651a7f25e5b8ce97433a62f362a83ded93d6dd3105ebc0f512d72127c036963",
+      "bytes": 10473
+    }
+  },
+  "sdk_license": "No redistribution license in provided wheel metadata; SDK/manual not copied into repo",
+  "implementation_license": "Apache-2.0 wrapper only",
+  "variant_suffixes": "Not decoded: full suffix is recorded verbatim; standard EPG50-060 family protocol selected",
+  "stop_conflict": "SDK.stopClaw writes 0x03FF; manual A.2 main map documents rSTOP bit2 at 0x03E8; wrapper uses 0x0005 at 0x03E8 and status confirmation; needs physical firmware test",
+  "position_semantics": "Manual p27 says current set position consistent with rPR; unverified position is not labelled measured",
+  "hardware_acceptance": "NOT_RUN"
+}

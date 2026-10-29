@@ -765,7 +765,7 @@ bash scripts/test_ros.sh
 
 ## 13. 每次接入的交付模板
 
-已按本指南独立接入：[CR5](integrations/cr5.md)、[Aero Hand Open](integrations/loophand.md)；CR5 另有 [右手柄/右手 VR 链路](integrations/cr5_vr.md)，使用独立 URDF / Pinocchio 本地 IK，纯本体资源位于统一 robot_description；软件已接通、实机待验收；[组合示例](../examples/cr5_loophand/README.md) 只引用两包的组件。验收记录保留当前真实手只读及停止/watchdog 限制。
+已按本指南独立接入：[Jodell EPG50-060](integrations/epg50_060.md)、[CR5](integrations/cr5.md)、[Aero Hand Open](integrations/loophand.md)；CR5 另有 [右手柄/右手 VR 链路](integrations/cr5_vr.md)，使用独立 URDF / Pinocchio 本地 IK，纯本体资源位于统一 robot_description；软件已接通、实机待验收；[组合示例](../examples/cr5_loophand/README.md) 只引用两包的组件。验收记录保留当前真实手只读及停止/watchdog 限制。
 
 建议每台/类新设备在 `docs/integrations/<device>.md` 留下以下记录；该目录是建议交付位置，按实际项目组织创建。
 

@@ -1,0 +1,231 @@
+{
+  "descriptor_version": 1,
+  "api_version": "1.0",
+  "plugin_id": "morla.jodell.epg50_060",
+  "plugin_version": "1.0.0",
+  "kind": "actuator",
+  "ports": {
+    "position": {
+      "direction": "output",
+      "semantic": "joint_state",
+      "dim": 1,
+      "unit": "m",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "position_target": {
+      "direction": "input",
+      "semantic": "joint_targets",
+      "dim": 1,
+      "unit": "m",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "closure_ratio": {
+      "direction": "output",
+      "semantic": "scalar",
+      "dim": 1,
+      "unit": "ratio",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "speed_setting": {
+      "direction": "output",
+      "semantic": "scalar",
+      "dim": 1,
+      "unit": "ratio",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "motor_current": {
+      "direction": "output",
+      "semantic": "scalar",
+      "dim": 1,
+      "unit": "ratio",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "voltage": {
+      "direction": "output",
+      "semantic": "scalar",
+      "dim": 1,
+      "unit": "V",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "temperature": {
+      "direction": "output",
+      "semantic": "scalar",
+      "dim": 1,
+      "unit": "degC",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "status": {
+      "direction": "output",
+      "semantic": "device_status",
+      "dim": 4,
+      "unit": "count",
+      "codec": "numeric",
+      "dtype": "uint16"
+    }
+  },
+  "joints": [
+    {
+      "name": "opening_width",
+      "unit": "m",
+      "type": "prismatic",
+      "lower": 0.0,
+      "upper": 0.05,
+      "limits": [
+        0.0,
+        0.05
+      ],
+      "limit_source": "EPG50-060 manual A.2 table2.1 nominal stroke; physical tips/calibration unverified"
+    }
+  ],
+  "command_modes": [
+    "position"
+  ],
+  "backend_variants": {
+    "fake": {
+      "available": true,
+      "validation_level": "protocol_only"
+    },
+    "real": {
+      "available": true,
+      "validation_level": "NOT_RUN_hardware_acceptance_required"
+    },
+    "sim": {
+      "available": false
+    }
+  },
+  "resources": {
+    "session_family": "morla.jodell.epg50_060",
+    "sharing": "exclusive",
+    "stop_policy": "rSTOP_preserve_enable"
+  },
+  "operations": {
+    "prepare": {
+      "moves": false
+    },
+    "activate": {
+      "moves": true
+    },
+    "stop": {
+      "moves": false
+    }
+  },
+  "geometry": {
+    "frames": [
+      "base",
+      "mount"
+    ],
+    "calibration_required": true,
+    "collision_verified": false,
+    "model": "EPG50-060-0PF-L200-C7-N-A-P40-S00"
+  },
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "model": {
+        "const": "EPG50-060-0PF-L200-C7-N-A-P40-S00"
+      },
+      "port": {
+        "type": "string",
+        "pattern": "^/dev/serial/by-id/.+"
+      },
+      "baudrate": {
+        "enum": [
+          4800,
+          9600,
+          19200,
+          38400,
+          57600,
+          115200
+        ]
+      },
+      "slave_id": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 247
+      },
+      "poll_hz": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 50
+      },
+      "timeout_s": {
+        "type": "number",
+        "minimum": 0.01,
+        "maximum": 0.5
+      },
+      "feedback_timeout_s": {
+        "type": "number",
+        "minimum": 0.05,
+        "maximum": 1
+      },
+      "command_timeout_s": {
+        "type": "number",
+        "minimum": 0.05,
+        "maximum": 1
+      },
+      "enable_timeout_s": {
+        "type": "number",
+        "minimum": 0.1,
+        "maximum": 60
+      },
+      "stop_timeout_s": {
+        "type": "number",
+        "minimum": 0.1,
+        "maximum": 3
+      },
+      "max_step_m": {
+        "type": "number",
+        "minimum": 0.0001,
+        "maximum": 0.05
+      },
+      "speed_raw": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 255
+      },
+      "force_raw": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 255
+      },
+      "activation_motion_verified": {
+        "type": "boolean"
+      },
+      "position_feedback_verified": {
+        "type": "boolean"
+      },
+      "device_watchdog_verified": {
+        "type": "boolean"
+      }
+    },
+    "additionalProperties": false
+  },
+  "defaults": {
+    "model": "EPG50-060-0PF-L200-C7-N-A-P40-S00",
+    "baudrate": 115200,
+    "slave_id": 9,
+    "poll_hz": 20,
+    "timeout_s": 0.1,
+    "feedback_timeout_s": 0.5,
+    "command_timeout_s": 0.3,
+    "enable_timeout_s": 20.0,
+    "stop_timeout_s": 1.0,
+    "max_step_m": 0.005,
+    "speed_raw": 32,
+    "force_raw": 32,
+    "activation_motion_verified": false,
+    "position_feedback_verified": false,
+    "device_watchdog_verified": false
+  },
+  "source": {
+    "package": "morla_epg_driver",
+    "version": "0.1.0"
+  }
+}

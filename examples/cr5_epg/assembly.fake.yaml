@@ -1,0 +1,19 @@
+assembly_version: 1
+assembly_id: cr5_epg_independent
+revision: 1
+instances:
+  arm:
+    plugin: morla.dobot.cr5
+    version: 1.0.0
+    backend: fake
+  gripper:
+    plugin: morla.jodell.epg50_060
+    version: 1.0.0
+    backend: fake
+capture:
+  state: [arm.position, gripper.position]
+  action: [arm.position_target, gripper.position_target]
+  images: {}
+  auxiliary: [gripper.closure_ratio, gripper.motor_current, gripper.voltage, gripper.temperature, gripper.status]
+  action_source: command
+  hold_frames: 0
