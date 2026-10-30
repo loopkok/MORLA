@@ -1,5 +1,17 @@
 # morla_input
 
+## 当前组合输入入口（2026-10-30）
+
+输入统一生成 InputFrame，公共 BindingEngine 负责控制映射；下文 Quest 原始协议与话题仍适用于接收器，旧机器人直订链路属于 legacy。
+
+- morla.input.standard 接受通用 JSON 意图；QuestRight 提供 right_pose/right_hold/scalar/right_landmarks，scalar 支持扳机和裸手，pinch_range_m=[close,open] 为米制范围。
+- 旧 Quest 双侧绑定使用 left_scalar/right_scalar、left_axes/right_axes 与左右 pose/landmarks；scalar 兼容别名代表最近的控制器事件。具名轴与每端口时间戳分别保留，部分帧不会要求两侧同时出现。
+- 输入桥通过 morla.ros_inputs 注册；采集工厂通过 morla.processes 注册，auto/managed/external 管理进程。Quest/SDL fake 不启动实体采集；真实输入＋fake 执行器需仅将输入部署为 real（含 device_id）。
+- system.launch.py connect_inputs:=true 或 morla-runtime --inputs 复用同一无 Web 内核；录制使用公共 session/Web 宿主。UR11：无 Web ROS stop 暂不立即回收输入，需退出宿主；Web stop 会关闭输入管理器。
+
+详见[统一组合示例](../../../examples/unified_composition/README.md)、[设备接入指南](../../../docs/device_integration_guide.md)和[主机测试](../../../docs/testing/host_build_and_hardware_acceptance.md)。
+
+
 Quest3 VR 手部 / 手柄 / 头部 / IOBT 身体数据接收节点。支持 UDP / TCP 有线 / TCP 无线。
 
 对接 Quest 端 **astral-tracking**：Mixed 时手柄和手可同时有数据（通常左右各一种）；IOBT 开启时额外发全身关节，且头/手/手柄已在 **hips 身体系**。
@@ -264,7 +276,7 @@ quest3_udp_mocap
 | 2026-08-20 | Mixed + IOBT | 解析 `controller` / `body iobt`；IOBT 时 head/wrist 用 `robot_body`；手柄默认同写 wrist_pose |
 | 2026-08 | 腕改回世界系 | 取消 wrist 相对 head；head 与 wrist 同属 `robot_world`/`vr_world` |
 | 2026-08 | convert_to_robot | 启动可选 Unity→机器人轴 |
-详见顶层 [README](../../README.md) 与 [CHANGELOG.md](../../CHANGELOG.md)。
+详见顶层 [README](../../../README.md) 与 [CHANGELOG.md](../../../CHANGELOG.md)。
 
 ## 来源明确的右侧遥操输入（2026-10-29）
 

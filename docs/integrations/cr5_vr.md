@@ -1,5 +1,7 @@
 # CR5 右手柄 / 右手追踪 VR 遥操
 
+> 2026-10-30 更新：当前统一路径：CR5 VR 兼容 launch 只启动公共 session，接收器由 morla.processes 工厂托管；纯 fake Quest 不启动实体接收器。真实 Quest＋fake CR5 必须使用仅输入为 real 的部署覆盖（device_id 与 process_mode），详见 [主机 Q01/U02–U04](../testing/host_build_and_hardware_acceptance.md)。QuestRight 现有 scalar/right_landmarks，通用控制/滤波不再仅服务 CR5。
+
 更新：2026-10-29。当前使用 **CR5 本体 URDF + Pinocchio 本地数值 IK**；不再调用控制器 `InverseSolution` 来遥操。右手柄和右手追踪控制同一台独立 CR5，裸手捏合不驱动灵巧手。
 
 软件及离线链路已验证；ROS Humble、Quest 与 CR5 实机验收仍未执行。fake 采用与 real 相同的 URDF/IK，但反馈由 FakeAdapter 合成，无动力学、碰撞或硬件实时性保证。
@@ -18,7 +20,7 @@
   → CR5 Adapter：部署关节限位、ServoJ → 实测关节反馈
 ```
 
-求解与设备通信分离，IK 不访问 Dashboard、不发送控制命令，也没有控制器 IK 回退。底层 ServoJ 仍沿用独立 CR5 驱动。Nero/Astral 的求解器与原 Quest 话题保留；事件流默认关闭，仅 CR5 launch 显式开启。
+求解与设备通信分离，IK 不访问 Dashboard、不发送控制命令，也没有控制器 IK 回退。底层 ServoJ 仍沿用独立 CR5 驱动。Nero/Astral 的求解器与原 Quest 话题保留；事件流在接收器本身默认关闭，由公共输入进程工厂显式开启。
 
 ## 2. 模型、坐标与求解契约
 
@@ -65,7 +67,7 @@ adb reverse tcp:8000 tcp:8000
 ros2 launch morla_cr5_driver cr5_vr.launch.py
 ```
 
-launch 同时启动右侧接收器与 disarmed 会话，默认 `config/quest_right.fake.yaml`。接收器启动后在 Quest Start Stream，浏览器打开 `http://127.0.0.1:8080/`，顶部应显示 FAKE。8000 只能有一个接收器。可加 `port:=8082` 或 `store:=/absolute/path`；HTTP 默认仅监听本机。
+launch 启动公共 disarmed 会话，默认 `config/quest_right.fake.yaml`；实体接收器仅在输入绑定为 real 后由公共工厂启动，真实输入＋fake 机器人覆盖见主机 Q01。接收器启动后在 Quest Start Stream，浏览器打开 `http://127.0.0.1:8080/`，顶部应显示 FAKE。8000 只能有一个接收器。可加 `port:=8082` 或 `store:=/absolute/path`；HTTP 默认仅监听本机。
 
 1. 页面出现“手柄”或“手追踪”及新鲜输入后，点击“准备”，确认完成，再点击“激活”。启动和刷新不会自动激活。
 2. **右手柄**：按住右握把移动。激活后第一帧以当前手柄位姿和实测关节 FK 的 TCP 建锚，随后移动/旋转控制机械臂。握把状态只作输入意图记录，回退后不再要求“先释放再按下”，松开也不会自动停止。

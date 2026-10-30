@@ -16,7 +16,7 @@ setup(
     license='Apache-2.0; MIT (vendored Dobot layout)',
     maintainer='MORLA maintainers', maintainer_email='robot@localhost',
     description='Independent cr5_driver ROS 2 and MORLA component',
-    entry_points={
+    entry_points={'morla.kinematics':['morla.dobot.cr5 = morla_cr5_driver.kinematics:create_kinematics'],
         'morla.adapters': [
             'morla.dobot.cr5:real = morla_cr5_driver.adapter:create_adapter',
             'morla.dobot.cr5:fake = morla_cr5_driver.adapter:create_adapter',

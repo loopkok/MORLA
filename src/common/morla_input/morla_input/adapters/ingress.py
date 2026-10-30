@@ -28,8 +28,8 @@ class InputIngressAdapter:
             self.frame = deepcopy(frame)
 
     def health(self, now_ns):
-        # Listener readiness does not grant movement. Each binding independently
-        # checks input freshness and requires a release edge after reconnect.
+        # Listener readiness is separate from receiving a valid input sample.
+        # Binding freshness is evaluated per port by the shared engine.
         return {'ready': self.configured, 'sample_ns': now_ns, 'source': 'input_listener',
                 'measured': False, 'synthetic': False, 'values': []}
 
@@ -42,9 +42,10 @@ class InputIngressAdapter:
             for key, value in frame.ports.items():
                 if isinstance(value, dict) and {'position', 'quaternion'} <= set(value):
                     value = [*value['position'], *value['quaternion']]
-                elif isinstance(value, dict) and key == 'axes':
-                    order = ('x', 'y', 'z', 'roll', 'pitch', 'yaw') if 'x' in value else (
-                        'left_x', 'left_y', 'right_x', 'right_y', 'left_trigger', 'right_trigger')
+                elif isinstance(value, dict) and (key == 'axes' or self.instance.get('ports', {}).get(key, {}).get('semantic') == 'axes_buttons'):
+                    order = self.instance.get('ports', {}).get(key, {}).get('axis_names') or (
+                        ('x', 'y', 'z', 'roll', 'pitch', 'yaw') if 'x' in value else (
+                        'left_x', 'left_y', 'right_x', 'right_y', 'left_trigger', 'right_trigger'))
                     if not all(name in value for name in order):
                         continue
                     value = [value[name] for name in order]

@@ -20,6 +20,22 @@
       "unit": "ratio",
       "codec": "numeric",
       "dtype": "bool"
+    },
+    "scalar": {
+      "direction": "output",
+      "semantic": "scalar",
+      "dim": 1,
+      "unit": "ratio",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "right_landmarks": {
+      "direction": "output",
+      "semantic": "hand_landmarks",
+      "dim": 63,
+      "unit": "m",
+      "codec": "numeric",
+      "dtype": "float64"
     }
   },
   "backend_variants": {
@@ -41,6 +57,22 @@
     "properties": {
       "input_topic": {
         "type": "string"
+      },
+      "process_mode": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "external",
+          "managed"
+        ]
+      },
+      "pinch_range_m": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 2,
+        "maxItems": 2
       }
     },
     "additionalProperties": false

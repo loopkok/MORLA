@@ -215,6 +215,8 @@ class ComposableService:
             result["policy"]={"running":self.policy is not None and not self.policy.closed,"error":self.policy_error}
             result['controller_close_errors']=list(self.controller_close_errors)
             result['input_errors']=dict(self.input_errors)
+            result['input_processes']=(self.ros_inputs.supervisor.state()
+                if self.ros_inputs is not None and self.ros_inputs.supervisor is not None else [])
             return result
 
     def operation(self, session_id, raw):
@@ -265,32 +267,12 @@ class ComposableService:
                 return session.stop(request)
             raise ServiceError("unsupported operation",422)
 
+    def _engine(self):
+        from morla_teleop.engine import BindingEngine
+        return BindingEngine(self.session, bindings=self.bindings)
+
     def _binding_controller(self, binding):
-        controller=self.bindings.get(binding['id'])
-        if controller is not None:return controller
-        target=binding['target'].split('.',1)[0]
-        instance=self.session.instances[target]
-        adapter=self.session.adapters[target]
-        names=[j['name'] if isinstance(j,dict) else j for j in instance['joints']]
-        age=binding.get('max_age_ms',250)
-        if isinstance(age,bool) or not isinstance(age,(int,float)) or age<=0:
-            raise ServiceError('binding max_age_ms must be positive',422)
-        registry=ControllerRegistry()
-        if binding['controller'] in {'morla.cartesian_delta_ik','morla.gamepad_cartesian_jog'}:
-            from morla_teleop.kinematics import install_kinematics
-            install_kinematics(registry,instance)
-        elif binding['controller'] in {'morla.xhand.retarget','morla.wuji.retarget'}:
-            from morla_teleop.retargeting import install_retargeting
-            install_retargeting(registry,instance)
-        elif binding['controller'] not in {'morla.joint_jog','morla.scalar_map'}:
-            from morla_teleop.retargeting import install_controller_plugin
-            install_controller_plugin(registry,binding['controller'],context={
-                'instance':instance,'binding':binding,'clock':self.clock,
-                'kinematics_provider':getattr(adapter,'kinematics_provider',None)})
-        controller=BindingController(binding,names,registry=registry,clock=self.clock,
-                                     max_age_ns=int(age*1_000_000))
-        self.bindings[binding['id']]=controller
-        return controller
+        return self._engine()._binding_controller(binding)
 
     def pair(self, session_id, input_id):
         with self.lock:
@@ -353,12 +335,11 @@ class ComposableService:
             for action in actions:
                 request='input-'+input_id+'-'+frame.source_epoch+'-'+str(frame.sequence)+'-'+action
                 def dispatch(action=action,request=request):
-                    if action in ('teleop_start','teleop_pause','estop'):
-                        op={'teleop_start':'activate','teleop_pause':'disarm','estop':'estop'}[action]
-                        return self.operation(session_id,{'operation':op,'request_id':request})
-                    if action=='record_start':return self.start_recording(session_id,'gamepad demonstration')
-                    if action=='record_stop':return self.stop_recording()
-                    raise ServiceError('Unsupported input operation')
+                    from morla_teleop.actions import dispatch_input_action
+                    return dispatch_input_action(action,request,
+                        operation=lambda op,req:self.operation(session_id,{'operation':op,'request_id':req}),
+                        start_recording=lambda:self.start_recording(session_id,'input demonstration'),
+                        stop_recording=self.stop_recording)
                 with session.lock:
                     result=session._operation(request+'-dispatch','input_'+action,dispatch)
                 if result['status']=='FAILED':self.input_errors[input_id]=result.get('error','input action failed')
@@ -389,24 +370,7 @@ class ComposableService:
             if session.status!='ACTIVE':
                 self._reset_bindings()
                 return {'accepted':False,'reason':'explicit_activation_required'}
-            command_rows=[]
-            for binding in session.resolved.get("bindings",[]):
-                if binding["source"].split(".",1)[0]!=input_id:
-                    continue
-                target=binding["target"].split(".",1)[0]
-                instance=session.instances[target]
-                joints=instance["joints"]
-                names=[j["name"] if isinstance(j,dict) else j for j in joints]
-                adapter=session.adapters[target]
-                health=adapter.health(self.clock())
-                measured=health.get("values")
-                if measured is None:
-                    raise ServiceError("adapter does not expose measured positions",409)
-                controller=self._binding_controller(binding)
-                values=controller.step(frame,measured)
-                if values is not None:
-                    command_rows.append({"component_id":target,"names":names,"values":values,
-                                         "mode":"position","units":[j.get("unit","rad") for j in joints]})
+            command_rows=self._engine().targets(frame)
             if not command_rows:
                 return {"accepted":False,"reason":"release_or_reanchor_required"}
             # Lease bookkeeping only; submit no longer enforces authority.

@@ -1,0 +1,13 @@
+{
+  "checks": {
+    "runtime_has_no_native_brand_switch": true,
+    "target_dispatch_has_no_input_or_robot_brand_pair": true,
+    "src/common/morla_vader5_input/launch/vader5_teleop.launch.py:no_duplicate_input_node": true,
+    "src/robots/dobot/morla_cr5_driver/launch/cr5_vr.launch.py:no_duplicate_input_node": true,
+    "native_compatibility_is_import_only": true,
+    "legacy_and_unified_share_filters": true,
+    "kinematics_selected_by_plugin_metadata": true
+  },
+  "hardware_accessed": false,
+  "all_passed": true
+}

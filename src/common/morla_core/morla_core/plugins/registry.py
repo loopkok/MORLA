@@ -21,7 +21,7 @@ class Catalog:
         ports=descriptor['ports']
         if not isinstance(ports,dict): raise CompilationError("ports must be mapping")
         for name,port in ports.items():
-            fields(port,{'direction','semantic','dim','shape','dtype','unit','codec','frame','clock','required','qos','validity','update_range','max_age_ms'})
+            fields(port,{'direction','semantic','dim','shape','dtype','unit','codec','frame','clock','required','qos','validity','update_range','max_age_ms','axis_names'})
             if port.get('direction') not in {'input','output'} or not port.get('semantic'): raise CompilationError("port requires direction and semantic")
             if type(port.get('dim',1)) is not int or port.get('dim',1)<1: raise CompilationError("port dimension must be positive")
         self._descriptors[key]=deepcopy(descriptor)
@@ -74,7 +74,14 @@ def default_catalog():
         if descriptor['plugin_id'].startswith('morla.camera'):
             descriptor['configuration_schema']['properties'].update({'image_topic':{'type':'string'},'compressed':{'type':'boolean'},'device_path':{'type':'string'},'width':{'type':'integer','minimum':1},'height':{'type':'integer','minimum':1},'fps':{'type':'number','exclusiveMinimum':0},'camera_backend':{'type':'string','enum':['ros_image','uvc']}})
             descriptor['backend_variants']['real']={'available':True,'requires':['rclpy or cv2','camera driver','stable device fingerprint'],'validation_level':'requires_camera_driver'}
+        if descriptor['plugin_id']=='morla.input.quest':
+            for side in ('left','right'):
+                descriptor['ports'][side+'_scalar']=_port('output','scalar')
+                descriptor['ports'][side+'_axes']=_port('output','axes_buttons',2,axis_names=['x','y'])
         if descriptor['kind']=='input':
+            descriptor['configuration_schema']['properties']['process_mode']={'type':'string','enum':['auto','managed','external']}
+            if 'axes' in descriptor['ports']:
+                descriptor['ports']['axes']['axis_names']=(['left_x','left_y','right_x','right_y','left_trigger','right_trigger'] if 'gamepad' in descriptor['plugin_id'] or 'xbox' in descriptor['plugin_id'] else ['x','y','z','roll','pitch','yaw'])
             descriptor['configuration_schema']['properties'].update({'input_topic':{'type':'string'},'device_name':{'type':'string'},'deadzone':{'type':'number','minimum':0,'exclusiveMaximum':1},'protocol':{'type':'string','enum':['udp','tcp_wired','tcp_wireless']},'udp_port':{'type':'integer','minimum':1,'maximum':65535},'tcp_port':{'type':'integer','minimum':1,'maximum':65535},'source_namespace':{'type':'string'}})
         if descriptor['plugin_id'] in {'morla.xhand.hand','morla.wuji.hand'}:
             descriptor['configuration_schema']['properties'].update({'retarget_backend':{'type':'string','enum':['official','dexpilot']},'preprocess_mode':{'type':'string','enum':['legacy_xhand','legacy_xhand_pinky']},'index_bend_sign':{'type':'number','enum':[-1,1]},'enable_thumb_fix':{'type':'boolean'}})

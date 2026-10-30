@@ -2,6 +2,21 @@
 
 ## 2026-10-30
 
+### 统一组件与绑定路径收敛（当前工作区）
+
+- 公共 BindingEngine/ControlHost、标准输入协议、双侧独立端口、组件采集进程托管与共享去重接入 Web/CLI/ROS。更换输入或执行器主要通过组件与绑定配置表达。
+- 原生 ROS 设备桥与启动计划迁入 morla_native_bridge 注册插件；Nero/Astral/CR5 运动学使用插件提供者。Vader/CR5 VR 兼容 launch 不再重复启动采集节点。
+- 旧 pinch 自动范围、EMA、扳机 shaping 与输出 slew 下沉通用处理器，由旧/新路径复用。修复缓存端口重复处理、部分帧阻塞其他绑定、共享进程配置冲突及关闭异常回收问题。
+- 本轮 macOS 离线验证：pure 202 passed/4 skipped、fake 23 passed、sim 7 passed，TypeScript/Vite 与 Edge 浏览器通过；实际插件 wheel 安装与共享会话验证使用 mock transport。未执行新版 ROS 构建/实机或第二 reviewer 审查。
+- 详见 [实现与验收记录](docs/architecture_refactor/UNIFIED_IMPLEMENTATION.md) 和 [最终代码检查](docs/architecture_refactor/reviews/UNIFIED_FINAL_REVIEW.md)。提交与推送回执见本轮 PUSH_LOG。
+
+### README、测试手册与接入说明同步
+
+- 更新根目录、公共 runtime/input/bringup/Web/data/policy、Vader、相关设备及示例 README，区分统一组件路径与 legacy Profile/独立节点，补齐 morla_native_bridge 和注册工厂依赖。
+- 主机手册新增 U01–U08，报告模板增加进程/端口/输入身份，fake ROS脚本明确单执行器范围；设备指南、操作文档和架构状态同步。文档检查不代表 ROS 或实机测试。
+- 明确开放问题 **UR11**：无 Web ROS stop 不立即回收输入，须退出宿主；Web stop 则关闭输入管理器。未将此项写成已修复或 PASS。
+- 详细范围与历史证据分离见[本轮更新日志](docs/architecture_refactor/CHANGE_LOG_UNIFIED_2026-10-30.md)。本轮提交与推送回执单独归档。
+
 ### EPG50-060 真机台架验收与回退后文档对齐
 
 - 设备 `EPG-BENCH-01`（站号 9、115200，`/dev/serial/by-id/usb-Prolific_Technology_Inc._USB-Serial_Controller_DSEAb114J19-if00-port0`）经统一组合层实机测试，全部走已安装的 ROS 服务/话题与 `morla-composable-session`，不直接调用 SDK。结果如下：

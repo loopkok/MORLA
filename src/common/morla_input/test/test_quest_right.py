@@ -116,3 +116,25 @@ def test_motion_ticks_only_on_pose_but_release_is_immediate():
     row = event('grip', values=0.)
     frame = source.event(row)
     assert source.control_event(row, frame)
+
+
+def test_trigger_scalar_is_available_to_any_gripper_binding():
+    source,event,_,_=setup_source()
+    source.event(event('pose'))
+    frame=source.event(event('trigger',values=.75))
+    assert frame.ports['scalar']==.75
+    assert source.control_event({'kind':'trigger'},frame)
+    assert frame.port_metadata['scalar']['received_ns']==frame.received_ns
+
+
+def test_hand_and_controller_expose_same_scalar_capability():
+    source,event,_,_=setup_source()
+    source.event(event('pose'))
+    assert source.event(event('trigger',values=1.)).ports['scalar']==1
+    source.event(event('pose','hand'))
+    closed=source.event(event('landmarks','hand',points(True)))
+    assert closed.ports['scalar']==1
+    assert len(closed.ports['right_landmarks'])==21
+    assert source.control_event({'kind':'landmarks'},closed)
+    opened=source.event(event('landmarks','hand',points(False)))
+    assert opened.ports['scalar']==0

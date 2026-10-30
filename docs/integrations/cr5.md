@@ -1,5 +1,7 @@
 # CR5 独立组件接入记录
 
+> 2026-10-30 更新：当前统一路径使用公共 BindingEngine/ControlHost；CR5 可通过 morla.kinematics 提供求解器，也保留原异步控制器插件。启动/输入托管、配置替换与验收见 [统一路径记录](../architecture_refactor/UNIFIED_IMPLEMENTATION.md) 和 [主机手册](../testing/host_build_and_hardware_acceptance.md)。
+
 日期：2026-10-28；MORLA 基线 b91211a，当前工作区实现。依据 [设备接入指南](../device_integration_guide.md)。协议来源为桌面 cr5_loophand_graspnet/arm_CR，原项目未修改。
 
 ## 包边界

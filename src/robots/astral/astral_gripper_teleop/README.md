@@ -1,5 +1,14 @@
 # astral_gripper_teleop
 
+## 通用控制器与 legacy 节点（2026-10-30）
+
+本文的 pinch_gripper_node 是旧独立 ROS 发布路径。新组合使用输入端口→morla.scalar_map / morla.pinch_filtered / morla.trigger_filtered→执行器 adapter；换 EPG 等夹爪主要修改组件、目标端口与 output_range，无需复制本节点。
+
+旧 Node 与通用控制器共用 morla_teleop.gripper_processing 的自动范围、指数遗忘、EMA、扳机 deadzone/gamma/invert 和输出 slew。旧 Node 保留自己的定时、输入优先级与 legacy 仲裁，不代表组合 Runtime 恢复了旧门禁。禁止两个入口同时发布同一实体夹爪目标。Astral native adapter 由 morla_native_bridge 注册；其 position 仍是 command_echo，不能作真实测量。
+
+参见[组合示例](../../../../examples/unified_composition/README.md)及[数值回归/审查](../../../../docs/architecture_refactor/reviews/UNIFIED_FINAL_REVIEW.md)。
+
+
 Quest3 手部食指–拇指距离 → 夹爪开合。独立于 `morla_input` 和臂 IK。支持左/右任一侧（`hand_side` 参数）。
 
 ```text

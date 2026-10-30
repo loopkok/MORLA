@@ -1,5 +1,14 @@
 # morla_data_collect — VLA 数据采集包
 
+## 组合系统采集入口（2026-10-30）
+
+新组件路径采用冻结的 Schema v3：state/action 独立布局，图像键、传感器与辅助输入端口由装配选择。输入通过共享内核到执行器，采集读取同一会话的 provider/dispatch 数据；输入设备采样不冒充机器人实测状态。
+
+双侧 scalar/axes 使用独立端口和接收时间；缓存端口不因另一侧更新而重记为新样本。filtered 控制器生成的实际下发目标应与 action_source 对齐，未收到必要动作/图像的 episode 不应标记完整。高频原始传感器原速保存仍需专门采样链，不能把 dataset_fps 轮询称为原速采集。
+
+采集使用公共 session/Web 宿主；system/普通 runtime CLI 不会自动录制。下文旧 ROS collector/Schema v2 用法保留兼容。见[实现记录](../../../docs/architecture_refactor/UNIFIED_IMPLEMENTATION.md)和[主机 D/U 用例](../../../docs/testing/host_build_and_hardware_acceptance.md)。
+
+
 ## MORLA统一profile模式
 
 遥操/仿真、策略和数采都从同一个 `morla_core` robot profile 读取冻结的 `FrozenSchema`；数采不会再根据独立的 Astral arms/end-effector 参数拼造 Nero/XHand 布局。录制开始时将 `profile_id`、`runtime_mode`（`sim`/`real`）、schema/layout hash 与源资产版本写入 `meta.json`。数据保存到 `{save_root}/{profile_id}/{session}/episodeNNNNNN/`，默认根目录受 `MORLA_DATA_ROOT` 控制。
@@ -402,7 +411,7 @@ bash MORLA/scripts/data_pipeline.sh verify-existing \
   --check-python /home/robot/miniconda3/envs/lerobot/bin/python
 ```
 
-本次结果与局限见 [修复验证报告](../../docs/data-pipeline-fixes-2026-10-10.md)。
+本次结果与局限见 [修复验证报告](../../../docs/data-pipeline-fixes-2026-10-10.md)。
 
 ## 可组合系统的 schema v3 采集和独立动作布局
 

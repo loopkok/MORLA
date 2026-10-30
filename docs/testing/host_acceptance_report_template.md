@@ -10,6 +10,10 @@
 - 仓库完整SHA/分支/工作区dirty diff附件：
 - 开发或普通安装树、实际Python模块/share路径：
 - SDK版本/路径/native库与依赖freeze附件：
+- morla_native_bridge 安装路径与四类 entrypoint 清单（adapter/input/process/kinematics）：
+- process_mode、实际 PID/退出码、共享 DeviceSession 与 external 所有者：
+- Runtime stop / Web stop / 宿主退出后的输入进程差异与遗留 PID：
+- 标准输入端口、axis_names、左右 scalar、单位/范围与滤波参数：
 - 设备型号/资产编号/固件/USB、CAN、串口或网络身份：
 - Assembly/Deployment/revision/Resolved哈希与标定证据：
 - 输入模式、模型/checkpoint/后端版本（适用时）：
@@ -50,6 +54,7 @@
 - D01/D02/D03：实际录制、处理/导出、真实loader/训练/推理/回放。
 - W01/W02：前端/浏览器、设备链路人工检查。
 - P01/P02/P03：性能、长稳、恢复/发布/独立扩展。
+- U01–U08：插件安装、无 Web 双臂、配置替换、进程共享/回收、滤波等价、Web/数据、新代码主机复验、独立审查。
 - VALIDATION补充编号及未覆盖项：
 
 ## 本轮结论与限制
@@ -62,3 +67,11 @@
 - 是否满足本轮限定范围的发布条件及依据：
 
 归档时保留原始数据和原始错误；关闭问题需复测证据，不能用修改验证标志代替。
+
+## 本轮代码与历史证据分离
+
+- 本轮离线参考：统一路径证据中的 202 passed/4 skipped、fake23、sim7、浏览器/构建通过，仅为参考，不预填现场 PASS。
+- 历史主机/EPG 台架证据 SHA、实际范围与未关闭 FAIL：
+- 新增包后本轮实际 colcon 包数/失败数，勿沿用历史41包：
+- 单执行器 ROS fake 脚本与 U02 多组件输入流程分别填写：
+- 第二位 reviewer 姓名/意见/复测；若仅自动检查则填 NOT_RUN：

@@ -1,5 +1,7 @@
 # Jodell EPG50-060 独立 ROS 2 驱动
 
+> 2026-10-30 统一路径更新：EPG 是单自由度米制开口执行器；VR/Vader/mobile/标准源通过 scalar_map 或显式滤波控制器绑定 position_target。不会因新增上游输入而增加 EPG 专用遥操节点。历史断链 FAIL/操作者豁免不因公共框架测试改变。 当前接口、安装与测试见[设备指南](../../../../docs/device_integration_guide.md)和[实现记录](../../../../docs/architecture_refactor/UNIFIED_IMPLEMENTATION.md)。下文独立驱动入口仍可单用；不能与另一个会话同时占用设备。
+
 支持目标型号：**EPG50-060-0PF-L200-C7-N-A-P40-S00**。组件 `morla.jodell.epg50_060@1.0.0`，基于用户提供的JodellTool 0.1.5 Python SDK和EPG A.2手册，采用标准RS485 / Modbus RTU。完整后缀未在所给通用资料中解码，不能据此推断定制接口/固件；需核对实物接线。
 
 包不依赖任何机械臂、其他手、IK或Web；不包含厂商SDK、副本手册、Windows工具或二进制库。源码只实现MORLA封装，许可与来源见 PROVENANCE.json。实际SDK需单独安装。

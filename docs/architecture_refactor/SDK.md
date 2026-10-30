@@ -39,6 +39,7 @@ factory context 的字段如下：
 - `clock`：返回 host monotonic 纳秒的函数；deadline/TTL 使用它。
 - `resource_root`、`lane_fd`：runtime 已持有的主机资源锁上下文。
 - `shared_device_sessions`：当前装配内共享物理会话对象缓存；由同一 trusted 组件族协调使用。
+- `instances`：本会话全部已解析实例的 detached mapping，用于共享物理设备的具名作用范围和单次连接。第三方 adapter 可忽略。
 - `device_session`：编译快照中该实例对应的 DeviceSession 描述；包含 session_id、device_id、resources、部署参数及逻辑实例列表。
 
 runtime 随后调用 `configure({'session_id': ..., 'instance': instance_snapshot})`，不是把 factory context 再原样传入。factory 可保留已分配的共享物理会话引用。
@@ -104,3 +105,14 @@ controller 的 `reset()` 必须隔离迟到的异步结果；持有线程的 con
 动作名复用teleop_start/teleop_pause/record_start/record_stop，另有estop；组合Service调用现有生命周期/数采API并以输入epoch/sequence去重，不能再同时转发旧Profile操作话题。动作回执不等于硬件完成；新设备必须给出按钮冲突与启动已按住处理策略。
 
 InputFrame.synthetic用于明确fake源，InputIngressAdapter保留标量与向量端口的来源时间；录制按钮边沿另存事件。scalar_map可连接一维joint_targets并可用max_velocity（目标单位/秒）限速，多关节不允许标量误连。已有不传max_velocity的映射行为保持。
+
+
+## 七、统一路径补充（2026-10-30）
+
+原生设备启动桥已迁入 src/robots/native/morla_native_bridge，采用正常 morla.adapters 工厂注册；部署旧原生设备需安装该包。公共 Runtime 不再根据品牌生成驱动计划。自定义插件无须修改此包。
+
+输入采用 morla.ros_inputs 桥与 morla.processes 采集进程工厂。标准意图入口、进程模式和无 Web ControlHost 见 examples/unified_composition/README.md。Web 与 ROS/CLI 使用相同 BindingEngine；相同绑定源端口的缓存样本不会因其他事件再次滤波。
+
+morla.pinch_filtered / morla.trigger_filtered 支持旧 pinch 自动范围、EMA、扳机死区/gamma、输出比例变化率处理。通过 output_range 映射到任意单自由度单位；这些是显式选择的信号处理器，morla.scalar_map 的直接映射行为不变。独立运动学通过 morla.kinematics 的 plugin_id entrypoint 或 adapter.kinematics_provider 提供。
+
+运动学 entrypoint factory(instance) 返回 sync_state(q)/fk(q)/solve(T) 对象；adapter.kinematics_provider 如提供，须直接为该对象（不是未调用的工厂）。Pinch 信号处理的数值 trace 与安装验证见 reviews/UNIFIED_FINAL_REVIEW.md。

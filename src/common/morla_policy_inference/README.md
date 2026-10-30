@@ -1,5 +1,14 @@
 # morla_policy_inference — 策略部署 / 数据真机回放 / 人在环路（HITL）
 
+## 组合系统策略路径（2026-10-30）
+
+新组合路径使用冻结 feature/geometry/normalization 契约、ModelManifest 与 RuntimePolicy/RuntimeReplay；目标经与人工输入相同的 Runtime adapter 下发。输入设备替换不应暗改动作自由度、相机槽位或关节语义。
+
+回退后的 Runtime 不执行人工/策略 authority 互斥，不能据旧 HITL/lease 说明推断组合路径存在该门禁。下文旧 Profile/HITL 链路仍有各自机制，须区分部署入口。真实 loader/模型/GPU 训练和推理不由 fake 回归证明。
+
+见[当前操作说明](../../../docs/architecture_refactor/OPERATIONS.md)、[设备与数据契约指南](../../../docs/device_integration_guide.md)及[主机验收](../../../docs/testing/host_build_and_hardware_acceptance.md)。
+
+
 一个 ROS 2 Humble 功能包，通过 `morla_core` robot profile 与 `FrozenSchema`，将外部策略输入、OpenPI/ACT推理、数据回放和HITL接入标准机器人命令流。Astral历史模型兼容适配仍由策略后端负责，运行时布局始终由Profile及其layout hash确定：
 
 - **策略部署**：VLA 策略跑在真实机器人/仿真上，模型无关换权重（后端抽象）。
@@ -104,7 +113,7 @@ GPU 主机起统一 `scripts/serve.py`，节点 `backend_type=remote` 连它（�
 ```bash
 # GPU 主机（py3.12 lerobot 环境，serve ACT）：
 <lerobot-env>/bin/python MORLA/src/common/morla_policy_inference/scripts/serve.py \
-  --model act --checkpoint-dir <act_checkpoint> --port 8001
+  --model act --checkpoint-dir "<act_checkpoint>" --port 8001
 # 或直接用运维脚本（参数外置 serve_policy.env，启动前查端口冲突，--status/--stop 配套）：
 MORLA/scripts/serve_policy.sh            # 启动（改参编辑 serve_policy.env，不动脚本）
 MORLA/scripts/serve_policy.sh --status   # 查看端口/pidfile 状态
@@ -481,7 +490,7 @@ payload、错误处理、工厂）、engine（三种模式、后台规划、RTC 
 # A) 模型侧集成（py3.12 lerobot 环境，无 ROS）——后端 get_policy_class 加载 + 推理 +
 #    引擎分块/ACT 队列/reset 重规划：
 /home/robot/miniconda3/envs/lerobot/bin/python MORLA/scripts/run_act_integration.py \
-    --checkpoint-dir <act_checkpoint>
+    --checkpoint-dir "<act_checkpoint>"
 
 # B) 完整节点端到端（py3.10 + ROS，需先启动 serve.py + policy_node）——
 #    真实 ACT 驱动指令流 + pause/resume/stop，--check-server 先做推理往返预检：
@@ -489,7 +498,7 @@ payload、错误处理、工厂）、engine（三种模式、后台规划、RTC 
 
 # C) 推理正确性（py3.12 环境，真实数据集 vs 模型预测）：逐帧喂 episode 观测对比录制动作
 /home/robot/miniconda3/envs/lerobot/bin/python MORLA/scripts/run_act_correctness.py \
-    --checkpoint-dir <act_checkpoint> --dataset-dir "<act_dataset>"
+    --checkpoint-dir "<act_checkpoint>" --dataset-dir "<act_dataset>"
 
 # D) 远程链路基准（py3.10，先起 serve.py）：RTT 分布/真推理 vs 缓存/吞吐/GPU
 /usr/bin/python3 MORLA/scripts/run_act_benchmark.py

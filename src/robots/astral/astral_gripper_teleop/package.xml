@@ -24,4 +24,5 @@
     <build_type>ament_python</build_type>
   </export>
   <exec_depend>morla_core</exec_depend>
+  <exec_depend>morla_teleop</exec_depend>
 </package>

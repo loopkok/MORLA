@@ -1,5 +1,15 @@
 # MORLA robot platform
 
+## Current composable path — 2026-10-30 working tree
+
+The shared input → BindingEngine/ControlHost → actuator adapter path is implemented for configurable input, arm/dual-arm and end-effector composition. Native Nero/Astral/XHand/Wuji ROS bridges now install as `morla_native_bridge` plugins; device IK uses registered providers. Input processes use `auto` / `managed` / `external`, with per-side ports and shared process/session ownership. Legacy Profile/piano workflows remain separate compatibility paths.
+
+Start with the [composition examples](examples/unified_composition/README.md), [integration guide](docs/device_integration_guide.md), and [host tests U01–U08](docs/testing/host_build_and_hardware_acceptance.md). Current software evidence is pure **202 passed / 4 skipped**, fake **23 passed**, sim **7 passed**, TypeScript/Vite and Edge passed; these are local offline results, not new ROS/hardware acceptance. See [implementation status](docs/architecture_refactor/UNIFIED_IMPLEMENTATION.md) and [CHANGELOG](CHANGELOG.md).
+
+**Open UR11:** Web stop closes its input manager; the headless ROS runtime stop service currently stops actuators only, with input cleanup on host exit. Test both moments separately. New ROS/physical-device matrices and a second reviewer remain unverified. Commit and push receipts are recorded in docs/architecture_refactor/PUSH_LOG_UNIFIED_2026-10-30.md.
+
+## Earlier integration records
+
 2026-10-27 用户曲谱归档与三仓库提交说明见[详细日志](docs/piano/DEBUG_LOG_2026-10-27.md)。本体本轮仅文档更新，现场标定和Web曲谱库仍需独立备份。
 
 2026-10-23 钢琴调速、曲谱与双仓库更新说明见[本轮详细日志](docs/piano/DEBUG_LOG_2026-10-23.md)。包含本次软件复验、历史现场证据与未完成验收边界。

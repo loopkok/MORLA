@@ -8,12 +8,10 @@ from .controllers import ControllerError
 def solver_for(instance):
     """Trusted built-in registration; assembly cannot supply Python import paths."""
     plugin=instance['plugin_id']; parameters=instance.get('parameters',{})
-    if plugin=='morla.nero.arm':
-        from nero_arm_teleop.ik_solver import IKSolver
-        return IKSolver()
-    if plugin=='morla.astral.arm':
-        from astral_arm_teleop.ik.factory import make_single_arm_ik
-        return make_single_arm_ik(parameters.get('side','left'),solver_type='geometric')
+    from importlib import metadata
+    providers=[entry for entry in metadata.entry_points(group='morla.kinematics') if entry.name==plugin]
+    if len(providers)>1: raise ControllerError('ambiguous kinematics provider: '+plugin)
+    if providers: return providers[0].load()(instance)
     raise ControllerError('no installed IK adapter for '+plugin)
 
 

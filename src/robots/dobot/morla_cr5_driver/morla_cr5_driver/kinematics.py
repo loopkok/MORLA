@@ -85,3 +85,10 @@ class FakeSolver:
     def solve(self, target):
         target = validate_transform(target)
         return np.r_[target[:3, 3] / .1, Rotation.from_matrix(target[:3, :3]).as_euler('xyz')]
+
+
+def create_kinematics(instance):
+    if instance.get('backend')=='fake':return FakeSolver()
+    from .urdf_ik import IKSolver
+    p=instance.get('parameters',{})
+    return IKSolver(joint_lower=p.get('joint_lower'),joint_upper=p.get('joint_upper'))

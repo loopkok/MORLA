@@ -10,20 +10,30 @@ from .session import RuntimeSession
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('resolved', help='Trusted compiled resolved_system.json (hash required)')
+    parser.add_argument('resolved', help='Compiled resolved_system.json')
+    parser.add_argument('--inputs', action='store_true', help='Connect selected input components through the shared binding host')
     parser.add_argument('--once', action='store_true', help='Start disarmed, report, then stop')
     parser.add_argument('--preflight', action='store_true', help='Report installed backend metadata without connecting')
     args = parser.parse_args(argv)
     runtime = None
     started = False
+    host = None
     try:
         runtime = RuntimeSession(json.loads(Path(args.resolved).read_text()))
         if args.preflight:
             report = runtime.preflight()
             print(json.dumps(report, ensure_ascii=False), flush=True)
             return 0 if report['ready'] else 2
+        if args.inputs:
+            from morla_input.adapters.ingress import InputIngressAdapter
+            runtime.adapters.update({key:InputIngressAdapter(instance,runtime.clock)
+                for key,instance in runtime.instances.items() if instance['kind']=='input'})
         runtime.start()
         started = True
+        if args.inputs:
+            from morla_teleop.session import ControlHost
+            host=ControlHost(runtime)
+            host.connect()
         print(json.dumps(runtime.state(), ensure_ascii=False), flush=True)
         if not args.once:
             def interrupt(*_):
@@ -39,6 +49,7 @@ def main(argv=None):
                          ensure_ascii=False), file=sys.stderr, flush=True)
         return 2
     finally:
+        if host is not None: host.close()
         if runtime is not None and started:
             runtime.stop()
     return 0

@@ -149,7 +149,9 @@ def test_quest_right_controller_hand_switch_and_loss_revoke_runtime(tmp_path,mon
         assert svc.session.lease is None and svc.session.status=='READY_DISARMED'
         assert send('grip',value=1.) is None
         op('activate')
-        assert send('landmarks','hand',landmarks(True)) is None
+        # Landmarks now reach the common binding host for scalar/hand capabilities.
+        # Cached pose samples are deduplicated per binding rather than at transport level.
+        assert 'accepted' in send('landmarks','hand',landmarks(True))
         assert send('pose','hand',[.3,0,0,0,0,0,1])['accepted']
         send('landmarks','hand',landmarks(False))
         send('landmarks','hand',landmarks(True))

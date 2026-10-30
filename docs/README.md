@@ -1,3 +1,5 @@
+当前组件与绑定统一重构见 [实施计划](architecture_refactor/UNIFIED_COMPOSITION_PLAN.md) 和 [组合示例](../examples/unified_composition/README.md)。
+
 # 排查经验索引（Troubleshooting & Investigation）
 
 新增机器人、输入设备、相机、传感器或脚踏操作源，先阅读 [设备移植与接入指南](device_integration_guide.md)：包含重构后实际接口、坐标/关节/时间对齐、分设备接入步骤、配置样例、验收和交付模板。
@@ -70,3 +72,10 @@
 3. 对不上就到 `CHANGELOG.md` 按日期 grep 关键词；
 4. 判断是参数/配置类 → 先查"参数是否生效"（§方法论 1），多半是第 0 层坑；
 5. 是运动异常 → 判断上游（遥操/IK）还是下游（driver/电机），用 driver_log_file 的 spike 对齐 cmd/send/srv 定"谁先跳"。
+
+
+## 当前测试入口
+
+- [主机编译与硬件验收手册](testing/host_build_and_hardware_acceptance.md)：含统一路径 U01–U08、真实输入＋fake 机器人覆盖与托管进程测试。
+- [逐用例报告模板](testing/host_acceptance_report_template.md)：分别记录历史/本轮代码身份、跳过原因、stop 与宿主退出差异。
+- [单执行器 ROS fake 冒烟脚本](testing/fake_ros_gateway_smoke.py)：只覆盖单执行器 DDS 服务/命令/反馈，不代表多组件输入链路通过。

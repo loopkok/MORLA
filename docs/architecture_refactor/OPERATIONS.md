@@ -1,6 +1,6 @@
 # 组合系统本地操作
 
-实现范围与未验收项见 progress.md，扩展组件见 SDK.md，运行时接口见 ../../src/common/morla_runtime/README.md。
+当前统一路径见 [UNIFIED_IMPLEMENTATION.md](UNIFIED_IMPLEMENTATION.md)，实现范围与未验收项见 progress.md，扩展组件见 SDK.md，运行时接口见 ../../src/common/morla_runtime/README.md。
 
 ## 环境与验证
 
@@ -21,14 +21,14 @@ sim 另需 MuJoCo；real/input ROS 路径需要安装并 source ROS Humble 及�
 
 1. Web「组合」页添加组件，分别选择 backend、安装侧、输入、controller、deadman、观测/动作端口和相机键。配置机械连接、TCP 与部署资源。
 2. 编译并预检；预检只检查元数据，不自动访问设备，也不代表真实部署已验收。
-3. 保存 revision，然后启动对应已保存 hash。启动保持 disarmed。准备和显式激活后，输入仍须先释放再按下 deadman。
-4. 手机使用会话配对 token；ROS 输入通过 connect_inputs 连接。失联、时效超限或资源争用会撤销运动权。
+3. 保存 revision，然后启动对应已保存 hash。启动保持 disarmed。准备与激活使用显式操作；deadman 当前仅兼容输入字段，不作为统一运行门禁。
+4. 手机使用会话配对 token；ROS 输入通过 connect_inputs 连接。已注册输入可由 process_mode=auto/managed 托管，external 使用已有进程。资源争用会报错；输入时效、断连与设备停止按实际源/adapter 行为判断，当前网关不承诺统一失联自动撤权。
 5. 采集冻结本会话契约。没有必须的动作或相机样本时，结束结果应为 failed，不能作为完整 episode 用于训练。
 6. 停止采集、disarm/stop。故障或急停复位不恢复旧动作，重新准备并确认反馈。
 
 ## 策略与回放 API
 
-`POST /api/v2/sessions/{id}/policy/start` 接收 manifest、normalization_hash，可附 backend_revision、camera_map、prompt。仅连接本机 8001 策略服务，服务必须公布与选中模型完全一致的 manifest，运行时还检查当前系统契约与 authority。`policy/stop` 撤销策略租约。网络服务存在并不等于模型经过真实验证。
+`POST /api/v2/sessions/{id}/policy/start` 接收 manifest、normalization_hash，可附 backend_revision、camera_map、prompt。仅连接本机 8001 策略服务，服务必须公布与选中模型完全一致的 manifest，模型入口检查当前系统契约；当前回退版本的 runtime 不执行人工/策略 authority 互斥。`policy/stop` 撤销策略租约。网络服务存在并不等于模型经过真实验证。
 
 `POST /api/v2/sessions/{id}/replay/step` 接收 frozen_resolved 与命名契约对应的 action，仅执行显式单步并释放 playback 权限。完整 episode 的时间调度需由调用方驱动 RuntimeReplay；不要通过循环 HTTP 快速发送代替数据集时间轴。
 
@@ -37,3 +37,9 @@ sim 另需 MuJoCo；real/input ROS 路径需要安装并 source ROS Humble 及�
 ## 回退
 
 停止组合会话并确认资源释放后才能启动旧入口；保留原始数据与标定文件。旧 Profile 维度/hash 对照位于 test/fixtures/legacy_profiles。禁止原地把 v3 数据伪装成 v2，禁止以删除锁文件解除仍活动的 writer。
+
+## 无 Web 与主机验收
+
+原生 Nero/Astral/XHand/Wuji 需安装 morla_native_bridge。使用 system.launch.py 的 connect_inputs:=true 或 morla-runtime --inputs 连接标准输入；CLI 无 ROS 服务端，服务操作使用 system 入口。录制采用公共 session/Web 宿主。进程模式、双侧端口、数值 trace 和完整命令见 [主机 U01–U08](../testing/host_build_and_hardware_acceptance.md)。
+
+当前生命周期差异：Web stop 会关闭输入管理器；无 Web ROS 网关的 Runtime stop 服务目前只停止执行器，输入管理器在宿主退出时回收。测试应分别记录 stop 后和退出后的 PID，不能据执行器 STOPPED 推断输入已退出。

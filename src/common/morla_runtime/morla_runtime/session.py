@@ -195,19 +195,7 @@ class RuntimeSession:
                                    'probe': 'installed_adapter_metadata_only_dependencies_unchecked',
                                    'render_context_verified': None})
                     continue
-                if module_missing('rclpy'): missing.append('rclpy')
-                if shutil.which('ros2') is None: missing.append('ros2')
-                try:
-                    from ament_index_python.packages import get_package_prefix
-                    package = {'morla.nero.arm': 'nero_robot_control', 'morla.astral.arm': 'astral_robot_control',
-                               'morla.astral.gripper': 'astral_robot_control', 'morla.xhand.hand': 'xhand_adapter',
-                               'morla.wuji.hand': 'wujihand_driver'}[plugin]
-                    get_package_prefix(package)
-                except (ImportError, LookupError, KeyError):
-                    missing.append('native_ROS_package_or_installed_adapter')
-                vendor = {'morla.nero.arm': 'pyAgxArm', 'morla.astral.arm': 'astral_robot_sdk',
-                          'morla.astral.gripper': 'astral_robot_sdk'}.get(plugin)
-                if vendor and module_missing(vendor): missing.append(vendor)
+                missing.append('installed_adapter_entry_point:'+plugin+':real')
             checks.append({'instance_id': key, 'backend': backend, 'backend_available': not missing, 'missing': missing,
                            'probe': 'metadata_only_no_hardware',
                            'render_context_verified': False if backend == 'sim' and plugin.startswith('morla.camera') else None})
@@ -228,7 +216,7 @@ class RuntimeSession:
                 for key, instance in self.instances.items():
                     if key in self.adapters:
                         continue
-                    context = {'session_id': self.session_id, 'clock': self.clock,
+                    context = {'session_id': self.session_id, 'clock': self.clock, 'instances': copy.deepcopy(self.instances),
                                'resource_root': str(self.resources.root), 'lane_fd': self.resources.lane_fd,
                                'shared_device_sessions': shared_devices,
                                'device_session': next((copy.deepcopy(device) for device in self.resolved.get('device_sessions', [])
@@ -241,9 +229,8 @@ class RuntimeSession:
                     for key, adapter in make_sim_adapters(self).items():
                         self.adapters.setdefault(key, adapter)
                 if any(row.get('backend') == 'real' for row in self.instances.values()):
-                    from .native_ros import make_native_adapters
                     from .cameras import make_camera_adapters
-                    candidates = {**make_native_adapters(self), **make_camera_adapters(self)}
+                    candidates = make_camera_adapters(self)
                     for key, adapter in candidates.items():
                         self.adapters.setdefault(key, adapter)
                 for key, instance in self.instances.items():
@@ -541,6 +528,8 @@ class RuntimeSession:
             return self.prepare(request_id, component_ids)
         if operation == 'activate':
             return self.activate(request_id, component_ids)
+        if operation == 'disarm':
+            return self._operation(request_id,'disarm',lambda:self.revoke(reason='operator_disarm'))
         if operation == 'stop':
             return self.stop(request_id)
         raise RuntimeErrorCode('UNSUPPORTED_OPERATION')

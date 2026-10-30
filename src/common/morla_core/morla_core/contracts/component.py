@@ -18,6 +18,7 @@ class AdapterFactoryContext(TypedDict, total=False):
     resource_root: str
     lane_fd: int
     shared_device_sessions: dict
+    instances: dict[str, dict]
     device_session: dict | None
 
 class ManagedAdapter(Protocol):

@@ -1,6 +1,8 @@
 # MORLA 重构后主机编译、迁移与真机测试手册
 
-更新：2026-10-29，Asia/Shanghai。适用于可组合架构重构，以及后续CR5本地URDF/IK、LoopHand、EPG、Vader5接入后的代码。复制到Linux主机后，以**现场checkout的完整Git SHA**为测试身份；不要仅写“最新版”。本文是待执行手册，不是主机或真机已经通过的报告。
+更新：2026-10-30，Asia/Shanghai。适用于可组合架构重构，以及后续CR5本地URDF/IK、LoopHand、EPG、Vader5接入后的代码。复制到Linux主机后，以**现场checkout的完整Git SHA**为测试身份；不要仅写“最新版”。本文是待执行手册，不是主机或真机已经通过的报告。
+
+> 本轮统一路径新增 U01–U08 见第 18 节。历史测试数字保留原代码身份；当前工作区证据单列，不作为主机验收 PASS。
 
 ## 1. 当前哪些已经做了，哪些还没做
 
@@ -84,14 +86,15 @@ rosdep check --from-paths src --ignore-src --rosdistro humble
 rosdep install --from-paths src --ignore-src --rosdistro humble -r -y
 ```
 
-应发现公共core/runtime/input/teleop/learning、morla_interfaces、robot_description及各驱动。`src/common/vader5_sdk/COLCON_IGNORE`应存在，SDK不作为ROS包进入列表。
+应发现公共core/runtime/input/teleop/learning、morla_interfaces、robot_description、新增 morla_native_bridge 及各驱动。仓库提供 src/common/vader5_sdk/COLCON_IGNORE，SDK 是独立 Python 包，不进入 ROS 包列表；现场如外置 SDK，应显式记录实际安装路径。
 
 供应商SDK不是rosdep自动提供：Vader5在本仓库同级目录；EPG使用用户原wheel；Nero使用third_party/pyAgxArm和其安装脚本；Astral使用已有的外部astral_robot_sdk。不要把缺SDK等同于配置compile失败，也不要在catalog时连接硬件。
 
 ROS构建及生成的入口使用`/usr/bin/python3`；先退出conda。ROS运行依赖需对该解释器可见。纯逻辑测试使用下一节独立venv，**不要将整份composable-test.txt装入ROS系统Python**：其中PyPI pin和numpy版本可能与apt Pinocchio/cv_bridge等二进制依赖冲突。缺包按rosdep和实际import错误处理，记录安装版本；需要pip的厂商SDK可安装到当前系统解释器的用户site。
 
 ```bash
-/usr/bin/python3 -m pip install --user ./src/common/vader5_sdk
+export MORLA_VADER_SDK="$MORLA_WS/src/common/vader5_sdk" # 外置时改为实际SDK目录
+/usr/bin/python3 -m pip install --user "$MORLA_VADER_SDK"
 /usr/bin/python3 -c 'import rclpy, numpy, scipy, yaml, jsonschema, h5py, fastapi, uvicorn, pinocchio; from vader5_sdk import Vader5'
 /usr/bin/python3 -c 'import sys, pinocchio, vader5_sdk; print(sys.executable); print(pinocchio.__file__); print(vader5_sdk.__file__)'
 ```
@@ -136,6 +139,7 @@ unset PYTHONPATH
 source "$MORLA_WS/install_regular/setup.bash"
 cd /tmp
 python3 -m morla_core.composition.cli catalog --json
+ros2 pkg prefix morla_native_bridge
 ros2 pkg prefix morla_cr5_driver
 ros2 pkg executables morla_vader5_input
 ros2 launch morla_cr5_driver cr5_vr.launch.py --show-args
@@ -184,8 +188,9 @@ MORLA_PYTHON="$MORLA_WS/.venv-test/bin/python" \
   bash scripts/test_composable.sh --layer pure 2>&1 | tee "$MORLA_EVIDENCE/pure.txt"
 MORLA_PYTHON="$MORLA_WS/.venv-test/bin/python" \
   bash scripts/test_composable.sh --layer fake 2>&1 | tee "$MORLA_EVIDENCE/fake.txt"
-PYTHONPATH=src/common/vader5_sdk .venv-test/bin/python \
-  -m unittest discover -s src/common/vader5_sdk/tests -v \
+.venv-test/bin/python -m pip install "$MORLA_VADER_SDK"
+.venv-test/bin/python \
+  -m unittest discover -s "$MORLA_VADER_SDK/tests" -v \
   2>&1 | tee "$MORLA_EVIDENCE/vader-sdk.txt"
 .venv-test/bin/python -m pip install mujoco==3.3.7
 MORLA_PYTHON="$MORLA_WS/.venv-test/bin/python" \
@@ -301,7 +306,7 @@ ros2 run morla_runtime joint_state_runtime_node --ros-args \
   -p resolved_path:="$MORLA_EVIDENCE/cr5-loophand.fake.json"
 ```
 
-该入口只负责runtime网关与反馈，不会自动运行输入映射/录制；完整teleop/capture用现有ComposableService宿主。不要把联合快照交给单设备驱动，另一个组合需停前一个后单独启动。
+system.launch.py 默认 connect_inputs:=true，连接公共输入/绑定内核；morla-runtime 使用 --inputs 显式连接。它们不自动录制，完整采集使用公共 session/Web 宿主。不要把联合快照交给单设备驱动，另一个组合需停前一个后单独启动。
 
 验证只向本次提交列出的组件下发（runtime 只检查组件子集与重复ID，不校验授权）、同组部分失败时各设备独立停止、停止各独立设备、请求幂等、释放后不发迟到IK结果。首次只在fake/故障桩做。**CR5+真实LoopHand目前不进入运动验收**；装配中TCP/安装变换也不能从示例推断。
 
@@ -333,10 +338,24 @@ ros2 run morla_cr5_driver cr5_kinematics_check \
 
 ### Q01 真实Quest + fake CR5
 
+先保存仅覆盖输入的 `$MORLA_EVIDENCE/quest-input.real.yaml`：
+
+```yaml
+deployment_version: 1
+instances:
+  quest:
+    backend: real
+    device_id: REPLACE_QUEST_ASSET
+    parameters: {process_mode: managed}
+```
+
+替换实际资产身份；arm 保持 fake。新兼容 launch 由公共 session 托管接收器，不能再额外启动同端口 Quest 节点。纯 fake 输入不启动实体接收器。
+
 ```bash
 adb devices
 adb reverse tcp:8000 tcp:8000
 ros2 launch morla_cr5_driver cr5_vr.launch.py \
+  deployment:="$MORLA_EVIDENCE/quest-input.real.yaml" \
   store:="$MORLA_EVIDENCE/quest-store"
 ```
 
@@ -535,3 +554,136 @@ W02还需实际Quest/Vader链路页面、录制与故障提示的人工检查；
 - 重构整体完成：除本手册外，[VALIDATION](../architecture_refactor/VALIDATION.md)适用编号、实际后端、长稳、回退与独立扩展均闭环。本文未实施的功能保持能力阻塞。
 
 出现装配外组件运动、停止失效、数据静默错位/破坏或模型语义错配，停止该组测试并记录FAIL；修复后用同用例复测。软件测试、Git推送、页面能打开都不能替代这一组现场证据。
+
+
+## 18. 统一组件路径复验（2026-10-30 新增 U01–U08）
+
+本节覆盖本轮工作区实现，执行前保存完整 SHA；未提交工作区还需保存 diff 与新增文件清单。当前离线证据见 [实现记录](../architecture_refactor/UNIFIED_IMPLEMENTATION.md)：pure 202 passed/4 skipped、fake 23 passed、sim 7 passed，前端构建与 Edge 通过。它们不替代下面的主机步骤。10月30日旧主机 41 包构建及 EPG 台架记录属于旧代码身份；新增 morla_native_bridge 后必须重新构建，不能照抄包数或沿用 PASS。
+
+### U01 插件安装与包布局
+
+按 B01–B03 重建，确认 `morla_native_bridge` 被 colcon 发现并安装。它承载 Nero/Astral/XHand/Wuji 原生工厂，CR5/EPG/LoopHand 仍是独立插件；缺失该新包不能靠 morla_runtime 的旧兼容导入恢复设备支持。
+
+```bash
+ros2 pkg prefix morla_native_bridge
+/usr/bin/python3 - <<'PY'
+from importlib import metadata
+import morla_native_bridge.factory
+for group in ('morla.adapters','morla.ros_inputs','morla.processes','morla.kinematics'):
+    print(group, [(e.name,e.value) for e in metadata.entry_points(group=group)])
+print(morla_native_bridge.factory.__file__)
+PY
+```
+
+源码目录可 import 不等于已安装工厂可发现。普通安装、symlink 安装分别检查；不要将新旧 install 的 entrypoint 元数据混在一个环境里。
+
+### U02 无 Web 标准输入→双臂 fake
+
+下列测试只使用 fake 执行器。保存为 `$MORLA_EVIDENCE/standard_dual.fake.yaml`：
+
+```yaml
+assembly_version: 1
+assembly_id: acceptance_dual
+revision: 1
+instances:
+  operator:
+    plugin: morla.input.standard
+    backend: fake
+    parameters: {input_topic: /acceptance/operator/intent, process_mode: external}
+  left: {plugin: morla.fake.arm, backend: fake}
+  right: {plugin: morla.fake.arm, backend: fake}
+bindings:
+  - id: left_jog
+    source: operator.axes
+    target: left.position_target
+    controller: morla.joint_jog
+    parameters: {axes_map: [x, y, z, roll, pitch, yaw, null], speed: 0.25}
+  - id: right_jog
+    source: operator.axes
+    target: right.position_target
+    controller: morla.joint_jog
+    parameters: {axes_map: [x, y, z, roll, pitch, yaw, null], speed: 0.25}
+capture:
+  state: [left.position, right.position]
+  action: [left.position_target, right.position_target]
+  images: {}
+```
+
+编译并在终端 A 启动：
+
+```bash
+morla-system compile "$MORLA_EVIDENCE/standard_dual.fake.yaml" --output "$MORLA_EVIDENCE/standard_dual.resolved.json"
+ros2 launch morla_bringup system.launch.py resolved_path:="$MORLA_EVIDENCE/standard_dual.resolved.json" connect_inputs:=true
+```
+
+终端 B 使用同一个 ROS 域和安装树：
+
+```bash
+ros2 service call /morla_runtime/operation morla_interfaces/srv/RuntimeOperation "{operation: prepare, request_id: u02-prepare}"
+ros2 service call /morla_runtime/operation morla_interfaces/srv/RuntimeOperation "{operation: activate, request_id: u02-activate}"
+/usr/bin/python3 - <<'PY'
+import json,time,uuid
+import rclpy
+from std_msgs.msg import String
+rclpy.init(); node=rclpy.create_node('morla_standard_input_test')
+pub=node.create_publisher(String,'/acceptance/operator/intent',10)
+epoch=uuid.uuid4().hex
+try:
+    deadline=time.monotonic()+5
+    while pub.get_subscription_count()==0:
+        if time.monotonic()>deadline:raise RuntimeError('No standard input subscriber')
+        rclpy.spin_once(node,timeout_sec=.05)
+    for sequence in range(40):
+        row={'epoch':epoch,'sequence':sequence,'frame_id':'test',
+             'ports':{'axes':{'x':.4,'y':0.,'z':0.,'roll':0.,'pitch':0.,'yaw':0.}}}
+        pub.publish(String(data=json.dumps(row)))
+        rclpy.spin_once(node,timeout_sec=.05)
+        time.sleep(.05)
+finally:
+    node.destroy_node();rclpy.shutdown()
+PY
+ros2 topic echo /morla_runtime/state --once
+ros2 service call /morla_runtime/operation morla_interfaces/srv/RuntimeOperation "{operation: stop, request_id: u02-stop}"
+```
+
+操作 stop 后在终端 A 退出 launch（Ctrl-C），再检查输入宿主回收。当前 ROS 网关的 stop 服务仅停止 Runtime 执行器；ControlHost 的输入进程在宿主退出时关闭，不能将此差异误记为“stop 服务已回收全部输入”。Web 的 stop 会主动关闭输入管理器。
+
+通过：两个 fake 臂都收到具名关节目标，第一轴变化、其余轴不变，状态为 synthetic、measured=false；未启动物理驱动。记录 DDS 匹配、实际目标/反馈和停止。第一帧只建时间基准，不能以单个事件判断速度积分失败。`morla-runtime resolved.json --inputs` 也接相同内核，但普通 CLI 不提供 ROS 服务；需要服务操作时使用上述 system 入口。
+
+### U03 输入与执行器配置替换矩阵
+
+先用独立纯测试验证，再做 ROS：`VR/Vader/mobile/标准源 × EPG 米制/Astral 比例`，以及混合双臂、两个未知插件。只改变实例、端口和绑定；换单位时同步改 output_range，不新增组合专用控制代码。
+
+- QuestRight：控制器扳机和裸手均输出 scalar，pinch_range_m 指定裸手 close/open 米制范围；right_landmarks 可选通用 pinch_filtered。
+- 旧 Quest 双侧：分别绑定 left_scalar/right_scalar、left_axes/right_axes、左右 pose/landmarks，避免用代表最近事件的 scalar 兼容别名。
+- 原始话题只在输入桥内部不同，公共消费验证 InputFrame/声明端口。缓存端口不应被另一端口新事件再次滤波；单侧端口缺失不应阻塞另一侧目标。
+- 每个真实输入→fake 执行器单独记录；输入 real 必须有部署 device_id，执行器仍保持 fake。真实输入组合通过不等于执行器 real 已验收。
+
+### U04 进程生命周期与共享连接
+
+process_mode=auto：存在已注册工厂则托管；external：仅订阅已有进程；managed：要求组件工厂存在。SDK 进程内 adapter 使用自己的 configure/close，不强制增加 ROS 节点。
+
+验证 Quest、Vader、SDL 手柄的工厂选择；两个逻辑实例共享同一 key/argv/env 时只启动一个子进程，冲突配置有错误；启动中途失败会回收已有自有子进程；external 不被误杀。分别在 Runtime stop 服务后、Web stop 后和宿主退出后核对 PID/端口。当前无 Web ROS stop 服务不会立即关闭输入管理器，记录为生命周期差异；完整回收需退出宿主。不要用全局 pkill 清理测试。
+
+Web state.input_processes、原生 adapter health.processes 可观察 PID/退出码。Astral 同板臂/夹爪共用一个 NativeDeviceSession，验证连接/使能次数，不只看节点名字。fake Quest/SDL 工厂不启动实体采集；fake Vader 工厂启动 synthetic reader。real 输入需要 SDK/硬件，不能拿 fake 输入配置冒充实物。
+
+### U05 旧 pinch 数值与两条路径一致
+
+```bash
+bash scripts/test_composable.sh --layer pure
+python3 docs/architecture_refactor/reviews/unified_review.py
+```
+
+检查固定旧算法 trace（含原始源码 SHA）、自动范围/指数遗忘/EMA、扳机 deadzone/gamma/invert、输出 slew 首帧和 dt 上限。旧 Astral Node 与通用 pinch_filtered/trigger_filtered 应引用同一处理器；scalar_map 保持直接映射。再以真实 VR→fake 夹爪对照输出，禁止 legacy pinch 和新 Runtime 同时写同一实体设备。
+
+### U06 Web、数据与故障反例
+
+按 W01/W02 运行实际浏览器。新增检查：进程模式、scalar→米制 position_target、控制器插件目录、具名轴映射、双侧部分帧、切输入重置滤波、采集特征/辅助端口时戳、关闭异常继续回收。冒烟脚本 fake_ros_gateway_smoke.py 仍只支持单执行器 fake；U02 的多组件输入链路使用本节流程，不能由该脚本的 PASS 替代。
+
+### U07 目标主机新代码复验
+
+Humble 普通/开发安装各重建；分别运行真实输入、原生桥、相机及供应商驱动。保留旧 C/Q/V/E/N/S/D 用例，新增工厂版本、标准端口与托管信息。EPG 断链旧 FAIL/豁免继续单列，不能因为本轮离线测试通过而关闭；LoopHand real 只读状态不变。
+
+### U08 审查与交付
+
+归档新代码 SHA/diff、entrypoint 清单、实际进程状态、raw/aligned 数据、全部命令/退出码及跳过原因。自动检查见 [最终代码检查](../architecture_refactor/reviews/UNIFIED_FINAL_REVIEW.md)；第二位 reviewer 需要单独署名留证。静态脚本、隔离 wheel 或 fake 扩展考试均不能代替该独立复核及目标主机验收。

@@ -17,14 +17,19 @@ class ProcessExecutor:
         self.children.append(child)
         return child
 
+    def state(self):
+        return [{'pid':child.pid,'exit_code':child.poll()} for child in self.children]
+
     def close(self, timeout=1.0):
         for child in reversed(self.children):
             if child.poll() is None:
-                os.killpg(child.pid, signal.SIGTERM)
+                try: os.killpg(child.pid, signal.SIGTERM)
+                except ProcessLookupError: pass
                 try:
                     child.wait(timeout=timeout)
                 except subprocess.TimeoutExpired:
-                    os.killpg(child.pid, signal.SIGKILL)
+                    try: os.killpg(child.pid, signal.SIGKILL)
+                    except ProcessLookupError: pass
                     child.wait(timeout=timeout)
         self.children.clear()
 

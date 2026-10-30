@@ -1,5 +1,12 @@
 # Vader 5 Pro ROS 2 与 MORLA 输入组件
 
+## 当前统一托管路径（2026-10-30）
+
+输入只产生标准能力，不选择下游品牌。整链 launch 是公共 session 的兼容封装；它不再额外 include 一份 reader，采集由 morla.processes 工厂管理。process_mode=auto/managed/external；原始单设备 input launch 仍可用于 external。真实输入＋fake 机器人必须使用仅 pad 为 real 的部署覆盖，填写 device_id 和设备路径。
+
+组件/绑定、轴名和数据布局见[统一示例](../../../examples/unified_composition/README.md)与[主机 V/U 测试](../../../docs/testing/host_build_and_hardware_acceptance.md)。UR11 的 ROS stop 与宿主退出差异按主机手册记录。
+
+
 组件 `morla.input.vader5@1.0.0`，位于输入层，与Quest/手机/手套同为kind=input。使用用户提供的 `src/common/vader5_sdk`（morla-vader5-sdk 0.1.0），不再实现HID协议、IMU解码、虚拟手柄或另一套机器人控制/数采框架。
 
 本轮完成软件接线与离线验证；Linux ROS 2、USB/2.4G实体、固件、坐标方向、按键映射、端到端时延和真实机器人尚未验收。
@@ -42,7 +49,7 @@ ros2 launch morla_vader5_input vader5_input.launch.py device:=/dev/hidrawN
 
 独立驱动发布：`/vader5/events`（String JSON），`/vader5_input/joy`、`/vader5_input/imu`、`/vader5_input/status`。Joy为本SDK四摇杆轴+两扳机和27按钮顺序，**不是SDL game_controller_node布局**，不能再接公共SDL /joy分支，否则丢失背键且可能重复写入。组合宿主只订阅来源事件。
 
-默认运动采样目标50 Hz，同时发送每个按钮变化；SDK用read_batch保留批次内按下/松开，不用只取最新报告的read。每批连续运动只取最后一份，按钮边沿仍逐份处理；超过128份报告拒绝并断开，不回放积压。读超时0.1 s后发布断开并退出reader，不自动重连；重新启动产生新epoch，必须重新激活和释放deadman。
+默认运动采样目标50 Hz，同时发送每个按钮变化；SDK用read_batch保留批次内按下/松开，不用只取最新报告的read。每批连续运动只取最后一份，按钮边沿仍逐份处理；超过128份报告拒绝并断开，不回放积压。读超时0.1 s后发布断开并退出reader，不自动重连；重新启动产生新epoch，重新启动的源由会话/控制器处理新身份；当前 Runtime 不要求释放 deadman 才激活。
 
 SDK的received_at是主机解码时间，并非硬件采样时间。事件流保存这个单调时钟，ROS排队不刷新年龄；本方案要求reader和宿主在同一主机。hidraw内未带可靠时间戳的排队时延仍需实测，不能用此软件声明硬实时。
 
@@ -64,13 +71,13 @@ ros2 launch morla_vader5_input vader5_teleop.launch.py \
 
 同一launch拉起reader及公共 `morla-composable-session`，默认装配 `config/cr5.fake.yaml`，页面http://127.0.0.1:8080/；终端打印session_id。API `GET /api/v2/active-session` 可查看活动会话与操作回执。使用现有组合Web界面/API进行prepare、激活、录制等，不依赖旧Nero启动脚本。driver和宿主都必须source当前安装环境。
 
-`port:=8082`、`store:=/absolute/path`可覆盖；Web默认本机监听。connect_inputs只启动订阅器；本launch负责同时启动SDK driver。单独用现有Web管理器时，先启动独立reader，再编译保存Assembly、开始会话、connect_inputs。
+`port:=8082`、`store:=/absolute/path`可覆盖；Web默认本机监听。connect_inputs 启动订阅器并按进程模式托管 reader。单独使用组合 Web 时可直接使用 auto/managed；若已启动独立 reader，则选 external，避免双启动。
 
 ## 默认按键与复用规则
 
 所有分配在pad实例参数中冻结，可通过Assembly/Deployment修改，修改后重编译保存revision。配置接线时检查冲突；不通过改变设备上板载映射来实现软件配置。
 
-- **M1保持**：人工运动deadman，激活后先释放再按下。可共同授权同源机械臂与夹爪绑定。
+- **M1保持**：作为 hold_to_control 输入意图发布；当前 Runtime 不以其作为运动门禁，也不要求激活后先释放。可在绑定或自定义处理器中显式使用。
 - **M2保持**：旋转模式；未按M2为平移模式。该键不能同时绑定采集/会话命令。
 - 平移：左摇杆Y→x、左摇杆X→y、右摇杆Y→z。
 - 旋转：左摇杆X→roll、左摇杆Y→pitch、右摇杆X→yaw；另一组三轴置零，避免无意同时平移。

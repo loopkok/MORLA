@@ -34,6 +34,33 @@ measured, staged trajectories are preserved. Dispatch is not completion, and sta
 are not automatically advanced. `reset` stops the adapters, clears the estop latch
 and returns READY_DISARMED; it no longer requires fresh state or a prior stop ACK.
 
+## Shared control host and process ownership (2026-10-30)
+
+`morla-runtime resolved.json --inputs` uses ControlHost/BindingEngine; the ROS
+`system.launch.py` entry accepts `connect_inputs:=true` and exposes runtime services.
+The ordinary CLI itself does not expose those services or start a recorder. Web and
+headless hosts share target generation and operator action routing; a control-only
+host must inject recording callbacks to handle recording actions.
+
+Input bridges register `morla.ros_inputs`; acquisition plans register `morla.processes`.
+`auto` owns selected registered acquisition plans, `external` subscribes without
+owning an existing process, and `managed` requires a plan. Shared key/argv/env are
+started once; conflicts are reported. Input process state and native health process
+state expose owned PID/exit codes. SDK adapters can remain in-process.
+
+Native Nero/Astral/XHand/Wuji plans and ROS transports now live in the installed
+`morla_native_bridge` device package. This package's `native_ros.py` only re-exports
+compatibility names. Runtime loads `plugin_id:real` factories, whose context includes
+all resolved `instances` and `shared_device_sessions`; Astral arm/gripper factories
+reuse one physical session. Missing registration reports an unavailable backend.
+
+**UR11 remains open:** ROS `operation(stop)` stops Runtime actuators but does not
+immediately close ControlHost inputs; exiting the host closes them. Web stop closes
+its input manager directly. A STOPPED actuator state is not proof all input PIDs exited.
+
+Current scope, tests and target-host gaps: [implementation](../../../docs/architecture_refactor/UNIFIED_IMPLEMENTATION.md),
+[host acceptance](../../../docs/testing/host_build_and_hardware_acceptance.md).
+
 ## Backends
 
 - `fake`: registered protocol reference arm/input/sensor/camera adapters. JPEG
@@ -46,7 +73,7 @@ and returns READY_DISARMED; it no longer requires fresh state or a prior stop AC
   MjData snapshot. Missing graphics context produces SIM_RENDERING_UNAVAILABLE;
   no fake image is substituted. Collision and inertia claims retain the builder's
   validation level. Physical real/fake actuators cannot enter this same scene.
-- `real`, Nero/Astral/XHand/Wuji: trusted registered ROS driver argv, session-private
+- `real`, Nero/Astral/XHand/Wuji: installed morla_native_bridge factories own ROS driver argv, session-private
   command/armed topics, fresh measured feedback, bounded asynchronous services,
   and owned process groups. Astral logical ports share one board connection;
   selected sides still route through the driver. The former board-scope gate,

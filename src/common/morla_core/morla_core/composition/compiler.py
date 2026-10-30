@@ -10,6 +10,9 @@ from morla_core.schema import StreamSpec, StateBlockSpec
 
 _ID = re.compile(r'^[a-z][a-z0-9_-]*$')
 _CONTROLLERS={
+    'morla.pinch_filtered':({'hand_landmarks'},{'scalar','joint_targets'}),
+    'morla.trigger_filtered':({'scalar'},{'scalar','joint_targets'}),
+    'morla.pinch_scalar':({'hand_landmarks'},{'scalar','joint_targets'}),
     'morla.cartesian_delta_ik':({'pose6d'},{'joint_targets'}),
     'morla.gamepad_cartesian_jog':({'axes_buttons'},{'joint_targets'}),
     'morla.joint_jog':({'axes_buttons','joint_targets'},{'joint_targets'}),

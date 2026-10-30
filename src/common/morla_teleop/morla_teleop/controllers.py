@@ -26,6 +26,19 @@ class ControllerRegistry:
     def apply(self, plugin_id, value, measured, dt, parameters):
         if plugin_id in self.plugins:
             return self.plugins[plugin_id](value, measured, dt, parameters)
+        if plugin_id=='morla.pinch_scalar':
+            import numpy as np
+            points=np.asarray(value,dtype=float).reshape(21,3)
+            if not np.isfinite(points).all() or len(measured)!=1:
+                raise ControllerError('pinch requires 21 finite xyz points and one target')
+            distance=float(np.linalg.norm(points[4]-points[8]))
+            closed,opened=parameters.get('pinch_range_m',[.015,.08])
+            if not closed<opened: raise ControllerError('pinch_range_m must be increasing')
+            ratio=1-max(0.,min(1.,(distance-closed)/(opened-closed)))
+            lower,upper=parameters.get('output_range',[0.,1.])
+            return [lower+ratio*(upper-lower)]
+        if plugin_id=='morla.identity':
+            return _vector(value if isinstance(value,(list,tuple)) else [value],len(measured))
         if plugin_id in {"morla.scalar_map", "scalar_map"}:
             if len(measured) != 1:
                 raise ControllerError("scalar mapping requires scalar target")
@@ -64,6 +77,7 @@ class BindingController:
         self.last_received_ns = None
 
     def reset(self):
+        self._last_port_sample = None
         self.identity = None
         self.last_ns = None
         self.last_sequence = -1

@@ -11,7 +11,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/ament_index/resource_index/morla_components', ['resource/morla_input_components']),
-        ('share/' + package_name, ['quest_right_descriptor.json']),
+        ('share/' + package_name, ['quest_right_descriptor.json', 'standard_descriptor.json']),
         ('share/' + package_name + '/config', ['config/quest3_mocap.yaml']),
     ],
     install_requires=['setuptools'],
@@ -26,6 +26,8 @@ setup(
         ],
     },
     entry_points={
+            'morla.ros_inputs': ['morla.input.standard = morla_input.standard_source:create'],
+            'morla.processes': ['morla.input.quest_right = morla_input.processes:quest', 'morla.input.quest = morla_input.processes:quest', 'morla.input.gamepad = morla_input.processes:gamepad', 'morla.input.xbox = morla_input.processes:gamepad'],
             'console_scripts': [
                 'quest3_udp_mocap = morla_input.quest3_udp_mocap:main',
             ],

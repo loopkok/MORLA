@@ -8,7 +8,7 @@ from .adapters.normalized import InputStream, InputError, finite
 
 class QuestRightSource(InputStream):
     def __init__(self, source_id, *, clock=time.monotonic_ns, wall_clock=time.time_ns,
-                 on_transition=None, max_age_ns=250_000_000):
+                 on_transition=None, max_age_ns=250_000_000, pinch_range_m=(.015,.08)):
         super().__init__(source_id, clock=clock, max_age_ns=max_age_ns)
         self.wall_clock = wall_clock
         self.on_transition = on_transition or (lambda: None)
@@ -18,6 +18,9 @@ class QuestRightSource(InputStream):
         self.mode = None
         self.cache = {}
         self.pinch = None
+        self.pinch_range_m=tuple(pinch_range_m)
+        if len(self.pinch_range_m)!=2 or not self.pinch_range_m[0]<self.pinch_range_m[1]:
+            raise ValueError("pinch_range_m must contain increasing close/open distances")
 
     def disconnect(self):
         super().disconnect()
@@ -25,10 +28,10 @@ class QuestRightSource(InputStream):
 
     @staticmethod
     def control_event(row, frame):
-        # Grip/landmarks update cached clutch state; do not overwrite a pose target
-        # with a tiny-dt command from the next line in the same device packet.
+        # All continuous capabilities reach bindings; BindingEngine processes only
+        # fresh samples of each bound port, so a landmark cannot replay a cached pose.
         return frame is not None and (
-            row['kind'] == 'pose' or frame.ports.get('right_hold') is not True)
+            row['kind'] in ('pose', 'trigger', 'landmarks') or frame.ports.get('right_hold') is not True)
 
     def event(self, row):
         required = {'version', 'side', 'kind', 'source',
@@ -38,7 +41,7 @@ class QuestRightSource(InputStream):
         if row['version'] != 1 or row['side'] != 'right':
             raise InputError('Right-side v1 event required')
         if (row['source'] not in ('controller', 'hand')
-                or row['kind'] not in ('pose', 'grip', 'landmarks')):
+                or row['kind'] not in ('pose', 'grip', 'trigger', 'landmarks')):
             raise InputError('Unknown Quest event')
         epoch = row['epoch']
         seq = row['sequence']
@@ -92,6 +95,10 @@ class QuestRightSource(InputStream):
             frame = row['frame_id'] + '/' + self.mode
             self.cache['right_pose'] = (
                 {'position': values[:3], 'quaternion': values[3:]}, stamp, frame)
+        elif kind == 'trigger':
+            if self.mode != 'controller' or type(values) not in (int, float) or not 0 <= values <= 1:
+                raise InputError('Invalid controller trigger')
+            self.cache['scalar'] = (float(values), stamp, row['frame_id'])
         elif kind == 'grip':
             if (self.mode != 'controller' or type(values) not in (int, float)
                     or not 0 <= values <= 1):
@@ -109,7 +116,10 @@ class QuestRightSource(InputStream):
             width = float(np.linalg.norm(points[5]-points[17]))
             if width < .005 or width > .20:
                 raise InputError('Invalid hand scale; metres required')
-            ratio = float(np.linalg.norm(points[4]-points[8]))/width
+            distance = float(np.linalg.norm(points[4]-points[8]))
+            self.cache['scalar'] = (1-max(0.,min(1.,(distance-self.pinch_range_m[0])/(self.pinch_range_m[1]-self.pinch_range_m[0]))),stamp,row['frame_id'])
+            self.cache['right_landmarks'] = (points.tolist(),stamp,row['frame_id'])
+            ratio = distance/width
             if ratio < .25:
                 self.pinch = True
             elif ratio > .45:

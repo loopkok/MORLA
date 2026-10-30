@@ -1,5 +1,10 @@
 # quest3_video_streamer
 
+## 组合相机路径说明（2026-10-30）
+
+本包的视频预览/回传与新组合采集 provider 分开。组合配置选 morla.camera.ros_image 或 morla.camera.uvc，按具名 image 端口和 dataset key 接入冻结 Schema；预览正常不代表采集时钟、帧率或设备身份已验收。见[相机接入要求](../../../docs/device_integration_guide.md)与[主机相机测试](../../../docs/testing/host_build_and_hardware_acceptance.md)。
+
+
 把 PC 上的相机画面（Intel RealSense D435i 彩色流 + USB 腕部相机）通过 WebRTC 推送到 Meta Quest 3，用于遥操作 teleop 的视频回传。自包含、不依赖 `hand-tracking-sdk`、不使用虚拟环境，直接跑在系统 Python3 + ROS 2 Humble 上。
 
 一个 WebRTC peer connection 承载多路视频 track（一路一个相机），Quest 端按 `video_config` 消息把每路画面放到 3D 空间的独立面板上。
@@ -341,7 +346,7 @@ python3 -m pip install aiortc av numpy opencv-python websockets
 构建：
 
 ```bash
-cd <workspace>
+cd "<workspace>"
 colcon build --packages-select quest3_video_streamer --symlink-install
 source install/setup.bash
 ```

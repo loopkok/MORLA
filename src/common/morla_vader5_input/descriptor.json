@@ -11,7 +11,15 @@
       "dim": 6,
       "unit": "ratio",
       "codec": "numeric",
-      "dtype": "float64"
+      "dtype": "float64",
+      "axis_names": [
+        "x",
+        "y",
+        "z",
+        "roll",
+        "pitch",
+        "yaw"
+      ]
     },
     "scalar": {
       "direction": "output",
@@ -145,6 +153,17 @@
             1
           ]
         }
+      },
+      "process_mode": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "external",
+          "managed"
+        ]
+      },
+      "device": {
+        "type": "string"
       }
     },
     "additionalProperties": false

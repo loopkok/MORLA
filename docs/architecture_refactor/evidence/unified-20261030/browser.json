@@ -1,0 +1,114 @@
+{
+  "success": true,
+  "checks": [
+    "descriptor-driven component/backend/side forms",
+    "real selection compiles; independent metadata-only preflight result",
+    "capability/deadman selectors and invalid JSON drafts retained",
+    "mixed-brand independent state/action projection and camera dataset key",
+    "saved revision/start/activation and honest incomplete-recording status",
+    "emergency stop, explicit reset and stop lifecycle from actual buttons"
+  ],
+  "pageErrors": [],
+  "apiResponses": [
+    {
+      "url": "http://127.0.0.1:18082/api/v2/components",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/assemblies",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/assemblies/compile",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/assemblies/compile",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/deployments/preflight",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/assemblies/compile",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/assemblies/compile",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/assemblies",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/assemblies",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/assemblies/compile",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/assemblies/compile",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/sessions",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/sessions/c30494c42b73416e9fc103682b88fbe3/operations",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/sessions/c30494c42b73416e9fc103682b88fbe3/state",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/sessions/c30494c42b73416e9fc103682b88fbe3/recordings",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/sessions/c30494c42b73416e9fc103682b88fbe3/state",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/sessions/c30494c42b73416e9fc103682b88fbe3/recordings/stop",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/sessions/c30494c42b73416e9fc103682b88fbe3/operations",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/sessions/c30494c42b73416e9fc103682b88fbe3/state",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/sessions/c30494c42b73416e9fc103682b88fbe3/operations",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/sessions/c30494c42b73416e9fc103682b88fbe3/state",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/sessions/c30494c42b73416e9fc103682b88fbe3/operations",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/sessions/c30494c42b73416e9fc103682b88fbe3/state",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:18082/api/v2/sessions/c30494c42b73416e9fc103682b88fbe3/state",
+      "status": 200
+    }
+  ],
+  "screenshots": [
+    "forms.png",
+    "stopped.png"
+  ]
+}

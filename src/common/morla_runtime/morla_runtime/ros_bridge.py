@@ -1,7 +1,7 @@
 """ROS transport owns no authority: all ingress calls the same runtime gateway.
 
-No direct public driver topics are published here. Real deployment adapters must
-own session-private driver endpoints and provide verified stop/watchdog behavior.
+No direct public driver topics are published here. Device adapters own their
+transport endpoints and report actual feedback/stop outcomes.
 """
 import json
 from pathlib import Path
@@ -22,6 +22,8 @@ def main(args=None, *, node_name='morla_runtime', required_plugin=None,
         def __init__(self):
             super().__init__(node_name)
             self.declare_parameter('resolved_path', '')
+            self.declare_parameter('connect_inputs', False)
+            self.host=None
             path = self.get_parameter('resolved_path').value
             resolved = json.loads(Path(path).read_text())
             self.runtime = RuntimeSession(resolved)
@@ -40,7 +42,20 @@ def main(args=None, *, node_name='morla_runtime', required_plugin=None,
             self.create_subscription(CommandEnvelope, '~/commands', self.command, 1)
             self.create_service(RuntimeOperation, '~/operation', self.operation)
             self.create_service(ControlAuthority, '~/authority', self.authority)
-            self.runtime.start()
+            if self.get_parameter('connect_inputs').value:
+                from morla_input.adapters.ingress import InputIngressAdapter
+                self.runtime.adapters.update({key:InputIngressAdapter(instance,self.runtime.clock)
+                    for key,instance in self.runtime.instances.items() if instance['kind']=='input'})
+            try:
+                self.runtime.start()
+                if self.get_parameter('connect_inputs').value:
+                    from morla_teleop.session import ControlHost
+                    self.host=ControlHost(self.runtime)
+                    self.host.connect()
+            except Exception:
+                if self.host is not None:self.host.close()
+                self.runtime.stop()
+                raise
             self.create_timer(0.02, self.tick)
 
         def command(self, msg):
@@ -85,6 +100,8 @@ def main(args=None, *, node_name='morla_runtime', required_plugin=None,
 
         def tick(self):
             state = self.runtime.tick()
+            if self.host is not None and self.host.inputs is not None:
+                state['input_processes']=self.host.inputs.supervisor.state()
             message = String()
             message.data = json.dumps(state)
             self.state_pub.publish(message)
@@ -117,6 +134,7 @@ def main(args=None, *, node_name='morla_runtime', required_plugin=None,
         rclpy.spin(node)
     finally:
         if node is not None:
+            if node.host is not None:node.host.close()
             node.runtime.stop()
             node.destroy_node()
         rclpy.shutdown()

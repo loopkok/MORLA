@@ -21,7 +21,7 @@
 
 **状态：已形成详细重构计划，待实施；当前未实现。**
 
-2026-10-27 的完整执行依据见 [可组合架构重构计划](COMPOSABLE_ARCHITECTURE_PLAN.md)，包括上游 Quest/Xbox/手机等输入抽象、设备会话与组件接口、统一执行调度、Web 装配、数据与学习契约，以及 [分阶段 agent 任务](architecture_refactor/EXECUTION.md) 和 [测试/对抗性审查](architecture_refactor/VALIDATION.md)。下文保留早期方向记录；具体实施顺序与接口以新计划为准，新计划尚未实施。
+2026-10-27 的完整执行依据见 [可组合架构重构计划](COMPOSABLE_ARCHITECTURE_PLAN.md)，包括上游 Quest/Xbox/手机等输入抽象、设备会话与组件接口、统一执行调度、Web 装配、数据与学习契约，以及 [分阶段 agent 任务](architecture_refactor/EXECUTION.md) 和 [测试/对抗性审查](architecture_refactor/VALIDATION.md)。下文保留早期方向记录；具体实施顺序与接口以新计划为准，软件已分阶段实施，最新状态以 [统一路径实现记录](architecture_refactor/UNIFIED_IMPLEMENTATION.md) 为准；历史门禁设计不覆盖当前回退行为。
 
 ### 目标
 

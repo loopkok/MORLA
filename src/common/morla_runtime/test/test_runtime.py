@@ -122,9 +122,11 @@ def test_stale_feedback_does_not_stop_active_group(runtime):
     with pytest.raises(RuntimeErrorCode): runtime.tick()
 
 
-def test_unavailable_real_never_fake(tmp_path):
+def test_unavailable_real_never_fake(tmp_path, monkeypatch):
     resolved = system()
     resolved['instances'][0]['backend'] = 'real'
+    # Test the missing installed adapter path even on workstations with native plugins installed.
+    monkeypatch.setattr('morla_runtime.plugins.load_installed_adapter', lambda instance, context: None)
     runtime = RuntimeSession(resolved, allow_unverified_test_fixture=True, resource_root=tmp_path)
     with pytest.raises(RuntimeErrorCode, match='BACKEND_UNAVAILABLE'): runtime.start()
     assert runtime.adapters == {}
@@ -178,7 +180,7 @@ def test_reacquire_after_expiry(runtime):
     assert runtime.status == 'ACTIVE'
 
 
-def test_compiled_snapshot_dispatch_and_real_start_fails(tmp_path):
+def test_compiled_snapshot_dispatch_and_real_without_adapter_fails(tmp_path, monkeypatch):
     from morla_core.composition import compile_system
     resolved = compile_system({'assembly_version': 1, 'assembly_id': 'runtime_test', 'revision': 1,
                                'instances': {'a': {'plugin': 'morla.nero.arm', 'parameters': {'side': 'left'}}}})
@@ -194,6 +196,7 @@ def test_compiled_snapshot_dispatch_and_real_start_fails(tmp_path):
     assert result['accepted'], result
     runtime.stop()
     resolved['instances'][0]['backend'] = 'real'
+    monkeypatch.setattr('morla_runtime.plugins.load_installed_adapter', lambda instance, context: None)
     real = RuntimeSession(resolved, allow_unverified_test_fixture=True, resource_root=tmp_path)
     with pytest.raises(RuntimeErrorCode, match='BACKEND_UNAVAILABLE'): real.start()
 

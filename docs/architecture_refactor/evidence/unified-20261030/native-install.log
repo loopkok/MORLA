@@ -1,0 +1,12 @@
+Processing ./src/robots/native/morla_native_bridge
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Building wheels for collected packages: morla_native_bridge
+  DEPRECATION: Building 'morla_native_bridge' using the legacy setup.py bdist_wheel mechanism, which will be removed in a future version. pip 25.3 will enforce this behaviour change. A possible replacement is to use the standardized build interface by setting the `--use-pep517` option, (possibly combined with `--no-build-isolation`), or adding a `pyproject.toml` file to the source tree of 'morla_native_bridge'. Discussion can be found at https://github.com/pypa/pip/issues/6334
+  Building wheel for morla_native_bridge (setup.py): started
+  Building wheel for morla_native_bridge (setup.py): finished with status 'done'
+  Created wheel for morla_native_bridge: filename=morla_native_bridge-0.1.0-py3-none-any.whl size=10586 sha256=9b906f1a25d1e9d8e1d8c09b07ae6059d7a54cb824162a54b2eb54e96228f257
+  Stored in directory: /private/var/folders/p5/r7py6pbn6xndz56xl9n_c3vc0000gn/T/pip-ephem-wheel-cache-ko9pl99a/wheels/f6/4d/a0/e634e6ae597303c5a9336ba39bf336dcb459a817530f8e7865
+Successfully built morla_native_bridge
+Installing collected packages: morla_native_bridge
+Successfully installed morla_native_bridge-0.1.0

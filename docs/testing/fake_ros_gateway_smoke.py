@@ -4,6 +4,11 @@
 Run only in an isolated ROS domain with a freshly launched fake single-device
 driver. No real backend is supported. This host-side check has not been run over
 DDS on the documentation authoring machine; --help needs no ROS installation.
+
+2026-10-30: retained as a single-actuator DDS transport probe. It does not test
+ControlHost input bindings, process factories, filters or multi-arm composition;
+run U01-U08 in host_build_and_hardware_acceptance.md for those paths. Generic
+system.launch.py uses /morla_runtime; independent drivers keep their node names.
 """
 import argparse
 import copy
@@ -26,7 +31,7 @@ def fake_snapshot(path):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--resolved', required=True)
-    parser.add_argument('--node', required=True, help='e.g. /cr5_driver')
+    parser.add_argument('--node', required=True, help='e.g. /morla_runtime (generic system) or /cr5_driver (single device)')
     parser.add_argument('--component', required=True, help='e.g. arm, hand or gripper')
     args = parser.parse_args(argv)
     path = Path(args.resolved).resolve(strict=True)

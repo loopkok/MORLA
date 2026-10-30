@@ -1,0 +1,9 @@
+........................................................................ [ 35%]
+........................................................................ [ 70%]
+..s..................s...........s...........................            [100%]
+=========================== short test summary info ============================
+SKIPPED [1] src/common/morla_core/test/contracts/test_parser_properties.py:6: could not import 'hypothesis': No module named 'hypothesis'
+SKIPPED [1] src/robots/dobot/morla_cr5_driver/test/test_cr5_vr.py:177: could not import 'fastapi': No module named 'fastapi'
+SKIPPED [1] src/robots/jodell/morla_epg_driver/test/test_epg_driver.py:73: could not import 'jodellSdk.jodellSdkDemo': No module named 'jodellSdk'
+SKIPPED [1] src/robots/jodell/morla_epg_driver/test/test_epg_driver.py:221: could not import 'jodellSdk.jodellSdkDemo': No module named 'jodellSdk'
+202 passed, 4 skipped in 6.66s

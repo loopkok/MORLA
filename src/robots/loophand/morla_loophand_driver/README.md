@@ -1,5 +1,7 @@
 # 独立 LoopHand / Aero Hand Open ROS 2 / MORLA 驱动
 
+> 2026-10-30 统一路径更新：本包仍是独立执行器插件；输入与控制由公共内核处理，真实只读边界保持原实现，不因统一框架改写固件/停止能力。 当前接口、安装与测试见[设备指南](../../../../docs/device_integration_guide.md)和[实现记录](../../../../docs/architecture_refactor/UNIFIED_IMPLEMENTATION.md)。下文独立驱动入口仍可单用；不能与另一个会话同时占用设备。
+
 包：`morla_loophand_driver`；组件：`morla.loophand.compact@1.0.0`。本包独立安装、注册、启动和测试，不依赖 CR5 或任何机械臂驱动。仅包含 Aero 手串口协议、耦合模型、手部 Adapter、descriptor、部署配置与测试。上游来源、SHA-256 及 Apache-2.0 许可见 PROVENANCE.json / LICENSE。
 
 ## 手型与反馈

@@ -1,5 +1,7 @@
 # Vader 5 Pro 输入组件接入记录
 
+> 2026-10-30 更新：当前统一路径：Vader 整链 launch 不再单独包含 input launch，公共 session 按 auto/managed/external 管理采集；真实输入需 device 和仅输入 real 的部署覆盖。morla.scalar_map 是直接映射，未执行旧文中的变化率限制；需要该处理时显式选择 trigger_filtered。最新实现/证据见 [统一路径记录](../architecture_refactor/UNIFIED_IMPLEMENTATION.md)。
+
 日期：2026-10-29。SDK位置为 `src/common/vader5_sdk`，与ROS包 `src/common/morla_vader5_input` 同级。软件接入目标是将其作为与Quest/手机/手套同级的输入，复用MORLA的遥操、数采、模型握手和runtime命令网关。
 
 ## 交付与复用
@@ -36,7 +38,7 @@ ROS reader独立持有规范hidraw路径的transport锁；runtime持有会话与
 
 50 Hz目标连续输入采样加即时按钮变化；默认deadzone0.08、端口时效250 ms；原IMU不额外滤波或姿态融合。实际源采样与端到端频率未测。
 
-CR5示例：线速度0.02 m/s、角速度0.15 rad/s、关节速度0.3 rad/s。点动采用10 µm/0.0001 rad求解接受精度，避免LT精细模式每拍小增量被0.2 mm VR接受容差吞掉；VR模式原默认值保持。EPG扳机示例用公共scalar_map的0.05 m/s目标变化率限制，首次保持帧dt=0不跳目标。
+CR5示例：线速度0.02 m/s、角速度0.15 rad/s、关节速度0.3 rad/s。点动采用10 µm/0.0001 rad求解接受精度，避免LT精细模式每拍小增量被0.2 mm VR接受容差吞掉；VR模式原默认值保持。EPG扳机示例用公共 scalar_map 做0.05至0m直接映射；变化率处理须显式选择通用滤波控制器。
 
 包内有纯fake装配、仅真实手柄+fake执行器部署覆盖、完整CR5 real模板、EPG fake以及Nero/Astral公共jog示例。真实模板保留身份占位和false声明；不假定基座、TCP、方向或停止已验证。不自动添加相机、末端安装变换、双臂同步或启动真实模型推理。
 

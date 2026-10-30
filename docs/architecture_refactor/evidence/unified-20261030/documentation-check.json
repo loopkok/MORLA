@@ -1,0 +1,11 @@
+{
+  "bash_blocks_syntax_passed": 34,
+  "markdown_fences": "PASS",
+  "changed_doc_local_links": "PASS",
+  "handbook_python_syntax": "PASS",
+  "fake_smoke_help": "PASS",
+  "fake_snapshot_loader": "PASS",
+  "ROS_DDS": "NOT_RUN",
+  "hardware": "NOT_RUN",
+  "open_lifecycle_issue": "UR11: ROS stop input cleanup requires host exit"
+}

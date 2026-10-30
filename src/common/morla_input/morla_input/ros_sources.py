@@ -22,6 +22,9 @@ class RosInputManager:
         self.sources = {}
         self.cache = {}
         self.node = None
+        self.thread = None
+        self.executor = None
+        self.supervisor = None
 
     def start(self):
         import rclpy
@@ -61,58 +64,12 @@ class RosInputManager:
                 self.node.create_subscription(
                     String, bridge.topic, external,
                     QoSProfile(depth=64, reliability=ReliabilityPolicy.RELIABLE))
-            elif plugin == 'morla.input.quest_right':
-                import json
-                from .quest_right import QuestRightSource
-                source = QuestRightSource(iid, clock=self.clock,
-                                          on_transition=lambda iid=iid: self.on_disconnect(iid))
-                self.sources[iid] = source
-                topic = instance.get('parameters', {}).get(
-                    'input_topic', '/quest3/right_teleop_events')
-
-                def event(msg, iid=iid):
-                    def action():
-                        if len(msg.data) > 16384:
-                            raise InputError('Quest event oversized')
-                        row = json.loads(msg.data)
-                        source = self.sources[iid]
-                        frame = source.event(row)
-                        if source.control_event(row, frame):
-                            self.on_frame(frame)
-                    self._guarded(iid, action)
-                from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
-                event_qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
-                                       history=HistoryPolicy.KEEP_LAST, depth=16)
-                self.node.create_subscription(String, topic, event, event_qos)
-            elif 'gamepad' in plugin or 'xbox' in plugin:
-                source = GamepadAdapter(iid, clock=self.clock)
-                source.reconnect()
-                self.sources[iid] = source
-                topic = instance.get('parameters', {}).get('input_topic', '/joy')
-                self.node.create_subscription(
-                    Joy, topic, lambda msg, iid=iid: self._joy(iid, msg), qos_profile_sensor_data)
-            elif plugin in {'morla.input.quest', 'morla.input.glove'}:
-                source = InputStream(iid, clock=self.clock)
-                source.reconnect()
-                self.sources[iid] = source
-                self.cache[iid] = {}
-                if plugin == 'morla.input.quest':
-                    self.node.create_subscription(
-                        String, '/quest3/input_epoch', lambda msg, iid=iid: self._epoch(iid), 10)
-                    for side in ('left', 'right'):
-                        self.node.create_subscription(
-                            PoseStamped, f'/quest3/{side}_wrist_pose',
-                            lambda msg, iid=iid, side=side: self._pose(iid, side, msg),
-                            qos_profile_sensor_data)
-                        self.node.create_subscription(
-                            Joy, f'/quest3/{side}_controller_joy',
-                            lambda msg, iid=iid, side=side: self._quest_joy(iid, side, msg),
-                            qos_profile_sensor_data)
-                for side in ('left', 'right'):
-                    self.node.create_subscription(
-                        PoseArray, f'/hand_landmarks/{side}',
-                        lambda msg, iid=iid, side=side: self._landmarks(iid, side, msg),
-                        qos_profile_sensor_data)
+            else:
+                from .builtin_sources import subscribe
+                subscribe(self, instance)
+        from morla_runtime.supervisor import ProcessSupervisor
+        self.supervisor = ProcessSupervisor()
+        self.supervisor.start(self.instances)
         self.thread = threading.Thread(target=self.executor.spin, daemon=True)
         self.thread.start()
 
@@ -166,6 +123,8 @@ class RosInputManager:
             if len(msg.axes) < 4:
                 raise InputError('Quest Joy shape mismatch')
             values = {side+'_grip': msg.axes[1] > .5, 'scalar': float(msg.axes[0]),
+                      side+'_scalar': float(msg.axes[0]),
+                      side+'_axes': {'x':float(msg.axes[2]),'y':float(msg.axes[3])},
                       'axes': {'x': float(msg.axes[2]), 'y': float(msg.axes[3])}}
             self._emit(iid, values, msg.header.frame_id or 'input')
         self._guarded(iid, action)
@@ -175,13 +134,16 @@ class RosInputManager:
             if len(msg.poses) != 21:
                 raise InputError('landmark topology must contain 21 points')
             points = [[p.position.x, p.position.y, p.position.z] for p in msg.poses]
-            self._emit(iid, {side+'_landmarks': points}, msg.header.frame_id)
+            distance=sum((points[4][i]-points[8][i])**2 for i in range(3))**.5
+            scalar=1-max(0.,min(1.,(distance-.015)/(.08-.015)))
+            self._emit(iid, {side+'_landmarks': points,side+'_scalar':scalar}, msg.header.frame_id)
         self._guarded(iid, action)
 
     def close(self):
+        if self.supervisor is not None: self.supervisor.close()
         if self.node is None:
             return
-        self.executor.shutdown(timeout_sec=1)
-        self.thread.join(timeout=1)
+        if self.executor is not None: self.executor.shutdown(timeout_sec=1)
+        if self.thread is not None: self.thread.join(timeout=1)
         self.node.destroy_node()
         self.node = None

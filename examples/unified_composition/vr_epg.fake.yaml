@@ -1,0 +1,27 @@
+assembly_version: 1
+assembly_id: vr_epg_unified
+revision: 1
+instances:
+  vr:
+    plugin: morla.input.quest_right
+    backend: fake
+    parameters:
+      process_mode: external
+  gripper:
+    plugin: morla.jodell.epg50_060
+    backend: fake
+bindings:
+  - id: opening
+    source: vr.scalar
+    target: gripper.position_target
+    controller: morla.scalar_map
+    parameters:
+      input_range: [0, 1]
+      output_range: [0.05, 0]
+capture:
+  state: [gripper.position]
+  action: [gripper.position_target]
+  images: {}
+  auxiliary: [vr.scalar]
+  action_source: command
+  hold_frames: 0

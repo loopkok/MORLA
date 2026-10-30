@@ -24,6 +24,7 @@ from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import Float64, String
 from morla_core.ownership import PolicyLease, fresh_header
+from morla_teleop.gripper_processing import PinchFilter, TriggerFilter, limit_ratio_step
 
 from astral_gripper_teleop.pinch import (
     close_ratio_from_range,
@@ -158,6 +159,11 @@ class PinchGripperNode(Node):
         self._emin: float | None = None
         self._emax: float | None = None
         self._last_env_t = 0.0
+        self._pinch_filter = PinchFilter(close=self.close_dist,opened=self.open_dist,
+            auto_range=self.auto_range,forget_s=self._env_tau,min_span=self._env_min_span,
+            alpha=self.ema_alpha)
+        self._trigger_filter = TriggerFilter(invert=self.trigger_invert,
+            deadzone=self.trigger_deadzone,gamma=self.trigger_gamma,alpha=self.trigger_ema_alpha)
 
         self._gripper_disarmed = False
         self._policy_lease = PolicyLease()
@@ -209,16 +215,9 @@ class PinchGripperNode(Node):
             return
         dist = pinch_distance_m(pts)
         now = time.monotonic()
-        self._update_envelope(dist, now)
-        lo = self._emin if self._emin is not None else self.close_dist
-        hi = self._emax if self._emax is not None else self.open_dist
-        raw = close_ratio_from_range(dist, lo, hi, self._env_min_span)
-        if not self._ema_ready or self.ema_alpha >= 1.0:
-            self._ratio = raw
-            self._ema_ready = True
-        else:
-            a = max(0.0, min(1.0, self.ema_alpha))
-            self._ratio = a * raw + (1.0 - a) * self._ratio
+        self._ratio = self._pinch_filter.step(dist, now)
+        self._emin,self._emax = self._pinch_filter.low,self._pinch_filter.high
+        self._ema_ready = True
         self._last_dist = dist
         self._last_lm_t = now
 
@@ -235,56 +234,15 @@ class PinchGripperNode(Node):
         ax = list(msg.axes) if msg.axes else []
         if self.trigger_axis < 0 or self.trigger_axis >= len(ax):
             return
-        t = float(ax[self.trigger_axis])
-        if self.trigger_invert:
-            t = 1.0 - t
-        t = (t - self.trigger_deadzone) / max(1e-3, 1.0 - self.trigger_deadzone)
-        t = max(0.0, min(1.0, t))
-        if self.trigger_gamma != 1.0:
-            t = t ** self.trigger_gamma
-        if not self._trigger_ema_ready or self.trigger_ema_alpha >= 1.0:
-            self._trigger_ratio = t
-            self._trigger_ema_ready = True
-        else:
-            a = max(0.0, min(1.0, self.trigger_ema_alpha))
-            self._trigger_ratio = a * t + (1.0 - a) * self._trigger_ratio
+        self._trigger_ratio = self._trigger_filter.step(float(ax[self.trigger_axis]))
+        self._trigger_ema_ready = True
         self._last_joy_t = time.monotonic()
 
     def _update_envelope(self, dist: float, now: float) -> None:
-        """Track observed min/max pinch distance with exponential forget.
-
-        When auto_range is off, falls back to the configured close/open dist.
-        The envelope slowly leaks toward the current distance so stale
-        extremes (an old deep pinch or wide open) fade over ``auto_range_forget_s``;
-        a fresh extreme snaps immediately. A ``min_span`` floor keeps the
-        denominator sane when the hand is still.
-        """
-        if not self.auto_range:
-            self._emin = self.close_dist
-            self._emax = self.open_dist
-            return
-        if self._emin is None or self._last_env_t <= 0.0:
-            self._emin = dist
-            self._emax = dist
-            self._last_env_t = now
-            return
-        dt = max(1e-3, now - self._last_env_t)
-        self._last_env_t = now
-        k = 1.0 - math.exp(-dt / max(1e-3, self._env_tau))
-        if dist < self._emin:
-            self._emin = dist
-        else:
-            self._emin += k * (dist - self._emin)
-        if dist > self._emax:
-            self._emax = dist
-        else:
-            self._emax += k * (dist - self._emax)
-        span = self._emax - self._emin
-        if span < self._env_min_span:
-            mid = 0.5 * (self._emax + self._emin)
-            half = 0.5 * self._env_min_span
-            self._emin = mid - half
-            self._emax = mid + half
+        """Compatibility wrapper around shared device-independent processing."""
+        self._pinch_filter.envelope(dist,now)
+        self._emin,self._emax=self._pinch_filter.low,self._pinch_filter.high
+        self._last_env_t=self._pinch_filter.last_time
 
     def _set_gate(self, disarmed: bool) -> None:
         """仲裁门状态切换：只在状态**变化**时打一条日志（进/出 disarm 各一次），
@@ -391,13 +349,8 @@ class PinchGripperNode(Node):
         # First publish snaps (avoids opening first when resuming mid-grasp).
         dt_pub = now - self._last_pub_t if self._last_pub_t > 0.0 else 0.0
         self._last_pub_t = now
-        if self.max_ratio_rate > 0.0 and dt_pub > 0.0:
-            max_d = self.max_ratio_rate * min(dt_pub, 0.1)
-            d = ratio - self._ratio_cmd
-            self._ratio_cmd += max(-max_d, min(max_d, d))
-            ratio = self._ratio_cmd
-        else:
-            self._ratio_cmd = ratio
+        ratio = limit_ratio_step(ratio,self._ratio_cmd,dt_pub,self.max_ratio_rate)
+        self._ratio_cmd = ratio
 
         cmd = Float64()
         cmd.data = float(ratio)

@@ -1,5 +1,7 @@
 # Astral 离线数据处理
 
+> 2026-10-30：新组合采集冻结 Schema v3，state/action 分开、相机/辅助输入/传感器具名；旧 v2 数据与下文处理步骤继续兼容。输入滤波或设备组合改变后，须核对实际 dispatch 标签、单位与端口时间，不能靠相同维度猜映射。见[接入与数据契约](../../../../../docs/device_integration_guide.md)和[主机数据测试](../../../../../docs/testing/host_build_and_hardware_acceptance.md)。
+
 所有离线处理实现集中在本目录。采集节点、raw 写盘、schema 留在父包；视频采集仍属于 quest3_video_streamer。旧数据脚本、父包离线模块及旧 ROS 离线命令已删除，统一使用 data_pipeline。
 
 从 sdk 目录使用统一入口；可在任意 cwd 通过绝对路径调用：

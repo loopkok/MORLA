@@ -1,5 +1,7 @@
 # LoopHand / Aero Hand Open 独立组件接入记录
 
+> 2026-10-30 更新：当前公共路径已收敛为标准输入、绑定和注册执行器工厂。接入接口更新见 [设备指南](../device_integration_guide.md)。本轮没有改变 LoopHand 的真实只读边界或固件能力，不能据公共框架测试宣称真实运动可用。
+
 日期：2026-10-28；MORLA 基线 b91211a，当前工作区实现。依据 [设备接入指南](../device_integration_guide.md)。来源为桌面 cr5_loophand_graspnet/loophand/aero_open_sdk，原项目未修改。
 
 ## 包边界

@@ -1,6 +1,6 @@
 # MORLA 设备移植与接入指南
 
-> 适用基线：2026-10-28，架构重构提交 `040a965`，本次核对工作区 HEAD 为 `b91211a`。本文面向后续机械臂、夹爪、灵巧手、VR、手套、各类手柄、手机、外骨骼、相机和传感器接入。
+> 当前接线基线：2026-10-30 统一组件工作区（起点 c1896c6）。最新变更与验收见 [实现记录](architecture_refactor/UNIFIED_IMPLEMENTATION.md)。本文面向机械臂、夹爪、灵巧手、VR、手套、手柄、手机、外骨骼、相机和传感器接入。
 >
 > 本文规定接入工作及交付要求，不授予任何设备“已通过实机验收”的状态。后续开发应先核对本文与当时源码；存在差异时，以实际接口、测试和部署证据为依据，同时更新本文。文中的“必须”是接入要求，不表示当前程序已自动检查所有要求。
 
@@ -312,7 +312,7 @@ target = {
 - `stop` 有界、可重复、可确认；`close` 释放线程、进程、SDK 和总线。清理不确定时不得宣称资源已释放。
 - 同板停止只有确实覆盖整板时才能标 `device_scoped_stop=True`，否则每个选中逻辑组件均需处理。
 
-参考 [native_ros.py](../src/common/morla_runtime/morla_runtime/native_ros.py)、[process_executor.py](../src/common/morla_runtime/morla_runtime/process_executor.py)、[cameras.py](../src/common/morla_runtime/morla_runtime/cameras.py)。现有 native bridge 有品牌分支，不会因安装新 descriptor 就自动了解新品牌的 SDK。
+参考 [设备插件 native_ros.py](../src/robots/native/morla_native_bridge/morla_native_bridge/native_ros.py)、[process_executor.py](../src/common/morla_runtime/morla_runtime/process_executor.py)、[cameras.py](../src/common/morla_runtime/morla_runtime/cameras.py)。既有原生桥已下沉 morla_native_bridge 包，通过注册 adapter 工厂加载；新品牌提供自己的工厂，无需修改公共 Runtime。descriptor 本身不能替代 SDK/驱动实现。
 
 ### 4.4 三层兼容性检查
 
@@ -373,6 +373,21 @@ MORLA 的笛卡尔遥操采用相对位移：首次有效输入将人手位姿�
 现有部分 legacy mesh 关闭碰撞，自动生成的位置伺服也不代表真实设备动力学。仿真验证必须说明覆盖的是运动学、动力学还是碰撞，不能从“能动”推断所有层都成立。sim 相机缺图形环境时应报告不可用，不以 fake 图像替换。
 
 ## 6. VR、手套、手柄、手机与外骨骼
+
+### 6.0 当前统一接线入口（2026-10-30）
+
+新设备先提供 descriptor，再实现 `morla.ros_inputs` 的源桥与可选 `morla.processes` 采集进程工厂；Web 与无 Web 的 ControlHost 复用 BindingEngine。已有 `morla.adapters` actuator 工厂保持不变。不要为“某输入＋某机器人”再写一套目标生成逻辑。
+
+- 源桥工厂：`factory(instance, *, clock, on_transition)`，返回 `source`、`topic`、`consume(text)->InputFrame|None`、`control_event(frame)->bool`、`actions`。source 保留连接身份与 read 生命周期。特殊 ROS 消息订阅留在设备桥内；内置兼容订阅位于 builtin_sources.py。
+- 采集进程工厂：`factory(instance)->list[argv|spec]`，spec 含 argv，可选 key/env/readiness。`process_mode=auto` 有工厂则托管；external 订阅已有进程；managed 明确要求工厂。相同共享 key 必须有相同 argv/env，停止仅回收自己创建的进程。SDK 进程内连接可不创建子进程。
+- 新品牌输入可使用 `morla.input.standard`：String JSON 为 `{"epoch":"connection-1","sequence":0,"frame_id":"operator","ports":{"scalar":0.5}}`。动作可带 actions（如 teleop_start/teleop_pause/record_start/record_stop），控制 host 未配置录制处理器时明确报错；不要发往旧 Profile 路由后再重复发一次。
+- 标准源可提供 pose、具名 axes、scalar、joint_targets、hand_landmarks、button；descriptor 中 dim/单位/拓扑必须与实际数据一致。通用参考源 joint_targets 为6维，其他自由度应以设备描述声明，不能截断或补成6维。
+- 轴端口提供 axis_names；桥/Ingress 按该顺序落盘，控制器仍使用具名映射。scalar/axes/pose 各端口独立保留 received_ns；单侧帧只处理出现的源端口，另一侧缓存不重复进入滤波/IK。
+- QuestRight：right_pose/right_hold/scalar/right_landmarks；scalar 可来自扳机或裸手，pinch_range_m 声明裸手 close/open 米制范围。旧 Quest 双侧使用 left_scalar/right_scalar、left_axes/right_axes 和左右 pose/landmarks。兼容 scalar 是最近控制器事件，不用于双侧独立绑定。
+- `morla.scalar_map` 做直接范围映射；`morla.pinch_filtered`、`morla.trigger_filtered` 显式提供旧自动范围、EMA、扳机曲线和输出 slew。米制夹爪与闭合比例夹爪分别配置 output_range。
+- 运动学 entrypoint `morla.kinematics`：name=执行器 plugin_id，`factory(instance)->solver`，提供 sync_state/fk/solve；也可由 adapter.kinematics_provider 直接给对象。新机器人无需往公共 solver_for 增加品牌分支。
+
+运行示例与协议见 [统一组合配置](../examples/unified_composition/README.md)，主机验收见 [U01–U08](testing/host_build_and_hardware_acceptance.md)。原始设备话题可以不同，公共目标构造只依赖标准端口/能力。
 
 ### 6.1 标准化输入与接线
 
@@ -713,7 +728,7 @@ metadata:
 4. **模型/仿真**：具名映射、FK/IK、安装/TCP、左右手、场景一致性、相机渲染；明确未验证的动力学/碰撞范围。
 5. **ROS/目标主机**：Humble colcon/IDL/C++ 构建、真实 message/QoS、所有权锁和进程回收；安装 SDK 后再做真实只读反馈。
 6. **实机有限动作**：设备停止先验收；逐关节低幅受限动作、方向/零位、跟踪误差、停止时延、丢线/进程退出/总线故障。数值阈值按设备任务先规定，不能拿 fake 默认范围作硬件依据。
-7. **遥操整链**：deadman 首次释放、重锚无跳变、反馈变旧撤权、输入/策略/回放互斥、多组件部分失败停机与未选关节保护。
+7. **遥操整链**：端口/单位、重锚、模式切换、部分帧与停止清理；按当前代码分别记录输入时效和设备检查。deadman 首次释放、全局过期撤权、人工/策略互斥已不属于统一网关承诺，不得据旧用例标 PASS。
 8. **数据闭环**：录制一段→检查 raw 与 meta→align→validate→导出→目标 loader 读取。核对 names/units/图像颜色、时间偏差、来源、掩码和动作标签；缺必需流应失败。
 9. **模型/回放**：冻结契约握手、过期模型/动作拒绝、容量和 camera_map、短时回放/推理；具体模型/设备组合另附结果。
 10. **稳定性和交付**：重启恢复、带宽/CPU/内存/队列、实际 p50/p95/p99 延迟、超时/丢帧计数；按发布门槛做长稳（现有重构规格要求 8 小时），归档日志与未完成项。
@@ -753,15 +768,15 @@ bash scripts/test_ros.sh
 
 以下是对本文基线源码的核对结果，后续接入必须逐项判断是否涉及。它们不是要求所有设备一次性补完全部功能。
 
-1. **输入不是通用自动插件宿主。** ComposableService.start 对所有 input 注入 InputIngressAdapter；安装 `morla.adapters` 的新 input factory 不会在该路径自动替换它。新输入必须接 ingest_frame 及 source 生命周期，或扩展受信 input source 注册/宿主。
-2. **ROS 输入驱动未自动拉起。** connect_inputs 启动订阅器；RosInputManager 有 gamepad/xbox、Quest、glove 和来源明确的 quest_right 分支，并支持按morla.ros_inputs entry point加载所选外部源（Vader接入使用此机制），Quest/hand topics 多为固定路径。新 VR/外骨骼、source_namespace、驱动启动/退出需要额外接线。
-3. **元数据参数不保证生效。** 当前旧SDL GamepadAdapter分支默认deadzone=0.08，RosInputManager未把其实例deadzone/device_name传入；Vader插件使用自己冻结的输入参数传入公共归一化器；BindingController 默认 250 ms；CR5 VR 接入时已将 binding.max_age_ms 接入组合宿主。runtime 默认反馈新鲜度为 500 ms，不能假定端口 max_age_ms 自动改变它。按现场需求补接并做参数生效测试，不直接修改冻结 snapshot 绕过校验。
+1. **输入与执行器工厂分工。** 组合 Web 仍用 InputIngressAdapter 接收标准帧，输入扩展使用 morla.ros_inputs 和可选 morla.processes，不用 morla.adapters 替换监听器。无 Web ControlHost 走同一 BindingEngine。
+2. **输入进程已支持托管。** connect_inputs 使用 ProcessSupervisor，Quest/QuestRight、SDL gamepad/Xbox、Vader 已注册工厂。fake Quest/SDL 不启动实体采集；真实输入＋fake 机器人须将输入单独绑定为 real 并提供 device_id。其他厂商需交付自己的桥/进程工厂；旧话题或 source_namespace 不会凭元数据自动重映射。
+3. **元数据参数不保证生效。** 当前旧SDL GamepadAdapter分支默认deadzone=0.08，兼容归一化器仍使用默认阈值；新 SDL 进程工厂已将实例 deadzone/device_name 传给采集节点，两个阈值与最终参数须分别核验；Vader插件使用自己冻结的输入参数传入公共归一化器；BindingController 默认 250 ms；CR5 VR 接入时已将 binding.max_age_ms 接入组合宿主。runtime 默认反馈新鲜度为 500 ms，不能假定端口 max_age_ms 自动改变它。按现场需求补接并做参数生效测试，不直接修改冻结 snapshot 绕过校验。
 4. **插件预检仅提供元数据结论。** CR5/LoopHand 接入时已补充外部 real adapter entry point 检查，不再把直接 TCP/串口插件一律按内置 ROS 品牌处理；该分支仍不加载插件、不验证设备或其全部依赖，报告 dependencies_unchecked。输入 descriptor 的 real available 也不能当作完整输入可用性判断。安装后应验证实际加载、依赖和设备反馈，更不能靠改 backend=fake 绕过。
 5. **资源声明与实际锁需核验。** 编译器检查 resources 列表；当前 RuntimeSession.start 主要按 DeviceSession.resource_key 获取设备锁，并持有独占 host lane。一个插件涉及多个物理资源时要核实实际覆盖，不能只写 resources 列表就宣称全部锁住。主机锁也不能替代远端控制器/其他主机的访问协调。
-6. **IK 与仿真资产有内置分支。** 新臂需要 controller/solver；新 MJCF 需要资产/场景构建接线。只添加 URDF、descriptor 或 controller 名不足以自动生效。
+6. **IK 与仿真分开接入。** IK 支持 morla.kinematics 工厂或 adapter 提供对象；Nero/Astral/CR5 已注册。新 MJCF 仍需资产/场景构建接线；安装 URDF 不会自动生成求解器或仿真场景。
 7. **安装图不自动生成全部控制参数。** geometry_hash、mounts、calibrations 会冻结，但 IK 参数推导和现场验证仍需完成。七/十六元素数据通过编译不等于安装物理正确。
-8. **通用力控/触觉闭环尚未完成。** 组合宿主发 position，编译器 capture action 主要生成 absolute_position/closure_ratio，网关按关节单位及位置范围检查。新增模式应贯穿完整链路，不能只增加 command_modes。
-9. **同步与控制组仍有限。** 当前编译只支持 best_effort 和 stop_group；runtime 只有一份主要 lease，故障停止可能覆盖整会话执行器。ACTIVE 时还会检查所有 Adapter 的 health；辅助相机/传感器过期也可能导致停止，capture 的 required 标志不能当成运行时故障隔离策略。不能宣称多独立操作者并行控制或严格跨设备同步；控制组与部分失效实际作用域需要验收。
+8. **通用力控/触觉闭环尚未完成。** 组合宿主发 position，编译器 capture action 主要生成 absolute_position/closure_ratio，当前回退后的网关不统一执行关节单位/位置范围校验，设备 adapter 的实际检查须分别记录。新增模式应贯穿完整链路，不能只增加 command_modes。
+9. **同步与控制组仍有限。** 当前编译只支持 best_effort 和 stop_group；runtime 只有一份主要 lease，故障停止可能覆盖整会话执行器。当前回退后不再按 health 过期自动执行 group-stop；capture 的 required 标志不能当成运行时故障隔离策略。不能宣称多独立操作者并行控制或严格跨设备同步；控制组与部分失效实际作用域需要验收。
 10. **复杂数据元数据未全面贯通。** 相机源时间、输入 frame/source time、复杂传感器多字段/逐通道 mask、requested/authorized 标签均需逐路径检查。Web capture 按 dataset_fps 轮询 latest cache，高频采样若要原速保存，需要单独有界采样写入链，不能把 1 kHz 传感器误称为已 1 kHz 录制。
 11. **操作事件仍需新旧桥接。** 现有 pedal/router 不是组合 runtime 的默认操作源。旧 pause/resume/discard 与新采集 API 不能未经设计直接对照；详见第 8.3 节。
 12. **真实部署与模型验收未由重构软件回归证明。** ROS 构建、实体设备、训练/模型、长稳及最终发布门禁以证据为准；特别保留 Astral gripper 回显限制。

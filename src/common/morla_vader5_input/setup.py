@@ -9,5 +9,5 @@ setup(name='morla_vader5_input',version='0.1.0',packages=find_packages(exclude=[
     install_requires=['setuptools'],license='GPL-3.0-or-later',
     maintainer='MORLA maintainers',maintainer_email='robot@localhost',
     description='Flydigi Vader 5 Pro first-class ROS/MORLA input, reusing the supplied SDK',
-    entry_points={'console_scripts':['vader5_input = morla_vader5_input.node:main'],
+    entry_points={'morla.processes':['morla.input.vader5 = morla_vader5_input.processes:plan'],'console_scripts':['vader5_input = morla_vader5_input.node:main'],
         'morla.ros_inputs':['morla.input.vader5 = morla_vader5_input.source:create_ros_source']})

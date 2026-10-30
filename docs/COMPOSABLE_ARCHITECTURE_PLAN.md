@@ -1,6 +1,6 @@
 # MORLA 可组合机器人系统重构执行规格
 
-版本：1.0。日期：2026-10-27（Asia/Shanghai）。状态：**设计与执行计划，尚未实施**。
+版本：1.0。日期：2026-10-27（Asia/Shanghai）。状态：**原始设计规格**。当前软件与验收状态见 [统一路径实现记录](architecture_refactor/UNIFIED_IMPLEMENTATION.md)，本文保留原规划，不等于全部部署门禁已满足。
 
 源码基线：`9449e59`，分支 `main`。本计划编写开始时工作区干净；具体文件哈希、源码定位和本轮检查见 [基线证据](architecture_refactor/baseline.json)。本文中的新包、新 API、新命令、配置字段均为目标设计，不能当作已经可用的功能。
 

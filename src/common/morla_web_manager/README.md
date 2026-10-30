@@ -1,5 +1,16 @@
 # morla_web_manager — MORLA统一操作与监控
 
+## 当前组合配置与启动（2026-10-30）
+
+组合页/API v2 选择 descriptor 中的组件、端口与控制器；Web 与 CLI/ROS 使用公共 BindingEngine。原生设备桥通过 morla_native_bridge 注册工厂；采集进程通过 morla.processes 自动托管，输入框中可选 auto/managed/external，状态含 input_processes，原生设备 health 可含 processes。
+
+scalar_map 支持比例或米制单自由度目标；pinch_filtered/trigger_filtered 显式选择自动范围、EMA、扳机曲线和输出 slew。轴映射来自 axis_names；新控制器可由已安装 controller_types 显示。更换设备同时核对单位、范围、关节顺序，不能只改品牌名。
+
+Web stop 会关闭输入管理器；UR11 的“ROS stop 后输入到宿主退出才回收”属于无 Web 网关差异。旧 Profile/钢琴入口仍为独立兼容流程；不要把旧路由状态当成组合会话状态。
+
+测试入口：[主机手册](../../../docs/testing/host_build_and_hardware_acceptance.md)、[报告模板](../../../docs/testing/host_acceptance_report_template.md)；软件与未测项见[实现记录](../../../docs/architecture_refactor/UNIFIED_IMPLEMENTATION.md)。
+
+
 `morla_web_manager` 是 MORLA 的网页管理包。它以 robot profile 为入口，统一展示系统、启动仿真/真机遥操、管理数采与策略推理泳道、查看动态关节和流率、运行离线数据任务，并通过 `morla_bringup` 的控制协调器执行需要冻结/确认的机器人操作。
 
 新增独立的「钢琴工作台」：曲谱选择/导入、时序预检、参数标定、单指及手腕试动、演奏和停止，核心仍复用同级 `MORLA-piano` 项目。操作与互斥规则见 [钢琴 Web 操作](../../../docs/piano/web-operation.md)，验证及边界见 [对抗性审查](../../../docs/piano/adversarial-review.md)。

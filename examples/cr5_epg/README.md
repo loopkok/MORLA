@@ -1,5 +1,7 @@
 # CR5 与 EPG 独立组件组合
 
+> 当前统一输入入口见[组合示例](../unified_composition/README.md)。本例仍只组合两个独立设备；需要遥操时添加输入实例和绑定，不另写 CR5＋EPG 专用控制节点。原生旧臂需 morla_native_bridge，CR5/EPG 本身各自注册 adapter。
+
 本目录只有装配配置，不是联合驱动。CR5与EPG分别由各自包持有连接、descriptor和Adapter。
 
 `assembly.fake.yaml`验证7维state/action的组合：CR5为六关节rad，EPG为一个opening_width（m，0闭合、0.05打开）。auxiliary保留夹爪状态与电流标幺值。没有填造安装变换、URDF或碰撞模型，因此不是已安装末端或仿真场景。

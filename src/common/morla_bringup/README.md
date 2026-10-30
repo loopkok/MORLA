@@ -1,5 +1,23 @@
 # morla_bringup
 
+## 当前组件式入口（2026-10-30）
+
+新组合使用 assembly/deployment 编译后的快照，统一入口为：
+
+```bash
+morla-system compile assembly.yaml --deployment deployment.yaml --output resolved.json
+ros2 launch morla_bringup system.launch.py resolved_path:=/absolute/path/resolved.json connect_inputs:=true
+```
+
+启动保持 disarmed，准备/激活走 /morla_runtime/operation；更换输入或执行器主要修改组件与绑定。Nero/Astral/XHand/Wuji 的 real 桥须安装 morla_native_bridge，按注册工厂加载，Astral 同板组件共享连接。输入进程支持 auto/managed/external；SDK adapter 自己管理内部连接/进程。
+
+UR11：当前 ROS stop 服务只停止 Runtime 执行器，输入管理器在宿主退出时回收；Web stop 则会主动关闭它。测试要区分两个时点。
+
+下面的 Profile coordinator 与专用 launch 为 legacy 路径，不代表新组件层仍使用其 lease/ACK 门禁。两条路径不应同时控制同一设备。见[实现记录](../../../docs/architecture_refactor/UNIFIED_IMPLEMENTATION.md)和[主机 U01–U08](../../../docs/testing/host_build_and_hardware_acceptance.md)。
+
+## Legacy Profile coordinator
+
+
 `morla_bringup` also owns MORLA's shared asynchronous control coordinator. Every profile-driven launch starts one `control_coordinator_node`; Web buttons and controller gates call the same `/morla/control/*` services. An accepted `Trigger` request is not a completed movement: follow `/morla/control/state` by `operation_id` until `completed` or `failed`. The coordinator freezes policy and configured manual writers and waits for fresh ownership/prepare acknowledgements before forwarding mode changes.
 
 ```bash

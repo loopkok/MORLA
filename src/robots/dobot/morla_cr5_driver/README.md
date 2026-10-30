@@ -1,5 +1,7 @@
 # 独立 CR5 ROS 2 / MORLA 驱动
 
+> 2026-10-30 统一路径更新：CR5 保持独立 adapter/SDK/URDF IK，通过 morla.adapters 与 morla.kinematics 注册；VR/Vader 兼容整链由公共 session 托管输入，不再重复起接收节点。 当前接口、安装与测试见[设备指南](../../../../docs/device_integration_guide.md)和[实现记录](../../../../docs/architecture_refactor/UNIFIED_IMPLEMENTATION.md)。下文独立驱动入口仍可单用；不能与另一个会话同时占用设备。
+
 包：`morla_cr5_driver`；组件：`morla.dobot.cr5@1.0.0`。本包独立安装、注册、启动和测试，不依赖任何手部驱动，也不依赖 pyserial。来源是桌面 cr5_loophand_graspnet 的 CR5 协议；Dobot 二进制反馈布局来源、摘要和 MIT 许可见 PROVENANCE.json / LICENSE-DOBOT。
 
 ## 接口与实现

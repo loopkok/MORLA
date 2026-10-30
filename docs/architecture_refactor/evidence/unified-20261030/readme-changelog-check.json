@@ -1,0 +1,9 @@
+{
+  "markdown_files_checked": 37,
+  "bash_blocks_syntax_passed": 105,
+  "relative_links": "PASS",
+  "historical_vendor_changelogs": "UNCHANGED",
+  "ROS_hardware": "NOT_RUN",
+  "code_tests": "not rerun for README-only changes",
+  "open_issue": "UR11"
+}

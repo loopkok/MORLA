@@ -12,6 +12,7 @@
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>morla_core</depend>
+  <exec_depend>morla_runtime</exec_depend>
   <depend>visualization_msgs</depend>
 
   <test_depend>ament_copyright</test_depend>

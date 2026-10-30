@@ -1,5 +1,7 @@
 # CR5 + LoopHand 装配示例（仅配置）
 
+> 当前控制宿主、进程托管与测试见[统一示例](../unified_composition/README.md)。本例只是独立插件的装配；真实 LoopHand 只读限制按驱动文档保持。
+
 此目录不提供 ROS 包、设备协议或联合设备驱动。它只通过 Assembly 引用两个独立组件：
 
 - `morla.dobot.cr5` 来自 [morla_cr5_driver](../../src/robots/dobot/morla_cr5_driver/README.md)。

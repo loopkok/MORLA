@@ -1,0 +1,101 @@
+{
+  "descriptor_version": 1,
+  "api_version": "1.0",
+  "plugin_id": "morla.input.standard",
+  "plugin_version": "1.0.0",
+  "kind": "input",
+  "ports": {
+    "pose": {
+      "direction": "output",
+      "semantic": "pose6d",
+      "dim": 7,
+      "unit": "m_rad",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "axes": {
+      "direction": "output",
+      "semantic": "axes_buttons",
+      "dim": 6,
+      "unit": "ratio",
+      "codec": "numeric",
+      "dtype": "float64",
+      "axis_names": [
+        "x",
+        "y",
+        "z",
+        "roll",
+        "pitch",
+        "yaw"
+      ]
+    },
+    "scalar": {
+      "direction": "output",
+      "semantic": "scalar",
+      "dim": 1,
+      "unit": "ratio",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "joint_targets": {
+      "direction": "output",
+      "semantic": "joint_targets",
+      "dim": 6,
+      "unit": "rad",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "hand_landmarks": {
+      "direction": "output",
+      "semantic": "hand_landmarks",
+      "dim": 63,
+      "unit": "m",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "button": {
+      "direction": "output",
+      "semantic": "scalar",
+      "dim": 1,
+      "unit": "ratio",
+      "codec": "numeric",
+      "dtype": "float64"
+    }
+  },
+  "backend_variants": {
+    "fake": {
+      "available": true,
+      "validation_level": "protocol"
+    },
+    "real": {
+      "available": true,
+      "requires": [
+        "rclpy",
+        "guarded Quest receiver with teleop events"
+      ],
+      "validation_level": "requires_physical_acceptance"
+    }
+  },
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "input_topic": {
+        "type": "string"
+      },
+      "process_mode": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "external",
+          "managed"
+        ]
+      }
+    },
+    "additionalProperties": false
+  },
+  "defaults": {},
+  "source": {
+    "package": "morla_input",
+    "version": "0.0.0"
+  }
+}

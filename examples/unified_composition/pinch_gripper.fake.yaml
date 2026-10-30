@@ -1,0 +1,33 @@
+assembly_version: 1
+assembly_id: pinch_gripper_unified
+revision: 1
+instances:
+  vr:
+    plugin: morla.input.quest
+    backend: fake
+  gripper:
+    plugin: morla.astral.gripper
+    backend: fake
+bindings:
+- id: opening
+  source: vr.right_landmarks
+  target: gripper.closure
+  controller: morla.pinch_filtered
+  parameters:
+    close_dist_m: 0.015
+    open_dist_m: 0.08
+    auto_range: true
+    ema_alpha: 0.4
+    output_range:
+    - 0
+    - 1
+capture:
+  state:
+  - gripper.position
+  action:
+  - gripper.closure
+  images: {}
+  auxiliary:
+  - vr.right_landmarks
+  action_source: command
+  hold_frames: 0
