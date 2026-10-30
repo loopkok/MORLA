@@ -4,8 +4,6 @@ import copy
 
 class FakeAdapter:
     backend = 'fake'
-    watchdog_verified = True
-    deployment_verified = False
 
     def __init__(self, instance):
         self.instance = copy.deepcopy(instance)

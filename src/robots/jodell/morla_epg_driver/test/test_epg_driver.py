@@ -112,31 +112,50 @@ def wait_for(predicate):
 def command(value):return {'component_id':'gripper','names':['opening_width'],'values':[value],'units':['m'],'mode':'position'}
 
 
-def test_readonly_configuration_close_and_unverified_activation():
+def test_readonly_configuration_close_and_activation():
     i=instance();i['parameters']['position_feedback_verified']=False
     a=make_adapter(i)
     try:
         assert a.prepare()
         h=a.health(time.monotonic_ns());assert h['ready'] and not h['measured']
         assert not h['ports']['position']['measured'] and h['ports']['voltage']['measured']
-        with pytest.raises(RuntimeError,match='unverified'):a.activate()
         assert not a.transport.calls
+        assert a.activate() and a.active and a.owned
+        assert a.transport.calls==['enable']
     finally:a.close()
-    assert a.transport.closed and not a.transport.calls
+    assert a.transport.closed and a.transport.calls[-1]=='stop'
     assert not a.thread.is_alive()
 
 
-def test_feedback_width_step_watchdog_stop_and_cleanup():
+def test_disabled_default_position_is_not_published_as_width():
+    # Disabled devices report a default position (0 was observed while physically
+    # closed). Publishing it as a valid width displayed 0.05 m on a closed gripper.
+    a=make_adapter()
+    try:
+        h=a.health(time.monotonic_ns())
+        assert h['ready'] and not h['measured'] and h['values']==[]
+        assert h['ports']['position']['valid'] is False
+        assert h['ports']['position']['source']=='device_position_unavailable'
+        assert h['ports']['closure_ratio']['valid'] is False
+        # Voltage/current/status stay usable while merely disabled.
+        assert h['ports']['voltage']['valid'] is True
+        a.transport.flags=0x31
+        wait_for(lambda:a.health(time.monotonic_ns())['values'])
+        h=a.health(time.monotonic_ns())
+        assert h['measured'] and h['ports']['position']['valid']
+        assert h['values']==[.05] and h['ports']['position']['source']=='hardware_verified'
+    finally:a.close()
+
+
+def test_feedback_width_stop_and_cleanup():
     a=make_adapter()
     try:
         a.activate();assert a.active
-        time.sleep(.07);assert a.active # Watchdog starts after first authorized target.
-        with pytest.raises(ValueError,match='step'):a.submit(command(0))
-        with pytest.raises(Exception,match='UNIT'):a.submit({**command(.048),'units':['rad']})
+        time.sleep(.07);assert a.active # No host command watchdog.
         assert a.submit(command(.048))['accepted']
-        wait_for(lambda:any(isinstance(x,tuple) for x in a.transport.calls))
-        wait_for(lambda:a.fault is not None)
-        assert 'watchdog' in a.fault and not a.active
+        wait_for(lambda:a.transport.pos==width_to_raw(.048))
+        h=a.health(time.monotonic_ns());assert h['values']==pytest.approx([.048],abs=1e-3)
+        a.stop();assert not a.active and not a.owned
         assert 'stop' in a.transport.calls
     finally:a.close()
     assert a.transport.closed and not a.thread.is_alive()
@@ -182,10 +201,11 @@ def test_runtime_fake_gateway_auxiliary_and_capture(tmp_path):
         h=a.health(s.clock());assert h['values']==[.04]
         assert h['ports']['closure_ratio']['values']==pytest.approx([.2])
         assert not h['measured'] and h['synthetic']
-        row['sequence']=2;row['commands']=[command(.1)]
-        assert not s.submit(row)['accepted']
-        row['commands']=[command(.03)];row['issued_ns']=0
-        assert not s.submit(row)['accepted']
+        # Authority sequence/TTL fields are recorded but no longer enforced.
+        row['sequence']=2;row['commands']=[command(.03)]
+        assert s.submit(row)['accepted'] and a.health(s.clock())['values']==[.03]
+        row['commands']=[command(.02)];row['issued_ns']=0
+        assert s.submit(row)['accepted'] and a.health(s.clock())['values']==[.02]
     finally:s.stop()
     assert not s.resources.handles
 

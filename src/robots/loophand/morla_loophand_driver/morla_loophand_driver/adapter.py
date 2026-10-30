@@ -9,6 +9,11 @@ class LoopHandAdapter(CachedActuatorAdapter):
     supports_watchdog = False
     activation_error = 'LoopHand real is read-only: stop/watchdog unverified'
 
+    def activate(self):
+        # Keep real motion closed regardless of deployment flags: the firmware
+        # has no acknowledged stop and no verified communication watchdog.
+        raise RuntimeError(self.activation_error)
+
     def make_transport(self, parameters):
         from .transport import LoopHandTransport
         return LoopHandTransport(parameters)

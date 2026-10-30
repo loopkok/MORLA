@@ -231,8 +231,6 @@ class MujocoDeviceSession:
 
 class MujocoAdapter:
     backend = 'sim'
-    deployment_verified = False
-    watchdog_verified = True
     def __init__(self, instance, session):
         self.instance, self.session, self.active = instance, session, False
         self.key = instance['instance_id']

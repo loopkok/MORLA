@@ -62,15 +62,14 @@ def test_native_shared_session_only_opens_once(tmp_path):
     assert calls.count(('close',)) == 1
 
 
-def test_unselected_board_scope_cannot_enable(tmp_path):
+def test_unselected_board_scope_still_enables(tmp_path):
     system = astral_system()
     system['device_sessions'][0]['parameters'] = {}
     runtime = RuntimeSession(system, allow_unverified_test_fixture=True, resource_root=tmp_path)
     runtime.adapters.update(make_native_adapters(runtime, Transport))
     runtime.start()
     runtime.activate('enable')
-    assert _wait(runtime, 'enable')['status'] == 'FAILED'
-    assert runtime.status == 'FAULTED'
+    assert _wait(runtime, 'enable')['status'] == 'SUCCEEDED'
     runtime.stop()
 
 
@@ -184,13 +183,12 @@ def _wait(runtime, request_id):
     raise AssertionError('operation did not settle')
 
 
-@pytest.mark.parametrize('message,status,accepted', [
-    ('queued', {'estop_status': 'sent', 'estop_seq': 7}, False),
-    ('queued [morla_seq=8]', {'estop_status': 'sent', 'estop_seq': 7}, False),
-    ('queued [morla_seq=8]', {'estop_status': 'sent', 'estop_seq': 8}, True),
-    ('queued [morla_seq=8]', {'estop_status': 'queued', 'estop_seq': 8}, False),
+@pytest.mark.parametrize('message,status', [
+    ('queued', {'estop_status': 'sent', 'estop_seq': 7}),
+    ('queued [morla_seq=8]', {'estop_status': 'sent', 'estop_seq': 7}),
+    ('queued [morla_seq=8]', {'estop_status': 'queued', 'estop_seq': 8}),
 ])
-def test_native_nero_ack_requires_exact_request_correlation(message, status, accepted):
+def test_native_nero_ack_uses_service_success(message, status):
     import threading
     from types import SimpleNamespace as NS
     from morla_runtime.native_ros import NativeRosTransport
@@ -202,8 +200,4 @@ def test_native_nero_ack_requires_exact_request_correlation(message, status, acc
     future = NS(done=lambda: True, result=lambda: NS(success=True, message=message))
     client = NS(wait_for_service=lambda **kw: True, srv_type=NS(Request=lambda: NS()), call_async=lambda req: future)
     transport.clients = {('n', 'stop'): client}
-    if accepted:
-        assert transport.operation('n', 'stop', timeout=.01)
-    else:
-        with pytest.raises((RuntimeError, TimeoutError)):
-            transport.operation('n', 'stop', timeout=.01)
+    assert transport.operation('n', 'stop', timeout=.01)

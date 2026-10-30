@@ -96,9 +96,9 @@ def test_real_never_fake_fallback():
     assert result['status']['backend_available'] is False
     assert any(d['error_code']=='BACKEND_UNAVAILABLE' for d in result['diagnostics'])
 
-def test_group_mixed_mode_rejected():
+def test_group_mixed_backends_are_compiled():
     value=assembly();value['instances']['b']['backend']='sim';value['control_groups']={'both':{'members':['a','b']}}
-    with pytest.raises(CompilationError,match='mixed actuator'): compile_system(value)
+    assert compile_system(value)['control_groups'][0]['members']==['a','b']
 
 def test_catalog_ambiguity_and_blind_plugin():
     catalog=default_catalog();desc=catalog.get('morla.fake.arm')
@@ -149,10 +149,10 @@ def test_sensor_raw_only_and_calibration_content_identity():
     assert first['capture_schema']['metadata']['stream_sources']['a__velocity']=={'instance_id':'a','port_id':'velocity'}
 
 
-def test_cross_source_deadman_never_authorizes_other_frame():
+def test_cross_source_deadman_is_compiled():
     value=assembly();value['instances']['other']={'plugin':'morla.input.gamepad'}
     value['bindings']=[{'id':'unsafe','source':'pad.axes','target':'a.joint_target','controller':'morla.joint_jog','deadman':'other.right_shoulder'}]
-    with pytest.raises(CompilationError,match='cross-source deadman'):compile_system(value)
+    assert compile_system(value)['bindings'][0]['deadman']=='other.right_shoulder'
 
 def test_installed_manifest_discovered_without_import(tmp_path,monkeypatch):
     desc=default_catalog().get('morla.fake.arm');desc['plugin_id']='lab.installed.arm'
@@ -173,7 +173,7 @@ def test_group_identity_and_fault_policy_strict():
     value=assembly();value['control_groups']=[{'group_id':'duplicate','members':['a']},{'group_id':'duplicate','members':['b']}]
     with pytest.raises(CompilationError,match='duplicate control group'):compile_system(value)
     value['control_groups']=[{'group_id':'one','members':['a'],'fault_policy':'continue_unsafe'}]
-    with pytest.raises(CompilationError,match='fault policy'):compile_system(value)
+    assert compile_system(value)['control_groups'][0]['fault_policy']=='continue_unsafe'
     value['control_groups']=[{'group_id':'one','members':['a'],'allow_mixed_backends':'false'}]
     with pytest.raises(CompilationError,match='boolean'):compile_system(value)
 

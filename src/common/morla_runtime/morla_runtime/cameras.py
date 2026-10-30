@@ -113,9 +113,7 @@ class CameraAdapter:
     def __init__(self, instance, device, clock=time.monotonic_ns):
         self.instance, self.device, self.clock = copy.deepcopy(instance), copy.deepcopy(device), clock
         self.settings = {**instance.get('parameters', {}), **device.get('parameters', {})}
-        self.deployment_verified = bool(instance.get('deployment_verified'))
-        self.cache = ImageCache(clock, {'device_id': device.get('device_id'), 'verified': self.deployment_verified,
-                                        'source': 'deployment_binding'})
+        self.cache = ImageCache(clock, {'device_id': device.get('device_id'), 'source': 'deployment_binding'})
         self.context = None
         self.closed = False
         self.process, self.thread = None, None

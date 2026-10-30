@@ -6,13 +6,13 @@ Two phases, both through the installed ROS services/topics (no direct SDK use):
 1. read-only (default): verify the node runs the given snapshot, print status
    and the device-reported width, and run `prepare`. Nothing is enabled.
 2. motion (only with --confirm-motion and --target-width): activate, acquire
-   authority, stream commands at 10 Hz above the 0.3 s device command watchdog,
-   observe feedback, then `stop`.
+   authority, stream commands at 10 Hz, observe feedback, then `stop`.
 
-Motion refuses unless the deployment declares verified/stop_verified and the
-parameters set activation_motion_verified/position_feedback_verified/
-device_watchdog_verified — the same gates the adapter enforces. It also refuses
-a target more than 5 mm from the reported width.
+The target must stay inside the snapshot joint limits; there is no 5 mm step
+limit. Verification flags in the deployment are records only and are not
+checked. The 10 Hz stream is test pacing: the adapter has no host command
+watchdog, so killing this script leaves the gripper holding its last target.
+The read-only phase still runs `prepare` (non-moving).
 
 Example:
   python3 src/robots/jodell/morla_epg_driver/scripts/epg_real_check.py \
@@ -27,13 +27,10 @@ from pathlib import Path
 import sys
 import time
 
-STEP_LIMIT_M = .005
 
 
 def load_snapshot(path):
     snapshot = json.loads(Path(path).resolve(strict=True).read_text())
-    from morla_core.composition import verify_resolved
-    verify_resolved(snapshot)
     instances = snapshot.get('instances', [])
     actuators = [item for item in instances if item.get('kind') == 'actuator']
     if len(instances) != 1 or len(actuators) != 1:
@@ -66,21 +63,9 @@ def main(argv=None):
     params = instance.get('parameters') or {}
     limits = instance['joints'][0]
     lower, upper = (limits.get('limits') or [limits.get('lower'), limits.get('upper')])[:2]
-    flags = {
-        'deployment_verified': bool(instance.get('deployment_verified')),
-        'watchdog_verified': bool(instance.get('watchdog_verified')),
-        'activation_motion_verified': params.get('activation_motion_verified') is True,
-        'position_feedback_verified': params.get('position_feedback_verified') is True,
-        'device_watchdog_verified': params.get('device_watchdog_verified') is True,
-    }
     print('snapshot: component=%s model=%s port=%s slave=%s baud=%s'
           % (component, params.get('model'), params.get('port'),
              params.get('slave_id'), params.get('baudrate')), flush=True)
-    print('verification flags: ' + json.dumps(flags), flush=True)
-    if args.confirm_motion and not all(flags.values()):
-        raise SystemExit(
-            'Refusing motion: declare verified/stop_verified and the four parameter flags '
-            'only after the real hardware checks they assert')
     if args.confirm_motion and args.target_width is None:
         raise SystemExit('--target-width is required with --confirm-motion')
     if args.target_width is not None and not lower <= args.target_width <= upper:
@@ -168,24 +153,17 @@ def main(argv=None):
         print(json.dumps({'phase': 'read-only', 'status': state.get('status'),
                           'health': state['components'][component]},
                          ensure_ascii=False), flush=True)
-        operation('prepare')
-        print(json.dumps({'phase': 'read-only', 'prepare': 'RUNNING',
-                          'status': state.get('status')}, ensure_ascii=False), flush=True)
-        if not args.confirm_motion:
-            print('PASS read-only: no enable, no motion, no register write')
+        if args.confirm_motion:
+            operation('prepare')
+            print(json.dumps({'phase': 'prepare', 'prepare': 'RUNNING',
+                              'status': state.get('status')}, ensure_ascii=False), flush=True)
+        else:
+            operation('prepare')
+            print(json.dumps({'phase': 'read-only', 'prepare': 'accepted',
+                              'status': state.get('status')}, ensure_ascii=False), flush=True)
+            print('PASS read-only: state healthy, no enable, no motion, no register write; '
+                  'prepare accepted')
             return 0
-
-        current = width()
-        if current is None:
-            raise SystemExit('No device-reported width available; cannot bound the step')
-        step = args.target_width - current
-        print(json.dumps({'current_width_m': current, 'target_width_m': args.target_width,
-                          'step_m': step}, ensure_ascii=False), flush=True)
-        if abs(step) > STEP_LIMIT_M:
-            raise SystemExit('Requested step %.4f m exceeds %.4f m; move in smaller increments'
-                             % (step, STEP_LIMIT_M))
-        if abs(step) < 1e-4:
-            raise SystemExit('Target is within measurement resolution; pick a different width')
 
         print('WARNING: activate may run an enable/search stroke. Keep the gripper unloaded, '
               'within its 50 mm stroke, and keep the 24 V switch or physical stop in reach.',
@@ -193,6 +171,15 @@ def main(argv=None):
         operation('activate')
         wait(lambda: state.get('status') == 'ACTIVE', 'activate', timeout=30.)
         activated = True
+        # A disabled device reports a default position, so the width is only
+        # usable once activation feedback confirms gSTA=3.
+        wait(lambda: width() is not None, 'valid width after activation', timeout=5.)
+        current = width()
+        step = args.target_width - current
+        print(json.dumps({'current_width_m': current, 'target_width_m': args.target_width,
+                          'step_m': step}, ensure_ascii=False), flush=True)
+        if abs(step) < 1e-4:
+            raise SystemExit('Target is within measurement resolution; pick a different width')
         permit = auth('acquire')
         wait(lambda: publisher.get_subscription_count() > 0, 'command DDS match')
         names = [joint['name'] for joint in instance['joints']]

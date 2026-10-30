@@ -61,5 +61,6 @@ def test_replay_frozen_contract_and_action_finiteness(tmp_path):
         assert replay.send([.2],sample_ns=runtime.clock())['accepted']
         with pytest.raises(ComposablePolicyError): action_commands(value,[float('nan')])
         with pytest.raises(ComposablePolicyError): RuntimeReplay(runtime,{**value,'geometry_hash':'changed'})
-        assert not replay.send([.3],sample_ns=runtime.clock()-300_000_000)['accepted']
+        # Command TTL is carried but no longer enforced after the rollback.
+        assert replay.send([.3],sample_ns=runtime.clock()-300_000_000)['accepted']
     finally:runtime.stop()

@@ -49,7 +49,6 @@ class CartesianController:
             axes=np.asarray(axes,dtype=float)
             if not np.isfinite(axes).all() or np.any(np.abs(axes)>1): raise ControllerError('invalid jog axis')
             speed=float(parameters.get('linear_speed',0.08)); angular=float(parameters.get('angular_speed',0.3))
-            if not 0<speed<=0.25 or not 0<angular<=1: raise ControllerError('Cartesian speed outside supported range')
             target=current.copy(); target[:3,3]+=rotation@axes[:3]*speed*dt
             target[:3,:3]=Rotation.from_rotvec(rotation@axes[3:]*angular*dt).as_matrix()@current[:3,:3]
         else:
@@ -62,21 +61,16 @@ class CartesianController:
                 self.anchor_input=input_pose; self.anchor_robot=current.copy()
                 return seed.tolist()
             scale=float(parameters.get('position_scale',1))
-            if not 0<scale<=2: raise ControllerError('invalid pose scale')
             target=self.anchor_robot.copy()
             target[:3,3]+=rotation@(position-self.anchor_input[:3,3])*scale
             delta=input_pose[:3,:3]@self.anchor_input[:3,:3].T
             target[:3,:3]=rotation@delta@rotation.T@self.anchor_robot[:3,:3]
         # Tool offsets must already be resolved and versioned by the compiler.
         target_tip=target@np.linalg.inv(tool)
-        started=self.clock(); result=self.solver.solve(target_tip)
-        if self.clock()-started>self.max_solve_ns:
-            self.reset(); raise ControllerError('IK deadline exceeded')
+        result=self.solver.solve(target_tip)
         if result is None: raise ControllerError('IK unreachable or limit failure')
         result=np.asarray(result,dtype=float)
         if result.shape!=seed.shape or not np.isfinite(result).all(): raise ControllerError('invalid IK result')
-        limit=float(parameters.get('max_joint_step',0.15))
-        if not 0<limit<=0.3 or np.any(np.abs(result-seed)>limit): raise ControllerError('IK discontinuity')
         return result.tolist()
 
 

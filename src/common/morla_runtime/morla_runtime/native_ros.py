@@ -52,7 +52,7 @@ def native_plan(device, instances, runtime_id):
         params = {key: settings[key] for key in ('control_board_ip', 'board_cmd_port', 'local_ip', 'local_port') if key in settings}
         params.update(auto_ready=False, enable_full_body_cmd=False, enable_head_cmd=False,
                       enable_gripper_cmd=any(row['plugin_id'].endswith('gripper') for row in selected),
-                      command_timeout_s=0.3,
+                      command_timeout_s=1.5,
                       managed_arm_sides=[row.get('parameters', {}).get('side', row.get('role', '')) for row in selected if row['plugin_id'].endswith('arm')] or ['none'],
                       managed_gripper_sides=[row.get('parameters', {}).get('side', row.get('role', '')) for row in selected if row['plugin_id'].endswith('gripper')] or ['none'])
         plan['argv'].append(_node('astral_robot_control', 'astral_robot_driver', 'driver', root, params, remaps))
@@ -71,7 +71,7 @@ def native_plan(device, instances, runtime_id):
             # Do not invent a cold-start pose; the existing driver validates it.
             if 'initial_position' not in params:
                 raise ValueError('NERO_INITIAL_POSITION_REQUIRED')
-            params.update(arm_side=side, sdk_backend='hardware', stop_on_shutdown=True, command_timeout_s=0.3)
+            params.update(arm_side=side, sdk_backend='hardware', stop_on_shutdown=True, command_timeout_s=0.5)
             remaps = {'/' + side + '_arm/joint_commands': command_topic,
                       '/' + side + '_arm/joint_states': state_topic,
                       '/teleop/armed': local + '/armed', '/teleop/disarm': local + '/disarm'}
@@ -96,7 +96,7 @@ def native_plan(device, instances, runtime_id):
                       'command_topic': command_topic, 'status_topic': local + '/adapter/status', 'native_state_topic': local + '/native/state',
                       'native_command_topic': local + '/native/command', 'require_armed': True,
                       'joint_lower_limits': [joint['lower'] for joint in joints],
-                      'joint_upper_limits': [joint['upper'] for joint in joints], 'command_timeout_s': 0.3}
+                      'joint_upper_limits': [joint['upper'] for joint in joints], 'command_timeout_s': 0.5}
             plan['argv'].append(_node('xhand_control_ros2', 'xhand_control_ros2_node', 'native_driver', local,
                                       {'port_name': settings.get('port_name', '/dev/ttyUSB0')},
                                       {'xhand_state': local + '/native/state', 'xhand_command': local + '/native/command'}))
@@ -257,28 +257,6 @@ class NativeRosTransport:
         response = future.result()
         if not response.success:
             return False
-        plugin = self.plan['ports'][key]['plugin_id']
-        if plugin == 'morla.nero.arm' and operation in ('enable', 'stop'):
-            import re
-            match = re.search(r'\[morla_seq=(\d+)\]', response.message)
-            if not match:
-                raise RuntimeError('NERO_OPERATION_CORRELATION_REQUIRED')
-            expected_seq = int(match.group(1))
-            seq_field = 'enable_seq' if operation == 'enable' else 'estop_seq'
-            expected_field, expected_value = ('enable_status', 'enabled') if operation == 'enable' else ('estop_status', 'sent')
-            while time.monotonic() < deadline:
-                with self.lock:
-                    stamp, status = self.statuses.get(key, (0, {}))
-                if (request_started_ns <= stamp <= self.clock() and self.clock() - stamp <= 500_000_000
-                        and status.get(seq_field) == expected_seq and status.get(expected_field) == expected_value):
-                    return True
-                time.sleep(0.002)
-            raise TimeoutError('NERO_OPERATION_CONFIRMATION_TIMEOUT')
-        if plugin.startswith('morla.astral.') and operation == 'enable':
-            # Legacy online-only enable fallback remains unchanged in the driver.
-            # New lifecycle requires explicit confirmation before ACTIVE.
-            if not (response.message.startswith('enable OK') or response.message.startswith('already enabled')):
-                raise RuntimeError('ASTRAL_ENABLE_UNCONFIRMED')
         return True
 
     def submit(self, key, command):
@@ -316,10 +294,6 @@ class NativeDeviceSession:
 
     def operation(self, key, operation):
         if self.device.get('session_family') == 'astral_board':
-            settings = self.device.get('parameters', {})
-            if operation in ('enable', 'home', 'workpos') and not (settings.get('board_scope_verified') and
-                    settings.get('unselected_joints_policy') in ('disabled', 'held')):
-                raise RuntimeError('ASTRAL_BOARD_SCOPE_UNVERIFIED')
             if operation == 'enable' and self.enabled:
                 return True
         if operation in ('enable', 'home', 'workpos'):
@@ -347,8 +321,6 @@ class NativeRosAdapter:
     def __init__(self, instance, session):
         self.instance, self.session = instance, session
         self.key = instance['instance_id']
-        self.deployment_verified = bool(instance.get('deployment_verified'))
-        self.watchdog_verified = bool(instance.get('watchdog_verified', False))
         self.active = False
 
     def configure(self, context):
@@ -362,13 +334,9 @@ class NativeRosAdapter:
 
     def prepare(self):
         # Explicit cold-start enable for Nero; never hidden inside configure.
-        if not self.deployment_verified or not self.watchdog_verified:
-            raise RuntimeError('REAL_DEPLOYMENT_UNVERIFIED')
         return self.session.operation(self.key, 'enable')
 
     def activate(self):
-        if not self.deployment_verified or not self.watchdog_verified:
-            raise RuntimeError('REAL_DEPLOYMENT_UNVERIFIED')
         result = self.session.operation(self.key, 'enable')
         self.active = bool(result)
         return result

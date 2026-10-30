@@ -10,4 +10,4 @@
 python3 -m morla_core.composition.cli compile examples/cr5_epg/assembly.fake.yaml --output /tmp/cr5_epg.resolved.json
 ```
 
-多组件快照交给通用runtime/Web宿主；单设备epg_driver入口会拒绝含机械臂的快照。真实接入需分别填写身份、验证声明和物理安装/TCP；此配置没有自动添加VR绑定，也不改变CR5裸手捏合deadman的作用。
+多组件快照交给通用runtime/Web宿主；单设备epg_driver入口不再强制组件数量（`epg_real_check.py` 仍只接受单执行器快照）。真实接入需分别填写身份和物理安装/TCP；验证声明只作记录，不参与门禁。此配置没有自动添加VR绑定，CR5裸手捏合也不再被runtime强制。

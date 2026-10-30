@@ -9,14 +9,11 @@ class CachedActuatorAdapter:
     feedback_source = 'hardware'
     feedback_measured = True
     supports_watchdog = True
-    activation_error = 'Deployment/stop/watchdog unverified'
 
     def __init__(self, instance, context, transport_factory=None):
         self.instance = copy.deepcopy(instance)
         self.clock = context['clock']
         self.parameters = instance['parameters']
-        self.deployment_verified = bool(instance.get('deployment_verified'))
-        self.watchdog_verified = bool(instance.get('watchdog_verified')) and self.supports_watchdog
         self.factory = transport_factory
         self.transport = None
         self.io = threading.Lock()
@@ -27,7 +24,6 @@ class CachedActuatorAdapter:
         self.pending = None
         self.sample = {'ready':False,'sample_ns':0,'source':'unavailable',
                        'measured':False,'synthetic':False,'values':[]}
-        self.last_command = None
 
     def validate_configuration(self):
         """Device subclasses validate deployment parameters without connecting."""
@@ -53,11 +49,6 @@ class CachedActuatorAdapter:
                 with self.io:
                     with self.lock:
                         pending,self.pending = self.pending,None
-                        expired = (self.active and self.last_command is not None and
-                            self.clock()-self.last_command > int(self.parameters['command_timeout_s']*1e9))
-                    if expired:
-                        self._stop_locked()
-                        raise TimeoutError('Command watchdog expired')
                     if pending is not None:
                         self.transport.write(pending)
                     feedback = self.transport.read()
@@ -99,33 +90,24 @@ class CachedActuatorAdapter:
         return True
 
     def activate(self):
-        if not self.deployment_verified or not self.watchdog_verified:
-            raise RuntimeError(self.activation_error)
         with self.io:
             self.prepare()
             self.transport.activate()
             with self.lock:
                 # Wait for an explicitly authorized first target; activation is not a command stream.
-                self.last_command=None; self.active=True; self.pending=None
+                self.active=True; self.pending=None
         return True
 
     def submit(self, target):
-        from morla_runtime.session import RuntimeSession
-        RuntimeSession._validate_target(target,self.instance)
         with self.lock:
-            if not self.active or not self.sample['ready']: raise RuntimeError('Disarmed or faulted')
-            values=target['values']; measured=self.sample['values']
-            if any(abs(a-b)>self.parameters['max_step_rad'] for a,b in zip(values,measured)):
-                raise ValueError('Target step exceeds measured-state guard')
-            lo=self.parameters.get('joint_lower',[j['lower'] for j in self.instance['joints']])
-            hi=self.parameters.get('joint_upper',[j['upper'] for j in self.instance['joints']])
-            if any(not a<=v<=b for v,a,b in zip(values,lo,hi)): raise ValueError('Deployment joint limit')
-            self.pending=list(values); self.last_command=self.clock()
+            if not self.active:
+                raise RuntimeError('ADAPTER_DISARMED')
+            self.pending=list(target['values'])
         return {'accepted':True,'completed':False,'phase':'queued'}
 
     def _stop_locked(self):
         with self.lock:
-            self.active=False; self.pending=None; self.last_command=None
+            self.active=False; self.pending=None
         self.transport.stop()
 
     def stop(self):

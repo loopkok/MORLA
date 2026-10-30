@@ -33,13 +33,13 @@
 - CR5 `smoothing_alpha=0.35` 越大越直接，按worker处理样本更新，没有固定时间常数换算。
 - Quest landmarks `ema_alpha=0.7`；CR5捏合保持使用原始关键点。Wuji命令滤波截止10 Hz；手重定向另有平滑参数。
 
-速度/步长：Nero遥操 `max_joint_delta_rad_per_step=0.065`，驱动 `max_joint_velocity_rad_s=1.0`，另有 `stream_position_mode/stream_j_speed_percent`。Astral左臂 `max_joint_vel=6.0 rad/s`。CR5 controller速度0.3 rad/s、步长0.15 rad，Adapter相对实测步长0.05 rad；ServoJ当前字面参数 `t=0.1,lookahead_time=50,gain=500` 固定在代码，固件兼容/实际效果待验证。各层关节限位与工作空间共同约束最终动作。
+速度/步长：Nero遥操 `max_joint_delta_rad_per_step=0.065`，驱动 `max_joint_velocity_rad_s=1.0`，另有 `stream_position_mode/stream_j_speed_percent`。Astral左臂 `max_joint_vel=6.0 rad/s`。CR5 controller按 `max_joint_velocity`（默认 0.3 rad/s）裁剪输出关节速度；2026-10-30 回退后不再有相对实测步长限制（`max_joint_step` 参数仍被接受但不生效），Adapter 端的目标步长校验也已移除；ServoJ当前字面参数 `t=0.1,lookahead_time=50,gain=500` 固定在代码，固件兼容/实际效果待验证。各层关节限位与工作空间共同约束最终动作。
 
 IK：Nero/Astral解析/几何路径的局部搜索窗口、连续性评分、分支滞回/回退影响跳解和耗时；Astral另有 `reach_margin`、人肘模式/权重/时效/平滑和escape/return帧数。`ik_max_iter/ik_tol/ik_w_pos/ik_w_ori/ik_w_reg/ik_dq_max` 等主要作用于Astral urdf_numerical后端，当前geometric不靠这些LM参数调手感。
 
 CR5数值IK：100次迭代、50 ms预算、阻尼与线搜索、±0.3 rad局部域、0.06 rad迭代步长、0.2 mm/0.002 rad FK接受门槛，多数为代码常量。公共CartesianController默认求解门槛50 ms；CR5外层完整任务250 ms、结果年龄300 ms。超时门槛不是控制周期。
 
-时效：Nero输入/驱动命令/反馈常见0.5 s；Astral输入/驱动命令1.5 s，人肘0.3 s。CR5位姿/保持端口分别250 ms，命令watchdog0.3 s，缓存反馈0.5 s，网络超时0.2 s。QoS、队列、TCP排队、SDK串行和调度负载同样影响延迟。
+时效：Nero输入/驱动命令/反馈常见0.5 s；Astral输入/驱动命令1.5 s，人肘0.3 s。CR5位姿/保持端口分别250 ms，缓存反馈0.5 s，网络超时0.2 s；回退后不再有主机命令 watchdog，输入中断时执行器保持最后目标。QoS、队列、TCP排队、SDK串行和调度负载同样影响延迟。
 
 ## 本地计算开销观察
 

@@ -29,8 +29,6 @@ def validate_parameters(parameters, *, jog=False):
         for key,maximum in [('linear_speed',.25),('angular_speed',1)]:
             if key in parameters and (type(parameters[key]) not in (int,float) or not np.isfinite(parameters[key]) or not 0<parameters[key]<=maximum):
                 raise ValueError('Invalid Cartesian '+key)
-    if 'calibration_verified' in parameters and type(parameters['calibration_verified']) is not bool:
-        raise ValueError('calibration_verified must be boolean')
     if 'input_rotation' in parameters:validate_rotation(parameters['input_rotation'])
     if 'solver_tip_from_tool' in parameters:validate_transform(parameters['solver_tip_from_tool'])
 
@@ -140,14 +138,6 @@ def _create(context, *, jog=False):
     if instance['backend'] not in ('fake','real'):
         raise ValueError('CR5 VR only supports fake or verified real backend')
     hardware=instance.get('parameters',{})
-    if instance['backend']=='real':
-        if (parameters.get('calibration_verified') is not True or
-                not {'input_rotation','solver_tip_from_tool'}<=set(parameters)):
-            raise ValueError('Verify VR/base/TCP calibration before real CR5 VR control')
-        if hardware.get('kinematics_verified') is not True:
-            raise ValueError('Verify URDF/hardware joint alignment before real CR5 VR control')
-        if not {'joint_lower','joint_upper'}<=set(hardware):
-            raise ValueError('CR5 real IK requires deployment limits')
     solver=IKSolver(**({'position_tolerance_m':.00001,'angle_tolerance_rad':.0001} if jog else {}),
                     joint_lower=hardware.get('joint_lower'),joint_upper=hardware.get('joint_upper'),
                     joint_signs=hardware.get('urdf_joint_signs'),joint_offsets=hardware.get('urdf_joint_offsets'))

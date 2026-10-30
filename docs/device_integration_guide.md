@@ -34,7 +34,7 @@ MORLA 的核心是把设备能力、物理安装、控制权、输入意图和�
     → resolved_system.json + capture_schema（SchemaV3）+ 身份哈希
         ├─ RuntimeSession：资源锁 → configure → 准备 → 显式激活
         ├─ 输入源 → InputFrame → BindingController / IK / retarget
-        │                         → 带租约和时效的 CommandEnvelope
+        │                         → 带 session/序号字段（不作门禁）的 CommandEnvelope
         ├─ 策略 / 回放 ────────────→ 同一个 runtime 命令网关
         │                           → 单组件 target → Adapter → SDK / 驱动
         └─ Adapter.read / health ← 实测反馈、图像、传感器
@@ -43,7 +43,7 @@ MORLA 的核心是把设备能力、物理安装、控制权、输入意图和�
 
 职责落点：
 
-- `morla_core`：静态目录、配置校验、装配编译、具名关节、坐标及数据契约；不应为了发现设备而 import 厂商 SDK。
+- `morla_core`：静态目录、装配编译、具名关节、坐标及数据契约；配置与契约的强制校验已随重构删除（只保留编译产物），不应为了发现设备而 import 厂商 SDK。
 - `morla_runtime`：生命周期、资源占用、控制权、命令校验、停止、设备后端；提供唯一的运动写入边界。
 - `morla_input`：设备协议接收、标准化、输入来源/序号/时效；不决定机器人关节怎么动。
 - `morla_teleop`：将输入意图映射成目标关节；处理增量锚点、IK、手部重定向。
@@ -113,7 +113,7 @@ MORLA 的核心是把设备能力、物理安装、控制权、输入意图和�
 2. `instance_id`：本装配中的逻辑角色，例如 `left_arm`、`wrist_camera`；稳定小写标识，影响特征名称。
 3. Deployment 的 `device_id`、资源键和 DeviceSession 的 `session_id`：物理设备、独占资源及共享连接身份。
 4. RuntimeSession 的 `session_id`：每次运行新生成的会话身份；不能与 DeviceSession ID 混为一谈。
-5. 输入 `source_id/source_epoch/sequence` 与控制租约 `producer/token/epoch/sequence`：分别保护输入重连和命令控制权，二者不可互换。
+5. 输入 `source_id/source_epoch/sequence`（仍用于拒绝重放/过期输入）与命令信封 `producer/token/epoch/sequence`（2026-10-30 回退后只携带，不校验）；二者不可互换，也不能把命令字段当作输入时效保护。
 
 同一物理设备的资源键必须规范一致。不能用串口别名、不同 CAN 名称或不同 IP 字符串创建两套锁后同时控制一块板。共享连接使用 `session_family`、`sharing: session` 和一致的 DeviceSession；不同协议/不同后端不能强行共享。
 
@@ -164,19 +164,20 @@ IOBT 的 hips 参考系是操作者躯干坐标，不等于机器人 body/base�
 
 ### 3.5 控制权、停止与运行生命周期
 
-正常顺序是编译验证 → 占有资源 → `configure` → 等待新鲜反馈 → `READY_DISARMED` → prepare → 显式 activate → 获得 lease → submit。import、目录发现、构造函数、预检和启动不得自动 HOME/使能运动。
+正常顺序是编译 → 占有资源 → `configure` → 等待新鲜反馈 → `READY_DISARMED` → prepare → 显式 activate → acquire（仅登记租约）→ submit。import、目录发现、构造函数、预检和启动不得自动 HOME/使能运动。
 
-命令只能通过公共 runtime 网关。其 envelope 包含 `session_id, producer, token, epoch, sequence, issued_ns, ttl_ns, commands`；每个 target 包含 `component_id, names, values, mode, units`。Adapter 只接收已校验的单个 target，不自行生成授权。
+命令只能通过公共 runtime 网关。其 envelope 包含 `session_id, producer, token, epoch, sequence, issued_ns, ttl_ns, commands`；每个 target 包含 `component_id, names, values, mode, units`。**当前 runtime 只校验急停锁存和组件是否属于本会话，不再校验 producer/token/epoch/sequence/TTL**；名称、单位、有限值由 adapter 自行处理。
 
 - 不新增绕过网关的公开 ROS target 写入口；旧驱动应使用会话私有 topic 或等价隔离及已有 DeviceGuard。
 - prepare/activate/操作可能异步返回 RUNNING；按 request_id 查询结果，区分接纳、发送、物理完成。
 - prepare 不保证只是读取；现有 native bridge 的 prepare 可调用 enable。真实设备必须说明 prepare 的副作用，把它作为显式设备操作验收。
 - 停止必须有设备/驱动层可核验行为，不能发送全零关节目标冒充停止。
-- 断连、过期、SDK 阻塞、部分写失败、急停后要撤权、清除旧目标并按作用范围停止。
-- reset 不能恢复旧动作；重连必须重新验证反馈，并在观察到 deadman 释放后才允许再次控制。
-- 进程被杀不等于硬件停止。真实执行器需要设备 watchdog/停止证据和异常掉电/重连行为记录。
+- 断连、SDK 阻塞、部分写失败、急停后要清除旧目标并按作用范围停止。输入过期不再自动撤权。
+- reset 只停止、清锁存并回到 READY_DISARMED，不恢复旧动作；重连后不得自动重放旧目标。
+- 进程被杀不等于硬件停止。真实执行器需要操作者自行取得设备 watchdog/停止证据，并记录异常掉电/重连行为。
+- 上游停发命令不会自动停止执行器：主机命令 watchdog 已移除，执行器保持最后目标。
 
-当前网关检查名称、单位、有限值、关节位置范围等，但**不是通用速度/加速度/碰撞保护器**。需在 controller/adapter/设备层实现并验证速率、跳变、速度、加速度和工作空间约束。descriptor 写了 `max_velocity` 不表示网关自动执行了它。
+当前网关只校验组件子集和 adapter 接受状态，**不是通用速度/加速度/碰撞保护器**，也不再检查名称/单位/有限值/关节位置范围。需在 controller/adapter/设备层实现并验证速率、跳变、速度、加速度和工作空间约束。descriptor 写了 `max_velocity` 不表示网关自动执行了它。
 
 ### 3.6 ROS 传输、频率与状态可观测性
 
@@ -300,7 +301,7 @@ target = {
 
 没有测得速度就不要输出假的 velocity；异步多端口须分别保留采样时间。当前组合采集主要读取顶层 `sample_ns` 与端口 `received_ns`，仅写端口 `sample_ns` 不足以证明它会被用于时效判断。
 
-真实执行器还需要可验证的 `deployment_verified` 和 `watchdog_verified` 属性。它们应来自设备对应的证据和配置，不能为了通过 activate 而无条件设 True。编译后实例的 deployment_verified 当前由该实例 Deployment 的 `verified && stop_verified` 产生。
+`deployment_verified`、`watchdog_verified` 及同类验证声明现在只是记录字段，不再参与编译或 activate 门禁。它们仍应如实记录现场证据，但设为 true 不会放开任何检查，设为 false 也不会阻止运行；不能把字段值当作已验证事实。
 
 实现约束：
 
@@ -347,7 +348,7 @@ MORLA 的笛卡尔遥操采用相对位移：首次有效输入将人手位姿�
 
 必须验证：打开/闭合方向、空行程、接触物体后的反馈、目标未到达、堵转/过流、断连停止、初始化是否夹合。不能把“发送了 0.7”直接作为“已闭合 70%”的实测状态。
 
-现有 Astral gripper 的 real bridge 将命令角度回显转换为比例，并标 `command_echo / measured=false / ready=false`；该组合不能据此通过真实 ACTIVE 门禁。新增夹爪应提供真实反馈；无法提供时，需设计并验证明确的降级契约，不能沿用虚假的 measured 标记。
+现有 Astral gripper 的 real bridge 将命令角度回显转换为比例，并标 `command_echo / measured=false / ready=false`；原来的 ACTIVE 门禁已删除，这个标签现在是唯一警告，不能当作实测反馈。新增夹爪应提供真实反馈；无法提供时，需设计并验证明确的降级契约，不能沿用虚假的 measured 标记。
 
 ### 5.3 灵巧手
 
@@ -407,11 +408,11 @@ InputFrame(
 1. 设备层：HID/蓝牙/USB/UDP/TCP/SDK 的实际读取、身份选择、断流检测。
 2. 标准化层：产生 InputFrame，轴/骨架/pose/按钮转换及 per-port 时间。
 3. 宿主接线：把 frame 送入当前会话的 `ComposableService.ingest_frame()` 或等价受信宿主；管理 source 的 read/disconnect 生命周期。
-4. 绑定层：Assembly 的 source、controller、target、同源 deadman；最终经 runtime.submit。
+4. 绑定层：Assembly 的 source、controller、target；最终经 runtime.submit。deadman 仍可作为输入端口发布，但 runtime 不再强制。
 
 只实现 `read()` 或只发 `InputEnvelope` ROS 消息不会自动驱动绑定。现有 `InputEnvelope.msg` 的 `source_epoch` 是 uint64，而 Python InputFrame 使用字符串；当前 runtime ROS bridge 未订阅 InputEnvelope。新增 ROS 输入通用桥时需显式解决类型转换、会话认证、epoch 和接线，不能直接假定两个类型等价。
 
-deadman 当前必须来自同一个 source 实例，且值严格为 `True/False`。第一次启动、重连、切换参考系后，先观察到 False，再 True 才允许运动。手套+脚踏、双设备组合按钮须实现显式多源聚合器：每源独立时效、共同 epoch、任何必需源失联撤权，再输出一个聚合 InputFrame；不能直接跨 source 填 deadman 绕过编译器。
+deadman 的“同源、严格 True/False、先释放再按下”约束已随重构删除，不再由编译器或 runtime 检查；输入仍把它作为意图端口发布。手套+脚踏、双设备组合按钮如需安全联锁，必须自建显式聚合与撤权逻辑，不能依赖原有门禁。
 
 ### 6.2 新 controller 的接口
 
@@ -720,7 +721,7 @@ metadata:
 ### 11.2 必测反例
 
 - 两个实例占同一物理资源；新旧入口同时启动；SDK 子进程退出后锁/设备是否仍占有。
-- 旧 session、旧 token/epoch、重复序号、过期/未来命令、越权组件、只到一半的多组件写入。
+- 重复组件 ID、装配外组件、只到一半的多组件写入、急停锁存期间提交、reset 后未激活即提交。旧 session/token/epoch、重复序号、过期/未来命令已不再是拒绝路径，记 NOT_APPLICABLE，不要当作通过项。
 - 关节乱序/漏项/重复、单位错误、NaN/Inf、超范围、目标突变、错误模式。
 - health 不更新、源时间倒退、设备时钟重置、SDK 长阻塞、stop 未确认、迟到 enable。
 - 启动时按钮已经按下、deadman 释放丢失、pose 冻结但按钮持续更新、重连复用旧锚点。

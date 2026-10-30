@@ -41,14 +41,14 @@ def test_hand_compact_roundtrip_and_invalid_feedback():
     with pytest.raises(IOError):hand.read()
     with pytest.raises(RuntimeError,match='STOP_UNCONFIRMED'):hand.stop()
 
-def test_hand_never_claims_verified_watchdog():
+def test_hand_real_activation_stays_blocked():
     _,resolved=system();instance=next(i for i in resolved['instances'] if i['instance_id']=='hand')
     instance.update(backend='real',deployment_verified=True,watchdog_verified=True)
     adapter=DeviceAdapter(instance,{'clock':time.monotonic_ns})
-    assert not adapter.watchdog_verified
+    assert not adapter.supports_watchdog
     with pytest.raises(RuntimeError,match='read-only'):adapter.activate()
 
-def test_single_device_runtime_and_stale_authority(tmp_path):
+def test_single_device_runtime_and_disarmed_submit(tmp_path):
     catalog,resolved=system();assert verify_resolved(resolved,registry=catalog)
     assert resolved['feature_contract']['state_dim']==7
     assert resolved['feature_contract']['action_dim']==7
@@ -61,9 +61,11 @@ def test_single_device_runtime_and_stale_authority(tmp_path):
                   'values':[0.0]*len(i['joints']),'units':['rad']*len(i['joints']),'mode':'position'} for i in resolved['instances']]
         cmd={**permit,'sequence':1,'issued_ns':session.clock(),'ttl_ns':100000000,'commands':targets}
         assert session.submit(cmd)['accepted']
-        assert not session.submit(cmd)['accepted']
+        # The rollback no longer enforces authority sequence; a repeated
+        # sequence is still accepted while the adapter remains active.
+        assert session.submit(cmd)['accepted']
         session.revoke('test')
         cmd['sequence']=2
-        assert not session.submit(cmd)['accepted']
+        assert not session.submit(cmd)['accepted']  # revoke stopped the adapter
     finally: session.stop()
     assert not session.resources.handles

@@ -1,7 +1,14 @@
 """ROS-free composable system API. Loading this module never opens hardware."""
 from .diagnostics import CompilationError
 from .parser import load_document
-from morla_core.plugins.registry import Catalog, default_catalog
+
+def __getattr__(name):
+    # Lazy re-export breaks the registry <-> composition import cycle when the
+    # registry is the first morla_core module imported.
+    if name in ('Catalog', 'default_catalog'):
+        from morla_core.plugins.registry import Catalog, default_catalog
+        return {'Catalog': Catalog, 'default_catalog': default_catalog}[name]
+    raise AttributeError(name)
 
 def compile_system(*args, **kwargs):
     from .compiler import compile_system as compile_impl

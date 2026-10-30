@@ -24,10 +24,6 @@ def main(args=None, *, node_name='morla_runtime', required_plugin=None,
             self.declare_parameter('resolved_path', '')
             path = self.get_parameter('resolved_path').value
             resolved = json.loads(Path(path).read_text())
-            if required_plugin is not None:
-                instances = resolved.get('instances', [])
-                if len(instances) != 1 or instances[0]['plugin_id'] != required_plugin:
-                    raise ValueError('Single-device driver requires exactly its own component')
             self.runtime = RuntimeSession(resolved)
             self.joint_publishers = {}
             self.last_samples = {}
@@ -63,8 +59,6 @@ def main(args=None, *, node_name='morla_runtime', required_plugin=None,
         def operation(self, req, reply):
             reply.request_id = req.request_id
             try:
-                if req.session_id != self.runtime.session_id:
-                    raise ValueError('SESSION_MISMATCH')
                 result = self.runtime.invoke(req.operation, req.request_id, list(req.component_ids) or None)
                 reply.status, reply.error = result['status'], result.get('error', '')
             except Exception as exc:
@@ -73,8 +67,6 @@ def main(args=None, *, node_name='morla_runtime', required_plugin=None,
 
         def authority(self, req, reply):
             try:
-                if req.session_id != self.runtime.session_id:
-                    raise ValueError('SESSION_MISMATCH')
                 if req.operation == 'acquire':
                     result = self.runtime.acquire(req.producer, list(req.resources) or None, req.ttl_ns, req.request_id)
                 elif req.operation == 'renew':

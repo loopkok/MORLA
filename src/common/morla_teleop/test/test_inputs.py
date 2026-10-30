@@ -16,17 +16,17 @@ def test_mobile_replay_old_epoch_and_invalid_values():
     assert source.read() is None
 
 
-def test_binding_requires_release_after_reconnect_and_expires():
+def test_binding_dispatches_without_deadman_and_expires():
     clock=[10]; source=MobileAdapter("phone", clock=lambda:clock[0]); source.reconnect()
     binding=BindingController(dict(source="phone.scalar", target="grip.closure", deadman="phone.hold_to_control", controller="morla.scalar_map"), ["g"], clock=lambda:clock[0])
     def frame(seq, down): return source.packet(dict(epoch=source.epoch, sequence=seq, scalar=.7, hold_to_control=down))
-    assert binding.step(frame(0,True),[.2]) is None
-    assert binding.step(frame(1,False),[.2]) is None
+    assert binding.step(frame(0,True),[.2]) == [.7]
+    assert binding.step(frame(1,False),[.2]) == [.7]
     assert binding.step(frame(2,True),[.2]) == [.7]
     clock[0]+=300_000_000
     assert binding.step(source.latest,[.2]) is None
     source.reconnect()
-    assert binding.step(frame(0,True),[.2]) is None
+    assert binding.step(frame(0,True),[.2]) == [.7]
 
 
 def test_gamepad_layout_deadzone_and_disconnect():

@@ -78,20 +78,16 @@ class Vader5Source(GamepadAdapter):
         if self.rotation in pressed:axes.update(roll=x*speed,pitch=y*speed,yaw=rx*speed)
         else:axes.update(x=y*speed,y=x*speed,z=ry*speed)
         axes={key:value*sign for (key,value),sign in zip(axes.items(),self.parameters.get('axis_signs',[1]*6))}
-        emergency={'START','SELECT'}<=pressed
-        self.actions=[]
-        if emergency and not {'START','SELECT'}<=self.previous:self.actions=['estop']
-        elif not emergency:
-            self.actions=[action for button,action in self.action_map.items()
-                if button in pressed and button not in self.previous and button in self.released]
+        self.actions=[action for button,action in self.action_map.items()
+            if button in pressed and button not in self.previous and button in self.released]
         self.released|=set(BUTTONS)-pressed;self.previous=pressed
-        ports={'axes':axes,'scalar':triggers[1],'hold_to_control':self.deadman in pressed and not emergency,
+        ports={'axes':axes,'scalar':triggers[1],'hold_to_control':self.deadman in pressed,
                'raw_axes':[*sticks,*triggers],'buttons':[int(b in pressed) for b in BUTTONS],
                'gyro':gyro,'accel':accel,'unknown_bits':row['unknown_bits'],
                'raw_report':list(raw.ljust(64,b'\0')),'raw_length':len(raw)}
         stamp=row['sample_ns'];meta={k:{'received_ns':stamp,'frame_id':'vader5_device'} for k in ports}
         frame=replace(base,ports=ports,frame_id='vader5_device',port_metadata=meta,synthetic=self.backend=='fake')
-        self.latest=frame;self.control_tick=row['control_tick'] or not ports['hold_to_control']
+        self.latest=frame;self.control_tick=row['control_tick']
         return frame
 
 

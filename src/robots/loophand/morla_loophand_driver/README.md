@@ -27,7 +27,7 @@ ros2 launch morla_loophand_driver loophand_driver.launch.py \
 
 也可 `ros2 run morla_loophand_driver loophand_driver --ros-args -p resolved_path:=/tmp/loophand.resolved.json`。单设备入口只接受一只此类型手；其他组件通过通用组合 runtime 调度。fake state/action 均为 7 维。
 
-默认节点 `/loophand_driver`；`~/hand/joint_states` 输出 rad，`~/state` / `~/health` 报告来源与有效性；`~/commands` / `~/receipts` 接收 MORLA CommandEnvelope 并反馈 CommandReceipt；`~/operation` / `~/authority` 为公共操作及租约服务。没有直接写关节的旁路话题。
+默认节点 `/loophand_driver`；`~/hand/joint_states` 输出 rad，`~/state` / `~/health` 报告来源与有效性；`~/commands` / `~/receipts` 接收 MORLA CommandEnvelope 并反馈 CommandReceipt；`~/operation` / `~/authority` 为公共操作与 acquire/revoke 服务（acquire 仅登记租约，不作为命令门禁）。没有直接写关节的旁路话题。
 
 本包独立的 `config/deployment.real.example.yaml` 只含手设备身份、串口及待验收标志。触觉总线、导纳抓取、Quest/手套重定向、手 URDF 和组合仿真尚未迁移，不要使用 XHand/Wuji 专用重定向冒充兼容。
 

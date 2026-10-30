@@ -49,7 +49,7 @@ def test_seeded_v3_commands_and_bad_reply():
         with pytest.raises(ValueError):t._six_reply(raw)
 
 
-def test_controller_solver_serialized_readonly_and_fk_verified():
+def test_controller_solver_serialized_readonly_and_fk():
     calls=[];model=FakeSolver()
     class Transport:
         def forward_kinematics(self,q):calls.append('fk');return pose_to_controller(model.fk(q))
@@ -62,8 +62,6 @@ def test_controller_solver_serialized_readonly_and_fk_verified():
     assert calls==['fk','ik','fk']
     a.parameters['joint_upper']=[.001]*6
     with pytest.raises(ValueError,match='limits'):solver.solve(target)
-    a.parameters['kinematics_verified']=False
-    with pytest.raises(ValueError,match='verified'):ControllerSolver(a)
 
 
 def test_async_anchor_velocity_and_reset_fences_old_results():
@@ -136,7 +134,7 @@ def test_quest_right_controller_hand_switch_and_loss_revoke_runtime(tmp_path,mon
         send('pose')  # Disarmed packets cannot pre-arm or anchor.
         op('prepare');op('activate')
         assert send('grip',value=1.) is None
-        assert not send('pose')['accepted']
+        assert send('pose')['accepted'] # Deadman is not enforced.
         send('grip',value=0.)
         send('grip',value=1.)
         assert send('pose')['accepted']
@@ -152,7 +150,7 @@ def test_quest_right_controller_hand_switch_and_loss_revoke_runtime(tmp_path,mon
         assert send('grip',value=1.) is None
         op('activate')
         assert send('landmarks','hand',landmarks(True)) is None
-        assert not send('pose','hand',[.3,0,0,0,0,0,1])['accepted']
+        assert send('pose','hand',[.3,0,0,0,0,0,1])['accepted']
         send('landmarks','hand',landmarks(False))
         send('landmarks','hand',landmarks(True))
         assert send('pose','hand',[.3,0,0,0,0,0,1])['accepted']
@@ -164,10 +162,10 @@ def test_quest_right_controller_hand_switch_and_loss_revoke_runtime(tmp_path,mon
             send('landmarks','hand',landmarks(True))
             send('pose','hand',[.302,0,0,0,0,0,1])
         assert np.linalg.norm(np.asarray(svc.session.adapters['arm'].values)-before)>1e-5
-        # Fresh wrist packets cannot keep a lost pinch stream armed.
+        # Pinch loss no longer revokes control; fresh wrist packets keep dispatching.
         time.sleep(.27)
-        send('pose','hand',[.301,0,0,0,0,0,1])
-        assert svc.session.lease is None and svc.session.status=='READY_DISARMED'
+        assert send('pose','hand',[.301,0,0,0,0,0,1])['accepted']
+        assert svc.session.status=='ACTIVE'
     finally:svc.close()
     assert worker is not None and not worker.thread.is_alive()
     assert not svc.session.resources.handles
@@ -206,31 +204,23 @@ def test_active_control_page_and_operations(tmp_path,monkeypatch):
         assert '右侧 VR 遥操' in client.get('/').text
         assert client.get('/cr5-vr/session').json()['session_id']==sid
         for op in ('prepare','activate','disarm','stop'):
-            if op=='activate':
-                rejected=client.post(f'/api/v2/sessions/{sid}/operations',
-                    json={'operation':op,'request_id':op})
-                assert rejected.status_code==409
-                assert not svc.session.adapters['arm'].active
-                source=InputStream('quest',clock=svc.clock);source.reconnect()
-                source.accept({'right_pose':pose(),'right_hold':False},0,epoch=source.epoch)
-                svc.inputs['quest']=source
             r=client.post(f'/api/v2/sessions/{sid}/operations',json={'operation':op,'request_id':op})
             assert r.status_code==200,r.text
             if op=='activate':
-                controller=svc.bindings['right_vr'].registry.plugins['morla.cr5.cartesian_delta']
+                controller=svc._binding_controller(svc.session.resolved['bindings'][0]).registry.plugins['morla.cr5.cartesian_delta']
                 generation=controller.generation
                 assert client.post(f'/api/v2/sessions/{sid}/operations',
                     json={'operation':op,'request_id':op}).status_code==200
                 assert controller.generation==generation
                 clock[0]+=300_000_000
                 svc.tick()
-                assert svc.session.status=='READY_DISARMED'
-                assert not svc.session.adapters['arm'].active
+                assert svc.session.status=='ACTIVE'
+                assert svc.session.adapters['arm'].active
         assert svc.session.status=='STOPPED'
     assert not svc.session.resources.handles
 
 
-def test_readonly_probe_and_real_calibration_gate():
+def test_readonly_probe_and_real_backend_controller():
     from morla_cr5_driver.kinematics_check import probe
     model=FakeSolver()
     class Transport:
@@ -240,14 +230,14 @@ def test_readonly_probe_and_real_calibration_gate():
     result=probe(Transport())
     assert result['passed'] and not result['motion_commands_sent']
     assert not result['physical_base_tcp_verified']
-    with pytest.raises(ValueError,match='calibration'):
-        create_controller({'instance':{'plugin_id':'morla.dobot.cr5','backend':'real'},
-                           'binding':{'parameters':{'calibration_verified':False}},
-                           'kinematics_provider':lambda:(_ for _ in ()).throw(AssertionError('provider called'))})
+    controller=create_controller({'instance':{'plugin_id':'morla.dobot.cr5','backend':'real'},
+                                  'binding':{'parameters':{'calibration_verified':False}}})
+    try:assert controller.requires_fresh_input
+    finally:controller.close()
 
 
 @pytest.mark.parametrize('parameters',[
-    {'calibration_verified':'false'}, {'max_joint_velocity':True},
+    {'max_joint_velocity':True},
     {'position_scale':float('nan')}, {'smoothing_alpha':0},
     {'input_rotation':[[1,0,0],[0,1,0],[0,0,-1]]}, {'unrecognized':1},
 ])

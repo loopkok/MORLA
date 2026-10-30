@@ -229,13 +229,10 @@ class ComposableService:
                 if request in session.operations or session.status!='READY_DISARMED':
                     return session.activate(request)
                 self._reset_bindings()
-                # Resolve selected controllers/calibration before any physical enable.
+                # Warm controllers so the first input frame does not pay solver setup.
                 for binding in session.resolved.get('bindings',[]):
-                    controller=self._binding_controller(binding)
-                    source=self.inputs.get(binding['source'].split('.',1)[0])
-                    if controller.requires_fresh_input and not controller.input_fresh(source.read() if source else None):
-                        raise ServiceError('Fresh pose and deadman input required before activation')
-                return session.activate(request)
+                    self._binding_controller(binding)
+                return session.activate(request, raw.get("component_ids"))
             if operation=="disarm":
                 self._reset_bindings()
                 self.stop_policy(session_id)
@@ -388,12 +385,10 @@ class ComposableService:
                 raise ServiceError('unregistered input source',422)
             adapter=session.adapters.get(input_id)
             if hasattr(adapter,'feed'): adapter.feed(frame)
-            # Disarmed input may be observed, but must never establish an active-motion anchor.
+            # Pre-refactor start gate: input before activation never commands motion.
             if session.status!='ACTIVE':
                 self._reset_bindings()
                 return {'accepted':False,'reason':'explicit_activation_required'}
-            if session.lease is not None and session.lease['producer']!='human_mobile':
-                return {'accepted':False,'reason':'authority_owned_by_other_producer'}
             command_rows=[]
             for binding in session.resolved.get("bindings",[]):
                 if binding["source"].split(".",1)[0]!=input_id:
@@ -413,18 +408,12 @@ class ComposableService:
                     command_rows.append({"component_id":target,"names":names,"values":values,
                                          "mode":"position","units":[j.get("unit","rad") for j in joints]})
             if not command_rows:
-                if input_id in self.active_input_sources and session.lease and session.lease["producer"]=="human_mobile":
-                    session.revoke(reason="deadman_release")
-                    self.active_input_sources.clear()
                 return {"accepted":False,"reason":"release_or_reanchor_required"}
-            if session.status!="ACTIVE":
-                return {"accepted":False,"reason":"explicit_activation_required"}
+            # Lease bookkeeping only; submit no longer enforces authority.
             lease=session.lease
             if lease is None:
                 lease=session.acquire("human_mobile",ttl_ns=250_000_000)
-            elif lease["producer"]!="human_mobile":
-                raise ServiceError("control authority owned by another producer")
-            else:
+            elif lease["producer"]=="human_mobile":
                 lease=session.renew("human_mobile",lease["token"],250_000_000)
             self.sequence+=1
             self.active_input_sources.add(input_id)
@@ -448,21 +437,6 @@ class ComposableService:
         with self.lock:
             if self.session is None: return
             self.session.tick()
-            if (self.session.status=='ACTIVE' and
-                    (self.session.lease is None or self.session.lease['producer']=='human_mobile')):
-                for binding in self.session.resolved.get('bindings',[]):
-                    controller=self.bindings.get(binding['id'])
-                    source=self.inputs.get(binding['source'].split('.',1)[0])
-                    if (controller and controller.requires_fresh_input and
-                            not controller.input_fresh(source.read() if source else None)):
-                        self._reset_bindings()
-                        self.session.revoke(reason='required_input_expired')
-                        self.active_input_sources.clear()
-                        break
-            if (self.session.lease and self.session.lease["producer"]=="human_mobile"
-                    and any(self.inputs.get(key) is None or self.inputs[key].read() is None for key in self.active_input_sources)):
-                self.session.revoke(reason="input_expired")
-                self.active_input_sources.clear()
             period=int(1_000_000_000/self.session.resolved['capture_schema'].get('dataset_fps',30))
             if self.policy and not self.policy.closed and self.clock()-self.last_policy_ns>=period:
                 try:

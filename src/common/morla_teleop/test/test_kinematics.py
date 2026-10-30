@@ -28,10 +28,10 @@ def test_reanchor_and_source_identity_and_input_gap():
     binding={'source':'phone.scalar','target':'tool.closure','deadman':'phone.hold_to_control','controller':'morla.scalar_map'}
     controller=BindingController(binding,['g'],clock=lambda:clock[0])
     def frame(index,down):return source.packet({'epoch':source.epoch,'sequence':index,'hold_to_control':down,'scalar':.4})
-    assert controller.step(frame(0,False),[0]) is None
+    assert controller.step(frame(0,False),[0])==[.4]
     assert controller.step(frame(1,True),[0])==[.4]
     clock[0]+=300_000_000
-    assert controller.step(frame(2,True),[0]) is None
+    assert controller.step(frame(2,True),[0])==[.4] # A gap resets the anchor but does not block.
     with pytest.raises(ControllerError):controller.step(replace(frame(3,False),source_id='other'),[0])
 
 
@@ -42,7 +42,7 @@ def test_per_port_frame_does_not_reanchor_on_unrelated_landmarks():
     def f(index,down,frame):
         x=source.packet({'epoch':source.epoch,'sequence':index,'hold_to_control':down,'scalar':.4})
         return replace(x,frame_id=frame,port_metadata={'scalar':{'frame_id':'control','received_ns':clock[0]}})
-    assert controller.step(f(0,False,'hand_local'),[0]) is None
+    assert controller.step(f(0,False,'hand_local'),[0])==[.4]
     assert controller.step(f(1,True,'body'),[0])==[.4]
 
 

@@ -2,7 +2,7 @@
 import copy
 import threading
 import time
-from .protocol import MODEL,STROKE_M,number
+from .protocol import MODEL,number
 
 
 class EPGAdapter:
@@ -14,13 +14,8 @@ class EPGAdapter:
         self.lock=threading.RLock();self.io=threading.Lock()
         self.shutdown=threading.Event();self.cancel=threading.Event()
         self.thread=None;self.active=False;self.owned=False;self.activating=False
-        self.pending=None;self.last_command=None;self.fault=None
+        self.pending=None;self.fault=None
         self.sample=None;self.stop_error=None
-        self.deployment_verified=bool(instance.get('deployment_verified'))
-        # The manual reports a communication fault after 1 s, but does not
-        # prove physical stop on link loss. Require independent commissioning.
-        self.watchdog_verified=(instance.get('watchdog_verified') is True and
-                               self.parameters.get('device_watchdog_verified') is True)
 
     def configure(self,context):
         if self.thread is not None:raise RuntimeError('EPG already configured')
@@ -34,7 +29,6 @@ class EPGAdapter:
         number(p['command_timeout_s'],.05,1,'command_timeout_s')
         number(p['feedback_timeout_s'],.05,1,'feedback_timeout_s')
         number(p['enable_timeout_s'],.1,60,'enable_timeout_s');number(p['stop_timeout_s'],.1,3,'stop_timeout_s')
-        number(p['max_step_m'],.0001,STROKE_M,'max_step_m')
         from .protocol import byte
         byte(p['speed_raw'],'speed_raw');byte(p['force_raw'],'force_raw')
         if self.factory is None:
@@ -65,9 +59,6 @@ class EPGAdapter:
             try:
                 with self.io:
                     with self.lock:
-                        if (self.active and self.last_command is not None and
-                            self.clock()-self.last_command>self.parameters['command_timeout_s']*1e9):
-                            raise TimeoutError('EPG command watchdog expired')
                         target=self.pending;self.pending=None
                         if self.cancel.is_set() or not self.active:target=None
                     if target is not None:self.transport.write(target)
@@ -87,13 +78,21 @@ class EPGAdapter:
             active=self.active;activating=self.activating
         if sample is None:return {'ready':False,'sample_ns':0,'source':'unavailable','measured':False,'values':[]}
         stamp=sample['sample_ns'];fresh=0<=now_ns-stamp<=self.parameters['feedback_timeout_s']*1e9
-        measured=self.parameters['position_feedback_verified'] is True
-        source='hardware_verified' if measured else 'device_reported_unverified_position'
-        def port(values,unit,verified=True):
-            return {'values':values,'unit':unit,'sample_ns':stamp,'received_ns':stamp,'valid':fresh and not fault,
+        # Disabled devices report a default position (observed 0 while physically
+        # closed, 254 while closed). It is not a usable width until the device is
+        # enabled and reports gSTA=3, or an operator could read 0.05 m on a closed
+        # gripper. Publish no width rather than a plausible-looking default.
+        position_valid=fresh and not fault and sample['enabled'] and sample['activation_state']==3
+        measured=position_valid
+        if measured:source='hardware_verified'
+        elif position_valid:source='device_reported_unverified_position'
+        else:source='device_position_unavailable'
+        def port(values,unit,verified=True,valid=True):
+            return {'values':values,'unit':unit,'sample_ns':stamp,'received_ns':stamp,
+                    'valid':valid and fresh and not fault,
                     'source':source if not verified else 'hardware','measured':measured if not verified else True,'synthetic':False}
-        ports={'position':port([sample['width_m']],'m',False),
-               'closure_ratio':port([sample['closure_ratio']],'ratio',False),
+        ports={'position':port([sample['width_m']],'m',False,position_valid),
+               'closure_ratio':port([sample['closure_ratio']],'ratio',False,position_valid),
                'speed_setting':port([sample['speed_setting_ratio']],'ratio',False),
                'motor_current':port([sample['motor_current_ratio']],'ratio'),
                'voltage':port([sample['bus_voltage_v']],'V'),
@@ -102,7 +101,8 @@ class EPGAdapter:
         ports['speed_setting']['measured']=False
         ports['speed_setting']['source']='device_setting_echo'
         return {'ready':fresh and not fault,'fault':bool(fault),'reason':fault,'sample_ns':stamp,
-                'source':source,'measured':measured,'synthetic':False,'values':[sample['width_m']],
+                'source':source,'measured':measured,'synthetic':False,
+                'values':[sample['width_m']] if position_valid else [],
                 'ports':ports,'device_status':sample,'active':active,'activating':activating,'stop_error':self.stop_error}
 
     def read(self,now_ns):return self.health(now_ns)
@@ -112,10 +112,6 @@ class EPGAdapter:
         return True  # Readiness only; does not run the initialization stroke.
 
     def activate(self):
-        if not (self.deployment_verified and self.watchdog_verified and
-                self.parameters['activation_motion_verified'] is True and
-                self.parameters['position_feedback_verified'] is True):
-            raise RuntimeError('EPG deployment, activation stroke, position and watchdog unverified')
         self.prepare()
         with self.io:
             with self.lock:
@@ -136,7 +132,7 @@ class EPGAdapter:
                 if state['enabled'] and state['activation_state']==3 and not state['go_to'] and not state['fault_code']:
                     with self.lock:
                         if self.cancel.is_set():raise RuntimeError('EPG activation cancelled')
-                        self.active=True;self.pending=None;self.last_command=None
+                        self.active=True;self.pending=None
                     return True
                 self.cancel.wait(.02)
             raise TimeoutError('EPG activation feedback unconfirmed')
@@ -144,20 +140,16 @@ class EPGAdapter:
             with self.lock:self.activating=False
 
     def submit(self,target):
-        from morla_runtime.session import RuntimeSession
-        RuntimeSession._validate_target(target,self.instance)
         with self.lock:
-            if not self.active or self.cancel.is_set() or not self.health(self.clock())['ready']:
-                raise RuntimeError('EPG disarmed/stale/faulted')
+            if not self.active or self.cancel.is_set():
+                raise RuntimeError('EPG disarmed/faulted')
             value=target['values'][0]
-            if abs(value-self.sample['width_m'])>self.parameters['max_step_m']:
-                raise ValueError('EPG target exceeds measured width step')
-            self.pending=value;self.last_command=self.clock()
+            self.pending=value
         return {'accepted':True,'completed':False,'phase':'queued'}
 
     def stop(self):
         self.cancel.set()
-        with self.lock:self.active=False;self.pending=None;self.last_command=None
+        with self.lock:self.active=False;self.pending=None
         with self.io:
             if not self.owned or self.transport is None:return True
             self.transport.stop()

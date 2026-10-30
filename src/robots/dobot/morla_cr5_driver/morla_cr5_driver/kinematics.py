@@ -33,8 +33,6 @@ def pose_to_controller(pose):
 class ControllerSolver:
     """Uses the adapter's owned dashboard, serialized with enable/stop, never writes targets."""
     def __init__(self, adapter):
-        if adapter.parameters.get('kinematics_verified') is not True:
-            raise ValueError('CR5 kinematics/base/tool calibration must be verified')
         self.adapter = adapter
         self.seed = None
 

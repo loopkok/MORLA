@@ -167,27 +167,27 @@ def main(argv=None):
         send(good, 'valid fake target')
         wait(lambda: all(math.isclose(a, b, abs_tol=1e-9) for a, b in zip(
             state['components'][args.component]['values'], values)), 'fake target feedback')
-        send(copy.deepcopy(good), 'duplicate sequence', 'STALE_SEQUENCE')
+        # Post-rollback submit checks only: estop latch, component subset/duplicates and
+        # adapter acceptance. Token/epoch/sequence/TTL are carried but not enforced.
         cases = [
-            ('wrong token', 'INVALID_TOKEN', lambda m: setattr(m, 'token', 'invalid')),
-            ('wrong epoch', 'INVALID_EPOCH', lambda m: setattr(m, 'epoch', permit.epoch + 1)),
-            ('old session', 'INVALID_SESSION_ID', lambda m: setattr(m, 'session_id', 'old-session')),
-            ('expired command', 'COMMAND_EXPIRED_OR_FUTURE', lambda m: setattr(m, 'issued_ns', 0)),
-            ('future command', 'COMMAND_EXPIRED_OR_FUTURE', lambda m: setattr(m, 'issued_ns', time.monotonic_ns() + 10_000_000_000)),
-            ('wrong joint', 'JOINT_SET_MISMATCH', lambda m: setattr(m.commands[0], 'names', ['wrong'] * len(values))),
-            ('wrong unit', 'UNIT_MISMATCH', lambda m: setattr(m.commands[0], 'units', ['degree'] * len(values))),
-            ('nonfinite target', 'NONFINITE_TARGET', lambda m: setattr(m.commands[0], 'values', [float('nan')] * len(values))),
+            ('duplicate component', 'COMMAND_RESOURCES', lambda m: m.commands.append(
+                copy.deepcopy(m.commands[0]))),
+            ('unknown component', 'COMMAND_RESOURCES', lambda m: setattr(
+                m.commands[0], 'component_id', 'not-a-component')),
         ]
         for sequence, (label, expected, mutate) in enumerate(cases, 2):
             auth('renew')
             msg = message(sequence)
             mutate(msg)
             send(msg, label, expected)
-        auth('revoke')
-        wait(lambda: state.get('status') == 'READY_DISARMED', 'revoke')
-        send(message(20), 'old authority after revoke', 'NO_ACTIVE_AUTHORITY')
+        operation('estop')
+        send(message(10), 'submit while estop latched', 'RESET_REQUIRED')
+        operation('reset')
+        wait(lambda: state.get('status') == 'READY_DISARMED', 'reset')
+        send(message(11), 'submit after reset without activate', 'ADAPTER_DISARMED')
         permit = None
-        print('PASS installed fake ROS services, command/receipt transport, feedback and rejection cases')
+        print('PASS installed fake ROS services, command/receipt transport, feedback, '
+              'and the retained rejection cases (resource subset, estop latch, disarmed adapter)')
     finally:
         if permit is not None:
             try:

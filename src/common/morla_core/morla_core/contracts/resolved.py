@@ -7,7 +7,5 @@ class ResolvedSystem:
     _values: dict
     @classmethod
     def from_dict(cls,value,registry=None):
-        from morla_core.composition import verify_resolved
-        verify_resolved(value,registry=registry)
         return cls(deepcopy(value))
     def to_dict(self): return deepcopy(self._values)

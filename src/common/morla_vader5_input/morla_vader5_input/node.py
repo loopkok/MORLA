@@ -24,7 +24,6 @@ def main(args=None):
             self.done=threading.Event();self.locks=ResourceManager();self.pad=None
             self.device=self.get_parameter('device').value;self.fake=self.get_parameter('fake').value
             hz=self.get_parameter('publish_hz').value;self.timeout=self.get_parameter('read_timeout_s').value
-            if not .01<=self.timeout<=.2:raise ValueError('read_timeout_s must be 0.01..0.2 s')
             self.stream=ReportStream(publish_hz=hz,backend='fake' if self.fake else 'real')
             qos=QoSProfile(depth=64,reliability=ReliabilityPolicy.RELIABLE)
             self.events=self.create_publisher(String,self.get_parameter('topic').value,qos)

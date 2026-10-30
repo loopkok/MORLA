@@ -8,7 +8,7 @@
 
 - 摇杆/扳机、27个已解码按钮、角速度rad/s、含重力加速度m/s²、原始报告及未知位。
 - ROS发布命名空间内Joy/Imu诊断和来源明确的事件流；Imu无姿态，orientation_covariance[0]=-1。没有把加速度二次积分成位置，也没有宣称它具有VR绝对6DoF定位。
-- 默认是六轴笛卡尔速度点动：摇杆中立停止增量，按住deadman才控制；也可用公共joint jog/scalar map绑定其他执行器。
+- 默认是六轴笛卡尔速度点动：摇杆中立停止增量；M1（`hold_to_control`）仍作为输入意图/auxiliary发布，但runtime不再强制“按住才动”。也可用公共joint jog/scalar map绑定其他执行器。
 - 默认位姿求解沿用机器人自己的IK：Nero/Astral用既有公共gamepad jog，CR5使用同一个本地URDF/Pinocchio后端及异步控制器的jog模式。输入包不依赖这些机器人包。
 - 数据、训练、策略和回放继续使用相同的冻结state/action契约；不新增手柄专属模型或直接SDK运动通道。
 
@@ -78,10 +78,10 @@ ros2 launch morla_vader5_input vader5_teleop.launch.py \
 - **START单按**：请求激活；不替代prepare/标定/实机门槛。启动时已经按住不触发，需先释放。
 - **B**：暂停/撤权，显式停止当前人工或策略会话控制。
 - **Y**：开始录制；**X**：结束并保存。采集动作与激活分开，长按不重复触发。
-- **START+SELECT**：软件急停，优先于START激活，且该帧deadman强制false；释放SELECT时不会补发激活。
-- A、C/Z、其余背键、LB/RB等未绑定操作时只作原始输入记录。HOME和TURBO不绑定动作，TURBO是脉冲，不可当保持键。没有默认丢弃数据、HOME/回工作位、自动启动模型或自动接管策略的组合键。
+- **START+SELECT** 组合急停已随重构删除；急停请用Web/服务操作或外部硬件急停。
+- A、C/Z、其余背键、LB/RB等未绑定操作时只作原始输入记录。HOME和TURBO不绑定动作，TURBO是脉冲，不可当保持键。
 
-`deadman_button`、`rotation_button`、`action_buttons`必须互不冲突；action_buttons可设为空以关闭所有离散操作，仅保留急停组合；START/SELECT急停约定保留，模拟扳机与HOME/TURBO不得兼作操作/保持键。数据命令只走组合Service现有API，不同时再发旧 `/morla/operator/command`，避免一个键执行两次。操作request按输入epoch/sequence关联并去重，查看runtime operations/input_operation事件，submitted或RUNNING不等于已完成。
+重构后不再检查 `deadman_button`、`rotation_button`、`action_buttons` 的角色冲突，也不再保留SELECT保留键；配置写错不会被拒绝，需自行核对。action_buttons可设为空以关闭所有离散操作。数据命令只走组合Service现有API，不同时再发旧 `/morla/operator/command`。操作request仍按输入epoch/sequence记录，但runtime不据此拒绝，submitted或RUNNING不等于已完成。
 
 SDK坐标保持原方向；`axis_signs`按x,y,z,roll,pitch,yaw提供六个±1软件方向；`input_rotation`由机器人binding把增量对齐基座。现场逐轴验证后再运动，不默认把手柄轴当成机器人轴。
 
@@ -91,9 +91,9 @@ SDK坐标保持原方向；`axis_signs`按x,y,z,roll,pitch,yaw提供六个±1软
 
 CR5默认线速度0.02 m/s、角速度0.15 rad/s、输出关节速度0.3 rad/s；LT倍率在此前提下降速。jog复用公共CartesianController及现有异步worker，采用10 µm/0.0001 rad接受精度，避免精细模式每拍小增量被原VR的0.2 mm接受容差吞掉；VR模式原默认精度不变。它仍受关节限位/步长、求解超时和硬件反馈约束。
 
-EPG示例用公共scalar_map把RT 0..1映射到0.05..0 m，配置max_velocity=0.05 m/s以避免一次扳机跳变突破驱动5 mm步长。此限制是软件目标变化率，不代替真实夹爪限速/力/停止验证。
+EPG示例用公共scalar_map把RT 0..1映射到0.05..0 m。重构后scalar_map不再执行 `max_velocity` 上限，EPG驱动也没有5 mm步长限制；一次扳机大跳变会直接成为大目标跳变，需要操作上避免。
 
-真实CR5还需原有joint_lower/upper、身份/IP、kinematics_verified、输入基座/TCP变换、calibration_verified及部署/停止/watchdog证据；原real模板保留false。真实EPG还需其初始化、位置语义、停止/watchdog门槛。Nero/Astral示例只验证装配契约，真实运行需各自驱动、模型资源及部署；不声称这些示例已实机测试。
+真实CR5仍需joint_lower/upper、身份/IP、输入基座/TCP变换等正确配置；`kinematics_verified`/`calibration_verified` 和部署/停止/watchdog声明不再参与门禁，只作记录。真实EPG同样不再有初始化/位置语义/停止/watchdog门禁。Nero/Astral示例只验证装配契约，真实运行需各自驱动、模型资源及部署；不声称这些示例已实机测试。
 
 ## 数采、训练、推理与回放
 
@@ -101,7 +101,7 @@ EPG示例用公共scalar_map把RT 0..1映射到0.05..0 m，配置max_velocity=0.
 
 使用既有SchemaV3录制、对齐/导出及ACT/OpenPI训练入口，冻结机器人feature/geometry和动作单位。默认auxiliary不会自动成为模型条件输入；若要把手柄意图作为训练观测，显式修改capture.state/特征契约并重做模型握手。更改按钮/轴配置会改变Assembly/Resolved身份，应重新编译；不假定input_mapping_hash单独涵盖全部输入参数。
 
-策略/回放输出继续通过同一runtime授权网关。策略持权时普通手柄状态只被观察/记录，M1不会自动抢权或发送人工目标；B暂停或软件急停是显式操作。真实训练/模型推理服务未执行，本轮只验证本地假预测器/回放的同契约控制链。
+策略/回放输出继续走同一runtime命令接口，但重构后不再有策略与人工输入的运行时互斥或租约强制；同时驱动时后写入者生效，需要上层自律。B仍可显式暂停/撤权。真实训练/模型推理服务未执行，本轮只验证本地假预测器/回放的同契约控制链。
 
 ## 验证
 

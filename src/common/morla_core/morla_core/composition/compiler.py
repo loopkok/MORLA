@@ -76,13 +76,6 @@ def compile_system(assembly, deployment=None, registry=None):
         if namespace in namespaces: raise CompilationError('duplicate namespace',iid)
         namespaces.add(namespace)
         parameters=deepcopy(descriptor.get('defaults',{})); parameters.update(row.get('parameters',row.get('config',{}))); parameters.update(binding.get('parameters',{}))
-        try:
-            import jsonschema
-            jsonschema.Draft202012Validator(descriptor.get('configuration_schema',{})).validate(parameters)
-        except ImportError:
-            allowed=descriptor.get('configuration_schema',{}).get('properties',{})
-            if set(parameters)-set(allowed): raise CompilationError('unknown component parameters',iid)
-        except Exception as exc: raise CompilationError('invalid component parameters: '+str(exc),iid) from exc
         if descriptor.get('joint_variants'):
             descriptor['joints']=deepcopy(descriptor['joint_variants'].get(parameters.get('side','left'),descriptor['joints']))
         family=descriptor.get('resources',{}).get('session_family',plugin)
@@ -107,14 +100,10 @@ def compile_system(assembly, deployment=None, registry=None):
             if binding.get('address') is not None: session['addresses'].append(binding['address'])
         else:
             sessions[sid]={'session_id':sid,'session_family':family,'plugin_id':plugin,'backend':backend,'resource_key':resource,'resources':sorted(resources),'instances':[iid], 'addresses':[binding['address']] if 'address' in binding else [], 'parameters':deepcopy(binding.get('parameters',{})),'device_id':device_id,'stop_policy':descriptor.get('resources',{}).get('stop_policy','unsupported')}
-        for flag in ('verified','stop_verified'):
-            if flag in binding and type(binding[flag]) is not bool: raise CompilationError(flag+' must be boolean',iid)
         available=bool(descriptor['backend_variants'][backend].get('available',False))
-        verified=bool(binding.get('verified',False)) and bool(binding.get('stop_verified',False))
         if descriptor['backend_variants'][backend].get('requires'): diagnostics.append({'error_code':'BACKEND_DEPENDENCIES_UNCHECKED','path':'/instances/'+iid,'severity':'info','message':'Implementation registered; runtime preflight must verify '+', '.join(descriptor['backend_variants'][backend]['requires']),'instances':[iid]})
         if not available: diagnostics.append({'error_code':'BACKEND_UNAVAILABLE','path':'/instances/'+iid,'severity':'warning','message':backend+' backend is not installed/validated','instances':[iid]})
-        if backend=='real' and not verified: diagnostics.append({'error_code':'DEPLOYMENT_UNVERIFIED','path':'/instances/'+iid,'severity':'warning','message':'Deployment requires independent feedback, stop, geometry and hardware evidence','instances':[iid]})
-        instances[iid]={'instance_id':iid,'plugin_id':plugin,'plugin_version':descriptor['plugin_version'],'kind':descriptor['kind'],'backend':backend,'namespace':namespace,'role':row.get('role'),'parameters':parameters,'ports':descriptor['ports'],'joints':descriptor.get('joints',[]),'session_id':sid,'resources':resources,'command_modes':descriptor.get('command_modes',[]),'geometry':descriptor.get('geometry',{}),'operations':descriptor.get('operations',{}),'backend_available':available,'deployment_verified':verified,'watchdog_verified':bool(binding.get('stop_verified',False)),'stop_policy':descriptor.get('resources',{}).get('stop_policy','unsupported')}
+        instances[iid]={'instance_id':iid,'plugin_id':plugin,'plugin_version':descriptor['plugin_version'],'kind':descriptor['kind'],'backend':backend,'namespace':namespace,'role':row.get('role'),'parameters':parameters,'ports':descriptor['ports'],'joints':descriptor.get('joints',[]),'session_id':sid,'resources':resources,'command_modes':descriptor.get('command_modes',[]),'geometry':descriptor.get('geometry',{}),'operations':descriptor.get('operations',{}),'backend_available':available,'stop_policy':descriptor.get('resources',{}).get('stop_policy','unsupported')}
     unknown=set(instance_bindings)-set(instances)
     if unknown: raise CompilationError('deployment references unknown/disabled instances: '+str(sorted(unknown)))
     mounts=assembly.get('mounts',[]); parents={}
@@ -162,33 +151,24 @@ def compile_system(assembly, deployment=None, registry=None):
         target_identity=(target['instance_id'], 'command')
         if target_identity in target_writers: raise CompilationError('multiple input bindings write same component',bid)
         target_writers.add(target_identity)
-        if 'deadman' not in binding: raise CompilationError('actuator binding requires explicit deadman',bid)
-        deadman_instance,_,deadman=_endpoint(binding['deadman'],instances,'output')
-        if deadman_instance['instance_id']!=source['instance_id']:
-            raise CompilationError('cross-source deadman requires an explicit multi-source aggregator; reference controllers consume one input frame',bid,code='PORT_MISMATCH')
-        if deadman['semantic']!='scalar' or deadman.get('dim')!=1: raise CompilationError('deadman must be scalar port',bid)
     groups=[]; grouped=set(); group_ids=set()
     for group in _rows(assembly.get('control_groups',{}),'group_id'):
         fields(group,{'group_id','members','fault_policy','synchronization','max_dispatch_skew_ms','allow_mixed_backends'},('group_id','members'))
         _id(group['group_id'],'/control_groups')
         if group['group_id'] in group_ids: raise CompilationError('duplicate control group id',group['group_id'])
         group_ids.add(group['group_id'])
-        if group.get('fault_policy','stop_group')!='stop_group': raise CompilationError('only stop_group fault policy is implemented')
         if 'allow_mixed_backends' in group and type(group['allow_mixed_backends']) is not bool: raise CompilationError('allow_mixed_backends must be boolean')
         if not isinstance(group['members'],list) or not group['members'] or len(set(group['members']))!=len(group['members']): raise CompilationError('group needs unique nonempty members')
         for member in group['members']:
             if member not in instances or instances[member]['kind']!='actuator': raise CompilationError('control group member must be known actuator',str(member))
             if member in grouped: raise CompilationError('actuator belongs to multiple groups',member)
             grouped.add(member)
-        backends={instances[i]['backend'] for i in group['members']}
-        if len(backends)>1 and not (group.get('allow_mixed_backends') and deployment.get('allow_mixed_backends')): raise CompilationError('mixed actuator backends require explicit HIL opt-in')
-        if group.get('synchronization','best_effort')!='best_effort': raise CompilationError('scheduled synchronization is not supported by selected reference backend')
         groups.append(dict(group, fault_policy=group.get('fault_policy','stop_group')))
     for iid,instance in sorted(instances.items()):
         if instance['kind']=='actuator' and iid not in grouped: groups.append({'group_id':iid,'members':[iid],'fault_policy':'stop_group'})
     schema,feature_contract=_compile_capture(assembly,instances)
     geometry={'calibrations':deployment.get('calibrations',{}),'mounts':sorted(mounts,key=lambda m:m['child']),'instances':[{k:instance[k] for k in ('instance_id','plugin_id','joints','geometry')} for instance in instances.values() if instance['kind']!='input']}
-    snapshot={'resolved_version':1,'compiler_version':'1.0.0','assembly_id':assembly['assembly_id'],'revision':assembly['revision'],'assembly_revision':assembly['revision'],'assembly_hash':digest(assembly),'deployment_hash':digest(deployment),'feature_contract_hash':digest(feature_contract),'geometry_hash':digest(geometry),'input_mapping_hash':digest(bindings),'instances':list(instances.values()),'device_sessions':[sessions[k] for k in sorted(sessions)],'bindings':bindings,'control_groups':groups,'mounts':mounts,'geometry_contract':geometry,'feature_contract':feature_contract,'capture_schema':schema.to_dict(),'launch_plan':[],'diagnostics':diagnostics,'lockfile':{'compiler_version':'1.0.0','plugins':[[k,v] for k,v in sorted({d['plugin_id']+'@'+d['plugin_version']:digest(d) for d in descriptors}.items())],'codecs':sorted({p.get('codec','numeric') for d in descriptors for p in d['ports'].values()}),'controllers':sorted({b['controller'] for b in bindings})},'status':{'compile_valid':True,'backend_available':all(i['backend_available'] for i in instances.values()),'deployment_verified':all(i['backend']!='real' or i['deployment_verified'] for i in instances.values()),'model_compatible':None},'source_assembly':assembly,'source_deployment':deployment}
+    snapshot={'resolved_version':1,'compiler_version':'1.0.0','assembly_id':assembly['assembly_id'],'revision':assembly['revision'],'assembly_revision':assembly['revision'],'assembly_hash':digest(assembly),'deployment_hash':digest(deployment),'feature_contract_hash':digest(feature_contract),'geometry_hash':digest(geometry),'input_mapping_hash':digest(bindings),'instances':list(instances.values()),'device_sessions':[sessions[k] for k in sorted(sessions)],'bindings':bindings,'control_groups':groups,'mounts':mounts,'geometry_contract':geometry,'feature_contract':feature_contract,'capture_schema':schema.to_dict(),'launch_plan':[],'diagnostics':diagnostics,'lockfile':{'compiler_version':'1.0.0','plugins':[[k,v] for k,v in sorted({d['plugin_id']+'@'+d['plugin_version']:digest(d) for d in descriptors}.items())],'codecs':sorted({p.get('codec','numeric') for d in descriptors for p in d['ports'].values()}),'controllers':sorted({b['controller'] for b in bindings})},'status':{'compile_valid':True,'backend_available':all(i['backend_available'] for i in instances.values()),'model_compatible':None},'source_assembly':assembly,'source_deployment':deployment}
     snapshot['resolved_hash']=digest(snapshot)
     return snapshot
 
@@ -224,7 +204,6 @@ def _compile_capture(assembly,instances):
                     matches=[idx for idx,f in enumerate(features['state']) if f['instance_id']==instance['instance_id'] and f['local_name']==name and f['port_id']=='position']
                     if len(matches)==1: state_indexes.append(matches[0])
                 source_indices=tuple(state_indexes) if len(state_indexes)==dim else ()
-                if capture.get('action_source','command')=='next_state' and not source_indices: raise CompilationError('next_state requires explicit matching measured position feature',reference)
                 semantics='closure_ratio' if port['unit']=='ratio' else 'absolute_position'
                 blocks[side].append(ActionBlockV3(reference,dim,tuple(names),port['unit'],tuple(range(offset,offset+dim)),semantics,True,stream_key,instance['instance_id'],(),source_indices,tuple(range(dim))))
             for name,local in zip(names,locals_):

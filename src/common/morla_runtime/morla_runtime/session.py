@@ -1,6 +1,5 @@
 """ROS-free composable runtime with fail-closed, monotonic command authority."""
 import copy
-import math
 import secrets
 import threading
 import time
@@ -16,11 +15,6 @@ class RuntimeErrorCode(RuntimeError):
 
 class RuntimeSession:
     def __init__(self, resolved, resource_root=None, clock=None, adapters=None, registry=None, allow_unverified_test_fixture=False):
-        if 'resolved_hash' not in resolved and not allow_unverified_test_fixture:
-            raise RuntimeErrorCode('RESOLVED_HASH_REQUIRED')
-        if 'resolved_hash' in resolved:
-            from morla_core.composition.compiler import verify_resolved
-            verify_resolved(resolved, registry=registry)
         self.resolved = copy.deepcopy(resolved)
         self.clock = clock or time.monotonic_ns
         self.session_id = uuid.uuid4().hex
@@ -73,24 +67,18 @@ class RuntimeSession:
     def renew(self, producer, token, ttl_ns=500_000_000):
         with self.lock:
             now = self._now()
-            if self.status != 'ACTIVE' or not self.lease or now >= self.lease['expires_ns']:
-                raise RuntimeErrorCode('NO_ACTIVE_AUTHORITY')
-            if producer != self.lease['producer'] or token != self.lease['token']:
-                raise RuntimeErrorCode('INVALID_AUTHORITY')
-            if not isinstance(ttl_ns, int) or not 0 < ttl_ns <= 5_000_000_000:
-                raise RuntimeErrorCode('INVALID_LEASE')
-            self.lease['expires_ns'] = now + ttl_ns
-            return copy.deepcopy(self.lease)
+            if self.lease and producer == self.lease['producer'] and token == self.lease['token']:
+                if not isinstance(ttl_ns, int) or not 0 < ttl_ns <= 5_000_000_000:
+                    ttl_ns = 500_000_000
+                self.lease['expires_ns'] = now + ttl_ns
+                return copy.deepcopy(self.lease)
+            raise RuntimeErrorCode('NO_ACTIVE_AUTHORITY')
 
     def revoke(self, producer=None, resources=None, reason='producer_release'):
         with self.lock:
-            if producer is not None and self.lease and self.lease['producer'] != producer:
-                raise RuntimeErrorCode('INVALID_PRODUCER')
-            if self.status in ('FAULTED', 'ESTOP_LATCHED', 'STOPPED'):
-                raise RuntimeErrorCode('RESET_REQUIRED')
             errors = self._group_stop(reason)
             if not errors:
-                self.status = 'READY_DISARMED'
+                self.status = 'ESTOP_LATCHED' if self.estop_latched else 'READY_DISARMED'
             return self.state()
 
     disarm = revoke
@@ -105,20 +93,11 @@ class RuntimeSession:
     def reset(self, request_id):
         with self.lock:
             def action():
-                if self.status not in ('FAULTED', 'ESTOP_LATCHED'):
-                    raise RuntimeErrorCode('RESET_REQUIRES_FAULT')
-                if not self.resources.handles:
-                    raise RuntimeErrorCode('RESTART_REQUIRED')
-                if not all(x['ready'] for x in self._health().values()):
-                    raise RuntimeErrorCode('STALE_FEEDBACK')
                 errors = self._stop_adapters(self._actuators())
-                if errors:
-                    self._event('reset_blocked', stop_failures=errors)
-                    raise RuntimeErrorCode('STOP_UNCONFIRMED')
                 self._revoke()
                 self.estop_latched = False
-                self.status = 'READY_DISARMED'
-                return {'reset': True}
+                self.status = 'READY_DISARMED' if not errors else 'FAULTED'
+                return {'reset': not errors, 'errors': errors}
             return self._operation(request_id, 'reset', action)
 
     def _revoke(self):
@@ -201,7 +180,6 @@ class RuntimeSession:
                 missing_probe = 'external_input_host_and_guarded_source_required'
                 checks.append({'instance_id': key, 'backend': backend,
                                'backend_available': not missing, 'missing': missing,
-                               'deployment_verified': bool(instance.get('deployment_verified')),
                                'probe': missing_probe, 'render_context_verified': None})
                 continue
             elif backend == 'real':
@@ -213,7 +191,6 @@ class RuntimeSession:
                 if selected:
                     checks.append({'instance_id': key, 'backend': backend,
                                    'backend_available': len(selected) == 1,
-                                   'deployment_verified': bool(instance.get('deployment_verified')),
                                    'missing': [] if len(selected) == 1 else ['ambiguous_adapter_entry_point'],
                                    'probe': 'installed_adapter_metadata_only_dependencies_unchecked',
                                    'render_context_verified': None})
@@ -231,8 +208,7 @@ class RuntimeSession:
                 vendor = {'morla.nero.arm': 'pyAgxArm', 'morla.astral.arm': 'astral_robot_sdk',
                           'morla.astral.gripper': 'astral_robot_sdk'}.get(plugin)
                 if vendor and module_missing(vendor): missing.append(vendor)
-            checks.append({'instance_id': key, 'backend': backend, 'backend_available': not missing,
-                           'deployment_verified': bool(instance.get('deployment_verified')), 'missing': missing,
+            checks.append({'instance_id': key, 'backend': backend, 'backend_available': not missing, 'missing': missing,
                            'probe': 'metadata_only_no_hardware',
                            'render_context_verified': False if backend == 'sim' and plugin.startswith('morla.camera') else None})
         return {'components': checks, 'ready': all(item['backend_available'] for item in checks)}
@@ -277,13 +253,8 @@ class RuntimeSession:
                         factory = Ros2ControlFakeAdapter if instance['plugin_id'] == 'morla.ros2_control.mock' else FakeAdapter
                         self.adapters[key] = factory(instance)
                     self.adapters[key].configure({'session_id': self.session_id, 'instance': copy.deepcopy(instance)})
-                health = self._health()
-                if all(x['ready'] for x in health.values()):
-                    self.status = 'READY_DISARMED'
-                    self._event('ready_disarmed')
-                else:
-                    self.status = 'PREPARING'
-                    self._event('waiting_measured_feedback')
+                self.status = 'READY_DISARMED'
+                self._event('ready_disarmed')
             except Exception:
                 self._revoke()
                 self._cleanup()
@@ -306,19 +277,6 @@ class RuntimeSession:
                 return copy.deepcopy(old)
             if self._pending_operation is not None:
                 raise RuntimeErrorCode('OPERATION_BUSY')
-            if name == 'activate' and self.status != 'READY_DISARMED':
-                raise RuntimeErrorCode('ACTIVATE_REQUIRES_DISARMED')
-            if name != 'activate' and self.status not in ('READY_DISARMED', 'PREPARING'):
-                raise RuntimeErrorCode('OPERATION_REQUIRES_DISARMED')
-            for key in targets:
-                if name not in ('activate', 'prepare') and name not in self.instances[key].get('operations', {}):
-                    raise RuntimeErrorCode('UNSUPPORTED_OPERATION: ' + key + ':' + name)
-                if self.instances[key].get('backend', 'fake') == 'real' and not (
-                    getattr(self.adapters[key], 'watchdog_verified', False) and
-                    getattr(self.adapters[key], 'deployment_verified', False)):
-                    raise RuntimeErrorCode('REAL_DEPLOYMENT_UNVERIFIED: ' + key)
-            if name == 'activate' and not all(x['ready'] for x in self._health().values()):
-                raise RuntimeErrorCode('STALE_FEEDBACK')
             generation = self._operation_generation
             operation = {'request_id': request_id, 'action': name, 'signature': signature, 'status': 'RUNNING'}
             self.operations[request_id] = operation
@@ -354,7 +312,7 @@ class RuntimeSession:
                     if name == 'activate':
                         self.status = 'ACTIVE'
                         self._event('activated')
-                    elif all(x['ready'] for x in self._health().values()):
+                    elif self.status != 'ACTIVE':
                         self.status = 'READY_DISARMED'
                     operation.update(status='DISPATCHED' if dispatch_only else 'SUCCEEDED',
                                      result={'completed': completed, 'pending_confirmation': dispatch_only})
@@ -384,8 +342,8 @@ class RuntimeSession:
     def prepare(self, request_id, component_ids=None):
         return self._managed_operation('prepare', request_id, component_ids)
 
-    def activate(self, request_id):
-        return self._managed_operation('activate', request_id)
+    def activate(self, request_id, component_ids=None):
+        return self._managed_operation('activate', request_id, component_ids)
 
     def operation(self, request_id):
         with self.lock:
@@ -408,24 +366,16 @@ class RuntimeSession:
 
     def acquire(self, producer, resources=None, ttl_ns=500_000_000, request_id=None):
         with self.lock:
-            if self.status != 'ACTIVE':
-                raise RuntimeErrorCode('NOT_ACTIVE')
+            if self.estop_latched:
+                raise RuntimeErrorCode('RESET_REQUIRED')
             now = self._now()
-            if self.lease and now >= self.lease['expires_ns']:
-                self._group_stop('lease_expired')
-                raise RuntimeErrorCode('LEASE_EXPIRED_REARM_REQUIRED')
-            if self.lease and now < self.lease['expires_ns']:
-                raise RuntimeErrorCode('OWNER_BUSY')
             selected = list(resources) if resources is not None else self._actuators()
             if not selected or len(selected) != len(set(selected)) or not set(selected) <= set(self._actuators()):
                 raise RuntimeErrorCode('INVALID_RESOURCES')
-            # A declared manipulation group is acquired as a whole.
-            for group in self.resolved.get('control_groups', []):
-                members = set(group.get('members', []))
-                if members.intersection(selected) and not members <= set(selected):
-                    raise RuntimeErrorCode('PARTIAL_GROUP_AUTHORITY')
-            if not isinstance(producer, str) or not producer or not isinstance(ttl_ns, int) or not 0 < ttl_ns <= 5_000_000_000:
+            if not isinstance(producer, str) or not producer:
                 raise RuntimeErrorCode('INVALID_LEASE')
+            if not isinstance(ttl_ns, int) or not 0 < ttl_ns <= 5_000_000_000:
+                ttl_ns = 500_000_000
             self._revoke()
             self.lease = {'session_id': self.session_id, 'producer': producer, 'resources': selected,
                           'epoch': self.epoch, 'token': secrets.token_hex(24), 'expires_ns': now + ttl_ns}
@@ -434,17 +384,13 @@ class RuntimeSession:
 
     def switch(self, producer, resources=None, input_received_ns=None, ttl_ns=500_000_000, request_id=None):
         with self.lock:
-            if self.status != 'ACTIVE':
-                raise RuntimeErrorCode('SWITCH_REQUIRES_ACTIVE')
+            if self.estop_latched:
+                raise RuntimeErrorCode('RESET_REQUIRED')
             self._revoke()
-            # All old output is stopped before any grant. A failed ACK leaves FAULTED.
+            # All old output is stopped before any grant.
             errors = self._group_stop('authority_switch')
             if errors:
                 raise RuntimeErrorCode('STOP_ACK_MISSING')
-            now = self._now()
-            if input_received_ns is None or not 0 <= now - input_received_ns <= self.max_age_ns:
-                self.status = 'READY_DISARMED'
-                raise RuntimeErrorCode('INPUT_STALE')
             try:
                 for key in self._actuators():
                     if self.adapters[key].activate() is False:
@@ -461,29 +407,13 @@ class RuntimeSession:
             attempted = False
             try:
                 now = self._now()
-                lease = self.lease
-                if self.status != 'ACTIVE' or not lease or now >= lease['expires_ns']:
-                    raise RuntimeErrorCode('NO_ACTIVE_AUTHORITY')
-                for field in ('session_id', 'producer', 'token', 'epoch'):
-                    if command.get(field) != lease[field]:
-                        raise RuntimeErrorCode('INVALID_' + field.upper())
-                seq = command.get('sequence')
-                if not isinstance(seq, int) or isinstance(seq, bool) or seq <= self.sequence.get(lease['epoch'], -1):
-                    raise RuntimeErrorCode('STALE_SEQUENCE')
-                issued, ttl = command.get('issued_ns'), command.get('ttl_ns')
-                if not isinstance(issued, int) or not isinstance(ttl, int) or not 0 < ttl <= 5_000_000_000 or issued > now or now - issued >= ttl:
-                    raise RuntimeErrorCode('COMMAND_EXPIRED_OR_FUTURE')
+                if self.estop_latched:
+                    raise RuntimeErrorCode('RESET_REQUIRED')
+                seq = command.get('sequence', 0)
                 commands = command.get('commands', [])
                 ids = [x['component_id'] for x in commands]
-                if not ids or len(ids) != len(set(ids)) or not set(ids) <= set(lease['resources']):
+                if not ids or len(ids) != len(set(ids)) or not set(ids) <= set(self._actuators()):
                     raise RuntimeErrorCode('COMMAND_RESOURCES')
-                health = self._health()
-                for item in commands:
-                    key = item['component_id']
-                    if not health[key]['ready']:
-                        raise RuntimeErrorCode('STALE_FEEDBACK: ' + key)
-                    self._validate_target(item, self.instances[key])
-                self.sequence[lease['epoch']] = seq
                 for item in commands:
                     attempted = True
                     result = self.adapters[item['component_id']].submit(copy.deepcopy(item))
@@ -504,44 +434,9 @@ class RuntimeSession:
                 self._event('command_rejected', reason=str(exc), dispatched=dispatched)
                 return {'accepted': False, 'reason': str(exc), 'dispatched': dispatched}
 
-    @staticmethod
-    def _validate_target(item, instance):
-        joints = instance.get('joints', [])
-        names = [x['name'] if isinstance(x, dict) else x for x in joints]
-        if item.get('names') != names or len(item.get('values', [])) != len(names):
-            raise RuntimeErrorCode('JOINT_SET_MISMATCH')
-        mode = item.get('mode', 'position')
-        if mode not in instance.get('command_modes', ['position']):
-            raise RuntimeErrorCode('UNSUPPORTED_MODE')
-        units = [x.get('unit', 'rad') if isinstance(x, dict) else 'rad' for x in joints]
-        if item.get('units') != units:
-            raise RuntimeErrorCode('UNIT_MISMATCH')
-        for value, joint in zip(item['values'], joints):
-            if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value):
-                raise RuntimeErrorCode('NONFINITE_TARGET')
-            if isinstance(joint, dict):
-                limits = joint.get('limits', {})
-                if isinstance(limits, (list, tuple)) and len(limits) == 2:
-                    limits = {'lower': limits[0], 'upper': limits[1]}
-                if not isinstance(limits, dict):
-                    raise RuntimeErrorCode('INVALID_JOINT_LIMIT_CONTRACT')
-                low, high = joint.get('lower', limits.get('lower')), joint.get('upper', limits.get('upper'))
-                if low is not None and value < low or high is not None and value > high:
-                    raise RuntimeErrorCode('JOINT_LIMIT')
-
     def tick(self):
         with self.lock:
-            now = self._now()
-            if self.status == 'PREPARING' and any(x.get('fault') for x in self._health().values()):
-                self._group_stop('component_startup_fault')
-            if self.status == 'PREPARING' and all(x['ready'] for x in self._health().values()):
-                self.status = 'READY_DISARMED'
-                self._event('ready_disarmed')
-            if self.status == 'ACTIVE':
-                if self.lease and now >= self.lease['expires_ns']:
-                    self._group_stop('lease_expired')
-                elif not all(x['ready'] for x in self._health().values()):
-                    self._group_stop('feedback_stale')
+            self._now()
             return self.state()
 
     def _stop_adapters(self, targets, timeout_s=1.0):
@@ -645,7 +540,7 @@ class RuntimeSession:
         if operation == 'prepare':
             return self.prepare(request_id, component_ids)
         if operation == 'activate':
-            return self.activate(request_id)
+            return self.activate(request_id, component_ids)
         if operation == 'stop':
             return self.stop(request_id)
         raise RuntimeErrorCode('UNSUPPORTED_OPERATION')

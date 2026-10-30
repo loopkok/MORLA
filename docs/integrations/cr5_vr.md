@@ -10,12 +10,12 @@
 既有 Quest 应用 → 有线 TCP 8000 → 带会话/时效保护的 Quest 接收器
   → Unity 到 canonical 坐标转换
   → right_teleop_events（明确 controller / hand 来源）
-  → QuestRightSource：右位姿 + 握把/捏合保持，逐端口源时效
-  → BindingController：显式激活、先释放再按下、来源切换清锚
+  → QuestRightSource：右位姿 + 握把/捏合状态记录，逐端口源时效
+  → BindingController：输入时效/序号/epoch 检查，来源切换清锚
   → CR5 异步 controller：滤波、相对位姿、输入旋转与 TCP 换算
   → CR5 IKSolver：本地 URDF / Pinocchio FK、SE(3) DLS、FK 硬回验
-  → MORLA runtime：授权、序号、TTL、关节检查
-  → CR5 Adapter：部署限位、目标步长、ServoJ → 实测关节反馈
+  → MORLA runtime：急停锁存、组件子集（不校验授权/序号/TTL）
+  → CR5 Adapter：部署关节限位、ServoJ → 实测关节反馈
 ```
 
 求解与设备通信分离，IK 不访问 Dashboard、不发送控制命令，也没有控制器 IK 回退。底层 ServoJ 仍沿用独立 CR5 驱动。Nero/Astral 的求解器与原 Quest 话题保留；事件流默认关闭，仅 CR5 launch 显式开启。
@@ -29,8 +29,8 @@
 - 关节对齐：`q_URDF = urdf_joint_signs * q_hardware + urdf_joint_offsets`。默认正号/零偏只是初始约定，真实机器人必须验证。FK、Jacobian、IK 和输出逆变换使用同一约定。
 - `input_rotation` 把 canonical VR 的增量转到 URDF `base_link`；`solver_tip_from_tool` 是 **Link6 到任务 TCP** 的 4×4 刚体变换。不是沿用 Nero 朝向，也不是控制器 user/tool 的隐含配置。
 - IK 接口与公共层一致：`sync_state(measured_q)`、`fk(q)`、`solve(T)`。每次由当前实测关节播种，只在局部信赖域内求解，不全局随机重启、不对多圈关节强行 wrap。
-- 本地 SE(3) 对数误差、阻尼最小二乘、线搜索；每次迭代限制增量，检查关节交集限位。最多 100 次迭代、50 ms 计算预算；成功必须 FK 位置误差 ≤0.2 mm、旋转角误差 ≤0.002 rad。不可达、停滞、超时返回失败，由外层撤权。
-- 外层仍限制相对实测关节步长（配置 0.15 rad）和目标输出速度（0.3 rad/s），后台单槽 worker 隔离迟到解。完整任务 250 ms、结果年龄 300 ms 均是拒绝门槛，不是硬实时保证。
+- 本地 SE(3) 对数误差、阻尼最小二乘、线搜索；每次迭代限制增量，检查关节交集限位。最多 100 次迭代、50 ms 计算预算；成功必须 FK 位置误差 ≤0.2 mm、旋转角误差 ≤0.002 rad。不可达、停滞、超时返回失败；回退后上层不再自动撤销授权，需要显式 stop/revoke。
+- 外层仍按 `max_joint_velocity`（默认 0.3 rad/s）裁剪输出关节速度，后台单槽 worker 隔离迟到解；完整任务 250 ms、结果年龄 300 ms 仍是拒绝门槛，不是硬实时保证。回退后不再限制相对实测关节步长（`max_joint_step` 参数仍被接受但已不生效）。
 - URDF SHA-256 写入 device geometry 契约，求解器加载时校验模型身份；改变模型需同步契约、测试及重新编译 revision。
 
 算法依据 [Pinocchio 官方 IK 示例](https://github.com/stack-of-tasks/pinocchio/blob/master/examples/inverse-kinematics.py)，并增加部署限位、关节映射、局部连续性、迭代/时间边界和独立 FK 接受检查。
@@ -68,13 +68,13 @@ ros2 launch morla_cr5_driver cr5_vr.launch.py
 launch 同时启动右侧接收器与 disarmed 会话，默认 `config/quest_right.fake.yaml`。接收器启动后在 Quest Start Stream，浏览器打开 `http://127.0.0.1:8080/`，顶部应显示 FAKE。8000 只能有一个接收器。可加 `port:=8082` 或 `store:=/absolute/path`；HTTP 默认仅监听本机。
 
 1. 页面出现“手柄”或“手追踪”及新鲜输入后，点击“准备”，确认完成，再点击“激活”。启动和刷新不会自动激活。
-2. **右手柄**：先松开握把，再按住右握把。第一帧以当前手柄位姿和实测关节 FK 的 TCP 建锚，随后移动/旋转控制机械臂。
-3. **右手追踪**：先张开拇指/食指，再捏合；用手腕位置/姿态控制机械臂。捏合只表示持续持有控制权。
-4. 松开或点击“暂停 / 撤权”回到 `READY_DISARMED`。恢复跟随需再次点击激活、释放→按住/捏合。
-5. 切换手柄与裸手、重定位、会话/frame 改变、断流清除旧锚点并撤权，不能跨来源接续旧姿态。
+2. **右手柄**：按住右握把移动。激活后第一帧以当前手柄位姿和实测关节 FK 的 TCP 建锚，随后移动/旋转控制机械臂。握把状态只作输入意图记录，回退后不再要求“先释放再按下”，松开也不会自动停止。
+3. **右手追踪**：拇指/食指捏合后用手腕位置/姿态控制机械臂。捏合同样只记录为输入意图，不构成 runtime 的 deadman。
+4. 点击“暂停 / 撤权”回到 `READY_DISARMED`；仅松开握把/手指不会撤权，需要显式 stop/revoke。恢复跟随需再次点击激活并重新建锚。
+5. 切换手柄与裸手、重定位、会话/frame 改变、断流会清除旧锚点，不能跨来源接续旧姿态；但 runtime 不再自动撤权，操作者需自行停止。
 6. 结束时停止录制并检查结果，再停止会话、退出 launch。故障/急停复位不自动恢复跟随。
 
-手部保持用原始 canonical 21 点（米）：拇指尖 4 到食指尖 8 的距离除以掌宽 5–17；<0.25 捏合，>0.45 释放，中间区保持已知状态。初始中间区不伪造释放；不合理掌宽、缺点和非有限值拒绝。pose 驱动运动，按钮/关键点更新保持状态，释放立即撤权；两端口分别检查 250 ms 时效，新手腕不能延长旧捏合状态。
+手部保持用原始 canonical 21 点（米）：拇指尖 4 到食指尖 8 的距离除以掌宽 5–17；<0.25 捏合，>0.45 释放，中间区保持已知状态。初始中间区不伪造释放；不合理掌宽、缺点和非有限值拒绝。pose 驱动运动，按钮/关键点更新保持状态；两端口分别检查 250 ms 时效，新手腕不能延长旧捏合状态，但释放状态现在只记录在 `right_hold` 端口，不再触发撤权。
 
 fake 可验证实际模型下可达/不可达及整链逻辑，但不模拟物理臂的跟踪误差或碰撞。默认零关节姿态可能处于奇异位置，不保证任意方向的平移/旋转都可解；不可达拒绝属于正常行为，不应关闭门槛强行运动。
 
@@ -99,9 +99,9 @@ ros2 run morla_cr5_driver cr5_kinematics_check \
 - `urdf_joint_signs` / `urdf_joint_offsets`，验证模型与编码器关节方向/零点一致。
 - binding 的 `input_rotation`、`solver_tip_from_tool`，核验 base_link 安装方向及 Link6 到任务 TCP。
 - Deployment `calibrations` 的实测记录、标定摘要；当前参数必须显式用于 binding，不会由标定名字自动生成。
-- 验证后才设 CR5 `kinematics_verified=true`、binding `calibration_verified=true` 和真实 Deployment 的 `verified/stop_verified`。
+- 验证后把 CR5 `kinematics_verified`、binding `calibration_verified` 和真实 Deployment 的 `verified/stop_verified` 置 true 作为记录；回退后这些字段不再参与门禁，不改开关也能激活。
 
-真实模板保留占位和 false，不应只修改开关就当作标定完成。现场还需验证使能、停止、设备 watchdog 和断网/主机掉电行为。
+真实模板保留占位和 false，不应只修改开关就当作标定完成。现场还需验证使能、停止、设备 watchdog 和断网/主机掉电行为；主机命令 watchdog 已移除，断链或主机掉电时 ServoJ 保持最后目标，必须依靠设备侧保护或外部断电。
 
 ### 5.3 启动与验收
 
@@ -111,9 +111,9 @@ ros2 launch morla_cr5_driver cr5_vr.launch.py \
   deployment:=/absolute/path/to/quest_right.deployment.yaml
 ```
 
-Deployment 将 arm/quest 覆盖为 real。页面必须显示 REAL，反馈 hardware / measured=true。真实激活前要求两端口输入均新鲜，并验证标定声明；激活后等待释放/按下期间也持续检查输入。按第 4 节逐步建锚，在现场限定范围验证方向、TCP、延迟与停止。
+Deployment 将 arm/quest 覆盖为 real。页面必须显示 REAL，反馈 hardware / measured=true。runtime 不再检查标定声明或输入新鲜度；输入时效仍由 QuestRightSource 与 BindingController 把关，过期帧被丢弃并清锚，不会用陈旧位姿继续推进。按第 4 节逐步建锚，在现场限定范围验证方向、TCP、延迟与停止。
 
-VR 默认驱动配置 50 Hz、位置比例 0.25、姿态平滑系数 0.35；实际频率/延迟需测量。命令 watchdog 从首次授权目标计时。求解失败锁存至 reset，异常撤权后需显式重新激活。worker 按 generation 丢弃旧解，停止会话关闭线程。
+VR 默认驱动配置 50 Hz、位置比例 0.25、姿态平滑系数 0.35；实际频率/延迟需测量。主机命令 watchdog 已移除，输入中断时执行器保持最后目标，操作者应显式 stop/revoke 或切断外部电源。求解失败锁存至 reset，异常撤权后需显式重新激活。worker 按 generation 丢弃旧解，停止会话关闭线程。
 
 ## 6. 验证记录
 

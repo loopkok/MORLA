@@ -7,14 +7,14 @@
 已留存的证据：
 
 - 本轮macOS/Python3.13：pure **172 passed**（包含11项Vader5输入/整链），fake数据/策略/Web **23 passed**，SDK **5 passed**；SDK移至同级目录后，5项SDK与11项输入专项再次通过。见[Vader5证据](../integrations/evidence/2026-10-29-vader5/manifest.json)。
-- CR5：已做纯本体模型迁移/网格闭包核对、本地Pinocchio数学、限位/步长/FK回验、右手柄/右手追踪逻辑和安装布局测试。离线链使用真实CR5几何，反馈为fake；见[CR5模型与IK记录](../integrations/CR5_URDF_IK_2026-10-29.md)。
+- CR5：已做纯本体模型迁移/网格闭包核对、本地Pinocchio数学、限位/FK回验、右手柄/右手追踪逻辑和安装布局测试（主机命令 watchdog 与目标步长已随回退移除）。离线链使用真实CR5几何，反馈为fake；见[CR5模型与IK记录](../integrations/CR5_URDF_IK_2026-10-29.md)。
 - LoopHand、EPG：已做独立协议/映射/生命周期的mock或fake测试；EPG包含原厂SDK配录制Modbus master的离线测试。不能替代实物串口与固件测试。
 - 重构阶段做过7项场景测试、TypeScript/Vite构建、浏览器E2E、原有18项Node测试；属于当时本机证据，不是本轮Linux ROS/硬件验收。见[重构记录](../architecture_refactor/CHANGE_LOG_2026-10-28.md)。
 
 **仍缺、需要在主机逐项补齐的验收：**
 
 - [ ] B01–B05：Humble全量编译、IDL/C++、系统Python依赖、开发/普通安装、脱离源码路径的插件和资源发现。
-- [ ] R01–R04：真实DDS通信/QoS、ROS fake正负命令、两个进程争用、旧入口与新runtime互斥及退出清理。
+- [ ] R01–R04：真实DDS通信/QoS、ROS fake 命令与保留的拒绝路径（组件子集、急停锁存、未激活适配器）、两个进程争用、旧入口与新runtime互斥及退出清理。
 - [ ] C01–C04：CR5固件/TCP反馈、实测关节与URDF对齐、物理base/TCP、低速运动、停止/设备watchdog。
 - [ ] Q01–Q03：Quest实物到fake CR5，再到真实CR5；右手柄与右手追踪分别验收，含切换/断流/重连。
 - [ ] L01–L03：LoopHand Linux安装、真实串口只读、7维紧凑映射；**真实运动当前被代码禁止，需固件/停止/watchdog能力补齐后才能另行验收**。
@@ -37,8 +37,8 @@ Python3.10/3.12的目标矩阵、远端CI结果、完整[VALIDATION规格](../ar
 
 1. **Nero模型哈希不一致**：主资产清单中的nero_left_arm与现有URDF不符，已在CR5记录中留证。完整资产检查/部分仿真可能因此失败。比较模型实际变动、来源和消费者后修复并重做身份验收，不能只把manifest哈希改成当前值来“过测试”。
 2. **LoopHand real只读**：无确认停止ACK和已验证通信watchdog；`verified=true`也不能放开。其real运动、CR5+真实LoopHand抓取、VR/手套重定向当前均不是可直接执行的完成链路。
-3. **Astral夹爪反馈**：现有桥的command_echo不是实测反馈，会阻止相关real组合激活。若现场仍如此，记能力阻塞，不标measured=true绕过。
-4. CR5/EPG real模板保留false和占位符。首次物理停止/watchdog、关节方向等证据，先在厂商支持的维护流程中取得，退出该工具后再进MORLA。不能为了首次测试而把所有声明直接改true。
+3. **Astral夹爪反馈**：现有桥的command_echo不是实测反馈。回退后它不再阻止 real 组合激活，`source=command_echo/measured=false` 标签是唯一提示；不能把该值当实测，也不用改标签绕过。
+4. CR5/EPG real模板保留false和占位符。首次物理停止/watchdog、关节方向等证据，先在厂商支持的维护流程中取得，退出该工具后再进MORLA。这些声明现在只作记录、不参与门禁，但把开关改成 true 不等于已验证；禁止用改字段代替证据。
 5. CR5目前是fake协议/运动学验证，未交付CR5物理MuJoCo场景；LoopHand的触觉、URDF/碰撞、VR重定向也未迁移。缺实现与“实现了但没测”需分别记录。
 
 真机测试由现场操作员控制工作区并能立即使用物理急停；先空载/支撑。CR5当前软件stop使用DisableRobot，可能失去保持力；EPG activate可能开合寻程。先固定这些测试条件，再执行相应移动用例。本文不提供一键自动执行的真机故障注入。
@@ -198,7 +198,7 @@ MORLA_DATA_PYTHON="$MORLA_WS/.venv-test/bin/python" \
 
 T01对应pure（含CR5模型数学和Quest逻辑），T02对应fake/SDK，均不含真实DDS/USB；T03场景测试并未提供CR5/LoopHand物理场景；T04离线导出成功也未验证真实训练loader。
 
-## 6. R01–R04 ROS fake及授权/资源隔离
+## 6. R01–R04 ROS fake及资源隔离
 
 回到干净ROS系统Python终端，只source选定安装树。`test_ros.sh`和`test_policy.sh`固定读取install/setup.bash，适合开发安装；不要在普通安装结果中混用它们。两类安装分别记报告。
 
@@ -248,7 +248,7 @@ ros2 launch morla_epg_driver epg_driver.launch.py \
 
 ### R02 实际ROS服务与命令回执
 
-提供[仅fake的ROS检查脚本](fake_ros_gateway_smoke.py)。必须在R01刚启动、尚未被手工激活的独立fake节点上运行；脚本核对节点实际resolved_path、单fake执行器及synthetic状态，拒绝real和组合配置。它通过真实ROS服务获取权限，发送合法小步目标并检查反馈，再验证重复序号、错token/epoch/session、过期/未来时间、错名称/单位、NaN和撤权后旧权限拒绝。**该脚本在文档编写机仅做静态/帮助检查，真实DDS执行仍为NOT_RUN**。
+提供[仅fake的ROS检查脚本](fake_ros_gateway_smoke.py)。必须在R01刚启动、尚未被手工激活的独立fake节点上运行；脚本核对节点实际resolved_path、单fake执行器及synthetic状态，拒绝real和组合配置。它通过真实ROS服务获取权限，发送合法小步目标并检查反馈，再验证保留的拒绝路径：重复组件、未知组件、急停锁存后提交（`RESET_REQUIRED`）、reset 后适配器未激活（`ADAPTER_DISARMED`）。2026-10-30 回退后 token/epoch/sequence/TTL/名称/单位/NaN 不再由 runtime 拒绝，这些负例应记 **NOT_APPLICABLE**，不要写成通过。**该脚本在文档编写机仅做静态/帮助检查，真实DDS执行仍为NOT_RUN**。
 
 ```bash
 python3 docs/testing/fake_ros_gateway_smoke.py \
@@ -274,13 +274,13 @@ ros2 service call /cr5_driver/authority morla_interfaces/srv/ControlAuthority \
   "{session_id: SID, request_id: host-acquire-1, operation: acquire, producer: host_fake_test, resources: [arm], ttl_ns: 5000000000}"
 ```
 
-服务RUNNING不是操作完成；在state.operations或同request_id的`operation: status`中等到SUCCEEDED。acquire保存返回token/epoch；5秒只是本次租约，超时须重新显式激活/获取。不要在终端手抄过期issued_ns再期待通过。
+服务RUNNING不是操作完成；在state.operations或同request_id的`operation: status`中等到SUCCEEDED。acquire 只记录一条租约，回执中的 token/epoch 可以保留作记录，但 runtime 不校验；回退后不存在租约超时或重新获取的强制要求。
 
-正命令用同一主机的rclpy客户端生成`issued_ns=time.monotonic_ns()`，在ttl内publish CommandEnvelope；fields使用刚取得的session/producer/token/epoch、递增sequence，target为`component_id=arm`、`names=[joint1..joint6]`、`units=[rad]*6`、`mode=position`、fake目标例如`[0,0,0,0,0,0.01]`。该客户端需等待publisher匹配后再发，**只用于fake，不把此固定关节向量用于真机**。消息字段以`ros2 interface show`为准，所有步骤都必须真实跨DDS，而非直接调用RuntimeSession Python对象。
+正命令用同一主机的rclpy客户端生成`issued_ns=time.monotonic_ns()`并publish CommandEnvelope；fields使用当前session/producer、递增sequence，target为`component_id=arm`、`names=[joint1..joint6]`、`units=[rad]*6`、`mode=position`、fake目标例如`[0,0,0,0,0,0.01]`。该客户端需等待publisher匹配后再发，**只用于fake，不把此固定关节向量用于真机**。消息字段以`ros2 interface show`为准，所有步骤都必须真实跨DDS，而非直接调用RuntimeSession Python对象。
 
-逐项记录：有效目标accepted=true、dispatched含arm，随后fake反馈最后一维变为0.01；未授权/错token/错epoch/旧session/重复sequence/过期TTL/未来issued_ns/错关节名/degree冒充rad/NaN应accepted=false且dispatched为空。无授权负例可直接发布`{}`验证拒绝，其余仅改一个字段，避免命中另一拒绝原因。
+逐项记录：有效目标accepted=true、dispatched含arm，随后fake反馈最后一维变为0.01；重复组件ID、目标含装配外组件、急停锁存期间提交、reset 后未重新 activate 均应accepted=false且dispatched为空。回退后 token/epoch/旧 session/重复 sequence/过期 TTL/未来 issued_ns/错名称/degree 冒充 rad/NaN 都不再由 runtime 拒绝（fake 适配器也不校验），这些负例记 **NOT_APPLICABLE**，不要为了“通过”而把脚本改回门禁版本。
 
-重复同request_id的prepare/activate只执行一次；revoke后再次发旧token目标应拒绝。LoopHand、EPG用各自精确名称/单位和资源重复上述授权链。每条同时核对回执、事件和反馈；仅publish返回0不算通过。
+重复同request_id的prepare/activate只执行一次；revoke 停止适配器后，再发目标应因适配器未激活被拒。LoopHand、EPG用各自精确名称/单位和资源重复上述流程。每条同时核对回执、事件和反馈；仅publish返回0不算通过。
 
 ### R03 进程互斥与退出清理
 
@@ -303,7 +303,7 @@ ros2 run morla_runtime joint_state_runtime_node --ros-args \
 
 该入口只负责runtime网关与反馈，不会自动运行输入映射/录制；完整teleop/capture用现有ComposableService宿主。不要把联合快照交给单设备驱动，另一个组合需停前一个后单独启动。
 
-验证只向授权组件下发、同组部分失败撤权、停止各独立设备、请求幂等、释放后不发迟到IK结果。首次只在fake/故障桩做。**CR5+真实LoopHand目前不进入运动验收**；装配中TCP/安装变换也不能从示例推断。
+验证只向本次提交列出的组件下发（runtime 只检查组件子集与重复ID，不校验授权）、同组部分失败时各设备独立停止、停止各独立设备、请求幂等、释放后不发迟到IK结果。首次只在fake/故障桩做。**CR5+真实LoopHand目前不进入运动验收**；装配中TCP/安装变换也不能从示例推断。
 
 若要验收公共层可选ros2_control原型，另在安装相应controller_manager/GenericSystem依赖后运行`ros2 launch morla_runtime ros2_control_mock.launch.py`，检查mock控制器激活、具名目标映射和状态；它只测试框架适配原型，不是物理仿真，也不将ros2_control加入CR5驱动。未使用该可选能力可注明范围后记NOT_APPLICABLE。
 
@@ -323,11 +323,11 @@ ros2 run morla_cr5_driver cr5_kinematics_check \
 
 **C02 物理模型/坐标对齐**：在厂商支持的低速维护流程取得多个已知安全姿态，不在奇异零姿态强行沿任意方向运动。记录每轴正负、零位、URDF与编码器映射、六轴实际限位、Link6到TCP、base_link安装方向和负载。模型关系为`q_URDF=signs*q_hardware+offsets`；用多个姿态对照TCP/外部测量，不能只做模型内部闭环。保留测量误差、方法和预先约定的物理容差。
 
-**C03 独立低速控制**：从`config/assembly.fake.yaml`和`deployment.real.example.yaml`复制现场文件；填写身份、规范资源key、IP、joint_lower/upper（rad）。先从维护验收取得停止/设备watchdog证据，按事实设置verified/stop_verified/kinematics_verified等字段；read-only不自动使能。使用编译后的real快照启动独立cr5_driver，经operation→activate确认→authority→基于**当前实测关节**的小步目标；不要使用fake零目标。不需要VR即可先验证设备控制。
+**C03 独立低速控制**：从`config/assembly.fake.yaml`和`deployment.real.example.yaml`复制现场文件；填写身份、规范资源key、IP、joint_lower/upper（rad）。先从维护验收取得停止/设备watchdog证据，再按事实设置verified/stop_verified/kinematics_verified等字段作记录；这些字段不参与门禁，不改也能激活，但不得把未取得的证据写成已验证。read-only不自动使能。使用编译后的real快照启动独立cr5_driver，经operation→activate确认→authority→基于**当前实测关节**的小步目标；不要使用fake零目标。不需要VR即可先验证设备控制。
 
-通过：单轴小步方向正确、未选轴无目标变化、实测跟随、限位/步长/速度拒绝正确，停止后旧token/epoch无效。起步速度和目标幅度由现场工况确定并记录，不把模板上限当成首测速度。
+通过：单轴小步方向正确、未选轴无目标变化、实测跟随、越界限位被适配器拒绝，停止后再次提交不会恢复运动（回退后不再校验 token/epoch，需重新 activate 才能下发）。起步速度和目标幅度由现场工况确定并记录，不把模板上限当成首测速度；主机已无命令 watchdog，断流时保持最后目标。
 
-**C04 停止/失效**：空载支撑下分别验证撤权、软件急停、输入中断、反馈停更、控制网络中断、主机进程退出、设备重启。先测试可控的软件停止，设备watchdog及物理急停均能独立工作后再做断线/掉电。记录“检测→最后一次dispatch→设备停止确认”的时间与真实运动；DisableRobot的失重影响单独记录。重连/复位不得自动使能、重放或继续旧目标。代码host watchdog不是板端watchdog证据。
+**C04 停止/失效**：空载支撑下分别验证撤权、软件急停、输入中断、反馈停更、控制网络中断、主机进程退出、设备重启。先测试可控的软件停止，设备watchdog及物理急停均能独立工作后再做断线/掉电。记录“检测→最后一次dispatch→设备停止确认”的时间与真实运动；DisableRobot的失重影响单独记录。重连/复位不得自动使能、重放或继续旧目标。主机命令 watchdog 已移除，代码侧不会在上游停发时补发停止，因此板端 watchdog 或外部断电是唯一可依赖的断流保护。
 
 ## 8. Q01–Q03 VR遥操CR5
 
@@ -342,14 +342,14 @@ ros2 launch morla_cr5_driver cr5_vr.launch.py \
 
 启动后才在Quest开始推流，打开主机127.0.0.1:8080。远程浏览器用SSH端口转发，不为测试直接公开控制端口。fake标识必须可见，8000仅一个接收器；不要用nero_web_start.sh来启动CR5。
 
-- **右手柄**：准备完成→激活→握把先释放再按住；首次建锚不跳变，再验证三个平移和三个旋转方向。松开即撤权。
-- **右手追踪**：开启手追踪及完整21点landmarks；先张开再捏合，用右手腕位姿运动。验证捏合中间区、手遮挡、缺点和非有限包，不把手势直接当作LoopHand目标。
-- **来源与时效**：手柄↔裸手、Quest重定位/会话改变、停流/拔USB、重新连接时清锚；握把/捏合仍保持也不自动恢复。姿态与保持端口各自过期，新的手腕不能续旧捏合。
-- **控制**：可达、不可达、奇异附近、快速输入跳变分别测；失败应撤权/保持错误，不追逐迟到worker结果。记录实际源频率、IK/FK耗时分位数、结果年龄和撤权原因。
+- **右手柄**：准备完成→激活→按住握把运动；首次建锚不跳变，再验证三个平移和三个旋转方向。握把只作输入意图，回退后松开不会自动撤权，需显式 stop/revoke。
+- **右手追踪**：开启手追踪及完整21点landmarks；捏合后用手腕位姿运动。验证捏合中间区、手遮挡、缺点和非有限包，不把手势直接当作LoopHand目标；捏合状态同样不构成 runtime deadman。
+- **来源与时效**：手柄↔裸手、Quest重定位/会话改变、停流/拔USB、重新连接时清锚，不自动恢复旧跟随，也不会自动撤权。姿态与保持端口各自过期，新的手腕不能续旧捏合。
+- **控制**：可达、不可达、奇异附近、快速输入跳变分别测；失败应保持错误并丢弃迟到worker结果，但不会自动撤权，需操作者或上层显式停止。记录实际源频率、IK/FK耗时分位数、结果年龄和停止方式。
 
 ### Q02 真实Quest + 真实CR5
 
-仅C01–C04及Q01通过后，复制`quest_right.fake.yaml`为现场Assembly，复制`quest_right.real.example.yaml`为Deployment。填写关节映射/限位，binding的input_rotation、solver_tip_from_tool及calibration_verified，Deployment的真实身份与验证证据。它们不会由calibrations中的名字自动计算。
+仅C01–C04及Q01通过后，复制`quest_right.fake.yaml`为现场Assembly，复制`quest_right.real.example.yaml`为Deployment。填写关节映射/限位，binding的input_rotation、solver_tip_from_tool，以及按事实记录的calibration_verified和Deployment验证证据（回退后只作记录，不是激活门槛）。它们不会由calibrations中的名字自动计算。
 
 ```bash
 ros2 launch morla_cr5_driver cr5_vr.launch.py \
@@ -404,11 +404,11 @@ ros2 launch morla_vader5_input vader5_teleop.launch.py \
   store:="$MORLA_EVIDENCE/vader-fake-store"
 ```
 
-先在Web准备，再测试START激活；M1先释放再按下才控制，M2切平移/旋转，LT从1到0.2精细倍率，RT为闭合比例。验证六方向、回中、M1释放、B暂停、Y开始录制/X结束保存、START+SELECT优先急停。启动已按住Y/START不触发；放开SELECT不补激活；一个按键只执行一次操作，capture中能找回短按边沿。
+先在Web准备，再测试START激活；M1仅作为`hold_to_control`意图发布、runtime不再要求按住才动，M2切平移/旋转，LT从1到0.2精细倍率，RT为闭合比例。验证六方向、回中、B暂停、Y开始录制/X结束保存，以及一个按键只执行一次操作、capture中能找回短按边沿。START+SELECT 软件急停、启动已按住不触发、放开SELECT不补激活等检查已随 2026-10-30 回退删除，急停改用 Web/服务或外部硬件；相关条目记 **NOT_APPLICABLE**。
 
-EPG fake用`assembly:="$MORLA_WS/src/common/morla_vader5_input/config/epg.fake.yaml"`，真实输入仍用同一仅pad的覆盖文件；RT对应0.05至0m，带0.05m/s目标变化率。确认首次deadman无目标跳变。Nero/Astral配置示例单独compile并测试；它们可编译不等于实物已跟随。
+EPG fake用`assembly:="$MORLA_WS/src/common/morla_vader5_input/config/epg.fake.yaml"`，真实输入仍用同一仅pad的覆盖文件；RT对应0.05至0m。回退后 scalar_map 不再限幅、EPG 也没有 5 mm 步长限制，一次扳机大跳变会直接成为大目标，需操作上避免。Nero/Astral配置示例单独compile并测试；它们可编译不等于实物已跟随。
 
-**V03 故障/策略**：拔USB/关手柄/停reader、批次短按/释放、重启reader后epoch改变、M1持续按住重连，均需旧权失效、无自动恢复。持续输入时暂停模型/切policy owner，普通摇杆/M1不抢权或额外跑人工IK，B/急停仍是显式操作。ROS事件RELIABLE/depth64的实际匹配和积压行为需实测，不能只看50Hz发布目标。
+**V03 故障/策略**：拔USB/关手柄/停reader、批次短按/释放、重启reader后epoch改变、M1持续按住重连，需旧锚点清除、无自动恢复；回退后 runtime 不再因断流或释放自动撤权，需显式 stop/revoke。持续输入时暂停模型/切policy owner没有运行时互斥，后写入者生效，需操作上避免同时驱动；B/急停仍是显式操作。ROS事件RELIABLE/depth64的实际匹配和积压行为需实测，不能只看50Hz发布目标。
 
 **V04 真实执行器**：相应C01–C04或EPG实体验收、V01–V03通过后，复制cr5.real.example.yaml与cr5.fake.yaml为现场配置，填足身份、限位、输入basis/TCP及标定声明；用上述launch的assembly/deployment参数运行。右手柄速度点动与Quest绝对追踪分别验收；CR5 jog仍用自己的IK，接受精度10µm/0.0001rad，需测求解耗时和微小输入响应。Nero/Astral同样需各自真实部署/坐标/停止证据，不把更换一个plugin当作已验收。
 
@@ -426,7 +426,7 @@ ros2 run morla_epg_driver epg_probe \
 
 **E02 状态与初始化**：验证SDK位置0打开/255闭合和真实宽度方向，0.05m只是名义行程；外部测量/受控阻挡区分设定回读与实际位置，才能声明position_feedback_verified。电流标幺不是N/A，速度回读不是实测m/s；温度/电压/状态字节序逐项核对。IO模式应拒绝而不自动改模式。初始化可能寻程，保持工件/人员远离行程，再核对新状态确认。
 
-**E03 停止/watchdog及real控制**：验证0x03E8 rSTOP=0x0005的实际固件行为与gACT/gSTA/gGTO/故障确认；不能因为SDK.stopClaw写0x03FF就改回未确认地址。通信丢失1秒故障不自动等于物理停止。完成这些证据后，才填写真实Deployment及activation_motion_verified/position_feedback_verified/device_watchdog_verified，做低速宽度目标、夹持/抱闸、取消迟到初始化、掉线与恢复。再做CR5+EPG的7维录制或Vader5 RT控制；安装TCP/碰撞和夹持力需独立测量。
+**E03 停止/watchdog及real控制**：验证0x03E8 rSTOP=0x0005的实际固件行为与gACT/gSTA/gGTO/故障确认；不能因为SDK.stopClaw写0x03FF就改回未确认地址。通信丢失1秒故障不自动等于物理停止（2026-10-29 实测断链后设备继续运动到 raw 192，**FAIL**）。先取得这些证据，再按事实把 activation_motion_verified/position_feedback_verified/device_watchdog_verified 写进真实 Deployment 作记录；这些字段已不参与门禁，不得用 true 代替证据。然后做低速宽度目标、夹持/抱闸、取消迟到初始化、掉线与恢复。再做CR5+EPG的7维录制或Vader5 RT控制；安装TCP/碰撞和夹持力需独立测量。
 
 ## 12. N01–N02 原有Nero/Astral与手部回归
 
@@ -471,7 +471,7 @@ bash "$MORLA_WS/scripts/data_pipeline.sh" export-act \
 
 **D03 真实后端**：锁定ACT/LeRobot/OpenPI版本和backend_revision，用实际数据各跑loader取batch、归一化stats、少步训练、保存/重载checkpoint、一次真实predict；然后先对fake机器人走runtime policy/回放。后端环境与ROS隔离，用ModelManifest/TrainingSpec记录feature、geometry、normalization、camera_map、动作语义。仅`morla_learning.cli`生成配置或假预测器通过不算真实训练/推理通过。
 
-故意换同维不同关节顺序/单位/左右臂、错TCP、旧checkpoint或camera_map时应握手拒绝。策略失联/过期动作按协议停写，人工手柄不自动抢权。真实执行器推理/回放在该设备手动链与停止验收完成后另做小范围测试；Rerun可视化回放不等于机器人执行回放。
+故意换同维不同关节顺序/单位/左右臂、错TCP、旧checkpoint或camera_map时应握手拒绝。策略失联/过期动作按协议停写；回退后策略与人工输入没有运行时互斥，后写入者生效，需操作上避免同时驱动。真实执行器推理/回放在该设备手动链与停止验收完成后另做小范围测试；Rerun可视化回放不等于机器人执行回放。
 
 ## 15. W01–W02 Web与主机端到端
 
@@ -521,7 +521,7 @@ W02还需实际Quest/Vader链路页面、录制与故障提示的人工检查；
 
 先单臂/单输入，再加实际相机、录盘、Web预览和模型负载；同主机同配置比较新旧路径。[VALIDATION第12节](../architecture_refactor/VALIDATION.md)的p99路由开销、相对增幅、至少8小时软件长稳等是**拟定验收门槛**，不是已测数据；按现场设备/任务预先固定适用预算，不用放宽TTL掩盖超时。
 
-**P02 长稳/故障恢复**：先fake长稳，再对已验收的单硬件链逐步延长，记录至少8小时软件集成结果及真实链实际时长。周期性切录制段/开关预览/暂停模型/重连输入，确认无持续内存增长、无旧目标积压、无未授权dispatch。硬件故障注入须按各设备C04/E03流程；停止未确认则阻塞，不自动恢复ACTIVE。
+**P02 长稳/故障恢复**：先fake长稳，再对已验收的单硬件链逐步延长，记录至少8小时软件集成结果及真实链实际时长。周期性切录制段/开关预览/暂停模型/重连输入，确认无持续内存增长、无旧目标积压、只向装配内组件dispatch。硬件故障注入须按各设备C04/E03流程；停止未确认则阻塞，不自动恢复ACTIVE。
 
 **P03 回退/发布与扩展**：保存已验收commit、普通安装、配置revision、SDK/native依赖、设备固件与标定引用；先在fake演练退回上一已验收版本，确认旧数据只读可加载，不原地降级Schema或覆盖标定。验证重启/回滚不自动使能。由未参与实现的人按接入指南增加一个独立fake执行器/传感器/输入，完成发现→编译→运行→采集→回放；独立扩展考试未做就保留NOT_RUN。
 
@@ -534,4 +534,4 @@ W02还需实际Quest/Vader链路页面、录制与故障提示的人工检查；
 - 某遥操链通过：指定输入模式+具体机器人+固件+配置+停止行为+录制及实际性能分别通过，换输入/设备不沿用结论。
 - 重构整体完成：除本手册外，[VALIDATION](../architecture_refactor/VALIDATION.md)适用编号、实际后端、长稳、回退与独立扩展均闭环。本文未实施的功能保持能力阻塞。
 
-出现未授权运动、停止失效、数据静默错位/破坏或模型语义错配，停止该组测试并记录FAIL；修复后用同用例复测。软件测试、Git推送、页面能打开都不能替代这一组现场证据。
+出现装配外组件运动、停止失效、数据静默错位/破坏或模型语义错配，停止该组测试并记录FAIL；修复后用同用例复测。软件测试、Git推送、页面能打开都不能替代这一组现场证据。

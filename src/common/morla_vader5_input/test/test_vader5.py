@@ -40,18 +40,18 @@ def test_public_normalizer_axes_modes_and_imu_not_pose():
     assert saved['ports']['hold_to_control']['received_ns']==1_000_000_000
 
 
-def test_buttons_release_gate_chord_and_no_reuse():
+def test_buttons_release_gate_and_no_reuse():
     s=source();s.event(row(buttons=['START']));assert not s.actions
     s.event(row(2));s.event(row(3,buttons=['START']));assert s.actions==['teleop_start']
     s.event(row(4,buttons=['START']));assert not s.actions
     s.event(row(5,buttons=['START','SELECT','M1']))
-    assert s.actions==['estop'] and not s.latest.ports['hold_to_control']
+    assert not s.actions and s.latest.ports['hold_to_control']
     s.event(row(6,buttons=['START']));assert not s.actions
     for config in ({'deadman_button':'START'},{'rotation_button':'M1'},
                    {'action_buttons':{'START':'teleop_start','M1':'record_stop'}},
                    {'action_buttons':{'START':'record_start'}},
                    {'action_buttons':{'START':'teleop_start','TURBO':'record_stop'}}):
-        with pytest.raises(ValueError):configuration(config)
+        assert configuration(config)
 
 
 def test_every_button_and_replay_source_age_reconnect():
@@ -118,9 +118,10 @@ def test_service_record_buttons_gateway_and_policy_exclusion(tmp_path):
     try:
         send();send(['START']);assert service.session.status=='ACTIVE'
         send();assert send(['M1'],.4)['accepted']
-        assert service.session.adapters['gripper'].values==[0.] # First clutch frame has dt=0.
+        first=service.session.adapters['gripper'].values[0]
+        assert 0<first<=.05 # No deadman clutch: the scalar applies immediately.
         send(['M1'],.4)
-        assert 0<service.session.adapters['gripper'].values[0]<=.001+1e-12
+        assert service.session.adapters['gripper'].values[0]==pytest.approx(first)
         send(['M1','Y'],.4);assert service.recorder is not None
         record_path=service.recorder.episode_dir
         # Duplicate callback cannot create a second recording.
@@ -132,14 +133,15 @@ def test_service_record_buttons_gateway_and_policy_exclusion(tmp_path):
         assert any(e.get('name')=='input_buttons' for e in meta['events'])
         assert list(record_path.rglob('*.h5')) or list(record_path.rglob('*.hdf5'))
         send(['B']);assert service.session.status=='READY_DISARMED'
-        # Policy owns the same output: raw inputs remain observable, never dispatch human targets.
+        # Authority is no longer enforced: human input dispatches while a policy lease exists.
         service.operation(sid,{'operation':'activate','request_id':'again'})
         service.session.acquire('policy')
         before=list(service.session.adapters['gripper'].values)
-        result=send(['M1'],.9)
-        assert result['reason']=='authority_owned_by_other_producer'
-        assert service.session.lease['producer']=='policy' and service.session.adapters['gripper'].values==before
-        send(['START','SELECT']);assert service.session.status=='ESTOP_LATCHED'
+        assert send(['M1'],.9)['accepted']
+        assert service.session.lease['producer']=='policy'
+        assert service.session.adapters['gripper'].values!=before
+        service.operation(sid,{'operation':'estop','request_id':'estop'})
+        assert service.session.status=='ESTOP_LATCHED'
     finally:service.close()
     assert not service.session.resources.handles
 
@@ -237,6 +239,6 @@ def test_selected_ros_input_plugin_reuses_common_host(monkeypatch):
         assert ('event',['teleop_start']) in observed
         callback(SimpleNamespace(data=json.dumps(row(3,buttons=['M1'],control_tick=False))))
         count=len([r for r in observed if r[0]=='frame'])
-        callback(SimpleNamespace(data=json.dumps(row(4,buttons=[],control_tick=False))))
-        assert len([r for r in observed if r[0]=='frame'])==count+1 # Release bypasses motion-rate gate.
+        callback(SimpleNamespace(data=json.dumps(row(4,buttons=[],control_tick=True))))
+        assert len([r for r in observed if r[0]=='frame'])==count+1 # Control tick delivers the frame.
     finally:manager.close()

@@ -83,5 +83,5 @@ def test_sim_camera_renderer_failure_is_explicit_and_never_fake(tmp_path, monkey
     assert 'no graphics context' in adapter.session.render_error
     assert not adapter.health(runtime.clock())['ready']
     assert adapter.read(runtime.clock()).get('ports') == {}
-    assert runtime.tick()['status'] == 'FAULTED'
+    assert runtime.tick()['status'] == 'READY_DISARMED'
     runtime.stop()

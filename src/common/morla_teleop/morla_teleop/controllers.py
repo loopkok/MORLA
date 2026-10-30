@@ -35,19 +35,13 @@ class ControllerRegistry:
             if not lo < hi or not lo <= x <= hi:
                 raise ControllerError("scalar outside declared range")
             target=out_lo + (x-lo)/(hi-lo)*(out_hi-out_lo)
-            if 'max_velocity' in parameters:
-                speed=parameters['max_velocity']
-                if type(speed) not in (int,float) or not math.isfinite(speed) or speed<=0:
-                    raise ControllerError('invalid scalar max_velocity')
-                step=speed*min(.05,max(0.,dt))
-                target=measured[0]+max(-step,min(step,target-measured[0]))
             return [target]
         if plugin_id in {"morla.joint_jog", "joint_jog"}:
             axes = parameters.get("axes_map")
             if not isinstance(value, dict) or not isinstance(axes, list) or len(axes) != len(measured):
                 raise ControllerError("explicit per-joint axes_map required")
             speed = parameters.get("speed", 0.25)
-            if isinstance(speed, bool) or not isinstance(speed, (int, float)) or not 0 < speed <= 2:
+            if isinstance(speed, bool) or not isinstance(speed, (int, float)) or not speed > 0:
                 raise ControllerError("invalid jog speed")
             if any(axis is not None and axis not in value for axis in axes):
                 raise ControllerError('axes_map references an unavailable axis')
@@ -59,22 +53,18 @@ class ControllerRegistry:
 
 
 class BindingController:
-    """Each binding requires an observed release after start, switch or reconnect."""
+    """Applies one bound input source when its frame is fresh and in sequence."""
     def __init__(self, binding, names, *, registry=None, max_age_ns=250_000_000, clock=time.monotonic_ns):
-        if binding['source'].split('.',1)[0]!=binding['deadman'].split('.',1)[0]:
-            raise ControllerError('cross-source deadman requires a synchronized multi-input controller')
         self.binding, self.names = binding, tuple(names)
         self.registry = registry or ControllerRegistry()
         self.max_age_ns, self.clock = max_age_ns, clock
         self.identity = None
-        self.released = False
         self.last_ns = None
         self.last_sequence = -1
         self.last_received_ns = None
 
     def reset(self):
         self.identity = None
-        self.released = False
         self.last_ns = None
         self.last_sequence = -1
         self.last_received_ns = None
@@ -92,12 +82,10 @@ class BindingController:
                 frame.source_id!=self.binding['source'].split('.',1)[0] or
                 not 0<=now-frame.received_ns<=self.max_age_ns):return False
         metadata=frame.port_metadata or {}
-        for reference in (self.binding['source'],self.binding['deadman']):
-            port=reference.split('.',1)[1]
-            if port not in frame.ports:return False
-            stamp=metadata.get(port,{}).get('received_ns',frame.received_ns)
-            if type(stamp) is not int or not 0<=now-stamp<=self.max_age_ns:return False
-        return type(frame.ports[self.binding['deadman'].split('.',1)[1]]) is bool
+        port=self.binding['source'].split('.',1)[1]
+        if port not in frame.ports:return False
+        stamp=metadata.get(port,{}).get('received_ns',frame.received_ns)
+        return type(stamp) is int and 0<=now-stamp<=self.max_age_ns
 
     @property
     def requires_fresh_input(self):
@@ -114,12 +102,10 @@ class BindingController:
         if self.last_received_ns is not None and frame.received_ns-self.last_received_ns>self.max_age_ns:
             self.reset()
         source_port=self.binding['source'].split('.',1)[1]
-        deadman_port=self.binding['deadman'].split('.',1)[1]
         metadata=frame.port_metadata or {}
-        for port_id in (source_port,deadman_port):
-            stamp=metadata.get(port_id,{}).get('received_ns',frame.received_ns)
-            if not 0<=now-stamp<=self.max_age_ns:
-                self.reset(); return None
+        stamp=metadata.get(source_port,{}).get('received_ns',frame.received_ns)
+        if not 0<=now-stamp<=self.max_age_ns:
+            self.reset(); return None
         source_frame=metadata.get(source_port,{}).get('frame_id',frame.frame_id)
         identity = (frame.source_id, frame.source_epoch, source_frame)
         if identity != self.identity:
@@ -129,16 +115,6 @@ class BindingController:
             raise ControllerError("input sequence not increasing")
         self.last_sequence = frame.sequence
         self.last_received_ns = frame.received_ns
-        deadman_port = self.binding["deadman"].split(".", 1)[-1]
-        down = frame.ports.get(deadman_port)
-        if down is not True:
-            self.released = down is False
-            self.last_ns = None
-            for plugin in self.registry.plugins.values():
-                if hasattr(plugin,'reset'): plugin.reset()
-            return None
-        if not self.released:
-            return None
         measured = _vector(measured, len(self.names))
         source = self.binding["source"].split(".", 1)[-1]
         if source not in frame.ports:
