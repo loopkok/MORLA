@@ -22,7 +22,7 @@
 - 整链操作入口为 `ros2 launch morla_vader5_input vader5_teleop.launch.py`（启动 Vader5 reader、编译并激活 composition session、`connect_inputs`，Web 在 `127.0.0.1:8080`），浏览器选择该装配后显式 `prepare`/`activate`；EPG 激活会执行一次先开后合的寻程（约 5 s 以上），命令只走绑定生成的 `gripper.position_target`，不发布 Astral 的 `/{side}_gripper/command`。急停/停止/撤销仍会停适配器；停止后重新激活才能继续，输入侧没有 deadman，松手只会让 RT 回到“全开”目标。
 - 本机未安装 `/usr/bin/python3` 的 `vader5_sdk`，且当前没有 Flydigi（vendor `37d7`）hidraw 设备，故真机全流程 **NOT_RUN**；已完成的是配置编译、Web/服务路径核对与 fake 层回归，不能据此宣称 VR→EPG 实机通过。
 - `docs/testing/fake_ros_gateway_smoke.py` 对齐回退后语义：删除 token/epoch/session/sequence/TTL/名称/单位/NaN 负例，改为重复组件、未知组件（`COMMAND_RESOURCES`）、急停锁存后提交（`RESET_REQUIRED`）、`reset` 后未重新激活（`ADAPTER_DISARMED`）。同时恢复 `CachedActuatorAdapter`/`NativeRosAdapter` 的未激活提交拒绝，并为 LoopHand real 保留独立的 `activate` 只读阻断（固件无停止 ACK/watchdog，不随验证 flag 回退放开）。
-- 回归：pure **167 passed, 1 skipped**；fake **23 passed**；sim **7 passed**；web manager 全量 **288 passed, 2 skipped**（需 `MORLA_PIANO_PROJECT=/home/loopkok/MORLA-piano`）。EPG 断链结论不变：实测 **FAIL（操作者豁免）**，不得写成 watchdog 已验证。
+- 回归：pure **167 passed, 1 skipped**；fake **23 passed**；sim **7 passed**；web manager 全量 **288 passed, 2 skipped**（需 `MORLA_PIANO_PROJECT=/home/loopkok/MORLA-piano`）。EPG 断链结论不变：实测 **FAIL（操作者豁免）**，不得写成 watchdog 已验证。提交、验证与推送结果见[本轮推送回执](docs/integrations/PUSH_LOG_ROLLBACK_EPG_2026-10-30.md)。
 
 ## 2026-10-29
 
