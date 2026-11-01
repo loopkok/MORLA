@@ -6,6 +6,7 @@
   <license>Apache-2.0</license><license>MIT</license>
 
   <exec_depend>morla_core</exec_depend><exec_depend>morla_runtime</exec_depend>
+  <exec_depend>morla_web_manager</exec_depend>
   <exec_depend>morla_input</exec_depend><exec_depend>morla_teleop</exec_depend>
   <exec_depend>python3-scipy</exec_depend>
   <exec_depend>pinocchio</exec_depend><exec_depend>robot_description</exec_depend>

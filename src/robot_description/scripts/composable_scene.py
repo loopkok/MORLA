@@ -14,7 +14,7 @@ import xml.etree.ElementTree as ET
 
 _DESCRIPTION=Path(__file__).resolve().parents[1]
 # Only trusted installed assets: an assembly cannot provide an arbitrary filename.
-_ASSETS={'morla.nero.arm':'mjcf/xnero/xnero_dual.xml','morla.xhand.hand':'mjcf/xnero/xnero_dual.xml','morla.astral.arm':'mjcf/astral/astral_dual_clean.xml','morla.wuji.hand':'mjcf/wuji/{side}.xml'}
+_ASSETS={'morla.dobot.cr5':'mjcf/cr5/cr5.xml','morla.nero.arm':'mjcf/xnero/xnero_dual.xml','morla.xhand.hand':'mjcf/xnero/xnero_dual.xml','morla.astral.arm':'mjcf/astral/astral_dual_clean.xml','morla.wuji.hand':'mjcf/wuji/{side}.xml'}
 _REFERENCES={'joint','joint1','joint2','body','body1','body2','site','site1','site2','geom','geom1','geom2','mesh','material','texture','tendon','tendon1','tendon2','actuator','target','objname','refname','class','childclass','camera'}
 
 def _prefix_tree(node,prefix,names):
@@ -44,7 +44,9 @@ def _source_component(plugin,side):
     if plugin not in _ASSETS:raise ValueError('No validated physical asset for '+plugin)
     path=_DESCRIPTION/_ASSETS[plugin].format(side=side)
     root=ET.parse(path).getroot()
-    if plugin=='morla.nero.arm':
+    if plugin=='morla.dobot.cr5':
+        body=deepcopy(root.find(".//body[@name='base_link']"));flange='Link6'
+    elif plugin=='morla.nero.arm':
         body=deepcopy(root.find(".//body[@name='"+side+"_link1']"))
         for parent in body.iter():
             for child in list(parent):
@@ -71,7 +73,7 @@ def build_scene(resolved,output=None,timestep=0.002):
     if not math.isfinite(timestep) or timestep<=0:raise ValueError('timestep must be finite and positive')
     root=ET.Element('mujoco',{'model':resolved['assembly_id']})
     ET.SubElement(root,'compiler',{'angle':'radian','autolimits':'true'})
-    ET.SubElement(root,'option',{'timestep':str(timestep),'gravity':'0 0 -9.81'})
+    ET.SubElement(root,'option',{'timestep':str(timestep),'gravity':'0 0 -9.81','integrator':'implicitfast'})
     assets=ET.SubElement(root,'asset');world=ET.SubElement(root,'worldbody');actuators=ET.SubElement(root,'actuator');sensors=ET.SubElement(root,'sensor');contacts=ET.SubElement(root,'contact');equalities=ET.SubElement(root,'equality')
     ET.SubElement(world,'light',{'pos':'1 1 3','dir':'-0.3 -0.3 -1'})
     ET.SubElement(world,'geom',{'name':'scene_floor','type':'plane','size':'3 3 .1','rgba':'.2 .2 .25 1'})

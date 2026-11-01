@@ -2,6 +2,13 @@
 
 ## 2026-11-01
 
+### CR5 MuJoCo / Web 调试环境
+
+- CR5 从 IK URDF 生成六轴 MJCF，接入统一 composable_scene / MujocoDeviceSession；增加显式关节映射、可验证的初始姿态和 sim 遥操控制器支持。共享场景采用 implicitfast 积分，消除 CR5 小惯量腕部在参考位置伺服下的显式积分振荡。
+- 增加 Quest + CR5 sim + 场景相机模板、cr5_sim launch；统一 Web 可加载模板、恢复当前会话和预览 JPEG。无实体 CR5 连接，未修改 IK 数学算法。
+- 验证：随机 30 组及零位 MuJoCo / Pinocchio 末端 FK 一致到 1e-10；模型可复现生成；物理关节跟踪/停止、模板编译和 Web 预览 API 回归；640×480 实际离屏渲染成功。相关 Python 回归 43 项通过，TypeScript 检查与 Vite 构建通过；实体 Quest、ROS launch / colcon 和碰撞验收未执行。
+- 实施、复现命令与未验收边界见 [CR5 仿真实施日志](docs/integrations/CR5_MUJOCO_2026-11-01.md)；推送结果另记于 [推送回执](docs/integrations/PUSH_LOG_CR5_SIM_2026-11-01.md)。
+
 ### Vader 5 Pro 实机台架与真实输入部署
 
 - 在 Linux ROS 2 Humble + USB 有线实物（固件 7.1.5.0）上完成手柄台架：两轮合计 24/27 键、四摇杆轴与两扳机全行程、IMU 含重力加速度、最大 5 键并发且边沿无丢失；ROS 事件实测 47.9–48.8 Hz（SDK 内部约 493 Hz 批处理）。证据归档于 `$HOME/morla-acceptance/vader-20261030-171327/VADER_BENCH_REPORT.md`。

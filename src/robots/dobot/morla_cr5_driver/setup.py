@@ -12,7 +12,7 @@ setup(
         ('share/morla_cr5_driver/launch', glob('launch/*.launch.py')),
     ],
     install_requires=['setuptools', 'numpy', 'scipy'],
-    extras_require={'ik':['pin>=2.6,<5']},
+    extras_require={'ik':['pin>=2.6,<5'], 'sim':['pin>=2.6,<5', 'mujoco>=3.1,<4', 'Pillow']},
     license='Apache-2.0; MIT (vendored Dobot layout)',
     maintainer='MORLA maintainers', maintainer_email='robot@localhost',
     description='Independent cr5_driver ROS 2 and MORLA component',

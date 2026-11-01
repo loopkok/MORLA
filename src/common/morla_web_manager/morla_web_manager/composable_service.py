@@ -209,6 +209,8 @@ class ComposableService:
         with self.lock:
             session=self.require(session_id)
             result=session.state()
+            result["assembly_id"] = session.resolved["assembly_id"]
+            result["revision"] = session.resolved["revision"]
             result["inputs"]={key:{"connected":item.connected,"fresh":item.read() is not None,
                                     "epoch":item.epoch,"mode":getattr(item,'mode',None)} for key,item in self.inputs.items()}
             result["recording"] = self.recorder is not None

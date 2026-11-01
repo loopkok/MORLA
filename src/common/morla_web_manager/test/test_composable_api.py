@@ -66,3 +66,25 @@ def test_tampered_hash_and_store_path_rejected(tmp_path):
         a=assembly(); saved=client.post('/api/v2/assemblies',json={"assembly":a}).json()
         assert client.post('/api/v2/sessions',json={"assembly_id":"test_cell","revision":1,"assembly_hash":"wrong","request_id":"bad"}).status_code==409
         assert client.post('/api/v2/assemblies',json={"assembly":{**a,"assembly_id":"../escape"}}).status_code==422
+
+
+def test_cr5_template_and_camera_preview_contract(tmp_path):
+    from types import SimpleNamespace
+    with TestClient(create_app(tmp_path, resource_root=tmp_path/'locks')) as client:
+        template = client.get('/api/v2/templates/cr5-sim')
+        assert template.status_code == 200
+        assert template.json()['instances']['arm']['backend'] == 'sim'
+        _, _, state = saved_session(client)
+        sid = state['session_id']
+        current = client.get(f'/api/v2/sessions/{sid}/state').json()
+        assert current['assembly_id'] == 'test_cell' and current['revision'] == 1
+        assert client.get(f'/api/v2/sessions/{sid}/cameras/grip/frame').status_code == 404
+        svc = client.app.state.composable
+        svc.session.instances['camera'] = {'plugin_id':'morla.camera'}
+        svc.session.adapters['camera'] = SimpleNamespace(read=lambda now: {'ports':{}})
+        assert client.get(f'/api/v2/sessions/{sid}/cameras/camera/frame').status_code == 503
+        svc.session.adapters['camera'].read = lambda now: {'ports':{'rgb':{'valid':True,'data':b'jpeg-bytes','encoding':'jpeg'}}}
+        response = client.get(f'/api/v2/sessions/{sid}/cameras/camera/frame')
+        assert response.status_code == 200 and response.content == b'jpeg-bytes'
+        assert response.headers['cache-control'] == 'no-store'
+        svc.session.adapters.pop('camera'); svc.session.instances.pop('camera')

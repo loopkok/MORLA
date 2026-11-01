@@ -70,6 +70,14 @@ class MujocoDeviceSession:
             qpos = [int(self.model.jnt_qposadr[index]) for index in joint_ids]
             qvel = [int(self.model.jnt_dofadr[index]) for index in joint_ids]
             self.indices[key] = {'qpos': qpos, 'qvel': qvel, 'ctrl': controls}
+            initial = row.get('parameters', {}).get('initial_positions')
+            if initial is not None:
+                if len(initial) != len(names) or not np.isfinite(initial).all():
+                    raise ValueError('SIM_INVALID_INITIAL_POSITIONS')
+                for value, joint in zip(initial, row['joints']):
+                    if not joint['lower'] <= value <= joint['upper']:
+                        raise ValueError('SIM_INITIAL_POSITION_OUTSIDE_LIMITS')
+                self.data.qpos[qpos] = initial
             self.data.ctrl[controls] = self.data.qpos[qpos]
         self.cameras = [row for row in self.runtime.instances.values()
                         if row.get('backend') == 'sim' and row.get('kind') == 'sensor'

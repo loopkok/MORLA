@@ -114,3 +114,7 @@ Nero 的工作位 → HOME → 工作位可在同一次位置控制许可内连�
 已移除 `home_j1_deg`、`home_j2_deg`、`workpos_j1_deg` 及旧阶段服务。状态通过 `trajectory_revision=nero_four_points_home85_v2`、`workpos_waypoints_deg` 和 `position_kind` / `position_stage` / `position_stage_count`（工作位=4、HOME=5） 表达路径。`position_seq` 每段递增，中间段到位为 `stage_arrived`，末段到位为 `arrived`。Web 显示工作位四段及 HOME 五段进度及各侧点位，旧驱动缺少版本字段时禁止工作位/HOME并提示重启 Profile。
 
 动作前准备并使能；执行时冻结遥操，采集中禁止发起。工作位与 HOME 可在位置许可有效时连续执行；完成后保持 J 模式，恢复遥操前再次准备并使能。更新后须手动重启机器人 Profile（驱动及协调器）和 Web、刷新页面；部署不会自动启动服务或执行真机运动。
+
+### CR5 MuJoCo 调试
+
+统一 Web 的「组合配置」提供「加载 CR5 MuJoCo 仿真」模板，包含 CR5 sim、Quest 输入和场景相机。预览、保存并启动后可查看实时 MuJoCo 画面；显式连接输入、激活后使用现有本地 IK 控制链路。页面重新打开会恢复当前会话及其保存配置。`GET /api/v2/templates/cr5-sim` 返回受信任的包内模板；`GET /api/v2/sessions/{session_id}/cameras/{camera_id}/frame` 返回最新 JPEG，未生成帧时为 503，未知/非相机为 404。配置与启动说明见 [CR5 包说明](../../robots/dobot/morla_cr5_driver/README.md#cr5-mujoco-仿真与-web)。

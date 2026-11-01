@@ -29,3 +29,7 @@ JointState 发布实际采样时间且不重复刷新缓存样本时间；state/
 真实设备身份/IP、实际 joint_lower/joint_upper、零位/方向、物理停止/断网 watchdog、安装 TCP 和输入基座旋转仍需现场验证。真实模式的 kinematics_verified / binding calibration_verified 只是记录字段，回退后不再阻止激活；方向、零点和 TCP 必须现场核对后再运动。纯 CR5 本地 URDF 已接入统一 robot_description，未迁入夹爪/ros2_control/OCS2；fake/real 遥操均使用本地 IK，无控制器 IK 回退。物理仿真与实机尚未验收。
 
 启动/构建/单包测试见包 README。验收状态：离线协议/worker/单组件 fake 测试已执行；ROS Humble colcon/IDL/运行、实体机械臂、标定、长稳、采集/模型效果 NOT_RUN。独立构建与安装验证结果集中记录于 [本轮拆包验证](cr5_loophand.md#拆包验证)。
+
+### 2026-11-01 MuJoCo 调试环境
+
+CR5 已增加统一 `sim` 后端和 Web 组合页模板/相机预览；`cr5_sim.launch.py` 可独立启动仿真与统一 Web。MJCF 由同一 IK URDF 生成，显式映射六轴并保留 Link6 末端坐标。使用方式、初始姿态和边界见 [包说明](../../src/robots/dobot/morla_cr5_driver/README.md#cr5-mujoco-仿真与-web)。碰撞、实机伺服等价性、实体 Quest 全链路与 IK 故障根因仍待现场验证。

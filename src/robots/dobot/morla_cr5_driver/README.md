@@ -63,3 +63,21 @@ ros2 launch morla_cr5_driver cr5_vr.launch.py
 默认 fake；浏览器打开 http://127.0.0.1:8080/。真实参数、只读本地正逆解检查、控制手势和完整步骤见 [CR5 VR 操作指南](../../../../docs/integrations/cr5_vr.md)。本包新增 controller.json 与 morla.controllers 注册，需重新构建/source；旧冻结快照重新编译。单独关节驱动不需要启动 Web 宿主。
 
 VR controller/输入及可选控制页的整链回归通过仓库 `scripts/test_composable.sh --layer pure` 执行，需要公共输入/遥操/学习/Web 源码及测试依赖。未安装可选 Web 模块时，对应整链/页面测试明确跳过；不能据此宣称该层已通过。
+
+## CR5 MuJoCo 仿真与 Web
+
+`sim` 复用 MORLA 统一的 MuJoCo 物理场景、状态缓存、BindingEngine 和 ControlHost；不连接 CR5 TCP 控制器。MJCF 由版本化的 CR5 IK URDF 生成，保留 joint1..joint6、Link6 末端、质量和惯量；生成脚本为 `robot_description/scripts/make_cr5_mjcf.py`。仿真控制器采用参考位置伺服，并非实机伺服参数。当前未启用机器人碰撞，不用于碰撞验收。
+
+在 ROS Humble 主机安装 `mujoco`、`Pillow`、Pinocchio 和 Web 依赖后，构建并 source 工作区（包括 morla_cr5_driver、robot_description、morla_web_manager 及其 MORLA 依赖）：
+
+```bash
+ros2 launch morla_cr5_driver cr5_sim.launch.py
+# 使用实体 Quest 输入，CR5 仍然是 MuJoCo 后端：
+ros2 launch morla_cr5_driver cr5_sim.launch.py input_backend:=real
+```
+
+打开 `http://127.0.0.1:8080` →「组合配置」。页面自动连接启动的会话，展示 scene_camera 仿真画面和组件健康；点击「激活运动许可」后才能发送目标。也可在现有统一 Web 服务的「组合配置」中点击「加载 CR5 MuJoCo 仿真」→ 预览 → 保存 → 启动会话 → 连接输入设备 → 激活。模板默认 Quest 为 fake；使用实体手柄时，将 quest 的后端改为 real，再保存启动。`input_backend:=real` 托管输入接收进程，头显连接要求与现有 Quest 接入一致。
+
+配置文件 `config/quest_right.sim.yaml` 设置六轴初始位置 `[0,-0.5,1,-0.5,1,0]` rad，避开全零伸直位；仿真相机位于世界坐标。arm 必须保留 sim，输入可以独立选 fake/real。局域网访问请使用已有统一 Web 服务的 HOST 配置；session launch 的默认地址仅限本机。不要与已运行的 Web 服务抢占同一端口。
+
+仿真和真机遥操使用相同的本地 Pinocchio IK、TCP/增量映射和异步解算逻辑。仿真将物理关节反馈作为播种来源，状态标记 `source=simulation`、`synthetic=true`、`measured=false`。本次增加仿真调试环境，尚未确认或修复实体手柄测试中的 IK 故障根因。

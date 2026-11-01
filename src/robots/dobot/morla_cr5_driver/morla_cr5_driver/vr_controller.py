@@ -135,8 +135,8 @@ def _create(context, *, jog=False):
     validate_parameters(parameters,jog=jog)
     if instance['plugin_id'] != 'morla.dobot.cr5':
         raise ValueError('CR5 controller requires CR5 target')
-    if instance['backend'] not in ('fake','real'):
-        raise ValueError('CR5 VR only supports fake or verified real backend')
+    if instance['backend'] not in ('fake','sim','real'):
+        raise ValueError('CR5 VR requires fake, sim or real backend')
     hardware=instance.get('parameters',{})
     solver=IKSolver(**({'position_tolerance_m':.00001,'angle_tolerance_rad':.0001} if jog else {}),
                     joint_lower=hardware.get('joint_lower'),joint_upper=hardware.get('joint_upper'),

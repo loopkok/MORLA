@@ -9,7 +9,7 @@ import secrets
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 
 from .composable_service import ComposableService, ServiceError
 
@@ -29,6 +29,30 @@ def router(service):
 
     @api.get("/components")
     def components(): return service.catalog.to_dict()
+
+    @api.get('/templates/cr5-sim')
+    def cr5_sim_template():
+        from morla_core.resource_locator import package_share, ResourceLookupError, morla_source_root
+        from morla_core.composition import load_document
+        try:
+            share = package_share('morla_cr5_driver')
+        except ResourceLookupError:
+            share = morla_source_root() / 'src/robots/dobot/morla_cr5_driver'
+        path = share / 'config/quest_right.sim.yaml'
+        return call(load_document, path)
+
+    @api.get('/sessions/{session_id}/cameras/{camera_id}/frame')
+    def camera_frame(session_id: str, camera_id: str):
+        session = call(service.require, session_id)
+        adapter = session.adapters.get(camera_id)
+        instance = session.instances.get(camera_id, {})
+        if adapter is None or not instance.get('plugin_id', '').startswith('morla.camera'):
+            raise HTTPException(404, 'camera not found')
+        sample = adapter.read(session.clock())
+        port = sample.get('ports', {}).get('rgb', {})
+        if not port.get('valid') or not port.get('data') or port.get('encoding') != 'jpeg':
+            raise HTTPException(503, 'camera frame unavailable')
+        return Response(port['data'], media_type='image/jpeg', headers={'Cache-Control': 'no-store'})
 
     @api.get("/assemblies")
     def assemblies(): return call(service.store.list)
