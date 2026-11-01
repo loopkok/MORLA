@@ -1,0 +1,39 @@
+# 实测填写：2026-10-30 EPG50-060 台架（步骤 1-8）
+# 证据：/home/loopkok/morla-acceptance/epg-20261030-165332/EPG_BENCH_REPORT.md
+deployment_version: 1
+deployment_id: epg50_060_dseab114j19
+instances:
+  gripper:
+    backend: real
+    device_id: EPG50_DSEAb114J19
+    resource_key: epg:EPG50_DSEAb114J19
+    parameters:
+      port: /dev/serial/by-id/usb-Prolific_Technology_Inc._USB-Serial_Controller_DSEAb114J19-if00-port0
+      slave_id: 9
+      baudrate: 115200
+      # 以下为本次实测使用的参数（与 descriptor 默认值一致，显式记录）
+      poll_hz: 20
+      timeout_s: 0.1
+      feedback_timeout_s: 0.5
+      command_timeout_s: 0.3
+      enable_timeout_s: 20.0
+      stop_timeout_s: 1.0
+      max_step_m: 0.005
+      speed_raw: 32
+      force_raw: 32
+      # 记录字段，不参与门禁；断链/watchdog 按操作员指示不纳入范围
+      activation_motion_verified: false
+      position_feedback_verified: false
+      device_watchdog_verified: false
+    # rSTOP 运动中停止、停止后位置保持、停止后拒绝命令均已实测（步骤 7）
+    verified: false
+    stop_verified: true
+calibrations: {}
+metadata:
+  model: EPG50-060-0PF-L200-C7-N-A-P40-S00
+  bench_tested: "2026-10-30"
+  evidence: /home/loopkok/morla-acceptance/epg-20261030-165332/EPG_BENCH_REPORT.md
+  notes: >-
+    rSTOP=0x03E8/0x0005 verified in motion; position readback repeatability max
+    0.980 mm over 5 round trips; no external caliper measurement; activation
+    homing not observed; disconnect/watchdog out of scope by operator decision.

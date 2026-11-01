@@ -55,3 +55,25 @@ macOS、独立Python3.13，无ROS/手柄/实体机器人。证据位于 [本轮�
 本轮11项新输入/整链测试已包含在172项pure通过中；fake集成23项通过，原SDK另有5项unittest通过。SDK移至同级目录后，再从新路径复跑5项SDK测试与11项输入/整链测试。各pytest层有一条现有Starlette/AnyIO弃用警告。原始输出、wheel和文件哈希见证据manifest与日志；wheel对应迁移前构建，本次仅变更SDK布局与文档，迁移后的源码哈希另列manifest。历史日志不因本轮测试改变实机状态。
 
 NOT_RUN：Linux Humble colcon/IDL与真实ROS传输、Vader USB/2.4G实物、固件/按键/方向/IMU核验、硬件采样/端到端延迟、Nero/Astral/CR5真实跟随、夹爪停止/设备watchdog、真实训练/模型服务、相机同步、碰撞与长稳。本轮未改动原厂SDK或自动连接任何硬件。
+
+## 2026-10-30 USB 真实手柄台架（补记）
+
+环境：Ubuntu 22.04 / ROS 2 Humble / `vader5_sdk 0.1.0`；Vader 5 Pro USB 有线，固件 **7.1.5.0**（SDK 上游记录为 7.1.4.0，键位可能随批次不同），配置接口 `/dev/hidraw5`，厂商 37d7。会话经 `morla-composable-session`（`ROS_DOMAIN_ID=91`、`ROS_LOCALHOST_ONLY=1`）。证据：`$HOME/morla-acceptance/vader-20261030-171327/VADER_BENCH_REPORT.md` 及同目录 JSONL/日志。
+
+- 原始输入 **PASS**：两轮合计 24/27 键（缺 FN/TURBO/HOME，操作员在实物上找不到，记 NOT_RUN）；摇杆四轴 [-1,1]、扳机 0→1；最大 5 键并发、边沿无丢失；IMU 角速度与含重力加速度正常。ROS 事件率 47.9–48.8 Hz（SDK 内部约 493 Hz 批处理）。
+- fake CR5 jog **PASS（有缺陷）**：真手柄可驱动六轴，START/B/Y/X 动作生效；但摇杆接近满行程时 fake CR5 报 `IK unreachable or limit failure`，运行时将其升级为 `input_errors.pad` 并 `group_stopped/input_or_controller_failed`，整会话撤到 READY_DISARMED，一轮 54 s 内需 22 次重新激活。
+- fake EPG **PASS**：RT 0↔1 ↔ 宽度 0.05↔0 m，两轮平滑往返。
+- 断流/重连 **PASS（行为记录）**：杀掉受管 reader 后进程记为 `exited/1`，但会话仍 `ACTIVE`、`connected=true`、`fresh=false`、无 `input_errors`、不重启也不撤权；新 reader 上线产生新 epoch 后触发 `group_stopped/input_disconnect` → READY_DISARMED，旧锚点清除，需显式 `activate` 恢复。即：断流本身不感知，靠新 epoch 才撤权。
+- 真实 EPG **PASS**：真手柄 → `scalar_map` → 真实 EPG50-060，激活时 RT 松开即 0.0173→0.0500 m；RT 4 次全行程均在约 3.1 s 内到达 0.0000/0.0500 m，全程 ACTIVE、无故障、无输入错误；`stop` 为 `operator_stop`，串口与端口正常释放。
+
+文档对齐的已知行为（代码为准，非缺陷宣称）：
+
+- `/vader5_input/status` 只在断开/出错时发布，没有初始消息。
+- `start_recording()` 不检查会话状态，READY_DISARMED 时按 Y 也能开始录制。
+- LT 精细倍率只乘六轴 jog；`scalar` 直接取 RT，因此对 EPG 宽度无影响。
+- M1 `hold_to_control` 仅为输入意图，不是运动门禁；V04 中未按 M1、仅 RT 即驱动真 EPG。
+- 会话启动期 DDS 残留的旧 reader 事件以 stale/foreign-clock 拒绝并打印日志。
+
+仍 NOT_RUN：2.4G/无线、FN/TURBO/HOME 键位与功能、真实 CR5 跟随、物理拔插 USB、LT 在 jog 上的定量减速比、长时连续操作与硬件采样/端到端时延。
+
+设备身份（2026-11-01 复核）：USB `37d7:2401`，USB iSerial 与 HID_UNIQ 均返回产品字符串 “Flydigi Vader 5 Pro”，SDK `ControllerInfo.device_id=130` 为型号常量，**不存在唯一硬件序列号**。真实部署只能以 VID:PID + 资产标签标识，见 `src/common/morla_vader5_input/config/input.real.yaml`；同型号多台必须使用不同标签。

@@ -1,5 +1,27 @@
 # Changelog（MORLA）
 
+## 2026-11-01
+
+### Vader 5 Pro 实机台架与真实输入部署
+
+- 在 Linux ROS 2 Humble + USB 有线实物（固件 7.1.5.0）上完成手柄台架：两轮合计 24/27 键、四摇杆轴与两扳机全行程、IMU 含重力加速度、最大 5 键并发且边沿无丢失；ROS 事件实测 47.9–48.8 Hz（SDK 内部约 493 Hz 批处理）。证据归档于 `$HOME/morla-acceptance/vader-20261030-171327/VADER_BENCH_REPORT.md`。
+- fake CR5 由真手柄驱动六轴，START/B/Y/X 动作生效；但摇杆接近满行程时 fake CR5 报 `IK unreachable or limit failure`，运行时将其升级为 `input_errors.pad` 并 `group_stopped/input_or_controller_failed`，整会话撤到 READY_DISARMED（一轮 54 s 内需 22 次重新激活）。这是需要修复的行为，不是验收通过项。
+- fake EPG：RT 0↔1 对应宽度 0.05↔0 m，两轮平滑往返。断流注入：杀掉受管 reader 后会话仍 ACTIVE、`connected=true`、`fresh=false`、无 `input_errors`、不重启也不撤权；新 reader 上线产生新 epoch 后才 `group_stopped/input_disconnect` → READY_DISARMED，需显式 `activate` 恢复。
+- 真手柄 → 真实 EPG50-060 全链路 **PASS**：激活时 RT 松开即 0.0173→0.0500 m；RT 4 次全行程均在约 3.1 s 到达 0.0000/0.0500 m，全程 ACTIVE、无故障、无输入错误；`stop` 为 `operator_stop`，串口与端口正常释放。
+- 新增 `src/common/morla_vader5_input/config/input.real.yaml`：台架实配的真实输入部署，显式记录 `input_topic`、`deadzone=0.08`、`max_age_ms=250`、M1/M2、默认动作映射与 `axis_signs`，已用 `cr5.fake.yaml` 编译通过（`compile_valid=true`，pad 解析为 real）。
+- 设备身份复核：USB `37d7:2401`，USB iSerial 与 HID_UNIQ 均返回产品字符串 “Flydigi Vader 5 Pro”，SDK `ControllerInfo.device_id=130` 为型号常量，**该型号不暴露唯一硬件序列号**。部署以 VID:PID + 台架资产标签 `VADER5_37D7_2401` 作为 `device_id/resource_key`，并在元数据注明 `serial: none-exposed`；不得把产品字符串或 130 写成出厂序列号，同型号多台必须另起标签。
+
+### EPG 台架实配补录
+
+- 新增 `src/robots/jodell/morla_epg_driver/config/deployment.real.yaml`：2026-10-30 台架实测的 EPG50-060 部署（资产号 `EPG50_DSEAb114J19`、by-id 串口、站号 9、115200、实测 descriptor 参数、`stop_verified=true`），已用 `assembly.fake.yaml` 编译通过；`src/robots/jodell/morla_epg_driver/README.md` 增加该文件指针。断链/watchdog 仍按操作员决定记 OUT_OF_SCOPE，不作为门禁。
+
+### 手柄文档与实测行为对齐
+
+- `src/common/morla_vader5_input/README.md`：验收状态改为 USB 实物已测并列出仍未验证项；补充 `/vader5_input/status` 只在断开/出错时发布、受管 reader 退出不被会话感知、启动期陈旧事件、LT 精细倍率只乘六轴 jog（`scalar`/RT 直通）、`record_start` 不检查会话状态等行为说明。
+- `docs/integrations/vader5.md`：新增 2026-10-30/11-01 台架补记，包含 V01–V04 结果、两项高影响缺陷、设备身份与仍 NOT_RUN 清单。
+- `docs/integrations/teleoperation_rates_and_parameters.md`：补入手柄实测频率条目，注明 47.9–48.8 Hz 是 ROS 发布/订阅观测，不是硬件采样或端到端时延。
+- 提交、推送与核对结果见 `docs/integrations/PUSH_LOG_VADER_2026-11-01.md`（随后续文档提交单独推送）。
+
 ## 2026-10-30
 
 ### 统一组件与绑定路径收敛（当前工作区）

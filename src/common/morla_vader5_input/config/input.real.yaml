@@ -1,0 +1,47 @@
+# 2026-10-30 台架实测：真实 Vader 5 Pro（USB 有线）→ fake 执行器
+# 证据：/home/loopkok/morla-acceptance/vader-20261030-171327/VADER_BENCH_REPORT.md
+#
+# 身份说明：该设备没有唯一序列号。USB iSerial 与各 HID 接口的 HID_UNIQ 都等于
+# 产品字符串 "Flydigi Vader 5 Pro"，SDK Info 只有 model/firmware/device_id(130)/电量。
+# 因此 device_id/resource_key 使用 VID:PID + 台架资产标签；同型号多台必须另起标签，
+# 否则资源键冲突。不要把它当成出厂序列号。
+deployment_version: 1
+deployment_id: vader5_real_input_bench
+instances:
+  pad:
+    backend: real
+    device_id: VADER5_37D7_2401
+    resource_key: vader5:events:VADER5_37D7_2401
+    parameters:
+      # 以下为 2026-10-30 台架实际使用的输入参数（与 descriptor 默认值一致，显式记录）
+      input_topic: /vader5/events
+      deadzone: 0.08
+      max_age_ms: 250
+      deadman_button: M1
+      rotation_button: M2
+      action_buttons:
+        START: teleop_start
+        B: teleop_pause
+        Y: record_start
+        X: record_stop
+      axis_signs: [1, 1, 1, 1, 1, 1]
+    verified: false
+calibrations: {}
+metadata:
+  model: Flydigi Vader 5 Pro
+  usb_id: "37d7:2401"
+  firmware: "7.1.5.0"
+  serial: none-exposed
+  identity_basis: USB VID:PID + bench asset label VADER5_37D7_2401 (USB iSerial/HID_UNIQ are the product string)
+  device_path_note: >-
+    台架捕获时为 /dev/hidraw5（三个 HID 接口 5/6/7 均属同一设备，配置接口由
+    find_config_hidraws() 选出）。hidraw 编号随插拔/启动变化，不要写死在启动脚本里；
+    优先按厂商 37d7 + PC 模式接口选择，或建立 udev 符号链接并解析到 /dev/hidrawN。
+  bench_tested: "2026-10-30"
+  bench_scope: >-
+    USB 有线输入、fake CR5 jog、fake EPG 映射、断流/epoch 行为、真手柄驱动真实 EPG
+    0↔0.05 m 全行程。2.4G/无线、FN/TURBO/HOME、真实 CR5 跟随未验证。
+  evidence: /home/loopkok/morla-acceptance/vader-20261030-171327/VADER_BENCH_REPORT.md
+  notes: >-
+    verified=false 表示不构成整机验收；RT 经 scalar_map 直连夹爪，
+    LT 精细倍率只作用于 jog 轴。start_recording 不检查会话状态。

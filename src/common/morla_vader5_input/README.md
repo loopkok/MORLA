@@ -9,7 +9,7 @@
 
 组件 `morla.input.vader5@1.0.0`，位于输入层，与Quest/手机/手套同为kind=input。使用用户提供的 `src/common/vader5_sdk`（morla-vader5-sdk 0.1.0），不再实现HID协议、IMU解码、虚拟手柄或另一套机器人控制/数采框架。
 
-本轮完成软件接线与离线验证；Linux ROS 2、USB/2.4G实体、固件、坐标方向、按键映射、端到端时延和真实机器人尚未验收。
+2026-10-30 已完成 Linux ROS 2 + USB 有线实物验证（固件 7.1.5.0）：24/27 按键、摇杆/扳机全行程、IMU 含重力加速度、ROS 侧约 48–49 Hz，真手柄驱动真实 EPG 完成 0↔0.05 m 全行程。2.4G/无线、FN/TURBO/HOME、真实 CR5 跟随、相机同步与端到端时延仍未验收。台架记录见 `docs/integrations/vader5.md`。
 
 ## 能力与边界
 
@@ -39,7 +39,7 @@ source install/setup.bash
 python3 -m morla_core.composition.cli catalog --json
 ```
 
-只诊断输入不需要CR5/Web：仅构建 `--packages-up-to morla_vader5_input`。Linux hidraw后端需要USB数据线、PC模式；SDK也保留2.4G接收器路径，但本轮均未实测。不依赖完整tux-invader服务，不会创建虚拟手柄或自动卸载xpad驱动。
+只诊断输入不需要CR5/Web：仅构建 `--packages-up-to morla_vader5_input`。Linux hidraw后端需要USB数据线、PC模式；SDK也保留2.4G接收器路径，但截至 2026-10-30 仍未实测；已验证的是 USB 有线 + PC 模式。不依赖完整tux-invader服务，不会创建虚拟手柄或自动卸载xpad驱动。
 
 权限按SDK README的厂商hidraw规则配置，SSH/无桌面账号另行授予精确设备权限。关闭Steam、飞智配置工具和旧SDK读取进程。明确指定正确厂商接口，多个设备不自动猜测；可使用稳定udev符号链接，解析后必须是/dev/hidrawN。
 
@@ -47,9 +47,9 @@ python3 -m morla_core.composition.cli catalog --json
 ros2 launch morla_vader5_input vader5_input.launch.py device:=/dev/hidrawN
 ```
 
-独立驱动发布：`/vader5/events`（String JSON），`/vader5_input/joy`、`/vader5_input/imu`、`/vader5_input/status`。Joy为本SDK四摇杆轴+两扳机和27按钮顺序，**不是SDL game_controller_node布局**，不能再接公共SDL /joy分支，否则丢失背键且可能重复写入。组合宿主只订阅来源事件。
+独立驱动发布：`/vader5/events`（String JSON），`/vader5_input/joy`、`/vader5_input/imu`、`/vader5_input/status`。状态话题**只在断开/出错时发布**，没有初始“已连接”消息；判活请用 joy/events 的时效或 epoch，不要等 status 首帧。Joy为本SDK四摇杆轴+两扳机和27按钮顺序，**不是SDL game_controller_node布局**，不能再接公共SDL /joy分支，否则丢失背键且可能重复写入。组合宿主只订阅来源事件。
 
-默认运动采样目标50 Hz，同时发送每个按钮变化；SDK用read_batch保留批次内按下/松开，不用只取最新报告的read。每批连续运动只取最后一份，按钮边沿仍逐份处理；超过128份报告拒绝并断开，不回放积压。读超时0.1 s后发布断开并退出reader，不自动重连；重新启动产生新epoch，重新启动的源由会话/控制器处理新身份；当前 Runtime 不要求释放 deadman 才激活。
+默认运动采样目标50 Hz，同时发送每个按钮变化；SDK用read_batch保留批次内按下/松开，不用只取最新报告的read。每批连续运动只取最后一份，按钮边沿仍逐份处理；超过128份报告拒绝并断开，不回放积压。读超时0.1 s后发布断开并退出reader，不自动重连；重新启动产生新epoch，重新启动的源由会话/控制器处理新身份；当前 Runtime 不要求释放 deadman 才激活。受管 reader 进程退出目前只会体现为 `input_processes.status=exited`：会话不会因此把输入标为断开、不会撤权，也不会自动重启；要等新 reader 上线产生新 epoch，才会出现 `group_stopped/input_disconnect`。会话启动时 DDS 中残留的上一 reader 事件会以 stale/foreign-clock 被拒绝并打印日志，属噪音而非动作。
 
 SDK的received_at是主机解码时间，并非硬件采样时间。事件流保存这个单调时钟，ROS排队不刷新年龄；本方案要求reader和宿主在同一主机。hidraw内未带可靠时间戳的排队时延仍需实测，不能用此软件声明硬实时。
 
@@ -61,7 +61,7 @@ SDK的received_at是主机解码时间，并非硬件采样时间。事件流保
 ros2 launch morla_vader5_input vader5_teleop.launch.py
 ```
 
-真实手柄、fake CR5（推荐首轮核对）：先复制 `config/input.real.example.yaml` 并填写资产身份，再运行：
+真实手柄、fake CR5（推荐首轮核对）：先复制 `config/input.real.example.yaml` 并填写资产身份，再运行。本机 2026-10-30 台架实配见 `config/input.real.yaml`（设备身份、固件与实测参数；该型号不暴露唯一序列号，身份由 VID:PID + 资产标签给出，换手柄必须修改标签）：
 
 ```bash
 ros2 launch morla_vader5_input vader5_teleop.launch.py \
@@ -81,10 +81,10 @@ ros2 launch morla_vader5_input vader5_teleop.launch.py \
 - **M2保持**：旋转模式；未按M2为平移模式。该键不能同时绑定采集/会话命令。
 - 平移：左摇杆Y→x、左摇杆X→y、右摇杆Y→z。
 - 旋转：左摇杆X→roll、左摇杆Y→pitch、右摇杆X→yaw；另一组三轴置零，避免无意同时平移。
-- LT模拟扳机：精细倍率，从1.0逐渐降到0.2。RT模拟扳机：独立夹爪闭合比例0..1，只有绑定夹爪时使用。
+- LT模拟扳机：精细倍率，从1.0逐渐降到0.2，**只乘六轴 jog 输出**；`scalar` 端口直接取 RT，不受 LT 影响（EPG 宽度不会因 LT 改变，2026-10-30 实测四段全行程耗时一致）。RT模拟扳机：独立夹爪闭合比例0..1，只有绑定夹爪时使用。
 - **START单按**：请求激活；不替代prepare/标定/实机门槛。启动时已经按住不触发，需先释放。
 - **B**：暂停/撤权，显式停止当前人工或策略会话控制。
-- **Y**：开始录制；**X**：结束并保存。采集动作与激活分开，长按不重复触发。
+- **Y**：开始录制；**X**：结束并保存。采集动作与激活分开，长按不重复触发。注意 `start_recording()` 不检查会话状态：READY_DISARMED（已按 B 撤权）时按 Y 仍会开始录制，2026-10-30 台架已实测；需要禁止时应在宿主/操作层拦截，不能假定只有 ACTIVE 才能录。
 - **START+SELECT** 组合急停已随重构删除；急停请用Web/服务操作或外部硬件急停。
 - A、C/Z、其余背键、LB/RB等未绑定操作时只作原始输入记录。HOME和TURBO不绑定动作，TURBO是脉冲，不可当保持键。
 
@@ -112,4 +112,4 @@ EPG示例用公共scalar_map把RT 0..1映射到0.05..0 m。重构后scalar_map�
 
 ## 验证
 
-代码与软件验证记录见仓库 `docs/integrations/vader5.md`。Linux ROS2、实物USB/2.4G、固件/映射/IMU方向、相机同步、机器人停止/碰撞及端到端时延仍待现场验收。SDK上游约500 Hz的说明不是本机已测频率。
+代码与软件验证记录见仓库 `docs/integrations/vader5.md`。2026-10-30 已在 Linux ROS 2 Humble + USB 有线实物（固件 7.1.5.0）上完成：按键/摇杆/扳机/IMU、fake CR5 jog、fake EPG 映射、停止与重启 reader 的断流/epoch 行为，以及真手柄驱动真实 EPG 的 4 次 0↔0.05 m 全行程。本机 ROS 侧实测约 47.9–48.8 Hz（SDK 内部约 493 Hz 批处理），SDK 上游约 500 Hz 不是端到端频率。2.4G/无线、FN/TURBO/HOME、真实 CR5 跟随、相机同步、碰撞、长稳及端到端时延仍未验收。

@@ -54,7 +54,7 @@ ros2 run morla_epg_driver epg_probe \
 
 probe先获得runtime/设备锁，只读0x07D0起的四个寄存器，不写使能、停止、模式、回零、抱闸、ID或波特率；退出只读会话不发送停止命令。
 
-复制 `config/deployment.real.example.yaml`，填真实资产身份、规范资源key、稳定串口与站号。若设备没有可读序列号，device_id由现场资产标签提供，不能冒充设备自动认证。编译并启动：
+复制 `config/deployment.real.example.yaml`，填真实资产身份、规范资源key、稳定串口与站号。若设备没有可读序列号，device_id由现场资产标签提供，不能冒充设备自动认证。本机 2026-10-30 台架实测配置见 `config/deployment.real.yaml`（含该设备资产号与 by-id 串口，换设备必须修改）。编译并启动：
 
 ```bash
 python3 -m morla_core.composition.cli compile \
