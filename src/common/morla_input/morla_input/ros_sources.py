@@ -25,6 +25,8 @@ class RosInputManager:
         self.thread = None
         self.executor = None
         self.supervisor = None
+        self.quest_ack_publishers = {}
+        self.quest_ack_errors = 0
 
     def start(self):
         import rclpy
@@ -116,10 +118,18 @@ class RosInputManager:
             row = json.loads(msg.data)
             source = self.sources[iid]
             frame = source.event(row)
-            if frame is not None and (source.actions or row['kind'] in ('controller_state','grip')):
-                self.on_event(iid, frame, source.actions)
-            if source.control_event(row, frame):
-                self.on_frame(frame)
+            try:
+                if frame is not None:
+                    self.on_event(iid, frame, source.actions)
+                    if source.control_event(row, frame):self.on_frame(frame)
+            finally:
+                ack = source.acknowledgement()
+                publisher = self.quest_ack_publishers.get((iid,row.get('side')))
+                if ack is not None and publisher is not None:
+                    from std_msgs.msg import String
+                    ack['consumer'] = iid+'-'+str(id(self))
+                    try:publisher.publish(String(data=json.dumps(ack)))
+                    except Exception:self.quest_ack_errors += 1  # Receipt loss cannot stop motion.
         self._guarded(iid, action)
 
     def _quest_joy(self, iid, side, msg):
@@ -147,6 +157,7 @@ class RosInputManager:
 
     def close(self):
         if self.supervisor is not None: self.supervisor.close()
+        self.quest_ack_publishers.clear()
         if self.node is None:
             return
         if self.executor is not None: self.executor.shutdown(timeout_sec=1)

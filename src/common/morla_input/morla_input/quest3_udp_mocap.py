@@ -328,14 +328,18 @@ class Quest3UDPMocap(Node):
         self._teleop_epoch = uuid.uuid4().hex
         # Per-side streams: the input instance selects a hand, it never has to
         # pick a different plugin.
-        self._teleop_sequence = {"left": 0, "right": 0}
+        from .quest_snapshot import QuestSnapshotPublisher
+        self._teleop_snapshots = QuestSnapshotPublisher()
         event_qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
-                               history=HistoryPolicy.KEEP_LAST, depth=16)
+                               history=HistoryPolicy.KEEP_LAST, depth=1)
         self._teleop_events_pub = {
             side: self.create_publisher(
                 String, f"quest3/{side}_teleop_events", event_qos)
             for side in ("left", "right")
         }
+        self._teleop_ack_subs = [self.create_subscription(
+            String, f"quest3/{side}_teleop_events/ack", self._on_snapshot_ack, event_qos)
+            for side in ('left','right')]
         self.publish_landmarks_left = bool(
             self.get_parameter("publish_landmarks_left").value
         )
@@ -769,18 +773,22 @@ class Quest3UDPMocap(Node):
         self.mix_pub.publish(msg)
 
     def _publish_teleop_event(self, side, kind, source, frame_id, values, arrival_time):
-        if not getattr(self, '_teleop_events_enabled', False) or side not in self._teleop_sequence:
+        if not getattr(self, '_teleop_events_enabled', False) or side not in ('left','right'):
             return
-        self._teleop_sequence[side] += 1
-        # v2 adds the required `basis`: a consumer compares it with the basis
-        # its binding was compiled for instead of assuming a frame. v1 rows
-        # carried no basis and are rejected rather than silently reinterpreted.
-        row = {'version': 2, 'basis': self.coordinate_basis_id,
-               'side': side, 'kind': kind, 'source': source,
-               'epoch': self._teleop_epoch, 'sequence': self._teleop_sequence[side],
-               'sent_ns': int((arrival_time or time.time()) * 1e9),
-               'frame_id': frame_id, 'values': values}
-        self._teleop_events_pub[side].publish(String(data=json.dumps(row, allow_nan=False)))
+        row = self._teleop_snapshots.update(
+            epoch=self._teleop_epoch, side=side, kind=kind, source=source,
+            frame_id=frame_id, values=values, basis=self.coordinate_basis_id,
+            sent_ns=int((arrival_time or time.time()) * 1e9))
+        if row is not None:
+            self._teleop_events_pub[side].publish(String(data=json.dumps(row, allow_nan=False)))
+
+    def _on_snapshot_ack(self, message):
+        try:
+            if len(message.data) > 1024:return
+            with self._input_lock:
+                self._teleop_snapshots.acknowledge(json.loads(message.data), time.time_ns())
+        except (ValueError, TypeError, KeyError):
+            pass  # A receipt never changes motion state or blocks publishing.
 
     def _note_wrist_gap(self, side: str, arrival_time: float) -> None:
         if not self._print_latency or arrival_time <= 0.0:
@@ -799,6 +807,7 @@ class Quest3UDPMocap(Node):
         quat: np.ndarray,
         arrival_time: float,
         src: str,
+        operator_only: bool = False,
     ) -> None:
         if not self._pose_frame_settled():
             return  # hold until head/wrist/controller frame is known
@@ -818,6 +827,8 @@ class Quest3UDPMocap(Node):
         self._published_pose_frame = frame_id
         self._publish_teleop_event(side, 'pose', src, frame_id,
                                    [*map(float, pos), *map(float, quat)], arrival_time)
+        if operator_only:
+            return  # Establish the other controller's mode without publishing motion ports.
         pose_msg = self._make_pose_stamped(
             pos, quat, arrival_time, frame_id
         )
@@ -1015,6 +1026,15 @@ class Quest3UDPMocap(Node):
 
         # 过滤：非 both 模式下只处理指定手
         if not self.both and side != self.arm_side:
+            # Public operator keys on the other controller still need a pose
+            # identity. Keep legacy standard-topic side filtering unchanged.
+            if getattr(self, '_teleop_events_enabled', False) and ('wrist' in line_lower or 'controller' in line_lower):
+                parsed = self._parse_pose7(line)
+                if parsed is not None:
+                    pos, quat = self._unity_to_out(*parsed)
+                    self._publish_side_pose(side, pos, quat, arrival_time,
+                                            'controller' if 'controller' in line_lower else 'hand',
+                                            operator_only=True)
             return
 
         # Wrist or Touch controller (same 7-float pose). Mixed: one side can be

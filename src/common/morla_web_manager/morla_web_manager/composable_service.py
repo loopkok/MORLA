@@ -375,8 +375,10 @@ class ComposableService:
                         self.recorder.event('input_buttons',{'input_id':input_id,'epoch':frame.source_epoch,
                             'sequence':frame.sequence,'sample_ns':(frame.port_metadata or {}).get('buttons',{}).get('received_ns',frame.received_ns),
                             'buttons':list(buttons),'actions':list(actions)})
-            for action in actions:
-                request='input-'+input_id+'-'+frame.source_epoch+'-'+str(frame.sequence)+'-'+action
+            for index, action in enumerate(actions):
+                ids=getattr(source,'action_ids',[])
+                identity=ids[index] if len(ids)==len(actions) else str(frame.sequence)+'-'+str(index)
+                request='input-'+input_id+'-'+frame.source_epoch+'-'+identity+'-'+action
                 def dispatch(action=action,request=request):
                     return self.operator.dispatch(action,request)
                 with session.lock:

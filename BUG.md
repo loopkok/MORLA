@@ -1,9 +1,19 @@
 # BUG：Quest 位姿事件在输入订阅端被整批丢弃
 
-- **状态**：已定位，未修复（本文件只记录问题与证据，不含代码改动）
+- **状态**：2026-11-03 已完成软件修复与回归，代码及日志随本轮提交归档；待 Linux ROS/DDS 和实体 Quest 现场验收。
 - **发现版本**：工作树 `accf9c1`（`fix(input): keep the Quest controller event JSON-serializable`）
 - **首次现象**：2026-11-02 23:14 的 `quest_right_cr5` 会话
 - **影响面**：任何使用 `morla.input.quest` 事件流、且绑定带时效（`max_age_ms`）的装配
+
+## 当前修复（2026-11-03）
+
+以下原始证据与候选保留作为发现历史。最终没有增加订阅深度，也没有放宽时效：公共 Quest 发布/订阅均采用 `BEST_EFFORT + KEEP_LAST depth=1`，原话题改为 v3 最新状态快照。位姿/按键/关键点任一更新立即发布，缓存字段保留各自采样时间与序号，不等待配对、不补发历史运动。
+
+按键操作由接收器生成带编号的短时 journal（每手最多 32 条、250 ms 有效），接收端去重、过期不执行；ACK 仅确认接收/处置，不代表设备执行完成，不阻塞运动。ACK 不全局删除 journal，避免一个订阅者清掉另一订阅者尚未看到的操作。
+
+公共 Quest 摇杆统一从快照读取；标准 Joy/Pose/Landmarks 话题继续为旧入口发布。保留现有 Web 端口和保存配置，不改 IK、设备限位或绑定的 `max_age_ms`。接收器与 Web 解析器必须一起更新重启，公开输入入口明确拒绝旧 v1/v2。
+
+软件回归 336 passed、3 skipped、1 deselected；另有 4 项 ROS 消息替身边界检查通过。旧手机输入基线失败排除；缺少 hypothesis 和 Jodell SDK 的用例跳过。未在本机执行实际 ROS/DDS、实体头显、六场景现场或长稳验收，不能据此将原现场问题标为验收关闭。完整范围和复现步骤见 [快照修复日志](docs/integrations/QUEST_SNAPSHOT_DEPTH1_2026-11-03.md)。
 
 ## 1. 现象
 

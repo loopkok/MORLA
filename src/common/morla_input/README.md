@@ -295,16 +295,18 @@ quest3_udp_mocap
 | 2026-08 | convert_to_robot | 启动可选 Unity→机器人轴 |
 详见顶层 [README](../../../README.md) 与 [CHANGELOG.md](../../../CHANGELOG.md)。
 
-## 来源明确的双手遥操输入（2026-11-01）
+## 来源明确的双手遥操输入（2026-11-03 更新）
 
-可选参数 `publish_teleop_events:=true` 在 `/quest3/{left,right}_teleop_events` 按手输出 v2 JSON 事件，包含 side/source/kind、接收器 epoch、每手递增 sequence、host wall sent_ns、frame_id、values 和必填 `basis`。pose 明确来自 controller 或 hand；grip/trigger 来自控制器，landmarks 来自当前原始 Unity 21 点，不使用历史 EMA。v1 行会被显式拒绝，不会静默按新基解释。未开启时两侧事件话题都不发布，腕/手柄/关键点标准话题仍保持原接口。
+可选参数 `publish_teleop_events:=true` 在 `/quest3/{left,right}_teleop_events` 按手输出 v3 JSON 最新状态快照，发布/订阅均为 `BEST_EFFORT + KEEP_LAST depth=1`。每次位姿、按键或关键点更新立即发布当前快照，不等待拼帧。fields 中 pose/controller_state/landmarks 各自携带 sequence、sent_ns、frame_id、values；外层携带 receiver epoch、每手 sequence、source、generation 和 basis。重复字段不刷新原始时间，过期位姿不因新按键继续可用。公开解析器拒绝 v1/v2，接收器与 Web 必须同时更新重启；头显发送协议不用因此修改。未开启时标准腕/手柄/关键点话题保持原接口。
 
-静态组件 `morla.input.quest` 覆盖双手，用实例参数 `side: left|right|both`（默认 `both`）选择本实例接受哪只手；ROS 输入宿主用 `QuestEventSource` 产生 `{side}_pose/{side}_hold/{side}_grip/{side}_scalar/{side}_landmarks`，外加兼容的 `scalar`（右手，或只选左手时的左手）。没有按手区分的独立插件：同一实例既能只控制右臂，也能双臂同时接入。握把（手柄模式）或拇指/食指捏合（手部追踪模式）充当 deadman；来源/epoch/frame 改变、过期、重连均要求重新释放/按下；一手切换手柄/裸手只重建该手的锚点，不打断另一手。旧手柄按键不能在手追踪模式下授权；腕和 deadman 独立限龄。摇杆不经过事件流，仍订阅 `quest3/{side}_controller_joy`，只填 `{side}_axes`/`axes`。该输入不绑定任何机器人型号。
+静态组件 `morla.input.quest` 覆盖双手，用实例参数 `side: left|right|both`（默认 `both`）选择运动输入；公共端口名称保持不变，包括位姿、hold、scalar、landmarks、buttons 和 axes。左右字段独立保存；来源切换会退役输入许可并要求重新开始，公共 Runtime 仍以输入实例为单位保守处理这一身份变化，不声称另一路运动完全不中断。旧手柄按键不能在裸手模式下授权。公共 Quest 的摇杆也从受校验快照读取，不再同时订阅 Joy 刷新其端口；标准 Joy 仍发布，供旧 Profile 使用。该输入不绑定机器人型号。
 
-托管进程按同一 `side` 参数传 `arm_side:=left|right|both`；`process_mode: external` 时必须自行保证接收器带 `publish_teleop_events`。
+离散操作由接收器编号，按手保留最多 32 条且不超过 250 ms；接收端去重并拒绝过期操作，连接/重连时建立基线而不补执行历史按键。`/quest3/{side}_teleop_events/ack` 提供短小的接收确认，独立于运动下发；ACK 不是设备完成回执，也不会阻塞运动。为支持多个观察者，journal 在短时窗口内保留，即使某一订阅者已确认也不全局删除。未收到任何有效快照超过窗口时，操作仍可能丢失，不承诺断网后补执行。协议和验证见 [修复日志](../../../docs/integrations/QUEST_SNAPSHOT_DEPTH1_2026-11-03.md)。
+
+托管进程按同一 `side` 参数传 `arm_side:=left|right|both`；公共快照另外接收另一控制器的位姿身份供操作键判定，不向该实例暴露其运动端口，原标准话题仍按 side 过滤。`process_mode: external` 时必须保证接收器为匹配的新版并带 `publish_teleop_events`。
 
 CR5 的启动、fake 演练与现场配置见 [CR5 VR 指南](../../../docs/integrations/cr5_vr.md)。
 
 ### 公共工作站统一手柄操作（2026-11-02）
 
-右 grip 开始遥操/重定跟随零点/人工接管，并提供 hold；右 A 开始录制或在人工接管后交还控制；右 B 停止保存；右摇杆按下丢弃本段；左 X 停止跟随并直接回工作位。键盘 S/A/B/N/A+N 与 Vader M3/A/B/R3/X 对应。接收器新增原子 controller_state 事件，升级后重启 Web 与接收进程；单手运动选择不屏蔽另一只手柄的操作键。详细操作与保护条件见 [统一操作说明](../../../docs/integrations/UNIFIED_WORKSTATION_OPERATORS_2026-11-02.md)。
+右 grip 开始遥操/重定跟随零点/人工接管，并提供 hold；右 A 开始录制或在人工接管后交还控制；右 B 停止保存；右摇杆按下丢弃本段；左 X 停止跟随并直接回工作位。键盘 S/A/B/N/A+N 与 Vader M3/A/B/R3/X 对应。2026-11-03 起按键状态进入 v3 快照，操作使用编号 journal；升级后重启 Web 与接收进程。详细操作与保护条件见 [统一操作说明](../../../docs/integrations/UNIFIED_WORKSTATION_OPERATORS_2026-11-02.md)。

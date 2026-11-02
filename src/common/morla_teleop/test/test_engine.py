@@ -26,6 +26,18 @@ def test_same_input_different_grippers(plugin,unit,output,expected):
     engine.close()
 
 
+def test_snapshot_carry_forward_is_skipped_but_new_sample_at_same_time_is_processed():
+    from dataclasses import replace
+    engine=BindingEngine(runtime('new.gripper','ratio',[0,1]))
+    frame=InputFrame('input','epoch',1,100,'input',{'scalar':.5},
+        port_metadata={'scalar':{'received_ns':100,'frame_id':'input','sample_sequence':1}})
+    assert engine.targets(frame)
+    assert not engine.targets(replace(frame,sequence=2))
+    changed=replace(frame,sequence=3,ports={'scalar':.7},
+        port_metadata={'scalar':{'received_ns':100,'frame_id':'input','sample_sequence':2}})
+    assert engine.targets(changed)[0]['values']==[.7]
+
+
 @pytest.mark.parametrize('source',['vr','pad','phone','exoskeleton'])
 def test_same_gripper_different_inputs(source):
     engine=BindingEngine(runtime('new.gripper','m',[.05,0],source))

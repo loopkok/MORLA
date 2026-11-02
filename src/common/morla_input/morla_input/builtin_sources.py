@@ -42,22 +42,20 @@ def subscribe(manager, instance):
         self.sources[iid] = source
         self.cache[iid] = {}
 
-        # Newest event only: an event older than max_age_ns is rejected by
-        # QuestEventSource, so a queued backlog turns one slow tick into a
-        # disconnect instead of a skipped frame. Same rule as the Vader input.
+        # Each v3 snapshot contains all latest fields with their original ages.
+        # Dropping a pose-only update cannot leave just buttons in depth=1.
         event_qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                                history=HistoryPolicy.KEEP_LAST, depth=1)
         # Operator buttons remain available on both controllers even when a
         # binding selects motion from just one hand.
         for side in ('left','right') if '{side}' in template else sides:
+            topic = template.replace('{side}', side)
             self.node.create_subscription(
-                String, template.replace('{side}', side),
+                String, topic,
                 lambda msg, iid=iid: self._quest_event(iid, msg), event_qos)
-            # The event stream has no thumbstick; axes stay on the Joy topic.
-            self.node.create_subscription(
-                Joy, f'/quest3/{side}_controller_joy',
-                lambda msg, iid=iid, side=side: self._quest_joy(iid, side, msg),
-                qos_profile_sensor_data)
+            self.quest_ack_publishers[(iid,side)] = self.node.create_publisher(String, topic+'/ack', event_qos)
+            # Joy remains published for legacy clients; public inputs use only
+            # the guarded snapshot, avoiding receipt-time refresh and duplicates.
     elif plugin == 'morla.input.glove':
         source = InputStream(iid, clock=self.clock)
         source.reconnect()

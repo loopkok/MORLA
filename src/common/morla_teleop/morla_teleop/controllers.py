@@ -130,7 +130,8 @@ class BindingController:
         source_frame=metadata.get('frame_id',frame.frame_id)
         self.identity=(frame.source_id,frame.source_epoch,source_frame)
         self.last_sequence=frame.sequence;self.last_received_ns=frame.received_ns;self.last_ns=self.clock()
-        self._last_port_sample=(frame.source_epoch,metadata.get('received_ns'),source_frame)
+        self._last_port_sample=(frame.source_epoch,metadata.get('received_ns'),source_frame,
+                                metadata.get('sample_sequence'))
         return ack
 
     def step(self, frame, measured):

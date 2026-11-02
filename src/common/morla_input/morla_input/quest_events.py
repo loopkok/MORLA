@@ -1,24 +1,20 @@
-"""Quest 3 intent from the guarded teleop event stream, both hands.
+"""Quest snapshot v3 -> stable public ports, with independent field ages.
 
-The receiver publishes one v1 JSON event stream per side.  A single input
-instance selects ``left``, ``right`` or ``both``; there is no per-hand plugin.
-Pose, deadman, scalar and landmarks all come from the event stream, which
-carries an explicit source (controller or hand), a receiver epoch and a
-per-side sequence, so a queued/replayed frame is rejected instead of moving
-the arm.  The only remaining ROS subscription for this input is the
-controller joystick: the event stream does not carry the thumbstick.
+The private delta decoder is reused for payload/port semantics only; v2 is
+not accepted by the public source. Update receiver and consumer together.
 """
 import math
 import time
 from dataclasses import replace
 import numpy as np
 from .adapters.normalized import InputStream, InputError, finite
+from .quest_snapshot import VERSION as EVENT_VERSION
 
 SIDES = ('left', 'right')
-EVENT_VERSION = 2
+_DELTA_VERSION = 2
 
 
-class QuestEventSource(InputStream):
+class _QuestDeltaDecoder(InputStream):
     def __init__(self, source_id, *, clock=time.monotonic_ns, wall_clock=time.time_ns,
                  on_transition=None, sides=SIDES, max_age_ns=250_000_000,
                  pinch_range_m=(.015, .08)):
@@ -58,13 +54,13 @@ class QuestEventSource(InputStream):
             row['kind'] in ('pose', 'trigger', 'landmarks', 'controller_state')
             or frame.ports.get(f"{row['side']}_hold") is not True)
 
-    def event(self, row):
+    def event(self, row, *, wall_ns=None, now_ns=None):
         self.actions = []
         required = {'version', 'side', 'kind', 'source',
                     'epoch', 'sequence', 'sent_ns', 'frame_id', 'values', 'basis'}
         if not isinstance(row, dict) or set(row) != required or not finite(row):
             raise InputError('Invalid Quest teleop event')
-        if row['version'] != EVENT_VERSION:
+        if row['version'] != _DELTA_VERSION:
             raise InputError('Unsupported Quest event version')
         # The basis is opaque here on purpose: morla_input must not depend on
         # morla_core. Consumers compare it with the basis their binding declares.
@@ -86,7 +82,8 @@ class QuestEventSource(InputStream):
             raise InputError('Retired/invalid Quest epoch')
         if type(seq) is not int or seq < 0:
             raise InputError('Invalid Quest sequence')
-        source_age = self.wall_clock()-row['sent_ns'] if type(row['sent_ns']) is int else -1
+        wall = self.wall_clock() if wall_ns is None else wall_ns
+        source_age = wall-row['sent_ns'] if type(row['sent_ns']) is int else -1
         if not 0 <= source_age <= self.max_age_ns:
             raise InputError('Queued/stale Quest event')
         if not isinstance(row['frame_id'], str) or not 1 <= len(row['frame_id']) <= 128:
@@ -122,7 +119,7 @@ class QuestEventSource(InputStream):
             self.mode[side] = row['source']
         if row['source'] != self.mode[side]:
             return None  # Old controller buttons cannot arm hand tracking.
-        now = self.clock()
+        now = self.clock() if now_ns is None else now_ns
         stamp = now-source_age
         kind = row['kind']
         values = row['values']
@@ -242,3 +239,129 @@ class QuestEventSource(InputStream):
         frame = replace(frame, port_metadata=metadata)
         self.latest = frame
         return frame
+
+
+class QuestEventSource(_QuestDeltaDecoder):
+    """One independently usable newest snapshot per hand; no pairing wait."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._wire_sequences = {side:-1 for side in SIDES}
+        self._generations = {side:0 for side in SIDES}
+        self._field_sequences = {}
+        self._sample_metadata = {}
+        self._command_cursors = {side:0 for side in SIDES}
+        self._last_ack = None
+        self.action_ids = []
+        self.commands_dropped = {side:0 for side in SIDES}
+        self._baseline_sides = set(SIDES)
+
+    def disconnect(self):
+        super().disconnect()
+        self._baseline_sides = set(SIDES)
+        self._last_ack = None
+
+    def reconnect(self):
+        self._baseline_sides = set(SIDES)
+        return super().reconnect()
+
+    @staticmethod
+    def control_event(row, frame):
+        return frame is not None
+
+    def acknowledgement(self):
+        return dict(self._last_ack) if self._last_ack else None
+
+    def event(self, row):
+        from .quest_snapshot import validate_snapshot
+        self.actions = []; self.action_ids = []; self._last_ack = None
+        validate_snapshot(row)
+        side = row['side']; epoch = row['epoch']; now = self.clock(); wall = self.wall_clock()
+        if not 0 <= wall-row['sent_ns'] <= self.max_age_ns:
+            raise InputError('Queued/stale Quest snapshot')
+        if epoch in self.retired_epochs:
+            raise InputError('Retired Quest snapshot epoch')
+        changed_epoch = epoch != self.upstream_epoch
+        if not changed_epoch:
+            if row['sequence'] <= self._wire_sequences[side] or row['generation'] < self._generations[side]:
+                raise InputError('Replayed Quest snapshot')
+            if (row['generation'] == self._generations[side] and self.mode[side] is not None and
+                    row['source'] != self.mode[side]):
+                raise InputError('Quest mode changed without generation')
+        generation_change = row['generation'] != self._generations[side]
+        baseline = changed_epoch or generation_change or not self.connected or side in self._baseline_sides
+        if not self.connected:
+            self._field_sequences = {}; self._sample_metadata = {}
+            self.event_sequence = {s:-1 for s in SIDES}
+        if changed_epoch:
+            if self.upstream_epoch is not None:self.retired_epochs.add(self.upstream_epoch)
+            if len(self.retired_epochs) > 64:raise InputError('Quest epoch history exhausted; reconnect input host')
+            self._wire_sequences = {s:-1 for s in SIDES}
+            self._generations = {s:0 for s in SIDES}
+            self._field_sequences = {}; self._command_cursors = {s:0 for s in SIDES}
+            self._sample_metadata = {}
+            self.event_sequence = {s:-1 for s in SIDES}; self.mode = {s:None for s in SIDES}
+        transition = changed_epoch or not self.connected or (generation_change and self._generations[side] != 0)
+        if transition:
+            # Keep the other side's field identities; current Runtime still
+            # conservatively retires the input lease on an identity transition.
+            keep = {} if changed_epoch or not self.connected else {
+                k:v for k,v in self.cache.items() if k.startswith(('left_' if side == 'right' else 'right_'))}
+            self.on_transition(); self.reconnect(); self.cache = keep
+            self.pinch[side] = None; self._start_grip = None; self._button_levels = {}
+            self.event_sequence[side] = -1
+            self._field_sequences = {k:v for k,v in self._field_sequences.items() if k[0] != side}
+            self._sample_metadata = {k:v for k,v in self._sample_metadata.items() if k in keep}
+        if baseline:
+            # Joining/reconnecting never replays earlier operator commands.
+            self._command_cursors[side] = row['command_sequence']
+        self.upstream_epoch = epoch
+        self.mode[side] = row['source']
+        self._generations[side] = row['generation']
+        self._wire_sequences[side] = row['sequence']
+        self.commands_dropped[side] = row['commands_dropped']
+        for kind, sample in sorted(row['fields'].items(), key=lambda item:item[1]['sequence']):
+            key = (side,kind)
+            previous = self._field_sequences.get(key, -1)
+            if sample['sequence'] < previous:raise InputError('Quest field sequence regressed')
+            if sample['sequence'] == previous:continue
+            age = wall-sample['sent_ns']
+            if age < 0:raise InputError('Future Quest sample')
+            self._field_sequences[key] = sample['sequence']
+            if age > self.max_age_ns:continue  # Fresh buttons never renew an old pose.
+            delta = {'version':_DELTA_VERSION,'kind':kind,'source':row['source'],'side':side,
+                     'epoch':epoch,'sequence':sample['sequence'],'sent_ns':sample['sent_ns'],
+                     'basis':row['basis'],'frame_id':sample['frame_id'],'values':sample['values']}
+            # One clock pair for the whole envelope: a field near expiry must
+            # not cross the age boundary midway through decoding and disconnect.
+            super().event(delta,wall_ns=wall,now_ns=now)
+            names = {'pose':('pose',),'controller_state':('hold','grip','scalar','axes','buttons'),
+                     'landmarks':('landmarks','hold','grip','scalar')}[kind]
+            for name in names:
+                port = side+'_'+name
+                if port in self.cache:
+                    self._sample_metadata[port] = {'sample_sequence':sample['sequence'],'source_time_ns':sample['sent_ns']}
+            if kind == 'controller_state' and side in self.sides and (side == 'right' or self.sides == ('left',)):
+                self.cache['axes'] = self.cache[side+'_axes']
+        # All discrete operations come from the numbered journal, never from
+        # comparing levels on snapshots which may have skipped a short press.
+        self.actions = []; self.action_ids = []
+        for command in row['commands']:
+            if command['id'] <= self._command_cursors[side]:continue
+            self._command_cursors[side] = command['id']
+            if 0 <= wall-command['sent_ns'] <= self.max_age_ns:
+                self.actions.append(command['action'])
+                self.action_ids.append(f"{side}-{row['generation']}-{command['id']}")
+        self._command_cursors[side] = max(self._command_cursors[side],row['command_sequence'])
+        self._last_ack = {'version':3,'epoch':epoch,'side':side,'generation':row['generation'],
+                          'command_sequence':self._command_cursors[side]}
+        self._baseline_sides.discard(side)
+        alias_side = 'left' if self.sides == ('left',) else 'right'
+        for alias in ('scalar','axes'):
+            port = alias_side+'_'+alias
+            if port in self.cache:
+                self.cache[alias] = self.cache[port]
+                self._sample_metadata[alias] = self._sample_metadata.get(port,{})
+        frame = self._accept(row['frame_id'],row['basis'])
+        metadata = {port:{**value,**self._sample_metadata.get(port,{})} for port,value in frame.port_metadata.items()}
+        self.latest = replace(frame,port_metadata=metadata)
+        return self.latest

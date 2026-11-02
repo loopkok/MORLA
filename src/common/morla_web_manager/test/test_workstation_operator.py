@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 from morla_web_manager.composable_api import create_app
 from morla_input.quest_events import QuestEventSource
+from morla_input.quest_snapshot import QuestSnapshotPublisher
 from morla_input.ros_sources import RosInputManager
 
 
@@ -31,7 +32,7 @@ def cell(tmp_path):
             clock=svc.clock,on_event=lambda iid,frame,actions:svc.input_event(sid,iid,frame,actions))
         manager._guarded=lambda iid,fn:fn()
         manager.sources['quest']=source;svc.inputs['quest']=source
-        seq=[0];request=[0]
+        seq=[0];request=[0];publisher=QuestSnapshotPublisher()
         def wait():
             for _ in range(200):
                 if svc.operator.handoff.pending is None:return
@@ -41,8 +42,8 @@ def cell(tmp_path):
             clock[0]+=10_000_000;seq[0]+=1
             values=([0,0,0,0,0,0,1] if kind=='pose' else
                     {'trigger':trigger,'grip':grip,'axes':[0.,0.],'buttons':[int(i in buttons) for i in range(6)]})
-            row={'version':2,'basis':'unity_left_handed_v1','kind':kind,'source':'controller',
-                'side':side,'epoch':'first','sequence':seq[0],'sent_ns':clock[0],'frame_id':'quest','values':values}
+            row=publisher.update(epoch='first',side=side,source='controller',kind=kind,
+                values=values,frame_id='quest',basis='unity_left_handed_v1',sent_ns=clock[0])
             manager._quest_event('quest',SimpleNamespace(data=json.dumps(row)))
             if settle:wait()
         def action(name):
@@ -121,6 +122,7 @@ def test_playback_takeover_and_release_preserve_cursor_and_exclude_manual_writes
     assert c.rt.adapters['grip'].values==pytest.approx([.8])
     c.clock[0]+=500_000_000;c.svc.tick()
     assert c.rt.adapters['grip'].values==pytest.approx([.8])
+    c.send(grip=1.,trigger=.8)  # Fresh neutral buttons; keep the current manual target.
     c.send(grip=1.,buttons=[0])
     assert c.svc.recorder is None and c.svc.operator.activity=='playback'
     c.svc.tick()

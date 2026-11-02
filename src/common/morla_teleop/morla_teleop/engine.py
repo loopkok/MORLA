@@ -107,7 +107,8 @@ class BindingEngine:
             controller=self._binding_controller(binding)
             port=binding['source'].split('.',1)[1]
             metadata=(frame.port_metadata or {}).get(port,{})
-            sample_key=(frame.source_epoch,metadata.get('received_ns'),metadata.get('frame_id',frame.frame_id))
+            sample_key=(frame.source_epoch,metadata.get('received_ns'),metadata.get('frame_id',frame.frame_id),
+                        metadata.get('sample_sequence'))
             if ('received_ns' in metadata and frame.valid and controller.input_fresh(frame)
                     and sample_key==getattr(controller,'_last_port_sample',None)):
                 continue

@@ -98,6 +98,7 @@ def test_quest_controller_hand_switch_and_loss_revoke_runtime(tmp_path,monkeypat
     from morla_core.plugins.registry import Catalog,default_catalog
     from morla_core.composition import load_document
     from morla_input.quest_events import QuestEventSource
+    from morla_input.quest_snapshot import QuestSnapshotPublisher
     ComposableService=pytest.importorskip('morla_web_manager.composable_service').ComposableService
     package=Path(__file__).parents[1]
     descriptors=[json.loads((package/name).read_text()) for name in ('descriptor.json','controller.json')]
@@ -120,12 +121,16 @@ def test_quest_controller_hand_switch_and_loss_revoke_runtime(tmp_path,monkeypat
         return svc.operation(sid,{'operation':name,'request_id':f'{name}-{op_count[0]}'})
     source=QuestEventSource('quest',sides=('right',),on_transition=lambda:svc.disconnect_input('quest'))
     svc.inputs['quest']=source
+    publisher=QuestSnapshotPublisher()
+    levels={'trigger':0.,'grip':0.,'axes':[0.,0.],'buttons':[0]*6}
     def send(kind,mode='controller',value=None):
         seq[0]+=1
-        row={'version':2,'basis':'unity_left_handed_v1','side':'right','kind':kind,
-             'source':mode,'epoch':'test-stream','sequence':seq[0],
-             'sent_ns':time.time_ns(),'frame_id':'quest_world',
-             'values':value if value is not None else [0,0,0,0,0,0,1]}
+        if kind in ('grip','trigger'):
+            levels[kind]=value;kind='controller_state';value=levels
+        row=publisher.update(epoch='test-stream',side='right',kind=kind,source=mode,
+            values=value if value is not None else [0,0,0,0,0,0,1],
+            sent_ns=time.time_ns(),frame_id='hand_right' if kind=='landmarks' else 'quest_world',
+            basis='unity_left_handed_v1')
         frame=source.event(row)
         return svc.ingest_frame(sid,frame) if source.control_event(row,frame) else None
     def landmarks(closed):
@@ -143,10 +148,11 @@ def test_quest_controller_hand_switch_and_loss_revoke_runtime(tmp_path,monkeypat
         op('prepare');op('activate')
         # Continuous follow: the shipped binding has no deadman, so the first
         # fresh pose after activation anchors at the current arm pose and
-        # dispatches. Grip/button events stay inert.
+        # dispatches. Button snapshots carry the same pose sample, so the
+        # binding deduplicates it rather than recomputing IK.
         assert send('pose')['accepted']
-        assert send('grip',value=1.) is None       # press frames are filtered out
-        assert send('grip',value=0.)['accepted'] is False  # button-only frame, no pose
+        assert send('grip',value=1.)['accepted'] is False
+        assert send('grip',value=0.)['accepted'] is False
         assert send('pose')['accepted']
         worker=svc.bindings['right_vr'].registry.plugins['morla.cr5.cartesian_delta']
         wait_result(worker)

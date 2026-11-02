@@ -27,6 +27,7 @@ def saved_session(client):
 def test_quest_right_grip_and_web_share_start_and_pause(tmp_path):
     from types import SimpleNamespace
     from morla_input.quest_events import QuestEventSource
+    from morla_input.quest_snapshot import QuestSnapshotPublisher
     from morla_input.ros_sources import RosInputManager
     clock = [1_000_000_000]
     with TestClient(create_app(tmp_path, resource_root=tmp_path/'locks')) as client:
@@ -50,13 +51,16 @@ def test_quest_right_grip_and_web_share_start_and_pause(tmp_path):
         manager.sources['phone'] = source
         svc.inputs['phone'] = source
         sequence = [0]
+        publisher = QuestSnapshotPublisher()
+        levels = {side:{'trigger':0.,'grip':0.,'axes':[0.,0.],'buttons':[0]*6} for side in ('left','right')}
         def send(kind, values, side='right'):
             clock[0] += 10_000_000
             sequence[0] += 1
-            manager._quest_event('phone', SimpleNamespace(data=json.dumps({
-                'version':2,'basis':'unity_left_handed_v1','side':side,'source':'controller',
-                'epoch':'quest-test','sequence':sequence[0],'sent_ns':clock[0],
-                'frame_id':'quest','kind':kind,'values':values})))
+            if kind in ('trigger','grip'):
+                levels[side][kind]=values;kind='controller_state';values=levels[side]
+            row=publisher.update(epoch='quest-test',side=side,source='controller',kind=kind,
+                values=values,frame_id='quest',basis='unity_left_handed_v1',sent_ns=clock[0])
+            manager._quest_event('phone', SimpleNamespace(data=json.dumps(row)))
             import time
             for _ in range(200):
                 if svc.operator.handoff.pending is None:break

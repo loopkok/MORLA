@@ -1,5 +1,5 @@
 import pytest
-from morla_input.quest_events import QuestEventSource
+from morla_input.quest_events import _QuestDeltaDecoder as QuestEventSource
 from morla_input.adapters.normalized import InputError
 
 
