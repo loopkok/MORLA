@@ -2,6 +2,13 @@
 
 ## 2026-11-02
 
+### Quest 手柄 buttons 导致的 TCP 断连
+
+- 修复接收器在收到手柄按键行后立即断开 socket：rclpy 把 `Joy.buttons` 以 `array.array` 返回，`controller_state` 事件行的 `json.dumps` 抛 `TypeError`，异常经 TCP 读循环的兜底 `except` 直接关闭该连接。头显侧表现为“主机没有开监听 8000”，接收器日志先记录 `TCP connection from ...` 再跟 `TCP read error ... Object of type array is not JSON serializable` 和 `Quest input epoch changed (tcp_disconnected)`。
+- 事件行改用纯 `int` 列表发布，`sensor_msgs/Joy` 消息本身仍保留 rclpy 的序列字段类型。触发条件为手柄发送按键数据，故仅手柄场景（如 `quest_controller_cr5_sim`）必现；连接反复重建后 `control_1` 无新鲜输入，开始遥操被拒为“重锚缺少新鲜输入：control_1”。
+- 新增回归测试经真实 `_process_buttons_line` 覆盖该路径，修复前复现同一 `TypeError`，修复后通过；既有事件测试使用手工构造的 Python list，绕过了 rclpy 赋值路径，这是该缺陷此前未被发现的原因。
+- 验证：`morla_input` 测试 46 项通过、1 项跳过（`test_flake8`/`test_pep257` 两项失败为仓库既有问题，报告项均位于本次未触碰的文件）；`scripts/build.sh` 重建 42 个包通过。未做实体头显验收，现场需重启工作站后确认连接不再中断。
+
 ### Web 无参数启动脚本与从零操作手册
 
 - 保留 `tools/start_morla_web.sh` 的完整控制台入口，无需装配/部署文件；终端提示更新为工作站表单、检查保存启动、连接输入、准备设备和开始遥操，说明裸手启动与本地窗口位置。

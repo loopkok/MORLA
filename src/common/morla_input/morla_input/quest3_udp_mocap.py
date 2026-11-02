@@ -869,11 +869,14 @@ class Quest3UDPMocap(Node):
         msg.axes = [trigger, grip, stick_x, stick_y]
         msg.buttons = [(mask >> i) & 1 for i in range(6)]
         (self.joy_pub_right if side == "right" else self.joy_pub_left).publish(msg)
+        # rclpy returns int32[] back as array.array, which json.dumps rejects;
+        # that exception would escape to the TCP read loop and close the socket.
+        buttons = [int(button) for button in msg.buttons]
         # One atomic sample: a newest-value subscriber must not lose a button
         # edge because trigger/grip were published immediately after it.
         self._publish_teleop_event(side, 'controller_state', 'controller', msg.header.frame_id,
                                    {'trigger':trigger,'grip':grip,'axes':[stick_x,stick_y],
-                                    'buttons':msg.buttons}, arrival_time)
+                                    'buttons':buttons}, arrival_time)
 
     def _process_body_line(self, line: str, arrival_time: float) -> None:
         """
