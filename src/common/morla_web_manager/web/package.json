@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:workcell": "node --test test/workcell.test.mjs test/operatorKeyboard.test.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

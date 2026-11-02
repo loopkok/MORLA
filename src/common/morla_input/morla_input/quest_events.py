@@ -36,6 +36,9 @@ class QuestEventSource(InputStream):
         self.cache = {}
         self.pinch = {side: None for side in SIDES}
         self.input_basis_id = None
+        self.actions = []
+        self._start_grip = None
+        self._button_levels = {}
         self.pinch_range_m = tuple(pinch_range_m)
         if len(self.pinch_range_m) != 2 or not self.pinch_range_m[0] < self.pinch_range_m[1]:
             raise ValueError('pinch_range_m must contain increasing close/open distances')
@@ -43,16 +46,20 @@ class QuestEventSource(InputStream):
     def disconnect(self):
         super().disconnect()
         self.cache = {}
+        self.actions = []
+        self._start_grip = None
+        self._button_levels = {}
 
     @staticmethod
     def control_event(row, frame):
         # All continuous capabilities reach bindings; BindingEngine processes only
         # fresh samples of each bound port, so a landmark cannot replay a cached pose.
         return frame is not None and (
-            row['kind'] in ('pose', 'trigger', 'landmarks')
+            row['kind'] in ('pose', 'trigger', 'landmarks', 'controller_state')
             or frame.ports.get(f"{row['side']}_hold") is not True)
 
     def event(self, row):
+        self.actions = []
         required = {'version', 'side', 'kind', 'source',
                     'epoch', 'sequence', 'sent_ns', 'frame_id', 'values', 'basis'}
         if not isinstance(row, dict) or set(row) != required or not finite(row):
@@ -67,9 +74,10 @@ class QuestEventSource(InputStream):
         self.input_basis_id = basis
         side = row['side']
         if (side not in SIDES or row['source'] not in ('controller', 'hand')
-                or row['kind'] not in ('pose', 'grip', 'trigger', 'landmarks')):
+                or row['kind'] not in ('pose', 'grip', 'trigger', 'landmarks', 'controller_state')):
             raise InputError('Unknown Quest event')
-        if side not in self.sides:
+        operator_only = side not in self.sides
+        if operator_only and row['kind'] not in ('pose','controller_state'):
             return None  # Other hand is not selected by this instance.
         epoch = row['epoch']
         seq = row['sequence']
@@ -108,6 +116,8 @@ class QuestEventSource(InputStream):
             self.reconnect()
             self.cache = {}
             self.pinch = {name: None for name in SIDES}
+            self._start_grip = None
+            self._button_levels = {}
         if row['kind'] == 'pose':
             self.mode[side] = row['source']
         if row['source'] != self.mode[side]:
@@ -118,12 +128,32 @@ class QuestEventSource(InputStream):
         values = row['values']
         if stamp < 0:
             raise InputError('Invalid mapped Quest monotonic sample time')
-        if kind == 'pose':
+        grip = None
+        if kind == 'controller_state':
+            if (self.mode[side]!='controller' or not isinstance(values,dict) or
+                    set(values)!={'trigger','grip','axes','buttons'}):
+                raise InputError('Invalid controller state')
+            if any(type(values[k]) not in (int,float) or not 0<=values[k]<=1 for k in ('trigger','grip')):
+                raise InputError('Invalid controller trigger/grip')
+            axes,buttons=values['axes'],values['buttons']
+            if not isinstance(axes,list) or len(axes)!=2 or any(type(v) not in (int,float) or not -1<=v<=1 for v in axes):
+                raise InputError('Invalid controller axes')
+            if not isinstance(buttons,list) or len(buttons)!=6 or any(type(v) is not int or v not in (0,1) for v in buttons):
+                raise InputError('Invalid controller buttons')
+            grip=values['grip']
+            if side=='right':self._hold(side,grip>.5,stamp,row['frame_id'])
+            if not operator_only:
+                self._scalar(side,values['trigger'],stamp,row['frame_id'])
+                self._hold(side,grip>.5,stamp,row['frame_id'])
+                self.cache[side+'_axes']=({'x':axes[0],'y':axes[1]},stamp,row['frame_id'])
+                self.cache[side+'_buttons']=(list(buttons),stamp,row['frame_id'])
+        elif kind == 'pose':
             if (not isinstance(values, list) or len(values) != 7
                     or any(type(v) not in (int, float) for v in values)):
                 raise InputError('Quest pose requires xyz/xyzw')
             if not math.isclose(sum(v*v for v in values[3:]), 1, abs_tol=1e-3):
                 raise InputError('Quest quaternion must be normalized')
+            if operator_only: return None
             frame = row['frame_id'] + '/' + side + '/' + self.mode[side]
             self.cache[side+'_pose'] = (
                 {'position': values[:3], 'quaternion': values[3:]}, stamp, frame)
@@ -137,6 +167,7 @@ class QuestEventSource(InputStream):
                     or not 0 <= values <= 1:
                 raise InputError('Invalid controller grip')
             self._hold(side, values > .5, stamp, row['frame_id'])
+            grip = values
         else:
             if self.mode[side] != 'hand':
                 return None
@@ -161,7 +192,21 @@ class QuestEventSource(InputStream):
             self._scalar(side, 1-max(0., min(1., closed)), stamp, row['frame_id'])
             if self.pinch[side] is not None:
                 self._hold(side, self.pinch[side], stamp, row['frame_id'])
-        return self._accept(row['frame_id'], basis)
+        frame = self._accept(row['frame_id'], basis)
+        if grip is not None and side == 'right':
+            pressed = grip > .5
+            # Adopt the first observed level after reconnect/mode change.
+            # A held button at connection time must not start motion.
+            if pressed and self._start_grip is False:
+                self.actions = ['teleop_start']
+            self._start_grip = pressed
+        if kind == 'controller_state':
+            previous=self._button_levels.get(side)
+            if previous is not None and not self.actions:
+                mapping={0:'record_or_release',1:'record_stop',2:'record_discard'} if side=='right' else {0:'workpos'}
+                self.actions=[action for index,action in mapping.items() if buttons[index] and not previous[index]][:1]
+            self._button_levels[side]=list(buttons)
+        return frame
 
     def axes(self, side, values, frame_id='input'):
         """Controller thumbstick; the event stream carries no axes."""

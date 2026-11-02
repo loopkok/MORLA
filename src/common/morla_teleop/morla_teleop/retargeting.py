@@ -48,6 +48,7 @@ def _hand_input_basis(parameters,instance_parameters):
 
 class XHandRetargetController:
     """Raw Unity landmarks -> established XHand MANO/DexPilot."""
+    synchronous_reanchor=True
     def __init__(self,instance,retargeter=None):
         self.instance=instance;self.parameters=instance.get('parameters',{})
         self.side=self.parameters.get('side','left')
@@ -108,6 +109,7 @@ class XHandRetargetController:
 
 
 class WujiRetargetController:
+    synchronous_reanchor=True
     """Reuse selected official/Wuji DexPilot backend and its 5x4 named layout."""
     def __init__(self,instance,backend=None):
         self.instance=instance;self.parameters=instance.get('parameters',{});self.side=self.parameters.get('side','left')

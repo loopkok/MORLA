@@ -122,3 +122,31 @@ Nero 的工作位 → HOME → 工作位可在同一次位置控制许可内连�
 ### CR5 MuJoCo 调试
 
 组合配置不再提供 CR5 专用快捷按钮；CR5 sim 模板从「打开已保存配置 → cr5_quest_sim」恢复，或通过 `GET /api/v2/templates/cr5-sim` 取得包内模板后导入。模板包含 CR5 sim、Quest 输入和场景相机。预览、保存并启动后可查看实时 MuJoCo 画面；显式连接输入、激活后使用现有本地 IK 控制链路。页面重新打开会恢复当前会话及其保存配置。`GET /api/v2/sessions/{session_id}/cameras/{camera_id}/frame` 返回最新 JPEG，未生成帧时为 503，未知/非相机为 404；`GET /api/v2/sessions/{session_id}/cameras/{camera_id}/stream` 以 `multipart/x-mixed-replace` 推流（按 `(source_ns, sample_ns)` 去重，约 30 fps，会话结束自动断开），页面预览用它而不是轮询 `frame`。仿真相机可交互调整视角：`POST /api/v2/sessions/{session_id}/cameras/{camera_id}/view`，体 `{action: orbit|pan|zoom|reset, dx, dy}`，`dx/dy` 为指针位移像素（滚轮用 `dy`，向下为正=拉远）；相机移动排队在渲染线程执行，不阻塞 JPEG 编码。预览图左键拖动旋转、右键或 Shift 拖动平移、滚轮缩放，「复位视角」回到配置相机的位置。真机相机没有 `view`，返回 400；非相机实例返回 404。配置与启动说明见 [CR5 包说明](../../robots/dobot/morla_cr5_driver/README.md#cr5-mujoco-仿真与-web)。
+
+### 公共仿真模式与显示选择（2026-11-02）
+
+CR5/Nero/Astral 公共仿真支持运动学与物理动力学，并可选择网页、本地 MuJoCo viewer 或同时显示。CR5 新增独立 `cr5_mujoco_sim` 包；Nero/Astral 保留旧入口并新增公共 launch。配置、运行时切换和限制见 [公共仿真说明](../../../docs/integrations/SHARED_MUJOCO_2026-11-02.md)。
+
+### CR5 IK 模式与诊断（2026-11-02）
+
+CR5 专用控制绑定增加 differential/strict 选择，保存后重启会话生效。session state 的 `controllers[binding_id][plugin_id]` 提供线程安全求解报告，组合页展示原始目标的候选 FK 残差、奇异点接近度、阻尼、吸收位移和报告龄期。该残差不代表实机 TCP 测量精度；目标吸收后的保持也不会被标为原始目标已到达。见 [CR5 优化记录](../../../docs/integrations/CR5_DIFFERENTIAL_IK_2026-11-02.md)。
+
+### 工作站配置表单（2026-11-02）
+
+「工作站」（原组合配置）按设备选型、安装与标定、遥操作设置、数据记录、检查与运行组织。安装 XYZ/RPY、输入方向、TCP、控制轴、设备 IP/串口、控制组及记录投影均可通过表单生成，无需手写装配/映射 JSON。JSON 保留为可选文件导入导出与开发者编辑入口。运行期间配置只读；更换控制方式会重新生成对应参数，需要核对后保存新版本。
+
+前端参数与几何转换测试：`cd web && npm run test:workcell`；发布前仍须 `npm run build` 更新 dist。表单仅生成配置，不自动完成标定或身份/停止核验。完整范围与浏览器验证见 [交互调整记录](../../../docs/integrations/WORKCELL_WEB_FORMS_2026-11-02.md)。
+
+### 公共遥操运行诊断日志（2026-11-02）
+
+公共 Runtime 每次启动默认自动保存输入、控制映射/IK 报告、命令回执、反馈与生命周期，不依赖数据采集。Web「工作站 → 检查与运行」可配置并查看/下载历史日志。Web 默认保存于 `<store>/logs/`，直接 Runtime 默认 `~/.local/state/morla/teleop/`，可用 `--log-dir` 或 `MORLA_DIAGNOSTIC_LOG_ROOT` 指定。日志异步写入，有丢弃和失败计数；反馈是缓存采样，旧独立 Profile 入口没有自动迁移。文件格式、配置、公共扩展接口和完整性边界见 [公共日志说明](../../../docs/integrations/COMMON_TELEOP_DIAGNOSTICS_2026-11-02.md)。
+
+### 公共工作站统一操作（2026-11-02）
+
+Quest 右 grip / 键盘 S / Vader M3：开始、重定零点、人工接管与 hold。右 A / A / A：开始录制或交还策略/回放；右 B / B / B：停止保存；右摇杆按下 / N / R3：丢弃本段；左 X / A+N / X：直接回工作位。键盘在运行控制中勾选启用，需页面焦点，输入框不触发；A/N 松开执行，A+N 不补发单键动作。原公共键位已替换。
+
+「遥操作设置」可以填写各设备工作位与插补速度；录制中禁止回位，未配置拒绝移动。公共调度支持接管/交还，隔离旧预测，回放保留游标。更新后重启 Web 和 Quest 接收进程，检查并保存新版本配置，再启动；默认 Vader 旧映射可识别升级，自定义映射保留。详细语义、API 和验证见 [统一操作说明](../../../docs/integrations/UNIFIED_WORKSTATION_OPERATORS_2026-11-02.md)。
+
+### HITL 确认与回滚（2026-11-02）
+
+公共工作站接管与 astral_ws 的核心协议对齐：冻结输出 → 确认设备与所有映射的重锚 → 提交 HUMAN；失败/超时回滚，晚到 ACK 不生效。交还回放使用当前实测位置重锚 offset，交还策略先确认新观测的有效预测。保存接管前暂停状态，暂停不再销毁自动上下文；Web 提供“继续策略／回放”。工作站 Runtime 网关检查 owner、token、epoch、期限与资源。进度和原因在 operator.transition 及公共日志中可查。软件验证不等于实机验收，见 [HITL 对齐说明](../../../docs/integrations/WORKSTATION_HITL_ASTRAL_ALIGNMENT_2026-11-02.md)。

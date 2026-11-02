@@ -1,5 +1,6 @@
 """Transport-neutral binding execution shared by Web, ROS and embedded callers."""
 import logging
+import time
 
 from .controllers import BindingController, ControllerRegistry
 
@@ -7,12 +8,30 @@ _log = logging.getLogger(__name__)
 
 
 class BindingEngine:
-    def __init__(self, runtime, *, bindings=None):
+    def __init__(self, runtime, *, bindings=None, operator_hold=None):
         self.runtime = runtime
         self.clock = runtime.clock
         self.bindings = bindings if bindings is not None else {}
         self.deadman = {}
         self.basis_warnings = {}
+        self.operator_hold = operator_hold
+
+    def _trace(self, kind, data, **context):
+        try:
+            trace = getattr(self.runtime, 'trace', None)
+            if trace is not None: trace(kind, data, **context)
+        except Exception: pass
+
+    @staticmethod
+    def _reports(controller):
+        reports = {}
+        for name, plugin in controller.registry.plugins.items():
+            try:
+                diagnostic = getattr(plugin, 'diagnostics', None)
+                if callable(diagnostic): reports[name] = diagnostic()
+                elif hasattr(plugin, 'last_report'): reports[name] = plugin.last_report
+            except Exception as exc: reports[name] = {'diagnostic_error':str(exc)}
+        return reports
 
     def _binding_controller(self, binding):
         controller=self.bindings.get(binding['id'])
@@ -42,10 +61,27 @@ class BindingEngine:
                 'kinematics_provider':getattr(adapter,'kinematics_provider',None)})
         controller=BindingController(binding,names,registry=registry,clock=self.clock,
                                      max_age_ns=int(age*1_000_000))
+        for plugin_id, plugin in registry.plugins.items():
+            setter = getattr(plugin, 'set_diagnostic_sink', None)
+            if setter is not None:
+                def sink(report, plugin_id=plugin_id):
+                    self._trace('controller', {'plugin_id':plugin_id, 'report':report},
+                                binding_id=binding['id'], component_id=target)
+                try: setter(sink)
+                except Exception as exc: self._trace('diagnostic_hook_failed', {'reason':str(exc)}, binding_id=binding['id'])
         self.bindings[binding['id']]=controller
         return controller
 
     def targets(self, frame):
+        try: return self._targets(frame)
+        except Exception as exc:
+            self._trace('control_pipeline_error', {'source_id':getattr(frame,'source_id',None),
+                        'sequence':getattr(frame,'sequence',None),'reason':str(exc)})
+            raise
+
+    def _targets(self, frame):
+        trace_input=getattr(self.runtime,'trace_input',None)
+        if trace_input is not None: trace_input(frame)
         targets = []
         for binding in self.runtime.resolved.get('bindings', []):
             if binding['source'].split('.', 1)[0] != frame.source_id:
@@ -54,14 +90,18 @@ class BindingEngine:
             if source_port not in frame.ports:
                 previous=self.bindings.get(binding['id'])
                 if previous is not None:previous.reset()
+                self._trace('control_gate', {'reason':'source_port_missing','input_sequence':frame.sequence}, binding_id=binding['id'])
                 continue
             if not self._input_basis_matches(binding, frame):
+                self._trace('control_gate', {'reason':'input_basis_mismatch','input_sequence':frame.sequence}, binding_id=binding['id'])
                 continue
             if not self._deadman_held(binding, frame):
+                self._trace('control_gate', {'reason':'deadman_released_or_stale','input_sequence':frame.sequence}, binding_id=binding['id'])
                 continue
             key = binding['target'].split('.', 1)[0]
             instance = self.runtime.instances[key]
-            measured = self.runtime.adapters[key].health(self.clock()).get('values')
+            feedback = self.runtime.adapters[key].health(self.clock())
+            measured = feedback.get('values')
             if measured is None:
                 raise ValueError('adapter does not expose measured positions: ' + key)
             controller=self._binding_controller(binding)
@@ -71,7 +111,27 @@ class BindingEngine:
             if ('received_ns' in metadata and frame.valid and controller.input_fresh(frame)
                     and sample_key==getattr(controller,'_last_port_sample',None)):
                 continue
-            values = controller.step(frame, measured)
+            context={'source_id':frame.source_id,'source_epoch':frame.source_epoch,'sequence':frame.sequence,
+                     'received_ns':frame.received_ns,'frame_id':getattr(frame,'frame_id',None),'binding_id':binding['id']}
+            for plugin in controller.registry.plugins.values():
+                setter=getattr(plugin,'set_trace_context',None)
+                if setter is not None:
+                    try: setter(context)
+                    except Exception: pass
+            began=time.perf_counter_ns()
+            try:
+                values = controller.step(frame, measured)
+            except Exception as exc:
+                self._trace('control_error', {'reason':str(exc),'input_sequence':frame.sequence,
+                            'feedback':feedback,'reports':self._reports(controller)},
+                            binding_id=binding['id'], component_id=key)
+                raise
+            self._trace('control', {'controller':binding['controller'],'input_sequence':frame.sequence,
+                        'input_epoch':frame.source_epoch,'input_received_ns':frame.received_ns,
+                        'source_port':port,'input':frame.ports[port], 'feedback':feedback,
+                        'target_values':values,'produced_target':values is not None,
+                        'dispatch_acknowledged':False,'elapsed_ns':time.perf_counter_ns()-began,
+                        'reports':self._reports(controller)}, binding_id=binding['id'], component_id=key)
             controller._last_port_sample=sample_key
             if values is not None:
                 if len(values)!=len(instance['joints']):
@@ -127,6 +187,8 @@ class BindingEngine:
                 stamp = (frame.port_metadata or {}).get(port, {}).get('received_ns', frame.received_ns)
                 held = 0 <= self.clock() - stamp <= binding.get('max_age_ms', 250) * 1_000_000
         previous = self.deadman.get(binding['id'], False)
+        if self.operator_hold is not None:
+            held = held or bool(self.operator_hold())
         self.deadman[binding['id']] = held
         if not held and previous:
             controller = self.bindings.get(binding['id'])

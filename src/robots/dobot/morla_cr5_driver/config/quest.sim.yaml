@@ -49,6 +49,7 @@ bindings:
   max_age_ms: 250
   input_basis_id: unity_left_handed_v1
   parameters:
+    ik_mode: differential
     position_scale: 0.8
     # Quest teleop events are raw Unity (X right, Y up, Z forward). base_link
     # is the URDF root, so there is no mount factor: this is the whole Unity ->
@@ -115,3 +116,8 @@ mounts:
   - 0.49477116020882905
   - 0.7802274601799676
   - 0.32318079574245656
+
+metadata:
+  simulation:
+    mode: kinematic
+    display: web

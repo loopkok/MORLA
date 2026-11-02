@@ -47,7 +47,9 @@ def subscribe(manager, instance):
         # disconnect instead of a skipped frame. Same rule as the Vader input.
         event_qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                                history=HistoryPolicy.KEEP_LAST, depth=1)
-        for side in sides:
+        # Operator buttons remain available on both controllers even when a
+        # binding selects motion from just one hand.
+        for side in ('left','right') if '{side}' in template else sides:
             self.node.create_subscription(
                 String, template.replace('{side}', side),
                 lambda msg, iid=iid: self._quest_event(iid, msg), event_qos)

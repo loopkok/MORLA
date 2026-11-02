@@ -95,6 +95,34 @@ class RuntimePolicy:
         self.actions=[]
         self.chunk_stamp=None
         self.chunk_epoch=None
+        self.suspended=False
+
+    def suspend(self, *, revoke=True):
+        """Retain predictor, but retire every pre-takeover prediction/chunk."""
+        if self.closed: raise ComposablePolicyError('policy closed')
+        self.suspended=True
+        if self.pending is not None:self.pending.cancel()
+        self.pending=None; self.actions=[]; self.permit=None
+        self.chunk_stamp=None; self.chunk_epoch=None
+        if revoke and self.runtime.lease and self.runtime.lease['producer']==self.producer:
+            self.runtime.revoke(self.producer,reason='human_takeover')
+
+    def prepare_resume(self):
+        if self.closed:raise ComposablePolicyError('policy closed')
+        def prepare():
+            observation=observe(self.runtime,max_age_ns=self.max_age_ns)
+            values=np.asarray(self.predictor(observation),dtype=np.float64)
+            if values.ndim==1:values=values[None,:]
+            if values.ndim!=2 or not len(values) or values.shape[1]!=len(self.manifest.features['action_features']) or not np.isfinite(values).all():
+                raise ComposablePolicyError('invalid resume prediction')
+            return {'actions':list(values),'sample_ns':observation['sample_ns']}
+        return self.pool.submit(prepare)
+
+    def resume(self, permit, prepared=None):
+        if self.closed: raise ComposablePolicyError('policy closed')
+        self.permit=permit; self.suspended=False
+        if prepared is not None:
+            self.actions=prepared['actions'];self.chunk_stamp=prepared['sample_ns'];self.chunk_epoch=permit['epoch']
 
     def acquire(self):
         if self.closed: raise ComposablePolicyError('policy closed')
@@ -102,7 +130,7 @@ class RuntimePolicy:
         return self.permit.copy()
 
     def request(self):
-        if self.closed or self.pending is not None or self.actions or self.permit is None:
+        if self.closed or self.suspended or self.pending is not None or self.actions or self.permit is None:
             raise ComposablePolicyError('policy unowned, closed or prediction already pending')
         observation=observe(self.runtime,max_age_ns=self.max_age_ns)
         self.prediction_stamp=observation['sample_ns']
@@ -111,6 +139,7 @@ class RuntimePolicy:
         return observation
 
     def poll(self):
+        if self.suspended: return None
         if self.pending is None and not self.actions: return None
         now=self.runtime.clock()
         stamp=self.chunk_stamp if self.actions else self.prediction_stamp
@@ -173,6 +202,10 @@ class RuntimeReplay:
 
     def send(self,action,*,sample_ns):
         if self.permit is None: raise ComposablePolicyError('playback authority required')
+        lease=self.runtime.lease
+        if not lease or lease['producer']!='playback' or lease['epoch']!=self.permit['epoch']:
+            raise ComposablePolicyError('playback authority changed')
+        self.permit=self.runtime.renew('playback',self.permit['token'])
         self.sequence+=1
         return self.runtime.submit({'session_id':self.runtime.session_id,'producer':'playback',
             'token':self.permit['token'],'epoch':self.permit['epoch'],'sequence':self.sequence,

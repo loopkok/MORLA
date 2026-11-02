@@ -135,7 +135,7 @@ export function SystemTab({ state, presets, onAction }: Props) {
 
   return <div style={wrap}>
     <section style={card}>
-      <div style={heading}>1 · 选择并启动机器人</div>
+      <div style={heading}>选择并启动机器人</div>
       <div style={row}>
         <label style={field}>机器人配置
           <select aria-label="机器人配置" value={live ? control.profile_id : profileId} disabled={locked} onChange={(e) => setProfileId(e.target.value)} style={select}>
@@ -163,7 +163,7 @@ export function SystemTab({ state, presets, onAction }: Props) {
     </section>
 
     <section style={card}>
-      <div style={heading}>2 · 准备与移动</div>
+      <div style={heading}>准备与移动</div>
       {real ? <>
         <div style={row}>
           <button style={button('#059669')} disabled={!available('prepare')} onClick={prepare}>准备并使能</button>
@@ -237,7 +237,7 @@ export function SystemTab({ state, presets, onAction }: Props) {
           {control.operation_id && <div style={hint}>操作 ID：{control.operation_id}</div>}
         </details>
       </div>}
-      <div style={hint}>3 · 顶部开始遥操 → 在「监控与采集」中启动采集节点并录制。状态显示完成后再执行下一步。</div>
+      <div style={hint}>顶部开始遥操 → 在「监控与采集」中启动采集节点并录制。状态显示完成后再执行下一步。</div>
     </section>
 
     <details style={card}>

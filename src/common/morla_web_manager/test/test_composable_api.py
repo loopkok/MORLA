@@ -24,6 +24,69 @@ def saved_session(client):
     return a,body,started.json()
 
 
+def test_quest_right_grip_and_web_share_start_and_pause(tmp_path):
+    from types import SimpleNamespace
+    from morla_input.quest_events import QuestEventSource
+    from morla_input.ros_sources import RosInputManager
+    clock = [1_000_000_000]
+    with TestClient(create_app(tmp_path, resource_root=tmp_path/'locks')) as client:
+        svc = client.app.state.composable
+        svc.clock = lambda: clock[0]
+        a = assembly()
+        a['instances']['phone'] = {'plugin':'morla.input.quest','version':'1.0.0'}
+        a['bindings'][0]['deadman'] = 'phone.right_hold'
+        saved = client.post('/api/v2/assemblies', json={'assembly':a,'expected_revision':0})
+        assert saved.status_code == 200, saved.text
+        started = client.post('/api/v2/sessions', json={'assembly_id':a['assembly_id'],
+            'revision':1,'assembly_hash':saved.json()['resolved']['assembly_hash'],'request_id':'start'})
+        assert started.status_code == 200, started.text
+        sid = started.json()['session_id']
+        source = QuestEventSource('phone', clock=svc.clock, wall_clock=svc.clock)
+        manager = RosInputManager([], lambda frame:svc.ingest_frame(sid,frame),
+            lambda iid:svc.disconnect_input(iid), clock=svc.clock,
+            on_event=lambda iid,frame,actions:svc.input_event(sid,iid,frame,actions))
+        # Propagate callback failures instead of needing a ROS logger in this test.
+        manager._guarded = lambda iid,fn:fn()
+        manager.sources['phone'] = source
+        svc.inputs['phone'] = source
+        sequence = [0]
+        def send(kind, values, side='right'):
+            clock[0] += 10_000_000
+            sequence[0] += 1
+            manager._quest_event('phone', SimpleNamespace(data=json.dumps({
+                'version':2,'basis':'unity_left_handed_v1','side':side,'source':'controller',
+                'epoch':'quest-test','sequence':sequence[0],'sent_ns':clock[0],
+                'frame_id':'quest','kind':kind,'values':values})))
+            import time
+            for _ in range(200):
+                if svc.operator.handoff.pending is None:break
+                svc.tick();time.sleep(.001)
+        def op(name):
+            response = client.post(f'/api/v2/sessions/{sid}/operations',
+                json={'operation':name,'request_id':name+str(clock[0])})
+            assert response.status_code == 200, response.text
+        send('pose', [0,0,0,0,0,0,1])
+        send('trigger', 0.)
+        send('grip', 0.)
+        send('grip', 1.)
+        assert svc.session.status == 'ACTIVE'
+        count = sum(e['event']=='activated' for e in svc.session.events)
+        send('grip', 1.)
+        assert sum(e['event']=='activated' for e in svc.session.events) == count
+        op('disarm')
+        assert svc.session.status == 'READY_DISARMED'
+        send('grip', 1.)
+        assert svc.session.status == 'READY_DISARMED'  # Must release before restart.
+        send('grip', 0.)
+        send('grip', 1.)
+        assert svc.session.status == 'ACTIVE'
+        send('grip', 0.)
+        assert svc.session.status == 'ACTIVE'  # Release is not a global pause.
+        op('disarm')
+        op('activate')
+        assert svc.session.status == 'ACTIVE'
+
+
 def test_save_conflicts_preview_and_idempotent_launch(tmp_path):
     with TestClient(create_app(tmp_path,resource_root=tmp_path/'locks')) as client:
         a,body,state=saved_session(client)
@@ -99,3 +162,66 @@ def test_cr5_template_and_camera_preview_contract(tmp_path):
         assert client.post(view, json={'action': 'zoom', 'dx': 0, 'dy': 1e9}).status_code == 422
         assert client.post(f'/api/v2/sessions/{sid}/cameras/grip/view', json={'action': 'orbit'}).status_code == 404
         svc.session.adapters.pop('camera'); svc.session.instances.pop('camera')
+
+
+def test_shared_simulation_templates_and_live_settings(tmp_path, monkeypatch):
+    pytest.importorskip('mujoco')
+    with TestClient(create_app(tmp_path,resource_root=tmp_path/'locks')) as client:
+        for robot in ('cr5','nero','astral'):
+            response=client.get(f'/api/v2/templates/{robot}-sim')
+            assert response.status_code==200
+            assert response.json()['metadata']['simulation']['mode']=='kinematic'
+        assert client.get('/api/v2/templates/unknown').status_code==404
+        a={'assembly_version':1,'assembly_id':'sim_options','revision':1,
+           'instances':{'arm':{'plugin':'morla.nero.arm','backend':'sim'}},
+           'metadata':{'simulation':{'mode':'kinematic','display':'web'}}}
+        saved=client.post('/api/v2/assemblies',json={'assembly':a,'expected_revision':0})
+        assert saved.status_code==200,saved.text
+        result=client.post('/api/v2/sessions',json={'assembly_id':a['assembly_id'],'revision':1,
+            'assembly_hash':saved.json()['resolved']['assembly_hash'],'request_id':'start'})
+        assert result.status_code==200,result.text
+        sid=result.json()['session_id'];path=f'/api/v2/sessions/{sid}/simulation'
+        assert client.post(path,json={'mode':'physics'}).json()['mode']=='physics'
+        assert client.post(path,json={'mode':'invalid'}).status_code==422
+        assert client.post(path,json={'unexpected':True}).status_code==422
+        service=client.app.state.composable;adapter=service.session.adapters['arm']
+        adapter.activate()
+        assert client.post(path,json={'mode':'kinematic'}).status_code==409
+        adapter.stop()
+        assert client.post(path,json={'mode':'kinematic'}).status_code==200
+        assert client.get(f'/api/v2/sessions/{sid}/state').json()['simulation']['mode']=='kinematic'
+
+
+def test_diagnostic_logs_are_independent_downloadable_and_confined(tmp_path,monkeypatch):
+    from morla_input.adapters.normalized import InputFrame
+    monkeypatch.setenv('MORLA_DIAGNOSTIC_LOG_ROOT',str(tmp_path/'logs'))
+    with TestClient(create_app(tmp_path/'store',resource_root=tmp_path/'locks')) as client:
+        _,_,state=saved_session(client);sid=state['session_id'];service=client.app.state.composable
+        assert service.recorder is None
+        assert state['diagnostic_log']['enabled'] and state['diagnostic_log']['directory']
+        service.operation(sid,{'operation':'prepare','request_id':'prepare-log'})
+        service.operation(sid,{'operation':'activate','request_id':'activate-log'})
+        frame=InputFrame('phone','epoch',0,service.clock(),'operator',{'scalar':.7,'hold_to_control':True})
+        assert service.ingest_frame(sid,frame)['accepted']
+        assert service.recorder is None
+        active_download=client.get(f'/api/v2/diagnostics/runs/{sid}/files/trace-00000.jsonl')
+        assert active_download.status_code==200
+        assert int(active_download.headers['content-length'])==len(active_download.content)
+        service.operation(sid,{'operation':'stop','request_id':'stop-log'})
+        runs=client.get('/api/v2/diagnostics/runs').json();entry=next(row for row in runs if row['session_id']==sid)
+        assert entry['clean_shutdown'] and entry['state']=='closed'
+        assert {'manifest.json','summary.json','trace-00000.jsonl'}<=set(entry['files'])
+        tail=client.get(f'/api/v2/diagnostics/runs/{sid}/tail?limit=200')
+        assert tail.status_code==200
+        assert {'input','control','command_request','command_receipt'}<={row['kind'] for row in tail.json()['records']}
+        manifest=client.get(f'/api/v2/diagnostics/runs/{sid}/files/manifest.json')
+        assert manifest.status_code==200 and manifest.json()['session_id']==sid
+        data=client.get(f'/api/v2/diagnostics/runs/{sid}/files/trace-00000.jsonl')
+        assert data.status_code==200 and '[redacted]' in data.text
+        assert client.get(f'/api/v2/diagnostics/runs/{sid}/files/other.json').status_code==422
+        assert client.get(f'/api/v2/diagnostics/runs/{sid}/tail?limit=10000').status_code==422
+        assert client.get('/api/v2/diagnostics/runs/not-a-run/tail').status_code==422
+        assert client.get('/api/v2/diagnostics/runs/'+'a'*32+'/files/manifest.json').status_code==404
+        directory=service.session.diagnostics.directory
+        (directory/'trace-99999.jsonl').symlink_to(tmp_path/'outside')
+        assert client.get(f'/api/v2/diagnostics/runs/{sid}/files/trace-99999.jsonl').status_code==404

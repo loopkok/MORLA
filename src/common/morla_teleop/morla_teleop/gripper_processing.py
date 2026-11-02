@@ -57,6 +57,7 @@ def limit_ratio_step(target, previous, dt, rate):
 
 
 class FilteredGripperController:
+    synchronous_reanchor=True
     def __init__(self,parameters,*,landmarks=False,clock):
         self.landmarks,self.clock=landmarks,clock
         self.parameters=parameters

@@ -5,6 +5,8 @@
   <exec_depend>morla_runtime</exec_depend>
   <exec_depend>morla_teleop</exec_depend>
   <exec_depend>morla_learning</exec_depend>
+  <exec_depend>morla_policy_inference</exec_depend>
+  <exec_depend>morla_data_collect</exec_depend>
   <version>0.1.0</version>
   <description>
     MORLA web manager for robot operation and monitoring.

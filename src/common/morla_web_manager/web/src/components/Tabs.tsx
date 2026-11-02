@@ -41,7 +41,7 @@ function tabStyle(on: boolean): React.CSSProperties {
     background: on ? '#1f2937' : 'transparent',
     color: on ? '#e5e7eb' : '#9ca3af',
     border: 'none',
-    borderBottom: on ? '2px solid #3b82f6' : '2px solid transparent',
+    borderBottom: on ? '2px solid #d9b770' : '2px solid transparent',
     padding: '10px 16px',
     cursor: 'pointer',
     fontSize: '14px',

@@ -25,6 +25,8 @@
   <exec_depend>wujihand_mujoco_sim</exec_depend>
   <!-- pip: mujoco -->
 
+  <exec_depend>morla_runtime</exec_depend>
+  <exec_depend>morla_native_bridge</exec_depend>
   <export>
     <build_type>ament_python</build_type>
   </export>

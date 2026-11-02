@@ -77,18 +77,15 @@ ros2 launch morla_vader5_input vader5_teleop.launch.py \
 
 所有分配在pad实例参数中冻结，可通过Assembly/Deployment修改，修改后重编译保存revision。配置接线时检查冲突；不通过改变设备上板载映射来实现软件配置。
 
-- **M1保持**：作为 hold_to_control 输入意图发布；当前 Runtime 不以其作为运动门禁，也不要求激活后先释放。可在绑定或自定义处理器中显式使用。
-- **M2保持**：旋转模式；未按M2为平移模式。该键不能同时绑定采集/会话命令。
-- 平移：左摇杆Y→x、左摇杆X→y、右摇杆Y→z。
-- 旋转：左摇杆X→roll、左摇杆Y→pitch、右摇杆X→yaw；另一组三轴置零，避免无意同时平移。
-- LT模拟扳机：精细倍率，从1.0逐渐降到0.2，**只乘六轴 jog 输出**；`scalar` 端口直接取 RT，不受 LT 影响（EPG 宽度不会因 LT 改变，2026-10-30 实测四段全行程耗时一致）。RT模拟扳机：独立夹爪闭合比例0..1，只有绑定夹爪时使用。
-- **START单按**：请求激活；不替代prepare/标定/实机门槛。启动时已经按住不触发，需先释放。
-- **B**：暂停/撤权，显式停止当前人工或策略会话控制。
-- **Y**：开始录制；**X**：结束并保存。采集动作与激活分开，长按不重复触发。注意 `start_recording()` 不检查会话状态：READY_DISARMED（已按 B 撤权）时按 Y 仍会开始录制，2026-10-30 台架已实测；需要禁止时应在宿主/操作层拦截，不能假定只有 ACTIVE 才能录。
-- **START+SELECT** 组合急停已随重构删除；急停请用Web/服务操作或外部硬件急停。
-- A、C/Z、其余背键、LB/RB等未绑定操作时只作原始输入记录。HOME和TURBO不绑定动作，TURBO是脉冲，不可当保持键。
+- **M3**：开始遥操、重定跟随零点；策略/回放运行时人工接管。按住同时提供 `hold_to_control`，初次连接已按住时需先松开再按。
+- **A**：普通人工操作下开始录制；人工接管后交还策略/回放。
+- **B**：结束当前录制并保存；**右摇杆按下 R3**：丢弃当前录制段。
+- **X**：停止跟随并直接回配置工作位；录制中拒绝回位。
+- **M2 保持**：旋转模式；未按为平移模式。平移：左摇杆 Y→x、左摇杆 X→y、右摇杆 Y→z；旋转：左摇杆 X→roll、左摇杆 Y→pitch、右摇杆 X→yaw。
+- LT：精细倍率，只乘六轴 jog 输出；RT：独立夹爪输入。其余轴方向、倍率与原映射保留。
+- 不再默认使用 Z/C、START、Y/X 作为旧启动/暂停/采集操作。全局暂停、急停使用 Web 或相应服务。
 
-重构后不再检查 `deadman_button`、`rotation_button`、`action_buttons` 的角色冲突，也不再保留SELECT保留键；配置写错不会被拒绝，需自行核对。action_buttons可设为空以关闭所有离散操作。数据命令只走组合Service现有API，不同时再发旧 `/morla/operator/command`。操作request仍按输入epoch/sequence记录，但runtime不据此拒绝，submitted或RUNNING不等于已完成。
+参数 `action_buttons` 可以自定义或设为空；公共服务识别并升级此前发行的完整默认映射，真正的自定义分配保留。运行操作只进入当前公共工作站，不同时发送到旧 Profile 的 operator router。submitted/RUNNING 不等于动作已经完成。
 
 SDK坐标保持原方向；`axis_signs`按x,y,z,roll,pitch,yaw提供六个±1软件方向；`input_rotation`由机器人binding把增量对齐基座。现场逐轴验证后再运动，不默认把手柄轴当成机器人轴。
 
@@ -108,8 +105,10 @@ EPG示例用公共scalar_map把RT 0..1映射到0.05..0 m。重构后scalar_map�
 
 使用既有SchemaV3录制、对齐/导出及ACT/OpenPI训练入口，冻结机器人feature/geometry和动作单位。默认auxiliary不会自动成为模型条件输入；若要把手柄意图作为训练观测，显式修改capture.state/特征契约并重做模型握手。更改按钮/轴配置会改变Assembly/Resolved身份，应重新编译；不假定input_mapping_hash单独涵盖全部输入参数。
 
-策略/回放输出继续走同一runtime命令接口，但重构后不再有策略与人工输入的运行时互斥或租约强制；同时驱动时后写入者生效，需要上层自律。B仍可显式暂停/撤权。真实训练/模型推理服务未执行，本轮只验证本地假预测器/回放的同契约控制链。
+公共工作站增加策略/回放与人工输入的调度互斥，M3 接管、A 交还；公共工作站在 Runtime.submit 分发前检查 owner/token/epoch、期限和资源；独立 Runtime 保留兼容行为。策略接管会丢弃旧预测，交还后重新观测；回放保留游标。真实模型服务与实机未验收。
 
 ## 验证
 
 代码与软件验证记录见仓库 `docs/integrations/vader5.md`。2026-10-30 已在 Linux ROS 2 Humble + USB 有线实物（固件 7.1.5.0）上完成：按键/摇杆/扳机/IMU、fake CR5 jog、fake EPG 映射、停止与重启 reader 的断流/epoch 行为，以及真手柄驱动真实 EPG 的 4 次 0↔0.05 m 全行程。本机 ROS 侧 50 Hz 设置下实测约 47.9–48.8 Hz（SDK 内部约 493 Hz 批处理），SDK 上游约 500 Hz 不是端到端频率；2026-11-01 起默认改为 100 Hz，实测约 99 Hz。2.4G/无线、FN/TURBO/HOME、真实 CR5 跟随、相机同步、碰撞、长稳及端到端时延仍未验收。
+
+统一按键、键盘对应、工作位配置和验收范围见 [公共工作站操作说明](../../../docs/integrations/UNIFIED_WORKSTATION_OPERATORS_2026-11-02.md)。

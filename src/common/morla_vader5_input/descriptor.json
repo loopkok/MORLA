@@ -172,13 +172,14 @@
     "input_topic": "/vader5/events",
     "deadzone": 0.08,
     "max_age_ms": 250,
-    "deadman_button": "M1",
+    "deadman_button": "M3",
     "rotation_button": "M2",
     "action_buttons": {
-      "START": "teleop_start",
-      "B": "teleop_pause",
-      "Y": "record_start",
-      "X": "record_stop"
+      "M3": "teleop_start",
+      "A": "record_or_release",
+      "B": "record_stop",
+      "R3": "record_discard",
+      "X": "workpos"
     },
     "axis_signs": [
       1,

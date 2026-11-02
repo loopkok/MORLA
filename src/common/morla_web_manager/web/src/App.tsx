@@ -15,10 +15,10 @@ import { api } from './api/client'
 import { pushSample } from './hooks/historyStore'
 
 const TABS = [
-  { id: 'compose', label: '组合配置' },
-  { id: 'system', label: '机器人操作' },
-  { id: 'monitor', label: '监控与采集' },
-  { id: 'health', label: '健康' },
+  { id: 'compose', label: '工作站' },
+  { id: 'system', label: '独立控制' },
+  { id: 'monitor', label: '运行监视' },
+  { id: 'health', label: '设备状态' },
   { id: 'data', label: '数据处理' },
   { id: 'piano', label: '钢琴工作台' },
 ]
@@ -50,10 +50,10 @@ export default function App() {
         <ToastHost />
 
         <header style={headerStyle}>
-        <h1 style={titleStyle}>MORLA Robot Manager</h1>
-        <span style={subStyle}>统一机器人操作、数据与策略监控</span>
+        <h1 style={titleStyle}>MORLA</h1>
+        <span style={subStyle}>机器人操作台</span>
         <div style={spacer} />
-        <StatusPill ok={wsConnected} okLabel="WS" badLabel="WS 断" colorOk="#22c55e" />
+        {active !== 'compose' && <><StatusPill ok={wsConnected} okLabel="WS" badLabel="WS 断" colorOk="#22c55e" />
         <StatusPill ok={!!state} okLabel="ROS" badLabel="ROS 断" colorOk="#3b82f6" />
         <StatusPill
           ok={state?.health?.overall === 'ok'}
@@ -61,7 +61,7 @@ export default function App() {
           badLabel={state?.health?.overall ? `数据${state.health.overall === 'stale' ? '陈旧' : '偏慢'}` : '无数据'}
           colorOk="#22c55e"
           warn={state?.health?.overall === 'slow' || state?.health?.overall === 'stale'}
-        />
+        /></>}
       </header>
 
       {active !== 'compose' && <ControlBar state={state} onAction={() => void api.health()} />}
@@ -106,7 +106,7 @@ function StatusPill({
 
 const appStyle: React.CSSProperties = {
   minHeight: '100vh',
-  background: '#0b0f17',
+  background: '#111518',
   color: '#e5e7eb',
   fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
   display: 'flex',
@@ -120,7 +120,7 @@ const headerStyle: React.CSSProperties = {
   borderBottom: '1px solid #1f2937',
   flexWrap: 'wrap',
 }
-const titleStyle: React.CSSProperties = { margin: 0, fontSize: '20px', fontWeight: 700 }
+const titleStyle: React.CSSProperties = { margin: 0, fontSize: '19px', fontWeight: 600 }
 const subStyle: React.CSSProperties = { color: '#6b7280', fontSize: '13px' }
 const spacer: React.CSSProperties = { flex: 1 }
 const mainStyle: React.CSSProperties = {

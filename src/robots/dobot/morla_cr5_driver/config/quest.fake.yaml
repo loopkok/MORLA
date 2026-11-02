@@ -27,6 +27,7 @@ bindings:
   max_age_ms: 250
   input_basis_id: unity_left_handed_v1
   parameters:
+    ik_mode: differential
     position_scale: 0.25
     # Quest raw Unity (X right, Y up, Z forward) -> CR5 base_link solver base.
     # base_link is the URDF root (no mount factor), so this is the whole

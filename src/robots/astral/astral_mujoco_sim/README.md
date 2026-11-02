@@ -100,3 +100,7 @@ ros2 run astral_arm_teleop keyboard_vr_sim
 ```
 
 IK / DH / flip 细节见 [`astral_arm_teleop/README.md`](../astral_arm_teleop/README.md)。
+
+## 公共后端（2026-11-02）
+
+原有仿真入口与行为保留。新增 `ros2 launch astral_mujoco_sim composable_sim.launch.py`，使用公共 MuJoCo 后端；支持 `sim_mode:=kinematic|physics` 和 `sim_display:=web|local|both`，默认运动学、网页。需要已安装统一 Web manager 和 native IK provider。公共模板为双臂、Quest 输入与场景相机，未默认装配手部/触觉/夹爪。详细说明见 [公共仿真文档](../../../../docs/integrations/SHARED_MUJOCO_2026-11-02.md)。

@@ -102,3 +102,35 @@ def test_sdl_button_positions_are_not_legacy_quest_positions():
     frame=pad.joy([0]*6,buttons)
     assert frame.ports['right_shoulder'] is True
     assert frame.ports['guide'] is False
+
+
+def test_explicit_anchor_ack_uses_fk_without_solving_or_dispatching():
+    class CountSolver(Solver):
+        calls=0
+        def solve(self,target):self.calls+=1;return super().solve(target)
+    solver=CountSolver();controller=CartesianController(solver)
+    seed=[.1,.2,.3,0,0,0,0]
+    value={'position':[1.,2.,3.],'quaternion':[0,0,0,1]}
+    ack=controller.reanchor(value,seed,{})
+    assert ack['acknowledged'] and solver.calls==0
+    np.testing.assert_allclose(np.asarray(ack['current_tcp'])[:3,3],seed[:3])
+    moved={'position':[1.01,2.,3.],'quaternion':[0,0,0,1]}
+    np.testing.assert_allclose(controller(moved,seed,.02,{})[:3],[.11,.2,.3])
+
+
+def test_binding_anchor_identity_survives_the_first_fresh_manual_frame():
+    from morla_input.adapters.normalized import InputFrame
+    clock=[1_000_000_000]
+    registry=ControllerRegistry();plugin=CartesianController(Solver())
+    registry.register('morla.cartesian_delta_ik',plugin)
+    binding={'id':'pose','source':'quest.right_pose','target':'arm.position_target',
+             'controller':'morla.cartesian_delta_ik','parameters':{}}
+    controller=BindingController(binding,[f'j{i}' for i in range(7)],registry=registry,clock=lambda:clock[0])
+    def frame(seq,x):
+        return InputFrame('quest','epoch',seq,clock[0],'world',
+            {'right_pose':{'position':[x,2.,3.],'quaternion':[0,0,0,1]}},
+            port_metadata={'right_pose':{'received_ns':clock[0],'frame_id':'world/right/controller'}})
+    seed=[.1,.2,.3,0,0,0,0]
+    assert controller.reanchor(frame(1,1.),seed)['acknowledged']
+    clock[0]+=20_000_000
+    np.testing.assert_allclose(controller.step(frame(2,1.01),seed)[:3],[.11,.2,.3])

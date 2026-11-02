@@ -14,7 +14,7 @@ class RuntimeErrorCode(RuntimeError):
 
 
 class RuntimeSession:
-    def __init__(self, resolved, resource_root=None, clock=None, adapters=None, registry=None, allow_unverified_test_fixture=False):
+    def __init__(self, resolved, resource_root=None, clock=None, adapters=None, registry=None, allow_unverified_test_fixture=False, diagnostic_root=None):
         self.resolved = copy.deepcopy(resolved)
         self.clock = clock or time.monotonic_ns
         self.session_id = uuid.uuid4().hex
@@ -26,6 +26,7 @@ class RuntimeSession:
         self.operations = {}
         self.events = []
         self.lock = threading.RLock()
+        self.command_guard = None  # Optional workstation arbiter; standalone callers retain their contract.
         self.resources = ResourceManager(resource_root)
         self.instances = {x['instance_id']: x for x in resolved.get('instances', [])}
         self.adapters = dict(adapters or {})
@@ -35,6 +36,9 @@ class RuntimeSession:
         self._command_callbacks = []
         self._operation_generation = 0
         self._pending_operation = None
+        from .diagnostic_log import DiagnosticLog
+        self.diagnostics = DiagnosticLog(self.session_id, self.resolved, root=diagnostic_root, clock=self.clock)
+        self._last_diagnostic_inputs = {}
 
     def _now(self):
         now = self.clock()
@@ -48,6 +52,7 @@ class RuntimeSession:
     def _event(self, kind, **fields):
         event = {'event': kind, 'session_id': self.session_id, 'monotonic_ns': self.clock(), **fields}
         self.events.append(event)
+        self.trace('event', event, monotonic_ns=event['monotonic_ns'])
         # Preserve a bounded in-memory ring; applications can persist event snapshots.
         if len(self.events) > 4096:
             del self.events[:1024]
@@ -57,6 +62,25 @@ class RuntimeSession:
             except Exception:
                 pass  # Observers never control device execution.
         return event
+
+    def trace(self, kind, data, **context):
+        """Optional diagnostics API for any adapter, controller or transport."""
+        try: return self.diagnostics.emit(kind, data, **context)
+        except Exception: return False  # Diagnostic observers never control motion.
+
+    def trace_input(self, frame):
+        source = getattr(frame, 'source_id', 'unknown')
+        identity = (getattr(frame,'source_epoch',None), getattr(frame,'sequence',None), getattr(frame,'received_ns',None))
+        if self._last_diagnostic_inputs.get(source) == identity: return
+        if len(self._last_diagnostic_inputs) > 256: self._last_diagnostic_inputs.clear()
+        self._last_diagnostic_inputs[source] = identity
+        self.trace('input', {name:getattr(frame,name,None) for name in
+                   ('source_id','source_epoch','sequence','received_ns','frame_id','valid','input_basis_id','ports','port_metadata')},
+                   component_id=source)
+
+    def trace_feedback(self, component_id, sample):
+        try: self.diagnostics.feedback(component_id, sample, now_ns=self.clock())
+        except Exception: pass
 
     def on_event(self, callback):
         self._event_callbacks.append(callback)
@@ -118,12 +142,14 @@ class RuntimeSession:
             return copy.deepcopy(old)
         operation = {'request_id': request_id, 'action': action, 'status': 'RUNNING'}
         self.operations[request_id] = operation
+        self._event('operation_started', request_id=request_id, action=action)
         try:
             operation['result'] = callback()
             operation['status'] = 'SUCCEEDED'
         except Exception as exc:
             operation.update(status='FAILED', error=str(exc))
             self._event('operation_failed', action=action, reason=str(exc))
+        self._event('operation_finished', operation=operation)
         return copy.deepcopy(operation)
 
     def _actuators(self):
@@ -149,6 +175,7 @@ class RuntimeSession:
             if age < 0:
                 value.update(fault=True, reason='FUTURE_HEALTH_TIMESTAMP')
             result[key] = value
+            self.trace_feedback(key, value)
         return result
 
     def preflight(self):
@@ -209,6 +236,7 @@ class RuntimeSession:
             if self.status != 'VALIDATED':
                 raise RuntimeErrorCode('INVALID_START_STATE')
             self.status = 'PREPARING'
+            self.diagnostics.start()
             try:
                 keys = ['morla:active-system']
                 for session in self.resolved.get('device_sessions', []):
@@ -221,6 +249,7 @@ class RuntimeSession:
                         continue
                     context = {'session_id': self.session_id, 'clock': self.clock, 'instances': copy.deepcopy(self.instances),
                                'resource_root': str(self.resources.root), 'lane_fd': self.resources.lane_fd,
+                               'diagnostics': self.trace, 'trace_feedback': self.trace_feedback,
                                'shared_device_sessions': shared_devices,
                                'device_session': next((copy.deepcopy(device) for device in self.resolved.get('device_sessions', [])
                                                        if key in device.get('instances', [])), None)}
@@ -242,13 +271,16 @@ class RuntimeSession:
                             raise RuntimeErrorCode('BACKEND_UNAVAILABLE: ' + key)
                         factory = Ros2ControlFakeAdapter if instance['plugin_id'] == 'morla.ros2_control.mock' else FakeAdapter
                         self.adapters[key] = factory(instance)
-                    self.adapters[key].configure({'session_id': self.session_id, 'instance': copy.deepcopy(instance)})
+                    self.adapters[key].configure({'session_id': self.session_id, 'instance': copy.deepcopy(instance),
+                                                  'diagnostics': self.trace, 'trace_feedback': self.trace_feedback})
                 self.status = 'READY_DISARMED'
                 self._event('ready_disarmed')
-            except Exception:
+            except Exception as exc:
                 self._revoke()
                 self._cleanup()
                 self.status = 'FAULTED'
+                self.trace('start_failed', {'status':self.status,'reason':str(exc)})
+                self.diagnostics.close({'status':self.status,'reason':'start_failed'})
                 raise
             return self.state()
 
@@ -271,6 +303,7 @@ class RuntimeSession:
             operation = {'request_id': request_id, 'action': name, 'signature': signature, 'status': 'RUNNING'}
             self.operations[request_id] = operation
             self._pending_operation = request_id
+            self._event('operation_started', request_id=request_id, action=name, component_ids=targets)
 
         def check_generation():
             with self.lock:
@@ -321,6 +354,7 @@ class RuntimeSession:
                 with self.lock:
                     if self._pending_operation == request_id:
                         self._pending_operation = None
+                    self._event('operation_finished', operation=operation)
         asynchronous = any(self.instances[key].get('backend', 'fake') != 'fake' for key in targets)
         if asynchronous:
             threading.Thread(target=execute, name='morla-operation-' + name, daemon=True).start()
@@ -397,10 +431,13 @@ class RuntimeSession:
         with self.lock:
             dispatched = []
             attempted = False
+            self.trace('command_request', command)
+            adapter_receipts = {}
             try:
                 now = self._now()
                 if self.estop_latched:
                     raise RuntimeErrorCode('RESET_REQUIRED')
+                if self.command_guard is not None:self.command_guard(command)
                 seq = command.get('sequence', 0)
                 commands = command.get('commands', [])
                 ids = [x['component_id'] for x in commands]
@@ -409,11 +446,14 @@ class RuntimeSession:
                 for item in commands:
                     attempted = True
                     result = self.adapters[item['component_id']].submit(copy.deepcopy(item))
+                    adapter_receipts[item['component_id']] = result
                     if result is False or isinstance(result, dict) and not result.get('accepted', True):
                         raise RuntimeErrorCode('DISPATCH_FAILED: ' + item['component_id'])
                     dispatched.append(item['component_id'])
                 receipt = {'accepted': True, 'sequence': seq, 'dispatched': dispatched, 'monotonic_ns': now}
                 self._event('command_dispatched', sequence=seq, components=dispatched)
+                self.trace('command_receipt', {'receipt':receipt,'adapter_receipts':adapter_receipts,
+                                             'execution_acknowledgement':'see_adapter_receipts_not_implied_by_dispatch'})
                 for callback in self._command_callbacks:
                     try:
                         callback(copy.deepcopy(command), copy.deepcopy(receipt))
@@ -424,6 +464,8 @@ class RuntimeSession:
                 if attempted:
                     self._group_stop('partial_dispatch')
                 self._event('command_rejected', reason=str(exc), dispatched=dispatched)
+                self.trace('command_receipt', {'accepted':False,'reason':str(exc),'dispatched':dispatched,
+                                             'adapter_receipts':adapter_receipts})
                 return {'accepted': False, 'reason': str(exc), 'dispatched': dispatched}
 
     def tick(self):
@@ -520,7 +562,10 @@ class RuntimeSession:
                 errors.extend(self._cleanup())
                 self.status = 'FAULTED' if errors else 'STOPPED'
                 return {'errors': errors}
-            return self._operation(request_id or uuid.uuid4().hex, 'stop', action)
+            result = self._operation(request_id or uuid.uuid4().hex, 'stop', action)
+        self.diagnostics.close({'status':self.status,'operation':result,'pending_operation':self._pending_operation,
+                                'operations':list(self.operations.values())})
+        return result
 
     def invoke(self, operation, request_id, component_ids=None):
         if operation == 'status':
@@ -549,4 +594,5 @@ class RuntimeSession:
                 'epoch': self.epoch, 'authority': None if not self.lease else {
                     k: v for k, v in self.lease.items() if k != 'token'},
                 'components': self._health() if self.status not in ('STOPPED', 'FAULTED', 'ESTOP_LATCHED') else {},
+                'diagnostic_log': self.diagnostics.status(),
                 'events': copy.deepcopy(self.events[-100:]), 'operations': copy.deepcopy(list(self.operations.values()))}

@@ -10,7 +10,10 @@ def main(args=None, *, configure_app=None, default_store='~/.local/share/morla-c
     parser.add_argument('--assembly',required=True);parser.add_argument('--deployment',default='')
     parser.add_argument('--input-device',default=None)
     parser.add_argument('--input-backend',choices=['fake','real'],default=None)
+    parser.add_argument('--sim-mode', choices=['physics','kinematic'], default=None)
+    parser.add_argument('--sim-display', choices=['web','local','both'], default=None)
     parser.add_argument('--port',type=int,default=8080)
+    parser.add_argument('--log-dir',default=None,help='Independent per-run diagnostics directory')
     parser.add_argument('--store',default=default_store)
     options=parser.parse_args(args)
     from morla_core.composition import load_document
@@ -23,8 +26,11 @@ def main(args=None, *, configure_app=None, default_store='~/.local/share/morla-c
         if catalog.get(instance['plugin'],instance.get('version','1.0.0'))['kind']=='input':
             if options.input_backend is not None:instance['backend']=options.input_backend
             if options.input_device:instance.setdefault('parameters',{})['device']=options.input_device
+    settings = assembly.setdefault('metadata', {}).setdefault('simulation', {})
+    if options.sim_mode is not None: settings['mode'] = options.sim_mode
+    if options.sim_display is not None: settings['display'] = options.sim_display
     deployment=load_document(options.deployment) if options.deployment else {}
-    app=create_app(os.path.expanduser(options.store),mount_web=configure_app is None)
+    app=create_app(os.path.expanduser(options.store),mount_web=configure_app is None,diagnostic_root=os.path.expanduser(options.log_dir) if options.log_dir else None)
     service=app.state.composable
     try:
         path=service.store.path(assembly['assembly_id'])/'latest.json'

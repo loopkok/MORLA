@@ -21,6 +21,10 @@
     "real": {
       "available": true,
       "validation_level": "requires_URDF_hardware_alignment_acceptance"
+    },
+    "sim": {
+      "available": true,
+      "validation_level": "URDF_IK_sim_feedback_hardware_NOT_RUN"
     }
   },
   "source": {

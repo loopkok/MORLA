@@ -115,9 +115,10 @@ class AssemblyStore:
 
 
 class ComposableService:
-    def __init__(self, root, *, resource_root=None, blockers=None, clock=time.monotonic_ns):
+    def __init__(self, root, *, resource_root=None, blockers=None, clock=time.monotonic_ns, diagnostic_root=None):
         self.store=AssemblyStore(Path(root)/"assemblies")
         self.data_root=Path(root)/"recordings"
+        self.diagnostic_root=Path(diagnostic_root or os.environ.get("MORLA_DIAGNOSTIC_LOG_ROOT", str(self.store.root.parent/"logs"))).expanduser()
         self.catalog=default_catalog()
         self.resource_root=resource_root
         self.blockers=blockers or (lambda: [])
@@ -141,6 +142,8 @@ class ComposableService:
         self.controller_close_errors=[]
         self.input_errors={}
         self.input_button_states={}
+        from .workstation_control import WorkstationControl
+        self.operator = WorkstationControl(self)
 
     def _reset_bindings(self, close=False):
         for controller in self.bindings.values():
@@ -152,11 +155,13 @@ class ComposableService:
         if close:self.bindings={}
 
     def compile(self, assembly, deployment=None):
-        return compile_system(assembly, deployment, registry=self.catalog)
+        from .operator_defaults import upgrade
+        return compile_system(upgrade(assembly), deployment, registry=self.catalog)
 
     def save(self, raw):
         with self.lock:
-            assembly=raw["assembly"]; deployment=raw.get("deployment")
+            from .operator_defaults import upgrade
+            assembly=upgrade(raw["assembly"]); deployment=raw.get("deployment")
             resolved=self.compile(assembly,deployment)
             return self.store.save(assembly,deployment,resolved,raw.get("expected_revision",0))
 
@@ -187,7 +192,7 @@ class ComposableService:
                 raise ServiceError("preview/installed dependency hash changed; compile and save a new revision")
             from morla_input.adapters.ingress import InputIngressAdapter
             adapters={x['instance_id']:InputIngressAdapter(x,self.clock) for x in resolved['instances'] if x['kind']=='input'}
-            session=RuntimeSession(resolved,resource_root=self.resource_root,clock=self.clock,registry=self.catalog,adapters=adapters)
+            session=RuntimeSession(resolved,resource_root=self.resource_root,clock=self.clock,registry=self.catalog,adapters=adapters,diagnostic_root=self.diagnostic_root)
             session.start()
             self.session=session
             session.on_command(self.capture_command)
@@ -197,6 +202,9 @@ class ComposableService:
             self.active_input_sources=set()
             self.input_errors={}
             self.input_button_states={}
+            from .workstation_control import WorkstationControl
+            self.operator = WorkstationControl(self)
+            self.operator.attach()
             self.requests[request_id]=(identity,session.state())
             return session.state()
 
@@ -211,10 +219,23 @@ class ComposableService:
             result=session.state()
             result["assembly_id"] = session.resolved["assembly_id"]
             result["revision"] = session.resolved["revision"]
+            scenes = {id(adapter.session): adapter.session for adapter in session.adapters.values()
+                      if getattr(adapter, 'backend', None) == 'sim' and hasattr(adapter, 'session')}
+            result['simulation'] = next(iter(scenes.values())).settings() if len(scenes) == 1 else None
             result["inputs"]={key:{"connected":item.connected,"fresh":item.read() is not None,
                                     "epoch":item.epoch,"mode":getattr(item,'mode',None)} for key,item in self.inputs.items()}
             result["recording"] = self.recorder is not None
             result["policy"]={"running":self.policy is not None and not self.policy.closed,"error":self.policy_error}
+            result['operator']=self.operator.state()
+            result['controllers'] = {}
+            for binding_id, binding in self.bindings.items():
+                reports = {}
+                for plugin, controller in binding.registry.plugins.items():
+                    diagnostic = getattr(controller, 'diagnostics', None)
+                    if diagnostic is not None:
+                        reports[plugin] = diagnostic()
+                if reports:
+                    result['controllers'][binding_id] = reports
             result['controller_close_errors']=list(self.controller_close_errors)
             result['input_errors']=dict(self.input_errors)
             result['input_processes']=(self.ros_inputs.supervisor.state()
@@ -228,8 +249,11 @@ class ComposableService:
             if not isinstance(request,str) or not request:
                 raise ServiceError("request_id required",422)
             operation=raw.get("operation")
+            if self.operator.handoff.pending and operation not in ('disarm','estop','stop','reset'):
+                raise ServiceError('控制权切换正在进行',409)
             if operation=="prepare": return session.prepare(request,raw.get("component_ids"))
             if operation=="activate":
+                self.operator.device_activated()
                 if request in session.operations or session.status!='READY_DISARMED':
                     return session.activate(request)
                 self._reset_bindings()
@@ -239,13 +263,16 @@ class ComposableService:
                 return session.activate(request, raw.get("component_ids"))
             if operation=="disarm":
                 self._reset_bindings()
-                self.stop_policy(session_id)
+                self.operator.pause()
                 return session.revoke(reason=operation)
             if operation=="estop":
+                self.operator.stop()
                 self._reset_bindings()
                 self.stop_policy(session_id)
                 return session.estop()
-            if operation=="reset": return session.reset(request)
+            if operation=="reset":
+                self.operator.stop();self.stop_policy(session_id)
+                return session.reset(request)
             if operation=='connect_inputs':
                 if self.ros_inputs is not None: return {'status':'SUCCEEDED','already_connected':True}
                 from morla_input.ros_sources import RosInputManager
@@ -260,6 +287,7 @@ class ComposableService:
                 self.inputs.update(manager.sources)
                 return {'status':'SUCCEEDED','sources':list(manager.sources)}
             if operation=="stop":
+                self.operator.stop()
                 self._reset_bindings(close=True)
                 self.stop_policy(session_id)
                 self.stop_recording()
@@ -271,7 +299,20 @@ class ComposableService:
 
     def _engine(self):
         from morla_teleop.engine import BindingEngine
-        return BindingEngine(self.session, bindings=self.bindings)
+        return BindingEngine(self.session, bindings=self.bindings, operator_hold=self.operator.held)
+
+    def operator_action(self, session_id, raw):
+        with self.lock:
+            self.require(session_id)
+            return self.operator.dispatch(raw.get('action'), raw.get('request_id'))
+
+    def operator_hold(self, session_id, raw):
+        with self.lock:
+            self.require(session_id)
+            client=raw.get('client_id')
+            if not isinstance(client,str) or not 1<=len(client)<=128 or not client.replace('-','').isalnum():
+                raise ValueError('invalid keyboard client id')
+            return self.operator.keyboard_hold(client,raw.get('held'),raw.get('sequence'))
 
     def _binding_controller(self, binding):
         return self._engine()._binding_controller(binding)
@@ -337,15 +378,16 @@ class ComposableService:
             for action in actions:
                 request='input-'+input_id+'-'+frame.source_epoch+'-'+str(frame.sequence)+'-'+action
                 def dispatch(action=action,request=request):
-                    from morla_teleop.actions import dispatch_input_action
-                    return dispatch_input_action(action,request,
-                        operation=lambda op,req:self.operation(session_id,{'operation':op,'request_id':req}),
-                        start_recording=lambda:self.start_recording(session_id,'input demonstration'),
-                        stop_recording=self.stop_recording)
+                    return self.operator.dispatch(action,request)
                 with session.lock:
                     result=session._operation(request+'-dispatch','input_'+action,dispatch)
                 if result['status']=='FAILED':self.input_errors[input_id]=result.get('error','input action failed')
+                else:self.input_errors.pop(input_id,None)
                 session._event('input_operation',request_id=request,input_id=input_id,action=action,result=result)
+            port = 'right_hold' if 'right_hold' in frame.ports else 'hold_to_control'
+            if port in frame.ports:
+                stamp=(frame.port_metadata or {}).get(port,{}).get('received_ns',frame.received_ns)
+                self.operator.hold('input-'+input_id,frame.ports[port] is True,stamp=stamp,ttl_ns=250_000_000)
 
     def ingest_frame(self,session_id,frame):
         try:
@@ -353,6 +395,7 @@ class ComposableService:
         except Exception as exc:
             with self.lock:
                 self.input_errors[getattr(frame,'source_id','unknown')]=str(exc)
+                if self.session: self.session.trace('input_error', {'source_id':getattr(frame,'source_id','unknown'),'reason':str(exc)})
                 self._reset_bindings()
                 session=self.require(session_id)
                 if session.status=='ACTIVE' and (session.lease is None or session.lease['producer']=='human_mobile'):
@@ -363,6 +406,7 @@ class ComposableService:
     def _ingest_frame(self,session_id,frame):
         with self.lock:
             session=self.require(session_id)
+            session.trace_input(frame)
             input_id=frame.source_id
             if input_id not in session.instances or session.instances[input_id]['kind']!='input':
                 raise ServiceError('unregistered input source',422)
@@ -371,7 +415,10 @@ class ComposableService:
             # Pre-refactor start gate: input before activation never commands motion.
             if session.status!='ACTIVE':
                 self._reset_bindings()
+                session.trace('input_gate', {'source_id':input_id,'sequence':frame.sequence,'reason':'explicit_activation_required'})
                 return {'accepted':False,'reason':'explicit_activation_required'}
+            if self.operator.handoff.pending or self.operator.paused or self.operator.gate!='human_mobile':
+                return {'accepted':False,'reason':'operator_takeover_required'}
             command_rows=self._engine().targets(frame)
             if not command_rows:
                 return {"accepted":False,"reason":"release_or_reanchor_required"}
@@ -391,7 +438,9 @@ class ComposableService:
         with self.lock:
             if connection is not None and self.connections.get(input_id)!=connection:
                 return
+            if self.session: self.session.trace('input_connection', {'input_id':input_id,'connected':False})
             self.connections.pop(input_id,None)
+            self.operator.holds.pop('input-'+input_id,None)
             source=self.inputs.get(input_id)
             if source: source.disconnect()
             if (input_id in self.active_input_sources and self.session and self.session.lease
@@ -403,14 +452,19 @@ class ComposableService:
         with self.lock:
             if self.session is None: return
             self.session.tick()
+            try: self.operator.tick()
+            except Exception as exc: self.operator.fail(exc)
             period=int(1_000_000_000/self.session.resolved['capture_schema'].get('dataset_fps',30))
-            if self.policy and not self.policy.closed and self.clock()-self.last_policy_ns>=period:
+            if self.policy and not self.policy.closed and not self.policy.suspended and self.clock()-self.last_policy_ns>=period:
                 try:
                     if self.policy.pending is None and not self.policy.actions: self.policy.request()
                     self.policy.poll()
                 except Exception as exc:
                     self.policy_error=str(exc)
                     self.policy.close(reason='policy_failed')
+                    self.operator.fail(exc)
+                if self.policy.closed and self.operator.activity=='policy':
+                    self.operator.fail(RuntimeError('policy stopped or prediction expired'))
                 self.last_policy_ns=self.clock()
             if self.recorder and self.clock()-self.last_capture_ns>=period:
                 self.capture_tick(); self.last_capture_ns=self.clock()
@@ -421,6 +475,8 @@ class ComposableService:
         from morla_policy_inference.composable_remote import ManifestRemotePredictor
         with self.lock:
             session=self.require(session_id)
+            if self.operator.handoff.pending or self.operator.playback or self.operator.return_to or self.operator.activity=='workpos':
+                raise ServiceError('another operator motion is active')
             if self.policy and not self.policy.closed: raise ServiceError('policy already active')
             manifest=ModelManifest.from_dict(raw['manifest'])
             # Serving is local: web requests cannot turn the manager into an arbitrary network client.
@@ -428,31 +484,44 @@ class ComposableService:
             try:
                 policy=RuntimePolicy(session,predictor,manifest,normalization_hash=raw['normalization_hash'],
                     backend_revision=raw.get('backend_revision'),camera_map=raw.get('camera_map'))
+                self.operator.gate=None
                 policy.acquire()
             except Exception:
                 predictor.close(); raise
             self.policy=policy; self.policy_error=None; self.last_policy_ns=0
+            self.operator.activity='policy';self.operator.paused=False;self.operator.gate='policy'
             return {'status':'RUNNING','producer':'policy'}
 
     def stop_policy(self, session_id):
         with self.lock:
             self.require(session_id)
+            if self.operator.handoff.pending:self.operator.handoff.abort('策略已停止',restore=False)
             if self.policy: self.policy.close()
             self.policy=None
+            if self.operator.activity=='policy' or self.operator.return_to=='policy':
+                self.operator.activity='paused';self.operator.return_to=None;self.operator.interrupted=None
+                self.operator.gate=None;self.operator.paused=True
             return {'status':'STOPPED'}
 
     def replay_step(self, session_id, raw):
         from morla_policy_inference.composable import RuntimeReplay
         with self.lock:
             session=self.require(session_id)
+            if self.operator.handoff.pending or self.operator.return_to or self.operator.activity in ('policy','playback','workpos'):
+                raise ServiceError('another operator motion is active')
             replay=RuntimeReplay(session,raw['frozen_resolved'])
+            self.operator.gate=None
             replay.acquire()
+            self.operator.activity='playback';self.operator.paused=False;self.operator.gate='playback'
             try: return replay.send(raw['action'],sample_ns=self.clock())
-            finally: session.revoke('playback',reason='replay_step_completed')
+            finally:
+                self.operator.gate=None;self.operator.paused=True;self.operator.activity='paused'
+                session.revoke('playback',reason='replay_step_completed')
 
     def start_recording(self, session_id, task=""):
         with self.lock:
             session=self.require(session_id)
+            if self.operator.handoff.pending:raise ServiceError('控制权切换期间不能开始录制',409)
             if self.recorder: raise ServiceError("recording already active")
             from morla_data_collect.composable_recorder import AsyncComposableRecorder as ComposableRecorder
             path=self.data_root/session_id
@@ -460,7 +529,10 @@ class ComposableService:
             directory=recorder.start(task=task)
             self.recorder=recorder
             self.capture_source_ns={}
+            scenes = {id(adapter.session): adapter.session for adapter in session.adapters.values()
+                      if getattr(adapter, 'backend', None) == 'sim' and hasattr(adapter, 'session')}
             self.recorder.event('provider_sources',{'resolved_system':session.resolved,
+                'simulation': next(iter(scenes.values())).settings() if len(scenes) == 1 else None,
                 'runtime_sources':{key:value.health(self.clock()).get('source','unknown') for key,value in session.adapters.items()}})
             self.capture_tick()
             return {"episode_dir":str(directory)}
@@ -538,8 +610,24 @@ class ComposableService:
         recorder=self.recorder; self.recorder=None
         return recorder.stop()
 
+    def discard_recording(self):
+        if not self.recorder: return {'status':'not_recording'}
+        recorder=self.recorder
+        self.recorder=None
+        result=recorder.stop(cancelled=True)
+        if result.get('failure'): raise RuntimeError('discard drain failed: '+str(result['failure']))
+        import shutil
+        directory=Path(result['episode_dir']).resolve()
+        root=(self.data_root/self.session.session_id).resolve()
+        if directory.parent!=root or not directory.name.startswith('episode'):
+            raise ValueError('discard path is outside current session')
+        shutil.rmtree(directory)
+        self.session.trace('record_discarded',{'episode_dir':str(directory)})
+        return {'status':'discarded','episode_dir':str(directory)}
+
     def close(self):
         with self.lock:
+            if self.session:self.operator.stop()
             self._reset_bindings(close=True)
             self.stop_recording()
             if self.policy: self.policy.close()

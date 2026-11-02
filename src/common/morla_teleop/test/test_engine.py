@@ -210,3 +210,14 @@ def test_partial_input_frame_does_not_block_other_bound_devices():
     targets=engine.targets(InputFrame('input','epoch',0,100,'input',{'right_scalar':.7}))
     assert len(targets)==1 and targets[0]['component_id']=='second'
     assert targets[0]['values']==[.7]
+
+
+def test_headless_host_can_delegate_unified_actions_to_operator_coordinator():
+    from types import SimpleNamespace
+    from morla_teleop.session import ControlHost
+    calls=[]
+    runtime=SimpleNamespace(clock=lambda:0)
+    host=ControlHost(runtime,operator_action=lambda action,request:calls.append((action,request)))
+    frame=SimpleNamespace(source_epoch='epoch',sequence=2)
+    host.event('quest',frame,['teleop_start','record_or_release','record_stop','record_discard','workpos'])
+    assert [action for action,_ in calls]==['teleop_start','record_or_release','record_stop','record_discard','workpos']

@@ -116,6 +116,8 @@ class RosInputManager:
             row = json.loads(msg.data)
             source = self.sources[iid]
             frame = source.event(row)
+            if frame is not None and (source.actions or row['kind'] in ('controller_state','grip')):
+                self.on_event(iid, frame, source.actions)
             if source.control_event(row, frame):
                 self.on_frame(frame)
         self._guarded(iid, action)

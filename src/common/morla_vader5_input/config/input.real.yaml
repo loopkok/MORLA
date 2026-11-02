@@ -16,17 +16,18 @@ instances:
       # 受管 reader 需要显式 hidraw 路径；每次插拔后必须按实际枚举结果更新本行
       # （当前台架：厂商 37d7 的配置接口，见 metadata.device_path_note）。
       device: /dev/hidraw5
-      # 以下为 2026-10-30 台架实际使用的输入参数（与 descriptor 默认值一致，显式记录）
+      # USB 连接参数沿用 2026-10-30 台架；按键为 2026-11-02 统一映射，尚未实机复验
       input_topic: /vader5/events
       deadzone: 0.08
       max_age_ms: 250
-      deadman_button: M1
+      deadman_button: M3
       rotation_button: M2
       action_buttons:
-        START: teleop_start
-        B: teleop_pause
-        Y: record_start
-        X: record_stop
+        M3: teleop_start
+        A: record_or_release
+        B: record_stop
+        R3: record_discard
+        X: workpos
       axis_signs: [1, 1, 1, 1, 1, 1]
     verified: false
 calibrations: {}

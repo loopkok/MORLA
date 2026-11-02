@@ -37,6 +37,33 @@ def test_event_carries_the_basis_it_was_measured_in():
     assert canonical.input_basis_id == 'quest3_canonical_legacy_v1'
 
 
+def test_right_grip_starts_once_per_press_without_starting_on_reconnect():
+    source, event, _, _ = setup_source(('left', 'right'))
+    source.event(event('pose'))
+    source.event(event('grip', values=1.))
+    assert source.actions == []  # Already held on connection.
+    source.event(event('grip', values=0.))
+    frame = source.event(event('grip', values=1.))
+    assert source.actions == ['teleop_start'] and frame.ports['right_hold']
+    source.event(event('grip', values=1.))
+    assert source.actions == []
+    source.event(event('grip', values=0.))
+    assert source.actions == []  # Release only releases the binding deadman.
+    source.event(event('pose', side='left'))
+    source.event(event('grip', values=0., side='left'))
+    source.event(event('grip', values=1., side='left'))
+    assert source.actions == []
+    source.event(event('pose', epoch='second'))
+    source.event(event('grip', values=1., epoch='second'))
+    assert source.actions == []
+    source.event(event('grip', values=0., epoch='second'))
+    source.event(event('grip', values=1., epoch='second'))
+    assert source.actions == ['teleop_start']
+    source.event(event('pose', 'hand', epoch='second'))
+    source.event(event('landmarks', 'hand', points(True), epoch='second'))
+    assert source.actions == []  # Hand pinch never starts the session.
+
+
 def test_v1_rows_are_rejected_rather_than_reinterpreted():
     source, event, _, _ = setup_source()
     row = event('pose')
@@ -211,3 +238,42 @@ def test_thumbstick_is_axes_only_and_never_refreshes_pose():
     assert frame.ports['left_axes'] == {'x': 0., 'y': 1.} and 'right_axes' not in frame.ports
     source.disconnect()
     assert source.axes('right', {'x': 0., 'y': 0.}) is None
+
+
+def test_atomic_controller_buttons_are_discrete_and_keep_hold_trigger_axes():
+    source,event,clock,_=setup_source(('left','right'))
+    source.event(event('pose'))
+    def state(buttons=(),grip=0.,side='right'):
+        return source.event(event('controller_state',side=side,values={
+            'trigger':.4,'grip':grip,'axes':[.2,-.3],
+            'buttons':[int(i in buttons) for i in range(6)]}))
+    state(buttons=[0]);assert not source.actions  # Adopt initial levels.
+    state();frame=state(buttons=[0])
+    assert source.actions==['record_or_release']
+    assert frame.ports['scalar']==.4 and frame.ports['right_axes']=={'x':.2,'y':-.3}
+    state(buttons=[0]);assert not source.actions
+    state();state(buttons=[1]);assert source.actions==['record_stop']
+    state();state(buttons=[2]);assert source.actions==['record_discard']
+    state();state(grip=1.);assert source.actions==['teleop_start']
+    assert source.latest.ports['right_hold'] is True
+    source.event(event('pose',side='left'))
+    state(side='left');state(buttons=[0],side='left');assert source.actions==['workpos']
+    with pytest.raises(InputError):
+        source.event(event('controller_state',values={'trigger':.4,'grip':0.,'axes':[0.,0.],'buttons':[1,0]}))
+    row=event('controller_state',values={'trigger':.4,'grip':0.,'axes':[0.,0.],'buttons':[0]*6})
+    clock[0]+=300_000_000
+    with pytest.raises(InputError):source.event(row)
+    assert not source.actions
+
+
+def test_operator_right_buttons_remain_available_with_left_motion_only():
+    source,event,_,_=setup_source(('left',))
+    source.event(event('pose',side='left'))
+    assert source.event(event('pose',side='right')) is None
+    def state(grip):
+        return source.event(event('controller_state',values={
+            'trigger':.2,'grip':grip,'axes':[.1,.2],'buttons':[0]*6}))
+    state(0.);frame=state(1.)
+    assert source.actions==['teleop_start'] and frame.ports['right_hold'] is True
+    assert 'left_pose' in frame.ports and 'right_pose' not in frame.ports
+    assert 'right_axes' not in frame.ports and 'right_scalar' not in frame.ports

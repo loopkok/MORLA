@@ -12,16 +12,24 @@ from morla_core.coordinates import validate_basis_change, validate_transform
 
 def validate_parameters(parameters, *, jog=False):
     allowed={'position_scale','input_rotation','solver_tip_from_tool','max_joint_step',
-             'max_joint_velocity','calibration_verified','smoothing_alpha'}
+             'max_joint_velocity','calibration_verified','smoothing_alpha','ik_mode',
+             'position_lead_m','rotation_lead_rad','damping_min','damping_max',
+             'singularity_threshold','differential_step_rad'}
     if jog:allowed|={'axes_map','linear_speed','angular_speed'}
     if not isinstance(parameters,dict) or set(parameters)-allowed:
         raise ValueError('Unknown CR5 VR controller parameter')
-    for name,maximum in [('position_scale',2),('max_joint_step',.3),
+    if parameters.get('ik_mode', 'differential') not in ('differential', 'strict'):
+        raise ValueError('Invalid CR5 ik_mode')
+    for name,maximum in [('position_lead_m',.25),('rotation_lead_rad',1),
+                          ('damping_min',1),('damping_max',1),('singularity_threshold',1),
+                          ('differential_step_rad',.15),('position_scale',2),('max_joint_step',.3),
                           ('max_joint_velocity',1),('smoothing_alpha',1)]:
         if name in parameters:
             value=parameters[name]
             if type(value) not in (int,float) or not np.isfinite(value) or not 0<value<=maximum:
                 raise ValueError('Invalid CR5 VR '+name)
+    if parameters.get('damping_min',.005)>parameters.get('damping_max',.15):
+        raise ValueError('CR5 damping_min exceeds damping_max')
     if jog:
         mapping=parameters.get('axes_map',{})
         if not isinstance(mapping,dict) or set(mapping)-{'x','y','z','roll','pitch','yaw'}:
@@ -43,9 +51,13 @@ class AsyncCartesianController:
         self.worker_generation = -1
         self.filtered_pose = None
         self.pending = None
+        self.anchor_waiter = None
         self.result = None
         self.last_output = None
         self.error = None
+        self.report = {}
+        self.diagnostic_sink = None
+        self.trace_context = {}
         self.first_request_ns = None
         self.closed = False
         self.thread = threading.Thread(target=self._run, daemon=True, name='cr5-vr-kinematics')
@@ -53,10 +65,37 @@ class AsyncCartesianController:
 
     def reset(self):
         with self.condition:
+            if self.anchor_waiter is not None and not self.anchor_waiter.done():
+                self.anchor_waiter.set_exception(RuntimeError('CR5 reanchor cancelled'))
             self.generation += 1
             self.pending = self.result = self.error = None
             self.first_request_ns = None
             self.last_output = None
+            self.report = {}
+
+    def reanchor(self, value, measured, parameters):
+        from concurrent.futures import Future
+        self.reset()
+        waiter=Future()
+        with self.condition:
+            if self.closed:raise RuntimeError('CR5 controller closed')
+            self.anchor_waiter=waiter
+            self.pending=(self.generation,copy.deepcopy(value),vector6(measured),0.,
+                          copy.deepcopy(parameters),self.clock(),dict(self.trace_context),waiter)
+            self.condition.notify()
+        return waiter.result(timeout=2.5)
+
+    def set_trace_context(self, context):
+        with self.condition: self.trace_context = dict(context)
+
+    def set_diagnostic_sink(self, sink):
+        with self.condition: self.diagnostic_sink = sink
+
+    def diagnostics(self):
+        with self.condition:
+            return {'solver': self.controller.solver.method_name if hasattr(self.controller.solver, 'method_name') else type(self.controller.solver).__name__,
+                    'error': self.error, **copy.deepcopy(self.report),
+                    'age_ms': max(0.,(self.clock()-self.report['sample_ns'])/1e6) if 'sample_ns' in self.report else None}
 
     def __call__(self, value, measured, dt, parameters):
         measured = vector6(measured)
@@ -70,7 +109,7 @@ class AsyncCartesianController:
             if self.result is not None and now - self.result[1] > 300_000_000:
                 raise TimeoutError('CR5 IK result expired')
             self.pending = (self.generation, copy.deepcopy(value), measured.copy(), dt,
-                            copy.deepcopy(parameters), now)
+                            copy.deepcopy(parameters), now, dict(self.trace_context), None)
             self.condition.notify()
             result = measured.copy() if self.result is None else self.result[0].copy()
         # Limit actual outgoing joint velocity, independently of controller response rate.
@@ -90,11 +129,14 @@ class AsyncCartesianController:
             with self.condition:
                 self.condition.wait_for(lambda: self.closed or self.pending is not None)
                 if self.closed: return
-                generation, value, measured, dt, parameters, requested_ns = self.pending
+                generation, value, measured, dt, parameters, requested_ns, trace_context, anchor_waiter = self.pending
                 self.pending = None
+            raw_value = copy.deepcopy(value)
             try:
                 if generation != self.worker_generation:
                     self.controller.reset()
+                    reset_solver=getattr(self.controller.solver,'reset_teleop',None)
+                    if reset_solver is not None: reset_solver()
                     self.filtered_pose = None
                     self.worker_generation = generation
                 if not self.jog:
@@ -114,7 +156,11 @@ class AsyncCartesianController:
                     self.filtered_pose=(position.copy(),rotation.copy())
                     value={'position':position.tolist(),
                            'quaternion':Rotation.from_matrix(rotation).as_quat().tolist()}
-                result = self.controller(value, measured, dt, parameters)
+                if anchor_waiter is not None:
+                    ack=self.controller.reanchor(value,measured,parameters)
+                    result=measured.tolist()
+                else:
+                    result = self.controller(value, measured, dt, parameters)
                 if self.clock() - requested_ns > 250_000_000:
                     raise TimeoutError('CR5 full FK/IK deadline exceeded')
                 error = None
@@ -124,19 +170,47 @@ class AsyncCartesianController:
             with self.condition:
                 if generation == self.generation and not self.closed:
                     self.error = error
+                    self.report = copy.deepcopy(getattr(self.controller.solver, 'last_report', {}))
+                    self.report['sample_ns'] = requested_ns
+                    self.report['completed_ns'] = self.clock()
+                    self.report['input_context'] = trace_context
+                    self.report['error'] = error
+                    self.report['generation'] = generation
+                    self.report['feedback_seed'] = measured.tolist()
+                    self.report['candidate_values'] = None if result is None else vector6(result).tolist()
+                    self.report['delivered_to_device'] = False
+                    self.report['raw_input'] = raw_value
+                    self.report['filtered_input'] = copy.deepcopy(value)
+                    self.report['cartesian'] = self.controller.diagnostics()
                     if error:
                         self.pending = self.result = None
                     if result is not None:
                         self.result = (vector6(result), requested_ns)
+                        if anchor_waiter is not None:self.last_output=vector6(result)
                     elif error is None and self.result is not None:
                         # An unreachable jog tick is a live answer holding the
                         # last feasible target, not a stalled worker: refresh
                         # the timestamp so the 300 ms expiry does not revoke
                         # the session while the stick is held at a limit.
                         self.result = (self.result[0], requested_ns)
+                if anchor_waiter is not None and not anchor_waiter.done():
+                    if generation!=self.generation or self.closed:
+                        anchor_waiter.set_exception(RuntimeError('CR5 reanchor retired'))
+                    elif error:anchor_waiter.set_exception(RuntimeError(error))
+                    else:anchor_waiter.set_result(ack)
+
+            with self.condition:
+                sink=self.diagnostic_sink
+                report=copy.deepcopy(self.report) if generation==self.generation else {
+                    'discarded':True,'generation':generation,'sample_ns':requested_ns,'input_context':trace_context}
+            if sink is not None:
+                try: sink(report)
+                except Exception: pass  # Logging cannot poison the IK worker.
 
     def close(self):
         with self.condition:
+            if self.anchor_waiter is not None and not self.anchor_waiter.done():
+                self.anchor_waiter.set_exception(RuntimeError('CR5 controller closed'))
             self.closed = True
             self.pending = self.result = None
             self.condition.notify_all()
@@ -153,13 +227,20 @@ def _create(context, *, jog=False):
     if instance['backend'] not in ('fake','sim','real'):
         raise ValueError('CR5 VR requires fake, sim or real backend')
     hardware=instance.get('parameters',{})
-    solver=IKSolver(**({'position_tolerance_m':.00001,'angle_tolerance_rad':.0001} if jog else {}),
+    mode=parameters.get('ik_mode','differential')
+    solver_type=IKSolver
+    options={}
+    if mode=='differential':
+        from .differential_ik import DifferentialIKSolver
+        solver_type=DifferentialIKSolver
+        options={key:parameters[key] for key in ('position_lead_m','rotation_lead_rad',
+                 'damping_min','damping_max','singularity_threshold') if key in parameters}
+        options['max_step_rad']=min(parameters.get('differential_step_rad',.04),parameters.get('max_joint_step',.15))
+    solver=solver_type(**options, **({'position_tolerance_m':.00001,'angle_tolerance_rad':.0001} if jog else {}),
                     joint_lower=hardware.get('joint_lower'),joint_upper=hardware.get('joint_upper'),
                     joint_signs=hardware.get('urdf_joint_signs'),joint_offsets=hardware.get('urdf_joint_offsets'),
-                    # A jog tick is a small deliberate step: keep one local window so a
-                    # refused stick direction stays refused and the blocked-axis mask
-                    # keeps working. Pose teleop retries wider instead of dropping the
-                    # whole frame when the wrist turns past one window.
+                    # Strict mode retains its existing local-window policy.
+                    # Differential mode uses bounded steps and absorbing lead limits.
                     retry_trust=(.3,) if jog else (.3,.6,1.2))
     controller=AsyncCartesianController(solver, clock=context.get('clock', time.monotonic_ns),jog=jog)
     controller.requires_fresh_input=instance['backend']=='real'

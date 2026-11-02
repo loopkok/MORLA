@@ -843,3 +843,15 @@ bash scripts/test_ros.sh
 - 两个 YAML 块解析、可解析 Python 示例语法和 28 个本地源码/文档链接存在性检查通过；Deployment 占位模板未作为真实部署运行。
 
 本文不改变设备运行逻辑；没有连接实机、执行 ROS 构建或证明真实模型效果。
+
+## 公共运行诊断补充（2026-11-02）
+
+按公共 Runtime / BindingEngine 接入的设备自动获得按次运行诊断日志，不依赖 recorder，也不应在各品牌驱动复制一套基础日志。Adapter 可选使用上下文 `diagnostics` / `trace_feedback`，控制插件可选提供 `diagnostics()` / `last_report`；异步插件通过 `set_trace_context` 与 `set_diagnostic_sink` 保留实际输入关联并上报完成结果。基础契约、示例参数与采样/丢弃边界见 [公共遥操诊断日志](integrations/COMMON_TELEOP_DIAGNOSTICS_2026-11-02.md)。接入验收应检查未开启采集时仍有输入、输出、回执和反馈，以及停止后的摘要；日志写入失败不得改变已有运动许可。
+
+## 公共工作站操作输入补充（2026-11-02）
+
+离散操作应进入工作站 operator/action 接口，复用已有的接管/交还、录制、丢弃和工作位协调，不在设备驱动中重复实现、不同时转发旧 Profile router。独立 ControlHost 可通过可选 operator_action 回调委托宿主协调器；基础回调不冒充完整策略/采集管理器。按住使能必须保留原始采样时间、释放状态和连接身份，不能靠持续更新缓存时间延长许可。Quest/Vader/键盘当前默认映射和接口见 [统一操作说明](integrations/UNIFIED_WORKSTATION_OPERATORS_2026-11-02.md)。
+
+## 公共工作站重锚确认补充（2026-11-02）
+
+有状态控制插件应提供 `reanchor(value, measured, parameters)`，返回 `{"acknowledged": true}` 表示已完成初始化；异步插件必须等自己的工作线程完成，不能把排队/缓存结果当作 ACK。已知同步映射可声明 `synchronous_reanchor=True`，初始化候选只用于验证，不下发。待提交控制器与当前控制器隔离，全部确认后才安装；失败或退役后迟到结果不可获得控制权。设备 activate 必须确认完成，只有 DISPATCHED 不足以提交 HUMAN。未来设备沿用同一公共协议，不加品牌分支；验收至少覆盖部分成功、超时、取消、换输入 epoch、回滚和交还暂停恢复。详见 [HITL 对齐说明](integrations/WORKSTATION_HITL_ASTRAL_ALIGNMENT_2026-11-02.md)。

@@ -1,0 +1,123 @@
+assembly_version: 1
+assembly_id: cr5_quest_sim
+revision: 1
+instances:
+  arm:
+    plugin: morla.dobot.cr5
+    version: 1.0.0
+    backend: sim
+    parameters:
+      rate_hz: 50
+      # Operator-chosen ready posture: straight arm except J3 +90 deg and
+      # J5 -90 deg. It is also the best-conditioned of the poses tried
+      # (smallest Jacobian singular value 0.209, cond 8.8, versus 0.023 at the
+      # original [0,-0.5,1,-0.5,1,0]), so a wrist turn no longer stalls the IK.
+      initial_positions:
+      - 0.0
+      - 0.0
+      - 1.5707963267948966
+      - 0.0
+      - -1.5707963267948966
+      - 0.0
+  quest:
+    plugin: morla.input.quest
+    version: 1.0.0
+    backend: fake
+    parameters:
+      # This cell teleoperates the right arm only.
+      side: right
+  scene_camera:
+    plugin: morla.camera
+    version: 1.0.0
+    backend: sim
+    parameters:
+      width: 640
+      height: 480
+      # 60 fps on the render thread lands near the 50 Hz arm sim rate and keeps
+      # the web preview responsive; the loop skips a cycle when the sim has
+      # not advanced, so the actual rate is bounded by rendering plus stepping.
+      fps: 60
+bindings:
+- id: right_vr
+  # No deadman: once the session is ACTIVE the arm follows the hand
+  # continuously, like the legacy Nero/Astral teleop nodes. Releasing the grip
+  # does not stop it; only an explicit stop/revoke does. An input gap longer
+  # than max_age_ms re-anchors at the current pose instead of jumping.
+  source: quest.right_pose
+  target: arm.position_target
+  controller: morla.cr5.cartesian_delta
+  max_age_ms: 250
+  input_basis_id: unity_left_handed_v1
+  parameters:
+    ik_mode: differential
+    position_scale: 0.8
+    # Quest teleop events are raw Unity (X right, Y up, Z forward). base_link
+    # is the URDF root, so there is no mount factor: this is the whole Unity ->
+    # solver-base basis change. Its determinant is -1 because Unity is
+    # left-handed; only increments are mapped through it. The operator stands
+    # on the base +X side facing the arm, so their right is base +Y, up is
+    # base +Z, and forward is base -X. Only a yaw is admissible here: roll or
+    # pitch would tip the operator's up axis away from base +Z.
+    input_rotation:
+    - [0.0, 0.0, -1.0]
+    - [1.0, 0.0, 0.0]
+    - [0.0, 1.0, 0.0]
+    solver_tip_from_tool:
+    - - 1
+      - 0
+      - 0
+      - 0
+    - - 0
+      - 1
+      - 0
+      - 0
+    - - 0
+      - 0
+      - 1
+      - 0
+    - - 0
+      - 0
+      - 0
+      - 1
+    max_joint_step: 0.15
+    max_joint_velocity: 1.0
+    calibration_verified: false
+    smoothing_alpha: 0.35
+capture:
+  state:
+  - arm.position
+  action:
+  - arm.position_target
+  images:
+    scene: scene_camera.rgb
+  auxiliary:
+  - quest.right_pose
+  - quest.right_hold
+  action_source: command
+  hold_frames: 0
+mounts:
+- child: arm.base
+  parent: world
+  transform:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 1
+- child: scene_camera.optical
+  parent: world
+  transform:
+  - 1.5
+  - 1.5
+  - 1.4
+  - 0.2049409248295684
+  - 0.49477116020882905
+  - 0.7802274601799676
+  - 0.32318079574245656
+
+metadata:
+  simulation:
+    mode: kinematic
+    display: web

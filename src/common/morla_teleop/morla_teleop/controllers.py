@@ -105,6 +105,34 @@ class BindingController:
     def requires_fresh_input(self):
         return any(getattr(plugin,'requires_fresh_input',False) for plugin in self.registry.plugins.values())
 
+    def reanchor(self, frame, measured):
+        """Stage a controller; the caller commits it only after every binding ACKs."""
+        if not self.input_fresh(frame):raise ControllerError('reanchor requires fresh bound input')
+        measured=_vector(measured,len(self.names))
+        port=self.binding['source'].split('.',1)[1]
+        plugin=self.registry.plugins.get(self.binding['controller'])
+        hook=getattr(plugin,'reanchor',None)
+        if hook is not None:
+            ack=hook(frame.ports[port],measured,self.binding.get('parameters',{}))
+            if not isinstance(ack,dict) or ack.get('acknowledged') is not True:
+                raise ControllerError('controller did not acknowledge reanchor')
+        else:
+            # Non-Cartesian mappings are stateless or resettable. Validate their
+            # input/output without dispatching the candidate to any device.
+            if plugin is not None and not getattr(plugin,'synchronous_reanchor',False):
+                raise ControllerError('controller needs an explicit reanchor acknowledgement hook')
+            self.reset()
+            result=self.registry.apply(self.binding['controller'],frame.ports[port],measured,0.,self.binding.get('parameters',{}))
+            if result is None:raise ControllerError('mapping did not acknowledge initialization')
+            _vector(result,len(self.names))
+            ack={'acknowledged':True,'kind':'mapping'}
+        metadata=(frame.port_metadata or {}).get(port,{})
+        source_frame=metadata.get('frame_id',frame.frame_id)
+        self.identity=(frame.source_id,frame.source_epoch,source_frame)
+        self.last_sequence=frame.sequence;self.last_received_ns=frame.received_ns;self.last_ns=self.clock()
+        self._last_port_sample=(frame.source_epoch,metadata.get('received_ns'),source_frame)
+        return ack
+
     def step(self, frame, measured):
         now = self.clock()
         if frame is None or not frame.valid or not 0 <= now - frame.received_ns <= self.max_age_ns:

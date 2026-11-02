@@ -23,10 +23,11 @@ def main(args=None, *, node_name='morla_runtime', required_plugin=None,
             super().__init__(node_name)
             self.declare_parameter('resolved_path', '')
             self.declare_parameter('connect_inputs', False)
+            self.declare_parameter('diagnostic_log_root', '')
             self.host=None
             path = self.get_parameter('resolved_path').value
             resolved = json.loads(Path(path).read_text())
-            self.runtime = RuntimeSession(resolved)
+            self.runtime = RuntimeSession(resolved,diagnostic_root=self.get_parameter('diagnostic_log_root').value or None)
             self.joint_publishers = {}
             self.last_samples = {}
             if publish_joint_states:

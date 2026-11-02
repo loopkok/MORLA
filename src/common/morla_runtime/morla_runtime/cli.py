@@ -11,6 +11,7 @@ from .session import RuntimeSession
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('resolved', help='Compiled resolved_system.json')
+    parser.add_argument('--log-dir',default=None,help='Run diagnostic root (independent of dataset recording)')
     parser.add_argument('--inputs', action='store_true', help='Connect selected input components through the shared binding host')
     parser.add_argument('--once', action='store_true', help='Start disarmed, report, then stop')
     parser.add_argument('--preflight', action='store_true', help='Report installed backend metadata without connecting')
@@ -19,7 +20,7 @@ def main(argv=None):
     started = False
     host = None
     try:
-        runtime = RuntimeSession(json.loads(Path(args.resolved).read_text()))
+        runtime = RuntimeSession(json.loads(Path(args.resolved).read_text()),diagnostic_root=args.log_dir)
         if args.preflight:
             report = runtime.preflight()
             print(json.dumps(report, ensure_ascii=False), flush=True)

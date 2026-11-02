@@ -304,3 +304,7 @@ quest3_udp_mocap
 托管进程按同一 `side` 参数传 `arm_side:=left|right|both`；`process_mode: external` 时必须自行保证接收器带 `publish_teleop_events`。
 
 CR5 的启动、fake 演练与现场配置见 [CR5 VR 指南](../../../docs/integrations/cr5_vr.md)。
+
+### 公共工作站统一手柄操作（2026-11-02）
+
+右 grip 开始遥操/重定跟随零点/人工接管，并提供 hold；右 A 开始录制或在人工接管后交还控制；右 B 停止保存；右摇杆按下丢弃本段；左 X 停止跟随并直接回工作位。键盘 S/A/B/N/A+N 与 Vader M3/A/B/R3/X 对应。接收器新增原子 controller_state 事件，升级后重启 Web 与接收进程；单手运动选择不屏蔽另一只手柄的操作键。详细操作与保护条件见 [统一操作说明](../../../docs/integrations/UNIFIED_WORKSTATION_OPERATORS_2026-11-02.md)。

@@ -43,6 +43,11 @@ class MujocoDeviceSession:
         self.render_error = None
         self.error = None
         self.closed = False
+        options = runtime.resolved.get('source_assembly', {}).get('metadata', {}).get('simulation', {})
+        self.mode = options.get('mode', 'physics')
+        self.display = options.get('display', 'web')
+        self._validate_options(self.mode, self.display)
+        self.viewer = None
 
     def configure(self):
         if self.configured: return
@@ -56,6 +61,7 @@ class MujocoDeviceSession:
         self.model = mujoco.MjModel.from_xml_string(self.artifact['xml'])
         self.data = mujoco.MjData(self.model)
         self.indices = {}
+        self.targets = {}
         for row in actuator_rows:
             key = row['instance_id']
             names = [joint['name'] for joint in row['joints']]
@@ -81,6 +87,7 @@ class MujocoDeviceSession:
                         raise ValueError('SIM_INITIAL_POSITION_OUTSIDE_LIMITS')
                 self.data.qpos[qpos] = initial
             self.data.ctrl[controls] = self.data.qpos[qpos]
+            self.targets[key] = self.data.qpos[qpos].copy()
         self.cameras = [row for row in self.runtime.instances.values()
                         if row.get('backend') == 'sim' and row.get('kind') == 'sensor'
                         and row['plugin_id'].startswith('morla.camera')]
@@ -92,6 +99,8 @@ class MujocoDeviceSession:
         self._snapshot()
         self.thread = threading.Thread(target=self._step, name='morla-mujoco-scene', daemon=True)
         self.thread.start()
+        if self.display in ('local', 'both'):
+            self._open_viewer()
         if self.cameras:
             self.render_thread = threading.Thread(target=self._render, name='morla-mujoco-render', daemon=True)
             self.render_thread.start()
@@ -106,7 +115,8 @@ class MujocoDeviceSession:
                 raise ValueError('SIM_NONFINITE_STATE')
             sample = {'ready': True, 'sample_ns': now, 'source': 'simulation', 'measured': False,
                       'synthetic': True, 'values': position, 'simulation_time_s': float(self.data.time),
-                      'simulation_level': self.artifact['simulation_level'],
+                      'simulation_mode': self.mode,
+                      'simulation_level': ('kinematic_collision_unverified' if self.mode == 'kinematic' else self.artifact['simulation_level']),
                       'scene_id': id(self), 'ports': {}}
             for name, vector, unit in (('position', position, 'rad'), ('velocity', velocity, 'rad/s')):
                 sample['ports'][name] = {'values': vector, 'sample_ns': now, 'source': 'simulation',
@@ -124,14 +134,67 @@ class MujocoDeviceSession:
                 began = time.monotonic()
                 with self.command_lock:
                     pending, self.pending = self.pending, {}
-                for key, target in pending.items():
-                    self.data.ctrl[self.indices[key]['ctrl']] = target
-                self.mujoco.mj_step(self.model, self.data)
-                self._snapshot()
+                    for key, target in pending.items():
+                        self.targets[key] = self.np.asarray(target).copy()
+                        self.data.ctrl[self.indices[key]['ctrl']] = target
+                    if self.mode == 'kinematic':
+                        for key, indices in self.indices.items():
+                            self.data.qpos[indices['qpos']] = self.targets[key]
+                        self.data.qvel[:] = 0
+                        self.data.time += period
+                        self.mujoco.mj_forward(self.model, self.data)
+                    else:
+                        self.mujoco.mj_step(self.model, self.data)
+                    self._snapshot()
                 self.stop_event.wait(max(0, period - (time.monotonic() - began)))
         except Exception as exc:
             self.error = str(exc)
             self.stop_event.set()
+
+    @staticmethod
+    def _validate_options(mode, display):
+        if mode not in ('physics', 'kinematic'):
+            raise ValueError('SIM_MODE_MUST_BE_physics_OR_kinematic')
+        if display not in ('web', 'local', 'both'):
+            raise ValueError('SIM_DISPLAY_MUST_BE_web_local_OR_both')
+
+    def settings(self):
+        return {'mode': self.mode, 'display': self.display,
+                'viewer': self.viewer.status() if self.viewer else {'status': 'closed'},
+                'render_error': self.render_error}
+
+    def _open_viewer(self):
+        from .sim_viewer import LocalViewer
+        if self.viewer is None:
+            self.viewer = LocalViewer(self)
+        self.viewer.open()
+
+    def set_options(self, mode=None, display=None):
+        mode = self.mode if mode is None else mode
+        display = self.display if display is None else display
+        self._validate_options(mode, display)
+        # Runtime lock serializes activation against mode changes. Rendering
+        # selection is safe during motion; switching dynamics requires disarm.
+        with self.runtime.lock:
+            if mode != self.mode and (self.active or self.runtime.status == 'ACTIVE'):
+                raise RuntimeError('SIM_DISARM_BEFORE_MODE_CHANGE')
+            if display in ('local', 'both'):
+                self._open_viewer()
+            elif self.viewer is not None:
+                self.viewer.close()
+                self.viewer = None
+            with self.command_lock:
+                if mode != self.mode:
+                    self.pending.clear()
+                    for key, indices in self.indices.items():
+                        current = self.data.qpos[indices['qpos']].copy()
+                        self.targets[key] = current
+                        self.data.ctrl[indices['ctrl']] = current
+                    self.data.qvel[:] = 0
+                    self.mode = mode
+                    self._snapshot()
+                self.display = display
+        return self.settings()
 
     def _render(self):
         # Offscreen rendering/encoding has its own context and MjData. It never
@@ -210,7 +273,8 @@ class MujocoDeviceSession:
                              'synthetic': True, 'measured': False, 'valid': True, 'scene_id': id(self)}
                     sample = {'ready': True, 'sample_ns': now, 'source': 'simulation', 'synthetic': True,
                               'measured': False, 'scene_id': id(self), 'simulation_time_s': simtime,
-                              'simulation_level': self.artifact['simulation_level'], 'ports': {'rgb': image}}
+                              'simulation_mode': self.mode,
+                              'simulation_level': ('kinematic_collision_unverified' if self.mode == 'kinematic' else self.artifact['simulation_level']), 'ports': {'rgb': image}}
                     with self.state_lock:
                         self.camera_cache[key] = sample
                     last[key] = simtime
@@ -278,6 +342,8 @@ class MujocoDeviceSession:
         if self.closed: return
         self.closed = True
         self.stop_event.set()
+        if self.viewer is not None:
+            self.viewer.close()
         if hasattr(self, 'render_thread'):
             self.render_thread.join(timeout=.5)
             if self.render_thread.is_alive():

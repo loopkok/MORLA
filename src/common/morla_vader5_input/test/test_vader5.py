@@ -31,7 +31,7 @@ def test_public_normalizer_axes_modes_and_imu_not_pose():
     assert frame.ports['axes']==dict(x=.8,y=.5,z=.4,roll=0.,pitch=0.,yaw=0.)
     assert frame.ports['scalar']==.7 and frame.synthetic
     assert 'pose' not in frame.ports
-    frame=s.event(row(2,buttons=['M1','M2'],sticks=[.5,.8,-.3,.4],triggers=[1.,0.]))
+    frame=s.event(row(2,buttons=['M3','M2'],sticks=[.5,.8,-.3,.4],triggers=[1.,0.]))
     np.testing.assert_allclose(list(frame.ports['axes'].values()),[0,0,0,.1,.16,-.06])
     assert frame.ports['hold_to_control'] is True
     a=InputIngressAdapter({'instance_id':'pad'},s.clock);a.configure({});a.feed(frame)
@@ -41,17 +41,49 @@ def test_public_normalizer_axes_modes_and_imu_not_pose():
 
 
 def test_buttons_release_gate_and_no_reuse():
-    s=source();s.event(row(buttons=['START']));assert not s.actions
-    s.event(row(2));s.event(row(3,buttons=['START']));assert s.actions==['teleop_start']
-    s.event(row(4,buttons=['START']));assert not s.actions
-    s.event(row(5,buttons=['START','SELECT','M1']))
+    s=source();s.event(row(buttons=['M3']));assert not s.actions
+    s.event(row(2));s.event(row(3,buttons=['M3']));assert s.actions==['teleop_start']
+    s.event(row(4,buttons=['M3']));assert not s.actions
+    s.event(row(5,buttons=['M3','SELECT','M1']))
     assert not s.actions and s.latest.ports['hold_to_control']
-    s.event(row(6,buttons=['START']));assert not s.actions
+    s.event(row(6,buttons=['M3']));assert not s.actions
     for config in ({'deadman_button':'START'},{'rotation_button':'M1'},
                    {'action_buttons':{'START':'teleop_start','M1':'record_stop'}},
                    {'action_buttons':{'START':'record_start'}},
                    {'action_buttons':{'START':'teleop_start','TURBO':'record_stop'}}):
         assert configuration(config)
+
+
+def test_start_button_is_m3_and_explicit_action_maps_are_preserved():
+    s = source()
+    s.event(row())
+    s.event(row(2, buttons=['START']))
+    assert s.actions == []
+    s.event(row(3, buttons=['M3']))
+    assert s.actions == ['teleop_start']
+    custom = Vader5Source('pad', parameters={'action_buttons':{'A':'teleop_start'}},
+                          backend='fake', clock=lambda:1_000_000_000)
+    custom.event(row())
+    custom.event(row(2, buttons=['M3']))
+    assert custom.actions == []
+    custom.event(row(3, buttons=['A']))
+    assert custom.actions == ['teleop_start']
+
+
+def test_save_button_is_b_with_one_action_per_press():
+    s = source()
+    s.event(row(buttons=['B']))
+    assert s.actions == []  # Connection while held must not fire an action.
+    s.event(row(2))
+    s.event(row(3, buttons=['C']))
+    assert s.actions == []
+    s.event(row(4, buttons=['B']))
+    assert s.actions == ['record_stop']
+    s.event(row(5, buttons=['B']))
+    assert s.actions == []
+    s.event(row(6))
+    s.event(row(7, buttons=['B']))
+    assert s.actions == ['record_stop']
 
 
 def test_every_button_and_replay_source_age_reconnect():
@@ -64,7 +96,7 @@ def test_every_button_and_replay_source_age_reconnect():
     s.event(row(40,epoch='new'));assert len(calls)==2
     with pytest.raises(ValueError):s.event(row(41))
     assert s.event(row(42,epoch='new',connected=False)) is None and not s.connected
-    s.event(row(43,epoch='new',buttons=['START']));assert not s.actions
+    s.event(row(43,epoch='new',buttons=['M3']));assert not s.actions
 
 
 def test_batch_rate_limit_preserves_short_release_and_actions():
@@ -118,32 +150,35 @@ def test_service_record_buttons_gateway_and_policy_exclusion(tmp_path):
         seq[0]+=1;clock[0]+=20_000_000
         f=s.event(row(seq[0],buttons=buttons,triggers=[0.,trigger],sample_ns=clock[0]))
         service.input_event(sid,'pad',f,s.actions)
+        for _ in range(200):
+            if service.operator.handoff.pending is None:break
+            service.tick();time.sleep(.001)
         return service.ingest_frame(sid,f)
     try:
-        send();send(['START']);assert service.session.status=='ACTIVE'
-        send();assert send(['M1'],.4)['accepted']
+        send();send(['M3']);assert service.session.status=='ACTIVE'
+        send();send(['M3'],.4);assert send(['M3'],.4)['accepted']
         first=service.session.adapters['gripper'].values[0]
         assert 0<first<=.05 # No deadman clutch: the scalar applies immediately.
-        send(['M1'],.4)
+        send(['M3'],.4)
         assert service.session.adapters['gripper'].values[0]==pytest.approx(first)
-        send(['M1','Y'],.4);assert service.recorder is not None
+        send(['M3','A'],.4);assert service.recorder is not None
         record_path=service.recorder.episode_dir
         # Duplicate callback cannot create a second recording.
         service.input_event(sid,'pad',s.latest,['record_start'])
         assert not service.input_errors
-        send(['M1'],.4);service.capture_tick();send(['M1','X'],.4);assert service.recorder is None
+        send(['M3'],.4);service.capture_tick();send(['M3','B'],.4);assert service.recorder is None
         meta=json.loads((record_path/'meta.json').read_text())
         assert meta['recording_status']=='complete'
         assert any(e.get('name')=='input_buttons' for e in meta['events'])
         assert list(record_path.rglob('*.h5')) or list(record_path.rglob('*.hdf5'))
-        send(['B']);assert service.session.status=='READY_DISARMED'
-        # Authority is no longer enforced: human input dispatches while a policy lease exists.
+        service.operation(sid,{'operation':'disarm','request_id':'pause'});assert service.session.status=='READY_DISARMED'
+        # The workstation fence rejects writes after an external owner steals the lease.
         service.operation(sid,{'operation':'activate','request_id':'again'})
         service.session.acquire('policy')
         before=list(service.session.adapters['gripper'].values)
-        assert send(['M1'],.9)['accepted']
+        assert not send(['M3'],.9)['accepted']
         assert service.session.lease['producer']=='policy'
-        assert service.session.adapters['gripper'].values!=before
+        assert service.session.adapters['gripper'].values==before
         service.operation(sid,{'operation':'estop','request_id':'estop'})
         assert service.session.status=='ESTOP_LATCHED'
     finally:service.close()
@@ -189,7 +224,7 @@ def test_cr5_jog_uses_existing_solver_and_small_precision_steps(monkeypatch):
     controller=create_jog_controller({'instance':instance,'binding':a['bindings'][0]})
     measured=np.array([.3,-.7,.9,-.4,.6,.2])
     try:
-        assert controller.controller.jog and controller.controller.solver.method_name=='cr5_urdf_pinocchio_dls'
+        assert controller.controller.jog and controller.controller.solver.method_name=='cr5_urdf_pinocchio_differential'
         # 80 um command (LT precision at full stick) must not disappear into the
         # older 0.2 mm VR acceptance tolerance.
         values=dict(x=.2,y=0.,z=0.,roll=0.,pitch=0.,yaw=0.)
@@ -244,7 +279,7 @@ def test_selected_ros_input_plugin_reuses_common_host(monkeypatch):
     assert qos['depth']==1 and qos['reliability']==2 # Best effort, newest frame.
     try:
         callback=callbacks['/vader5/events'];callback(SimpleNamespace(data=json.dumps(row())))
-        callback(SimpleNamespace(data=json.dumps(row(2,buttons=['START'],control_tick=False))))
+        callback(SimpleNamespace(data=json.dumps(row(2,buttons=['M3'],control_tick=False))))
         assert ('event',['teleop_start']) in observed
         callback(SimpleNamespace(data=json.dumps(row(3,buttons=['M1'],control_tick=False))))
         count=len([r for r in observed if r[0]=='frame'])

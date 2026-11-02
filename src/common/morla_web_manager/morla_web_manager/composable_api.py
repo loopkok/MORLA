@@ -22,6 +22,7 @@ def router(service):
         except ServiceError as exc: raise HTTPException(exc.status,str(exc)) from exc
         except (ValueError,KeyError,TypeError) as exc:
             raise HTTPException(422,detail=getattr(exc,"diagnostics",str(exc))) from exc
+        except FileNotFoundError as exc: raise HTTPException(404,str(exc)) from exc
         except RuntimeError as exc: raise HTTPException(409,str(exc)) from exc
 
     @api.get('/active-session')
@@ -31,16 +32,38 @@ def router(service):
     @api.get("/components")
     def components(): return service.catalog.to_dict()
 
-    @api.get('/templates/cr5-sim')
-    def cr5_sim_template():
+    @api.get('/templates/{template_id}')
+    def sim_template(template_id: str):
         from morla_core.resource_locator import package_share, ResourceLookupError, morla_source_root
         from morla_core.composition import load_document
+        templates = {
+            'cr5-sim': ('morla_cr5_driver', 'src/robots/dobot/morla_cr5_driver', 'quest.sim.yaml'),
+            'nero-sim': ('xnero_mujoco_sim', 'src/robots/nero/xnero_mujoco_sim', 'composable.sim.yaml'),
+            'astral-sim': ('astral_mujoco_sim', 'src/robots/astral/astral_mujoco_sim', 'composable.sim.yaml')}
+        if template_id not in templates:
+            raise HTTPException(404, 'unknown simulation template')
+        package, source, filename = templates[template_id]
         try:
-            share = package_share('morla_cr5_driver')
+            share = package_share(package)
         except ResourceLookupError:
-            share = morla_source_root() / 'src/robots/dobot/morla_cr5_driver'
-        path = share / 'config/quest.sim.yaml'
-        return call(load_document, path)
+            share = morla_source_root() / source
+        return call(load_document, share / 'config' / filename)
+
+    @api.post('/sessions/{session_id}/simulation')
+    def simulation_options(session_id: str, raw: dict):
+        with service.lock:
+            session = call(service.require, session_id)
+            scenes = {id(adapter.session): adapter.session for adapter in session.adapters.values()
+                      if getattr(adapter, 'backend', None) == 'sim' and hasattr(adapter, 'session')}
+            if len(scenes) != 1:
+                raise HTTPException(409, 'session has no shared MuJoCo scene')
+            if set(raw) - {'mode', 'display'}:
+                raise HTTPException(422, 'unknown simulation option')
+            if service.recorder is not None or service.policy is not None:
+                raise HTTPException(409, 'stop recording/policy before changing simulation options')
+            settings = call(next(iter(scenes.values())).set_options, **raw)
+            session._event('simulation_options', **settings)
+            return settings
 
     @api.get('/sessions/{session_id}/cameras/{camera_id}/frame')
     def camera_frame(session_id: str, camera_id: str):
@@ -112,6 +135,36 @@ def router(service):
         return StreamingResponse(frames(), media_type='multipart/x-mixed-replace; boundary=frame',
                                  headers={'Cache-Control': 'no-store'})
 
+    @api.get('/diagnostics/runs')
+    def diagnostic_runs():
+        from .diagnostics import runs
+        return call(runs,service.diagnostic_root,service.session)
+
+    @api.get('/diagnostics/runs/{session_id}/tail')
+    def diagnostic_tail(session_id:str,limit:int=50):
+        from .diagnostics import tail
+        return call(tail,service.diagnostic_root,session_id,limit)
+
+    @api.get('/diagnostics/runs/{session_id}/files/{filename}')
+    def diagnostic_file(session_id:str,filename:str):
+        from .diagnostics import file_path
+        path=call(file_path,service.diagnostic_root,session_id,filename)
+        if filename.endswith('.jsonl'):
+            # Active segments can grow during download. Freeze the byte length
+            # rather than letting FileResponse read past Content-Length.
+            length=path.stat().st_size
+            def chunks():
+                remaining=length
+                with path.open('rb') as stream:
+                    while remaining:
+                        block=stream.read(min(65536,remaining))
+                        if not block:break
+                        remaining-=len(block)
+                        yield block
+            return StreamingResponse(chunks(),media_type='application/x-ndjson',
+                headers={'Content-Length':str(length),'Content-Disposition':f'attachment; filename="{filename}"','Cache-Control':'no-store'})
+        return FileResponse(path,media_type='application/json',filename=filename)
+
     @api.get("/assemblies")
     def assemblies(): return call(service.store.list)
 
@@ -164,6 +217,18 @@ def router(service):
 
     @api.post('/sessions/{session_id}/policy/start')
     def policy_start(session_id:str,raw:dict): return call(service.start_policy,session_id,raw)
+
+    @api.post('/sessions/{session_id}/operator/action')
+    def operator_action(session_id:str,raw:dict): return call(service.operator_action,session_id,raw)
+
+    @api.post('/sessions/{session_id}/operator/hold')
+    def operator_hold(session_id:str,raw:dict): return call(service.operator_hold,session_id,raw)
+
+    @api.post('/sessions/{session_id}/replay/start')
+    def replay_start(session_id:str,raw:dict):
+        with service.lock:
+            call(service.require,session_id)
+            return call(service.operator.start_playback,raw)
 
     @api.post('/sessions/{session_id}/policy/stop')
     def policy_stop(session_id:str): return call(service.stop_policy,session_id)
@@ -219,9 +284,9 @@ def router(service):
     return api
 
 
-def create_app(root=None,resource_root=None,*,mount_web=True):
+def create_app(root=None,resource_root=None,*,mount_web=True,diagnostic_root=None):
     service=ComposableService(root or os.environ.get("MORLA_SYSTEM_STORE",str(Path.home()/".local/share/morla")),
-                              resource_root=resource_root)
+                              resource_root=resource_root,diagnostic_root=diagnostic_root)
     @asynccontextmanager
     async def lifespan(app):
         async def tick():

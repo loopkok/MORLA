@@ -31,6 +31,6 @@ document.getElementById('authority').textContent=s.authority?'正在持有跟随
 const arm=s.components.arm;document.getElementById('joints').textContent=arm?`关节 rad：${(arm.values||[]).map(x=>x.toFixed(3)).join('  ')} · ${arm.source} · ${arm.fresh?'反馈新鲜':'反馈过期'}`:'无有效反馈';
 document.getElementById('recording').textContent=s.recording?'正在录制':'未录制';
 const errors=Object.values(s.input_errors||{});if(errors.length)document.getElementById('error').textContent=errors.join('\n');
-document.getElementById('details').textContent=JSON.stringify({session_id:sid,reply:lastReply,operations:s.operations,input_errors:s.input_errors,close_errors:s.controller_close_errors},null,2);
+document.getElementById('details').textContent=JSON.stringify({session_id:sid,reply:lastReply,operations:s.operations,input_errors:s.input_errors,controllers:s.controllers,close_errors:s.controller_close_errors},null,2);
 }catch(e){document.getElementById('status').textContent='连接失败';document.getElementById('error').textContent=e.message;}setTimeout(poll,200);}poll();
 </script></html>

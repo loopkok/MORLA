@@ -77,10 +77,20 @@ cp src/robots/dobot/morla_cr5_driver/config/quest-input.real.example.yaml /tmp/q
 ros2 launch morla_cr5_driver cr5_sim.launch.py deployment:=/tmp/quest-input.real.yaml
 ```
 
-打开 `http://127.0.0.1:8080` →「组合配置」。页面自动连接启动的会话，展示 scene_camera 仿真画面和组件健康；点击「激活运动许可」后才能发送目标。也可在现有统一 Web 服务的「组合配置」中打开已保存配置 `cr5_quest_sim`（管理端启动时从本模板预置）→ 预览 → 保存下一版本 → 启动会话 → 连接输入设备 → 激活。模板默认 Quest 为 fake；使用实体手柄时，将 quest 的后端设为 real（必须填 device_id，否则编译即拒绝），再保存启动。real 且 `process_mode: managed` 时由会话托管接收进程并自动开 `publish_teleop_events`，头显连接要求（`adb reverse tcp:8000`、Start Stream）与现有 Quest 接入一致。
+打开 `http://127.0.0.1:8080` →「组合配置」。页面自动连接启动的会话，展示 scene_camera 仿真画面和组件健康；点击「开始遥操」后才能发送目标。也可在现有统一 Web 服务的「组合配置」中打开已保存配置 `cr5_quest_sim`（管理端启动时从本模板预置）→ 预览 → 保存下一版本 → 启动会话 → 连接输入设备 → 激活。模板默认 Quest 为 fake；使用实体手柄时，将 quest 的后端设为 real（必须填 device_id，否则编译即拒绝），再保存启动。real 且 `process_mode: managed` 时由会话托管接收进程并自动开 `publish_teleop_events`，头显连接要求（`adb reverse tcp:8000`、Start Stream）与现有 Quest 接入一致。
 
 配置文件 `config/quest.sim.yaml` 设置六轴初始位置 `[0,0,π/2,0,-π/2,0]` rad（J3 +90°、J5 −90°，其余归零），避开全零伸直位且腕部条件最好（Jacobian 最小奇异值 0.209 / cond 8.8；旧位形 `[0,-0.5,1,-0.5,1,0]` 为 0.023 / cond 86）；仿真相机位于世界坐标。arm 必须保留 sim，输入可以独立选 fake/real。局域网访问请使用已有统一 Web 服务的 HOST 配置；session launch 的默认地址仅限本机。不要与已运行的 Web 服务抢占同一端口。
 
 仿真和真机遥操使用相同的本地 Pinocchio IK、TCP/增量映射和异步解算逻辑。仿真将物理关节反馈作为播种来源，状态标记 `source=simulation`、`synthetic=true`、`measured=false`。
 
 绝对位姿遥操的目标每次都由锚点重新计算，求解失败不是可以被下一拍追回来的丢样本，而是整帧丢弃、机械臂原地不动，因此求解器在报告失败前按信任域阶梯重试：位姿模式为 `0.3 → 0.6 → 1.2` rad，摇杆（jog）仍只用一个 0.3 rad 窗口——一次被拒绝的摇杆方向必须保持被拒绝，否则 `jog_blocked` 的轴向屏蔽会失效。速度与手感参数随模板提升到 `position_scale: 0.8`、`max_joint_velocity: 1.0` rad/s。真机仍未验收。
+
+### 公共仿真模式与显示选择（2026-11-02）
+
+CR5/Nero/Astral 公共仿真支持运动学与物理动力学，并可选择网页、本地 MuJoCo viewer 或同时显示。CR5 新增独立 `cr5_mujoco_sim` 包；Nero/Astral 保留旧入口并新增公共 launch。配置、运行时切换和限制见 [公共仿真说明](../../../../docs/integrations/SHARED_MUJOCO_2026-11-02.md)。
+
+### CR5 连续微分 IK（2026-11-02）
+
+CR5 专用 Quest/jog 控制器默认 `ik_mode: differential`：完整六维 Jacobian 单步更新、自适应阻尼与目标领先吸收；保留按 dt 限速、硬件关节映射和限位。设置 `ik_mode: strict` 可继续使用原严格位姿求解。Web 控制绑定中可选模式，保存并重启会话后生效；运行页显示 FK 残差、奇异点接近度、阻尼和吸收位移。
+
+微分模式允许残差，超量手柄运动被吸收后不再自动追赶；不会把近似输出当作原始目标已到达。两种模式都支持 kinematic/physics 仿真，尚未完成本轮实体 CR5 验收。参数、测试及语义见 [优化记录](../../../../docs/integrations/CR5_DIFFERENTIAL_IK_2026-11-02.md)。

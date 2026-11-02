@@ -1,6 +1,7 @@
 """Explicit IK/controller adapters around the established MORLA solvers."""
 from __future__ import annotations
 import inspect
+import copy
 import time
 import numpy as np
 from .controllers import ControllerError
@@ -40,6 +41,45 @@ class CartesianController:
         # ~120 ms failed solve per frame, so they stay masked until released.
         self.jog_blocked=None
         self._synced=False
+        self.last_report={}
+
+    def diagnostics(self):
+        return copy.deepcopy(self.last_report)
+
+    def reanchor(self, value, measured, parameters):
+        """Acknowledge an FK/input anchor without generating a motion target."""
+        from scipy.spatial.transform import Rotation
+        from morla_core.coordinates import validate_transform, validate_basis_change
+        seed=np.asarray(measured,dtype=float)
+        if seed.ndim!=1 or not np.isfinite(seed).all():raise ControllerError('invalid anchor feedback')
+        validate_basis_change(parameters.get('input_rotation',np.eye(3)))
+        tool=np.asarray(parameters.get('solver_tip_from_tool',np.eye(4)),dtype=float)
+        validate_transform(tool)
+        self.reset()
+        reset_solver=getattr(self.solver,'reset_teleop',None)
+        if reset_solver is not None:reset_solver()
+        self.solver.sync_state(seed)
+        current=np.asarray(self.solver.fk(seed),dtype=float)@tool
+        validate_transform(current)
+        if self.jog:
+            if not isinstance(value,dict) or not all(type(v) in (int,float) and np.isfinite(v) and abs(v)<=1 for v in value.values()):
+                raise ControllerError('invalid anchor axes')
+            mapping=parameters.get('axes_map',{'x':'left_x','y':'left_y'})
+            if not isinstance(mapping,dict) or any(key is not None and key not in value for key in mapping.values()):
+                raise ControllerError('invalid anchor axes map')
+            self.jog_target=current.copy()
+        else:
+            position=np.asarray(value['position'],dtype=float);quat=np.asarray(value['quaternion'],dtype=float)
+            if position.shape!=(3,) or quat.shape!=(4,) or not np.isfinite(position).all() or not np.isfinite(quat).all() or not np.isclose(np.linalg.norm(quat),1,atol=1e-3):
+                raise ControllerError('invalid anchor pose')
+            self.anchor_input=np.eye(4)
+            self.anchor_input[:3,3]=position
+            self.anchor_input[:3,:3]=Rotation.from_quat(quat).as_matrix()
+            self.anchor_robot=current.copy()
+        self._synced=True
+        self.last_report={'stage':'anchored','feedback_seed':seed.tolist(),'current_tcp':current.tolist(),
+                          'input':copy.deepcopy(value),'reanchor_acknowledged':True}
+        return {'acknowledged':True,'kind':'cartesian','current_tcp':current.tolist()}
 
     def __call__(self,value,measured,dt,parameters):
         from scipy.spatial.transform import Rotation
@@ -64,6 +104,8 @@ class CartesianController:
         from morla_core.coordinates import validate_transform
         validate_transform(tool)
         current=np.asarray(self.solver.fk(seed),dtype=float)@tool
+        self.last_report={'stage':'mapping','input':copy.deepcopy(value),'feedback_seed':seed.tolist(),
+                          'current_tcp':current.tolist(),'dt_s':dt}
         if self.jog:
             if not isinstance(value,dict): raise ControllerError('Cartesian jog requires named axes')
             mapping=parameters.get('axes_map',{'x':'left_x','y':'left_y','z':None,'roll':None,'pitch':None,'yaw':None})
@@ -103,6 +145,7 @@ class CartesianController:
             input_pose=np.eye(4); input_pose[:3,3]=position; input_pose[:3,:3]=Rotation.from_quat(quat).as_matrix()
             if self.anchor_input is None:
                 self.anchor_input=input_pose; self.anchor_robot=current.copy()
+                self.last_report.update(stage='anchored',target_tcp=current.tolist(),target_values=seed.tolist())
                 return seed.tolist()
             scale=float(parameters.get('position_scale',1))
             target=self.anchor_robot.copy()
@@ -111,7 +154,11 @@ class CartesianController:
             target[:3,:3]=rotation@delta@rotation.T@self.anchor_robot[:3,:3]
         # Tool offsets must already be resolved and versioned by the compiler.
         target_tip=target@np.linalg.inv(tool)
+        self.last_report.update(stage='solving',target_tcp=target.tolist(),target_tip=target_tip.tolist())
         result=self.solver.solve(target_tip)
+        self.last_report.update(stage='held' if result is None else 'solved',
+                                target_values=None if result is None else np.asarray(result).tolist(),
+                                solver_report=copy.deepcopy(getattr(self.solver,'last_report',{})))
         if result is None:
             # Both legacy teleop loops (nero/astral) skip the tick and stay
             # armed on an unreachable pose. Raising here let one reach/limit

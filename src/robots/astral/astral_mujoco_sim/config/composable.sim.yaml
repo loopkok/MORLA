@@ -1,0 +1,168 @@
+assembly_version: 1
+assembly_id: astral_quest_sim
+revision: 1
+instances:
+  quest:
+    plugin: morla.input.quest
+    version: 1.0.0
+    backend: fake
+    parameters:
+      side: both
+  scene_camera:
+    plugin: morla.camera
+    version: 1.0.0
+    backend: sim
+    parameters:
+      width: 640
+      height: 480
+      fps: 60
+  left_arm:
+    plugin: morla.astral.arm
+    version: 1.0.0
+    backend: sim
+    parameters:
+      side: left
+      initial_positions:
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0
+  right_arm:
+    plugin: morla.astral.arm
+    version: 1.0.0
+    backend: sim
+    parameters:
+      side: right
+      initial_positions:
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0
+      - 0
+bindings:
+- id: left_vr
+  source: quest.left_pose
+  target: left_arm.position_target
+  controller: morla.cartesian_delta_ik
+  input_basis_id: unity_left_handed_v1
+  max_age_ms: 250
+  parameters:
+    input_rotation:
+    - - -1.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - -1.0
+    - - 0.0
+      - 1.0
+      - 0.0
+    solver_tip_from_tool:
+    - - 1.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 1.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 1.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+    position_scale: 0.8
+    max_joint_step: 0.15
+- id: right_vr
+  source: quest.right_pose
+  target: right_arm.position_target
+  controller: morla.cartesian_delta_ik
+  input_basis_id: unity_left_handed_v1
+  max_age_ms: 250
+  parameters:
+    input_rotation:
+    - - -1.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - -1.0
+    - - 0.0
+      - 1.0
+      - 0.0
+    solver_tip_from_tool:
+    - - 1.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 1.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 1.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+    position_scale: 0.8
+    max_joint_step: 0.15
+capture:
+  state:
+  - left_arm.position
+  - right_arm.position
+  action:
+  - left_arm.position_target
+  - right_arm.position_target
+  images:
+    scene: scene_camera.rgb
+  auxiliary:
+  - quest.left_pose
+  - quest.right_pose
+  action_source: command
+  hold_frames: 0
+mounts:
+- child: scene_camera.optical
+  parent: world
+  transform:
+  - 1.5
+  - 1.5
+  - 1.4
+  - 0.2049409248295684
+  - 0.49477116020882905
+  - 0.7802274601799676
+  - 0.32318079574245656
+- child: left_arm.base
+  parent: world
+  transform:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 1
+- child: right_arm.base
+  parent: world
+  transform:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 1
+metadata:
+  simulation:
+    mode: kinematic
+    display: web

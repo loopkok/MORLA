@@ -90,7 +90,7 @@ try {
   await label('观测left_arm.velocity').check(); await compile()
   await button('启动已保存版本').click()
   await page.getByTestId('session-status').filter({ hasText: 'READY_DISARMED' }).waitFor()
-  await button('激活运动许可').click()
+  await button('开始遥操').click()
   await page.getByTestId('session-status').filter({ hasText: 'ACTIVE' }).waitFor()
   await button('开始采集').click(); await waitMessage('episode_dir')
   await page.waitForTimeout(350)

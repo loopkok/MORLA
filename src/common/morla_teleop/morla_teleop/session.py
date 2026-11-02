@@ -3,19 +3,33 @@ from .engine import BindingEngine
 
 
 class ControlHost:
-    def __init__(self, runtime, *, start_recording=None, stop_recording=None):
+    def __init__(self, runtime, *, start_recording=None, stop_recording=None,
+                 discard_recording=None, operator_action=None):
         self.runtime=runtime
         self.engine=BindingEngine(runtime)
         self.sequence=0
         self.inputs=None
         self.errors=[]
         self.start_recording,self.stop_recording=start_recording,stop_recording
+        self.discard_recording,self.operator_action=discard_recording,operator_action
 
     def ingest(self, frame):
+        try: return self._ingest(frame)
+        except Exception as exc:
+            trace=getattr(self.runtime,'trace',None)
+            if trace is not None: trace('input_error', {'source_id':getattr(frame,'source_id',None),
+                                         'sequence':getattr(frame,'sequence',None),'reason':str(exc)})
+            raise
+
+    def _ingest(self, frame):
+        trace=getattr(self.runtime,'trace_input',None)
+        if trace is not None: trace(frame)
         adapter=self.runtime.adapters.get(frame.source_id)
         if hasattr(adapter,'feed'): adapter.feed(frame)
         if self.runtime.status!='ACTIVE':
             self.engine.reset()
+            trace=getattr(self.runtime,'trace',None)
+            if trace is not None: trace('input_gate', {'source_id':frame.source_id,'sequence':frame.sequence,'reason':'explicit_activation_required'})
             return {'accepted':False,'reason':'explicit_activation_required'}
         targets=self.engine.targets(frame)
         if not targets:return {'accepted':False,'reason':'no_targets'}
@@ -27,8 +41,15 @@ class ControlHost:
         from .actions import dispatch_input_action
         for action in actions:
             request='input-'+input_id+'-'+frame.source_epoch+'-'+str(frame.sequence)+'-'+action
-            dispatch_input_action(action,request,operation=self.runtime.invoke,
-                start_recording=self.start_recording,stop_recording=self.stop_recording)
+            if action=='teleop_start':self.engine.reset()
+            dispatch_input_action(action,request,operation=self._operation,
+                start_recording=self.start_recording,stop_recording=self.stop_recording,
+                discard_recording=self.discard_recording,operator_action=self.operator_action)
+
+    def _operation(self, name, request):
+        if name=='activate' and self.runtime.status=='ACTIVE':
+            return self.runtime.switch('human',request_id=request)
+        return self.runtime.invoke(name,request)
 
     def connect(self, manager_factory=None):
         if self.inputs is not None:return

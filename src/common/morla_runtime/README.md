@@ -176,3 +176,11 @@ removed, so tests assert the relaxed behavior.
 ROS transport and IDL require a target ROS Humble build; this macOS host has no
 rclpy. Real hardware, UVC camera, and offscreen graphics validation remain separate
 deployment gates.
+
+### 公共仿真模式与显示选择（2026-11-02）
+
+CR5/Nero/Astral 公共仿真支持运动学与物理动力学，并可选择网页、本地 MuJoCo viewer 或同时显示。CR5 新增独立 `cr5_mujoco_sim` 包；Nero/Astral 保留旧入口并新增公共 launch。配置、运行时切换和限制见 [公共仿真说明](../../../docs/integrations/SHARED_MUJOCO_2026-11-02.md)。
+
+### 公共遥操运行诊断日志（2026-11-02）
+
+公共 Runtime 每次启动默认自动保存输入、控制映射/IK 报告、命令回执、反馈与生命周期，不依赖数据采集。Web「工作站 → 检查与运行」可配置并查看/下载历史日志。Web 默认保存于 `<store>/logs/`，直接 Runtime 默认 `~/.local/state/morla/teleop/`，可用 `--log-dir` 或 `MORLA_DIAGNOSTIC_LOG_ROOT` 指定。日志异步写入，有丢弃和失败计数；反馈是缓存采样，旧独立 Profile 入口没有自动迁移。文件格式、配置、公共扩展接口和完整性边界见 [公共日志说明](../../../docs/integrations/COMMON_TELEOP_DIAGNOSTICS_2026-11-02.md)。

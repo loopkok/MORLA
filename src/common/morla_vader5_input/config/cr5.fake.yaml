@@ -20,6 +20,7 @@ bindings:
   deadman: pad.hold_to_control
   max_age_ms: 250
   parameters:
+    ik_mode: differential
     axes_map:
       x: x
       y: y

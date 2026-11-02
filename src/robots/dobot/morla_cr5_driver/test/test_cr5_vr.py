@@ -150,6 +150,9 @@ def test_quest_controller_hand_switch_and_loss_revoke_runtime(tmp_path,monkeypat
         assert send('pose')['accepted']
         worker=svc.bindings['right_vr'].registry.plugins['morla.cr5.cartesian_delta']
         wait_result(worker)
+        report=svc.state(sid)['controllers']['right_vr']['morla.cr5.cartesian_delta']
+        assert report['solver']=='cr5_urdf_pinocchio_differential'
+        assert report['age_ms'] is not None
         # Keep advancing the pose: a stream gap larger than max_age re-anchors
         # the binding by design, and a constant pose would then command no
         # delta at all.
