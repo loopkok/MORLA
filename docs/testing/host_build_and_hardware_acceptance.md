@@ -368,12 +368,12 @@ ros2 launch morla_cr5_driver cr5_vr.launch.py \
 
 ### Q02 真实Quest + 真实CR5
 
-仅C01–C04及Q01通过后，复制`quest_right.fake.yaml`为现场Assembly，复制`quest_right.real.example.yaml`为Deployment。填写关节映射/限位，binding的input_rotation、solver_tip_from_tool，以及按事实记录的calibration_verified和Deployment验证证据（回退后只作记录，不是激活门槛）。它们不会由calibrations中的名字自动计算。
+仅C01–C04及Q01通过后，复制`quest.fake.yaml`为现场Assembly，复制`quest.real.example.yaml`为Deployment。填写关节映射/限位，binding的input_rotation、solver_tip_from_tool，以及按事实记录的calibration_verified和Deployment验证证据（回退后只作记录，不是激活门槛）。它们不会由calibrations中的名字自动计算。
 
 ```bash
 ros2 launch morla_cr5_driver cr5_vr.launch.py \
-  assembly:=/absolute/path/to/quest_right.assembly.yaml \
-  deployment:=/absolute/path/to/quest_right.deployment.yaml \
+  assembly:=/absolute/path/to/quest.assembly.yaml \
+  deployment:=/absolute/path/to/quest.deployment.yaml \
   store:="$MORLA_EVIDENCE/quest-real-store"
 ```
 

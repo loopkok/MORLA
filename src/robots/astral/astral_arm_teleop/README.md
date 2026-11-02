@@ -8,16 +8,16 @@ Quest3 腕部 → 双臂 IK（DH / 几何闭式 / URDF 数值）→ `/left_arm|/
 ## 数据流（2× 单臂节点）
 
 ```text
-quest3_udp_mocap (convert_to_robot:=true)
-  Mixed → quest3_tracking_world_canonical (X left, Y back, Z up)
-  IOBT  → quest3_operator_body_canonical (操作者 hips 相对系)
+quest3_udp_mocap (默认 convert_to_robot:=false，原样输出 Unity)
+  Mixed → quest3_tracking_world_unity (X right, Y up, Z forward)
+  IOBT  → quest3_operator_body_unity (操作者 hips 相对系)
   # mocap 保证整段流 frame_id 稳定（sticky latch + hold gate）：
   # 见过 body 包即不回退世界系；启动后 head/wrist/controller 在帧确定前不发布。
   # 本节点按 "当前 - vr_init" 算增量；稳定系下增量有界、IK 可达。
   # IOBT 下增量即"手相对躯干"的位移，正是以髋为父、手身解耦的语义。
 
 astral_arm_teleop_{left|right}                 # 进程并行
-  PoseProcessor × vr_to_arm_rot
+  PoseProcessor × vr_to_arm_rot        # Unity→base 基变换，由 profile 注入（Astral = M，det −1）
       analytic_dh: yaml(I) 再左乘 R_baseᵀ → 干净 MDH 基座
       urdf_numerical / geometric: yaml(I) 原样 → SW `left_base_link` / `right_base_link`
         （Pinocchio `T_base⁻¹ T_ee`，不再用 universe/躯干）
@@ -35,7 +35,7 @@ astral_arm_teleop_{left|right}                 # 进程并行
 
 ```bash
 ros2 run morla_input quest3_udp_mocap --ros-args \
-  -p convert_to_robot:=true -p arm_side:=both -p protocol:=tcp_wired
+  -p arm_side:=both -p protocol:=tcp_wired
 ```
 
 ## 两套约定
@@ -46,8 +46,8 @@ ros2 run morla_input quest3_udp_mocap --ros-args \
 | 关节符号 | 左翻 2/3/4，右翻 2/4，使 \(\alpha=+90^\circ\) | URDF `axis xyz="0 0 1"` 原方向 |
 | 谁转换 | teleop：`R_baseᵀ` + `flip_q` | 仿真/驱动直接吃 `joint_commands` |
 
-yaml 里 `init_pose` / `vr_to_arm_rot` 都按 **旧约定 / robot_world** 写。  
-单臂节点在 `solver_type=analytic_dh` 时自动：`R = R_baseᵀ @ yaml`，并对 init / seed / 输出做 `flip_q`。
+`init_pose` 按**机器人自身约定**写。`vr_to_arm_rot` 由 profile 的 `input_rotation_to_robot_body` 经 launch 注入：Astral 的声明值是 `M = [[-1,0,0],[0,0,-1],[0,1,0]]`（Unity→旧 canonical 基），它是 det −1 的基变换而不是姿态，节点用 `validate_basis_change` 校验。  
+单臂节点在 `solver_type=analytic_dh` 时自动：`R = R_baseᵀ @ vr_to_arm_rot`，并对 init / seed / 输出做 `flip_q`。
 
 ## 双 IK（包内 `ik/`）
 
@@ -73,7 +73,7 @@ astral_arm_teleop/
 ### 人臂肘先验（`use_human_elbow`，仅 `geometric`）
 
 Quest IOBT 身体追踪经 `quest3/body_joints` 发布 `{side}-arm-upper`（肩球头）/
-`{side}-arm-lower`（肘）关节位置（`quest3_operator_body_canonical` 系，推算但可用）。节点取大臂
+`{side}-arm-lower`（肘）关节位置（`quest3_operator_body_unity` 系，推算但可用）。节点取大臂
 方向 `d = elbow − shoulder`，用与腕部增量相同的 `vr_to_arm_rot` 旋到机械臂基座系
 （纯方向，与 zero point / motion_scale / 人臂长无关），投影到机器人 S–W 轴垂面
 得到人臂角 `psi_ref`，作为软先验传入 `solve(T, psi_ref)`：
@@ -144,11 +144,11 @@ ros2 launch astral_arm_teleop astral_dual_arm_teleop.launch.py dry_run:=true
 
 ### 按求解器切换的 `vr_to_arm_rot` 与 `flip_q`
 
-推荐路径 **`astral_arm_teleop_node`**（左右 yaml 里 `vr_to_arm_rot` 仍是 **I**）：
+推荐路径 **`astral_arm_teleop_node`**（profile 注入的 `vr_to_arm_rot` = `M`；节点参数缺省仍是 I，仅供无 profile 的离线工具）：
 
 | | `analytic_dh` | `urdf_numerical` / `geometric` |
 |--|--|--|
-| 有效 `vr_to_arm_rot` | `_R_BASE_T @ yaml` | yaml（默认 I） |
+| 有效 `vr_to_arm_rot` | `_R_BASE_T @ M` | `M`（Unity→SW `*_base_link`） |
 | `flip_q` | 左 2/3/4、右 2/4 取反（自反） | 恒等 |
 | Safety 限位 | DH 限位 | URDF 限位 |
 

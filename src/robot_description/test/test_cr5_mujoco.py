@@ -18,8 +18,12 @@ spec.loader.exec_module(scene)
 
 def catalog():
     result = default_catalog()
-    for path in [ROOT.parents[1]/"src/robots/dobot/morla_cr5_driver/descriptor.json", ROOT.parents[1]/"src/robots/dobot/morla_cr5_driver/controller.json", ROOT.parents[1]/"src/common/morla_input/quest_right_descriptor.json"]:
-        result.register(json.loads(path.read_text()))
+    installed = {(d['plugin_id'], d['plugin_version']) for d in result.list()}
+    for path in [ROOT.parents[1]/"src/robots/dobot/morla_cr5_driver/descriptor.json", ROOT.parents[1]/"src/robots/dobot/morla_cr5_driver/controller.json"]:
+        descriptor = json.loads(path.read_text())
+        # A built workspace already discovers these manifests.
+        if (descriptor['plugin_id'], descriptor['plugin_version']) not in installed:
+            result.register(descriptor)
     return result
 
 def system():
@@ -75,7 +79,7 @@ def test_sim_feedback_tracks_command_and_holds_without_hardware(tmp_path):
 
 
 def test_cr5_sim_web_template_compiles():
-    path = ROOT.parents[1]/'src/robots/dobot/morla_cr5_driver/config/quest_right.sim.yaml'
+    path = ROOT.parents[1]/'src/robots/dobot/morla_cr5_driver/config/quest.sim.yaml'
     resolved = compile_system(load_document(path), registry=catalog())
     artifact = scene.build_scene(resolved)
     model = mujoco.MjModel.from_xml_string(artifact['xml'])

@@ -49,7 +49,7 @@ ros2 launch morla_vader5_input vader5_input.launch.py device:=/dev/hidrawN
 
 独立驱动发布：`/vader5/events`（String JSON），`/vader5_input/joy`、`/vader5_input/imu`、`/vader5_input/status`。状态话题**只在断开/出错时发布**，没有初始“已连接”消息；判活请用 joy/events 的时效或 epoch，不要等 status 首帧。Joy为本SDK四摇杆轴+两扳机和27按钮顺序，**不是SDL game_controller_node布局**，不能再接公共SDL /joy分支，否则丢失背键且可能重复写入。组合宿主只订阅来源事件。
 
-默认运动采样目标50 Hz，同时发送每个按钮变化；SDK用read_batch保留批次内按下/松开，不用只取最新报告的read。每批连续运动只取最后一份，按钮边沿仍逐份处理；超过128份报告拒绝并断开，不回放积压。读超时0.1 s后发布断开并退出reader，不自动重连；重新启动产生新epoch，重新启动的源由会话/控制器处理新身份；当前 Runtime 不要求释放 deadman 才激活。受管 reader 进程退出目前只会体现为 `input_processes.status=exited`：会话不会因此把输入标为断开、不会撤权，也不会自动重启；要等新 reader 上线产生新 epoch，才会出现 `group_stopped/input_disconnect`。会话启动时 DDS 中残留的上一 reader 事件会以 stale/foreign-clock 被拒绝并打印日志，属噪音而非动作。
+默认运动采样目标100 Hz（`publish_hz`，可设 1–100；受管 reader 会把它从部署参数透传，宿主订阅为 BEST_EFFORT depth=1，只取最新一帧。它只作为部署/实例参数覆盖，未写入 `configuration_schema`——schema 只作文档，编译不做过滤；写进 schema 会改变描述符摘要，使已保存 revision 在启动时报 hash changed），同时发送每个按钮变化；SDK用read_batch保留批次内按下/松开，不用只取最新报告的read。每批连续运动只取最后一份，按钮边沿仍逐份处理；超过128份报告拒绝并断开，不回放积压。读超时0.1 s后发布断开并退出reader，不自动重连；重新启动产生新epoch，重新启动的源由会话/控制器处理新身份；当前 Runtime 不要求释放 deadman 才激活。受管 reader 进程退出目前只会体现为 `input_processes.status=exited`：会话不会因此把输入标为断开、不会撤权，也不会自动重启；要等新 reader 上线产生新 epoch，才会出现 `group_stopped/input_disconnect`。会话启动时 DDS 中残留的上一 reader 事件会以 stale/foreign-clock 被拒绝并打印日志，属噪音而非动作。
 
 SDK的received_at是主机解码时间，并非硬件采样时间。事件流保存这个单调时钟，ROS排队不刷新年龄；本方案要求reader和宿主在同一主机。hidraw内未带可靠时间戳的排队时延仍需实测，不能用此软件声明硬实时。
 
@@ -112,4 +112,4 @@ EPG示例用公共scalar_map把RT 0..1映射到0.05..0 m。重构后scalar_map�
 
 ## 验证
 
-代码与软件验证记录见仓库 `docs/integrations/vader5.md`。2026-10-30 已在 Linux ROS 2 Humble + USB 有线实物（固件 7.1.5.0）上完成：按键/摇杆/扳机/IMU、fake CR5 jog、fake EPG 映射、停止与重启 reader 的断流/epoch 行为，以及真手柄驱动真实 EPG 的 4 次 0↔0.05 m 全行程。本机 ROS 侧实测约 47.9–48.8 Hz（SDK 内部约 493 Hz 批处理），SDK 上游约 500 Hz 不是端到端频率。2.4G/无线、FN/TURBO/HOME、真实 CR5 跟随、相机同步、碰撞、长稳及端到端时延仍未验收。
+代码与软件验证记录见仓库 `docs/integrations/vader5.md`。2026-10-30 已在 Linux ROS 2 Humble + USB 有线实物（固件 7.1.5.0）上完成：按键/摇杆/扳机/IMU、fake CR5 jog、fake EPG 映射、停止与重启 reader 的断流/epoch 行为，以及真手柄驱动真实 EPG 的 4 次 0↔0.05 m 全行程。本机 ROS 侧 50 Hz 设置下实测约 47.9–48.8 Hz（SDK 内部约 493 Hz 批处理），SDK 上游约 500 Hz 不是端到端频率；2026-11-01 起默认改为 100 Hz，实测约 99 Hz。2.4G/无线、FN/TURBO/HOME、真实 CR5 跟随、相机同步、碰撞、长稳及端到端时延仍未验收。

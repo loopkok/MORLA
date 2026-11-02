@@ -19,7 +19,7 @@ def main(args=None):
     class Driver(Node):
         def __init__(self):
             super().__init__('vader5_input')
-            for k,v in {'device':'','publish_hz':50.,'read_timeout_s':.1,'fake':False,
+            for k,v in {'device':'','publish_hz':100.,'read_timeout_s':.1,'fake':False,
                         'topic':'/vader5/events'}.items():self.declare_parameter(k,v)
             self.done=threading.Event();self.locks=ResourceManager();self.pad=None
             self.device=self.get_parameter('device').value;self.fake=self.get_parameter('fake').value

@@ -85,3 +85,19 @@ def test_sim_camera_renderer_failure_is_explicit_and_never_fake(tmp_path, monkey
     assert adapter.read(runtime.clock()).get('ports') == {}
     assert runtime.tick()['status'] == 'READY_DISARMED'
     runtime.stop()
+
+
+def test_sim_camera_view_actions_queue_only_for_render_thread():
+    # The HTTP thread only queues; MjvCamera is owned by the render thread.
+    import threading
+    from morla_runtime.sim_mujoco import MujocoDeviceSession
+    scene = object.__new__(MujocoDeviceSession)
+    scene.camera_ids = {'cam': 0}
+    scene.view_lock = threading.Lock()
+    scene.view_actions = {}
+    assert scene.view('cam', 'orbit', 10, -4) == {'accepted': True, 'action': 'orbit'}
+    assert scene.view('cam', 'reset') == {'accepted': True, 'action': 'reset'}
+    assert scene.view_actions == {'cam': [('orbit', 10., -4.), ('reset', 0., 0.)]}
+    with pytest.raises(ValueError): scene.view('cam', 'spin')
+    with pytest.raises(ValueError): scene.view('cam', 'orbit', 1e9, 0)
+    with pytest.raises(KeyError): scene.view('arm', 'orbit')

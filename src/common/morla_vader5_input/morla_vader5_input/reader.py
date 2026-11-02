@@ -5,7 +5,7 @@ from .mapping import BUTTONS
 
 
 class ReportStream:
-    def __init__(self,*,publish_hz=50,backend='real',clock=time.monotonic_ns):
+    def __init__(self,*,publish_hz=100,backend='real',clock=time.monotonic_ns):
         if type(publish_hz) not in (int,float) or not 1<=publish_hz<=100:raise ValueError('Invalid publish_hz')
         self.clock=clock;self.period=int(1e9/publish_hz);self.backend=backend
         self.epoch=secrets.token_hex(16);self.sequence=0;self.last_tick=None;self.previous=None

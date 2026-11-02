@@ -21,7 +21,7 @@ sim 另需 MuJoCo；real/input ROS 路径需要安装并 source ROS Humble 及�
 
 1. Web「组合」页添加组件，分别选择 backend、安装侧、输入、controller、deadman、观测/动作端口和相机键。配置机械连接、TCP 与部署资源。
 2. 编译并预检；预检只检查元数据，不自动访问设备，也不代表真实部署已验收。
-3. 保存 revision，然后启动对应已保存 hash。启动保持 disarmed。准备与激活使用显式操作；deadman 当前仅兼容输入字段，不作为统一运行门禁。
+3. 保存 revision，然后启动对应已保存 hash。启动保持 disarmed。准备与激活使用显式操作；binding 上声明的 deadman 由 `BindingEngine` 执行（未按住或端口超过 `max_age_ms` 不派发目标，松开那次清除锚点），未声明则自由跟随；runtime 的授权/租约仍不受 deadman 影响，也不会自动撤权。
 4. 手机使用会话配对 token；ROS 输入通过 connect_inputs 连接。已注册输入可由 process_mode=auto/managed 托管，external 使用已有进程。资源争用会报错；输入时效、断连与设备停止按实际源/adapter 行为判断，当前网关不承诺统一失联自动撤权。
 5. 采集冻结本会话契约。没有必须的动作或相机样本时，结束结果应为 failed，不能作为完整 episode 用于训练。
 6. 停止采集、disarm/stop。故障或急停复位不恢复旧动作，重新准备并确认反馈。

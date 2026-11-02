@@ -42,7 +42,7 @@ from astral_arm_teleop.pose_processor import PoseProcessor
 from astral_arm_teleop.safety_filter import SafetyFilter
 from astral_arm_teleop.teleop_log import TeleopJsonlLog, teleop_event_record
 from morla_core.coordinates import (
-    solver_tip_to_tcp, tcp_to_solver_tip, validate_rotation, validate_transform,
+    solver_tip_to_tcp, tcp_to_solver_tip, validate_basis_change, validate_transform,
 )
 from morla_core.ownership import PolicyLease, fresh_header
 
@@ -267,7 +267,8 @@ class AstralTeleopArmNode(Node):
         self._vr_to_arm_yaml = np.asarray(
             self.get_parameter("vr_to_arm_rot").value, dtype=float
         ).reshape(3, 3)
-        self._vr_to_arm_yaml = validate_rotation(self._vr_to_arm_yaml)
+        # Raw Unity input: this is a Unity -> solver-base basis change (det -1).
+        self._vr_to_arm_yaml = validate_basis_change(self._vr_to_arm_yaml)
         self.ik = make_single_arm_ik(
             self.side,
             st,

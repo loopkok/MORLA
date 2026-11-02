@@ -126,17 +126,77 @@ def test_hash_seed_independent():
     results=[subprocess.check_output([sys.executable,'-c',script],env={**os.environ,'PYTHONHASHSEED':str(seed)},text=True).strip() for seed in (1,92)]
     assert len(set(results))==1
 
+DECLARED_UNITY_ALIGNMENTS={
+    'astral':[[-1.0,0.0,0.0],[0.0,0.0,-1.0],[0.0,1.0,0.0]],
+    'nero':[[0.0,-3.673205e-06,-0.999999999993],[1.0,0.0,0.0],[0.0,0.999999999993,-3.673205e-06]],
+}
+
+def quest_assembly(**binding):
+    value=assembly();value['instances']['quest']={'plugin':'morla.input.quest'}
+    value['bindings']=[{'id':'arm','source':'quest.pose','target':'a.joint_target',
+                        'controller':'morla.cartesian_delta_ik',**binding}]
+    return value
+
+def _error_code(excinfo):
+    return excinfo.value.diagnostics[0]['error_code']
+
+def test_quest_bindings_must_declare_the_raw_unity_basis():
+    with pytest.raises(CompilationError) as excinfo:compile_system(quest_assembly())
+    assert _error_code(excinfo)=='INPUT_BASIS_MISSING'
+    with pytest.raises(CompilationError) as excinfo:
+        compile_system(quest_assembly(input_basis_id='quest3_canonical_legacy_v1'))
+    assert _error_code(excinfo)=='INPUT_BASIS_UNSUPPORTED'
+    # A properly rebased matrix compiles and the resolved binding keeps the
+    # basis so the runtime can reject mismatched frames.
+    resolved=compile_system(quest_assembly(input_basis_id='unity_left_handed_v1'))
+    assert resolved['bindings'][0]['input_basis_id']=='unity_left_handed_v1'
+    # The assembly metadata can declare the basis once for every Quest binding.
+    value=quest_assembly();value['metadata']={'input_basis_id':'unity_left_handed_v1'}
+    assert compile_system(value)['bindings'][0]['input_basis_id']=='unity_left_handed_v1'
+
+def test_quest_binding_rejects_proper_rotation_alignments():
+    rebased=[-1,0,0,0,0,-1,0,1,0]
+    compile_system(quest_assembly(input_basis_id='unity_left_handed_v1',
+                                  parameters={'input_rotation':rebased}))
+    for bad in ([1,0,0,0,1,0,0,0,1],  # canonical-era det +1 rotation
+                [1,0,0,0,1,0,0,0,-2]):  # non-orthonormal
+        with pytest.raises(CompilationError) as excinfo:
+            compile_system(quest_assembly(input_basis_id='unity_left_handed_v1',
+                                          parameters={'input_rotation':bad}))
+        assert _error_code(excinfo)=='INPUT_BASIS_ROTATION'
+
+def test_non_quest_bindings_need_no_basis_declaration():
+    value=assembly()
+    value['bindings']=[{'id':'jog','source':'pad.axes','target':'a.joint_target',
+                        'controller':'morla.joint_jog'}]
+    assert compile_system(value)['bindings'][0].get('input_basis_id') is None
+
 def test_legacy_golden_hashes_unchanged():
     import hashlib
+    import numpy as np
     rows=json.loads((ROOT/'test/fixtures/legacy_profiles/index.json').read_text())
     assert len(rows)==12
     for row in rows:
         path=ROOT/row['source_path']
         assert hashlib.sha256(path.read_bytes()).hexdigest()==row['source_sha256']
-        current=validate_profile(load_document(path)).frozen_schema
+        profile=validate_profile(load_document(path))
+        current=profile.frozen_schema
+        contract=profile.resolved()['coordinate_contract']
         golden=json.loads((ROOT/'test/fixtures/legacy_profiles'/(row['profile_id']+'.json')).read_text())
         assert current.schema_hash==row['schema_hash']==golden['schema_hash']
         assert current.layout_hash==row['layout_hash']==golden['layout_hash']
+        # Pin the migration semantics too, so the golden cannot degrade into a
+        # snapshot of whatever the generator currently emits.
+        basis='unity_left_handed_v1'
+        assert current.metadata['coordinate_contract']['input_basis_id']==basis
+        assert contract['input_basis_id']==row['input_basis_id']==golden['input_basis_id']==basis
+        declared=np.asarray(golden['input_rotation_to_robot_body'],dtype=float).reshape(3,3)
+        np.testing.assert_allclose(row['input_rotation_to_robot_body'],declared.reshape(-1))
+        np.testing.assert_allclose(declared,DECLARED_UNITY_ALIGNMENTS[profile.robot_id],atol=5e-12)
+        assert np.linalg.det(declared)==pytest.approx(-1.0,abs=1e-7)
+        np.testing.assert_allclose(contract['input_rotation_to_robot_body'],declared.reshape(-1))
+        assert contract['kinematics_hash']==row['kinematics_hash']==golden['kinematics_hash']
+        assert row['migrated_from']==golden['migrated_from']=='quest3_canonical_legacy_v1'
 
 def test_sensor_raw_only_and_calibration_content_identity():
     value=assembly();value['instances']['touch']={'plugin':'morla.fake.sensor'}

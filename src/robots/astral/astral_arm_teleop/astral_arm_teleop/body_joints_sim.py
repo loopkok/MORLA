@@ -2,7 +2,9 @@
 """Synthetic human arm publisher — Quest-free test of the elbow prior.
 
 Publishes a minimal fake IOBT skeleton on the same topics the real
-``quest3_udp_mocap`` uses (frame ``robot_body``, no Unity conversion needed):
+``quest3_udp_mocap`` uses. Internal geometry is computed in robot axes and
+converted to raw Unity on the wire (frame ``quest3_operator_body_unity``),
+matching the receiver's contract:
 
   quest3/body_joint_names   String (latched JSON) — hips/chest/{side}-arm-*
   quest3/body_joints        PoseArray — shoulder/elbow positions
@@ -38,6 +40,8 @@ from rclpy.qos import (
 )
 from scipy.spatial.transform import Rotation
 from std_msgs.msg import String
+
+from morla_core.coordinates import UNITY_TO_QUEST3_CANONICAL
 
 
 class BodyJointsSim(Node):
@@ -218,23 +222,25 @@ class BodyJointsSim(Node):
             else self._fixed_elbow
         )
 
+        # Internal geometry is in robot axes; the wire carries raw Unity.
+        M = UNITY_TO_QUEST3_CANONICAL
         body = PoseArray()
         body.header.stamp = stamp
-        body.header.frame_id = "quest3_operator_body_canonical"
+        body.header.frame_id = "quest3_operator_body_unity"
         chest = self.Sh * 0.5  # plausible midpoint; only arm joints are used
         body.poses = [
-            self._pose(np.zeros(3)),  # hips = frame root
-            self._pose(chest),
-            self._pose(self.Sh),  # {side}-arm-upper == shoulder ball
-            self._pose(E),  # {side}-arm-lower == elbow
+            self._pose(M @ np.zeros(3)),  # hips = frame root
+            self._pose(M @ chest),
+            self._pose(M @ self.Sh),  # {side}-arm-upper == shoulder ball
+            self._pose(M @ E),  # {side}-arm-lower == elbow
         ]
         self.body_pub.publish(body)
 
         wrist = PoseStamped()
         wrist.header.stamp = stamp
-        wrist.header.frame_id = "quest3_operator_body_canonical"
-        q = Rotation.from_euler("x", roll).as_quat()
-        wrist.pose = self._pose(self.Wh, tuple(float(v) for v in q))
+        wrist.header.frame_id = "quest3_operator_body_unity"
+        q = Rotation.from_matrix(M @ Rotation.from_euler("x", roll).as_matrix() @ M.T).as_quat()
+        wrist.pose = self._pose(M @ self.Wh, tuple(float(v) for v in q))
         self.wrist_pub.publish(wrist)
 
 

@@ -1,9 +1,10 @@
 """XHand-only Quest landmark conversion kept out of the shared input layer.
 
-The Quest receiver publishes wrist-local points after the Unity-to-robot
-rotation ``M``. The legacy XNero receiver instead flipped Unity X with ``F``
-before MANO conversion. ``legacy_xhand_pinky`` reconstructs that exact input
-and preserves the original numeric behavior for migrated profiles.
+The Quest receiver now publishes raw Unity wrist-local points, so the XHand
+convention is expressed directly on Unity input: the legacy XNero path flipped
+Unity X with ``F = diag([-1, 1, 1])``. That is still the default here
+(``F @ u == F @ Mᵀ @ (M @ u)``), so ``legacy_xhand_pinky`` keeps its original
+numbers; a different Unity-to-hand basis can be passed in ``input_basis``.
 """
 
 from __future__ import annotations
@@ -32,6 +33,17 @@ def _landmark_array(landmarks: np.ndarray) -> np.ndarray:
     if not np.isfinite(points).all():
         raise ValueError("landmarks must contain only finite values")
     return points.copy()
+
+
+def _basis_matrix(value, label: str) -> np.ndarray:
+    matrix = np.asarray(value, dtype=np.float64)
+    if matrix.shape == (9,):
+        matrix = matrix.reshape(3, 3)
+    if matrix.shape != (3, 3) or not np.isfinite(matrix).all():
+        raise ValueError(f"{label} must be a finite 3x3 matrix")
+    if not np.allclose(matrix.T @ matrix, np.eye(3), atol=1e-6):
+        raise ValueError(f"{label} must be orthonormal")
+    return matrix
 
 
 def unity_points_from_robot_raw(landmarks: np.ndarray) -> np.ndarray:
@@ -80,12 +92,14 @@ def preprocess_xhand_landmarks(
     robot_raw_landmarks: np.ndarray,
     side: str,
     mode: str = "legacy_xhand_pinky",
+    input_basis=None,
 ) -> np.ndarray:
-    """Convert unified robot-axis raw landmarks to the legacy XHand MANO input.
+    """Convert raw Unity landmarks to the legacy XHand MANO input.
 
     ``mode`` is one of ``legacy_xhand`` (MANO only) or
     ``legacy_xhand_pinky`` (MANO plus the sequential legacy pinky stretch).
-    Input is never modified in place.
+    ``input_basis`` is this hand's Unity -> hand-frame matrix; ``None`` keeps
+    the historical XNero X flip. Input is never modified in place.
     """
     side = str(side).strip().lower()
     if side not in ("left", "right"):
@@ -94,9 +108,10 @@ def preprocess_xhand_landmarks(
         raise ValueError("mode must be 'legacy_xhand' or 'legacy_xhand_pinky'")
 
     raw = _landmark_array(robot_raw_landmarks)
-    # Column-vector equation from the migration specification:
-    # old = F @ M.T @ new_raw. Quest points are wrist-local.
-    legacy_axes = (LEGACY_X_FLIP @ UNITY_TO_ROBOT.T @ raw.T).T
+    basis = LEGACY_X_FLIP if input_basis is None else _basis_matrix(input_basis, "input_basis")
+    # Quest points are wrist-local and raw Unity, so the legacy XNero axes are
+    # simply the hand's own basis applied to them.
+    legacy_axes = (basis @ raw.T).T
     operator2mano = OPERATOR2MANO_RIGHT if side == "right" else OPERATOR2MANO_LEFT
     centered = legacy_axes * 1.05
     centered -= centered[0:1, :]

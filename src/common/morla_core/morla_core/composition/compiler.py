@@ -1,9 +1,13 @@
 """Pure, deterministic assembly compiler. Does not import or contact devices."""
 from copy import deepcopy
 import re
+
+import numpy as np
+
 from .diagnostics import CompilationError
 from .hashing import digest
 from .parser import fields, finite_json
+from morla_core.coordinates import UNITY_LEFT_HANDED_BASIS_ID, validate_basis_change
 from morla_core.plugins.registry import default_catalog
 from morla_core.contracts.features import SchemaV3, ActionBlockV3
 from morla_core.schema import StreamSpec, StateBlockSpec
@@ -135,11 +139,39 @@ def compile_system(assembly, deployment=None, registry=None):
     bindings=assembly.get('bindings',[]); ids=set(); target_writers=set()
     if not isinstance(bindings,list): raise CompilationError('bindings must be list')
     for binding in bindings:
-        fields(binding,{'id','source','target','controller','parameters','deadman','scope','mode','max_age_ms'},('id','source','target','controller'))
+        fields(binding,{'id','source','target','controller','parameters','deadman','scope','mode','max_age_ms','input_basis_id'},('id','source','target','controller'))
         bid=_id(binding['id'],'/bindings/id')
         if bid in ids: raise CompilationError('duplicate binding id',bid)
         ids.add(bid)
         source,_,sport=_endpoint(binding['source'],instances,'output'); target,_,tport=_endpoint(binding['target'],instances,'input')
+        if source['plugin_id']=='morla.input.quest' and sport['semantic'] in {'pose6d','hand_landmarks'}:
+            # The receiver emits raw Unity; the robot owns the rebase. Without a
+            # declared basis a saved canonical revision would run with reflected
+            # axes, so both missing and stale declarations are refused here.
+            metadata=assembly.get('metadata')
+            basis=binding.get('input_basis_id',
+                              metadata.get('input_basis_id') if isinstance(metadata,dict) else None)
+            if basis is None:
+                raise CompilationError('Quest 3D bindings must declare input_basis_id',bid,
+                                       code='INPUT_BASIS_MISSING')
+            if basis!=UNITY_LEFT_HANDED_BASIS_ID:
+                raise CompilationError('receiver emits raw Unity; declare input_basis_id='
+                                       'unity_left_handed_v1 and rebase with A_new = A_old @ M',
+                                       bid,code='INPUT_BASIS_UNSUPPORTED')
+            parameters=binding.get('parameters',{})
+            if isinstance(parameters,dict) and 'input_rotation' in parameters:
+                try:
+                    matrix=validate_basis_change(np.asarray(
+                        parameters['input_rotation'],dtype=float).reshape(3,3))
+                except ValueError as exc:
+                    raise CompilationError('Quest input_rotation must be an orthonormal '
+                                           'basis change: '+str(exc),bid,
+                                           code='INPUT_BASIS_ROTATION') from exc
+                if not np.isclose(np.linalg.det(matrix),-1.0,atol=1e-7,rtol=0.0):
+                    raise CompilationError('Quest input_rotation must have determinant -1 '
+                                           'in the raw Unity basis',bid,
+                                           code='INPUT_BASIS_ROTATION')
+            binding['input_basis_id']=basis
         if target['kind']!='actuator': raise CompilationError('binding target must be actuator',bid)
         controller=binding['controller']; accepted=_CONTROLLERS.get(controller)
         if accepted is None:

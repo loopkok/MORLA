@@ -3,13 +3,14 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 import json
+import math
 import os
 from pathlib import Path
 import secrets
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 
 from .composable_service import ComposableService, ServiceError
 
@@ -38,7 +39,7 @@ def router(service):
             share = package_share('morla_cr5_driver')
         except ResourceLookupError:
             share = morla_source_root() / 'src/robots/dobot/morla_cr5_driver'
-        path = share / 'config/quest_right.sim.yaml'
+        path = share / 'config/quest.sim.yaml'
         return call(load_document, path)
 
     @api.get('/sessions/{session_id}/cameras/{camera_id}/frame')
@@ -53,6 +54,63 @@ def router(service):
         if not port.get('valid') or not port.get('data') or port.get('encoding') != 'jpeg':
             raise HTTPException(503, 'camera frame unavailable')
         return Response(port['data'], media_type='image/jpeg', headers={'Cache-Control': 'no-store'})
+
+    @api.post('/sessions/{session_id}/cameras/{camera_id}/view')
+    def camera_view(session_id: str, camera_id: str, raw: dict):
+        # Free-camera orbit/pan/zoom for the MuJoCo preview, driven by pointer
+        # drags in the page. Only simulated cameras have a viewpoint to move;
+        # real camera adapters have no such method and answer 400.
+        session = call(service.require, session_id)
+        adapter = session.adapters.get(camera_id)
+        instance = session.instances.get(camera_id, {})
+        if adapter is None or not instance.get('plugin_id', '').startswith('morla.camera'):
+            raise HTTPException(404, 'camera not found')
+        if not hasattr(adapter, 'view'):
+            raise HTTPException(400, 'camera view is not adjustable')
+        action = raw.get('action')
+        if action not in ('orbit', 'pan', 'zoom', 'reset'):
+            raise HTTPException(422, 'invalid camera view action')
+        for name in ('dx', 'dy'):
+            value = raw.get(name, 0.)
+            if type(value) not in (int, float) or not math.isfinite(value) or abs(value) > 5000:
+                raise HTTPException(422, 'invalid camera view delta')
+        return call(adapter.view, action, float(raw.get('dx', 0.)), float(raw.get('dy', 0.)))
+
+    @api.get('/sessions/{session_id}/cameras/{camera_id}/stream')
+    def camera_stream(session_id: str, camera_id: str):
+        # Polling one JPEG per request capped the preview at the page's request
+        # interval (~10 fps), which dominated the perceived teleop lag. Push the
+        # latest cached frame instead: one connection, render-rate frames.
+        session = call(service.require, session_id)
+        adapter = session.adapters.get(camera_id)
+        instance = session.instances.get(camera_id, {})
+        if adapter is None or not instance.get('plugin_id', '').startswith('morla.camera'):
+            raise HTTPException(404, 'camera not found')
+
+        async def frames():
+            last = None
+            try:
+                while service.session is session:
+                    try:
+                        sample = adapter.read(session.clock())
+                    except Exception:
+                        return  # adapter closed with the session
+                    port = sample.get('ports', {}).get('rgb', {})
+                    data = port.get('data')
+                    key = (port.get('source_ns'), port.get('sample_ns'))
+                    if port.get('valid') and data and port.get('encoding') == 'jpeg' and key != last:
+                        last = key
+                        yield (b'--frame\r\nContent-Type: image/jpeg\r\nContent-Length: '
+                               + str(len(data)).encode() + b'\r\n\r\n' + data + b'\r\n')
+                    # Poll at 60 Hz: a 1/30 s sleep capped the preview at ~30 fps
+                    # even when the camera renders faster, which dominated the
+                    # perceived teleop lag.
+                    await asyncio.sleep(1 / 60)
+            except (asyncio.CancelledError, GeneratorExit):
+                return
+
+        return StreamingResponse(frames(), media_type='multipart/x-mixed-replace; boundary=frame',
+                                 headers={'Cache-Control': 'no-store'})
 
     @api.get("/assemblies")
     def assemblies(): return call(service.store.list)

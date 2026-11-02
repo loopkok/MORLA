@@ -57,6 +57,13 @@ class FakeAdapter:
         self.active = False
         return True
 
+    def release(self):
+        # Soft disarm for an authority release: output stops, the device keeps
+        # its power state and last target, so a following activate is a no-op.
+        self.calls.append(('release',))
+        self.active = False
+        return True
+
     def operate(self, operation):
         self.calls.append(('operation', operation))
         if operation == 'disable':

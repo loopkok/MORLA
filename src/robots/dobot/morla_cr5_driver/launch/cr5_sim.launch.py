@@ -9,7 +9,7 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('assembly',default_value=PathJoinSubstitution([
-            FindPackageShare('morla_cr5_driver'),'config','quest_right.sim.yaml'])),
+            FindPackageShare('morla_cr5_driver'),'config','quest.sim.yaml'])),
         DeclareLaunchArgument('deployment',default_value=''),
         DeclareLaunchArgument('input_backend',default_value='fake'),
         DeclareLaunchArgument('port',default_value='8080'),

@@ -116,6 +116,33 @@ def test_cached_scalar_is_not_refiltered_by_fresh_unrelated_pose():
     assert len(engine.targets(repeated))==1
 
 
+def test_frames_in_a_different_basis_are_dropped_with_a_throttled_warning(caplog):
+    rt=runtime('generic.gripper','m',[.05,0])
+    rt.resolved['bindings'][0]['input_basis_id']='unity_left_handed_v1'
+    ticks=[100]
+    rt.clock=lambda:ticks[0]
+    engine=BindingEngine(rt)
+    sequence=[0]
+    def frame(basis):
+        sequence[0]+=1
+        return InputFrame('input','epoch',sequence[0],ticks[0],'input',{'scalar':.5},
+                          input_basis_id=basis)
+    with caplog.at_level('WARNING',logger='morla_teleop.engine'):
+        # A receiver still configured for canonical is refused, not reinterpreted.
+        assert engine.targets(frame('quest3_canonical_legacy_v1'))==[]
+        assert engine.targets(frame('quest3_canonical_legacy_v1'))==[]
+        assert len(caplog.records)==1
+        ticks[0]+=200_000_000
+        assert engine.targets(frame('quest3_canonical_legacy_v1'))==[]
+        assert len(caplog.records)==1
+        ticks[0]+=1_000_000_000
+        assert engine.targets(frame('quest3_canonical_legacy_v1'))==[]
+        assert len(caplog.records)==2
+        # Matching frames and basis-less synthetic frames are trusted.
+        assert engine.targets(frame('unity_left_handed_v1'))[0]['values']==pytest.approx([.025])
+        assert engine.targets(frame(None))[0]['values']==pytest.approx([.025])
+
+
 def test_headless_close_still_releases_controllers_after_input_close_failure():
     from morla_teleop.session import ControlHost
     rt=runtime('generic.gripper','m',[.05,0]);host=ControlHost(rt)
@@ -145,6 +172,32 @@ def test_cartesian_controller_uses_installed_kinematics_without_brand_branch(mon
     monkeypatch.setattr('importlib.metadata.entry_points',lambda **kwargs:[provider])
     solver=solver_for({'plugin_id':'unknown.robot','parameters':{}})
     assert solver.solve(np.eye(4))==[0.,0.,0.]
+
+
+def test_deadman_gates_targets_until_held_and_reanchors_on_release():
+    rt=runtime('generic.gripper','ratio',[0,1])
+    rt.resolved['bindings'][0]['deadman']='input.hold'
+    clock=[100];rt.clock=lambda:clock[0]
+    engine=BindingEngine(rt)
+    def frame(seq, ports, stamp=100):
+        return InputFrame('input','epoch',seq-1,stamp,'input',ports,
+            port_metadata={key:{'received_ns':stamp} for key in ports})
+    # Unheld and missing samples both drive nothing, and neither creates a controller.
+    assert engine.targets(frame(1,{'scalar':.5}))==[]
+    assert engine.targets(frame(2,{'scalar':.5,'hold':False}))==[]
+    assert engine.bindings=={}
+    assert engine.targets(frame(3,{'scalar':.5,'hold':True}))[0]['values']==pytest.approx([.5])
+    controller=engine.bindings['control']
+    # Release holds the arm and drops the anchor, so a hand that drifted while
+    # the grip was open cannot jump the arm when it is pressed again.
+    assert engine.targets(frame(4,{'scalar':.9,'hold':False}))==[]
+    assert controller.identity is None and engine.deadman['control'] is False
+    assert engine.targets(frame(5,{'scalar':.9,'hold':True}))[0]['values']==pytest.approx([.9])
+    # A stale grip sample is a dropped grip, not a held one.
+    clock[0]=100+400_000_000
+    assert engine.targets(frame(6,{'scalar':.9,'hold':True}))==[]
+    engine.close()
+    assert engine.deadman=={}
 
 
 def test_partial_input_frame_does_not_block_other_bound_devices():

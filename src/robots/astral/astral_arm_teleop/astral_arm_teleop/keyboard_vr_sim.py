@@ -4,8 +4,10 @@
 Publishes simulated Quest3 wrist PoseStamped messages so you can verify
 VR-to-arm coordinate mapping and IK correctness without a real Quest3.
 
-Coordinate system (robot_world, convert_to_robot:=true):
-  X left, Y back, Z up — same as Quest3 after axis remap.
+Coordinate system: keys move the hand in robot axes (X left, Y back, Z up)
+so the documented directions stay intuitive. What is published is raw Unity
+(X right, Y up, Z forward), matching the real receiver's contract; the teleop
+node maps it back with the profile's own Unity -> solver-base matrix.
 
 Keys (left hand unless shifted):
   W/S    — hand forward / backward   (-Y / +Y)
@@ -32,6 +34,8 @@ import rclpy
 from geometry_msgs.msg import PoseStamped, Point, Quaternion
 from rclpy.node import Node
 from scipy.spatial.transform import Rotation
+
+from morla_core.coordinates import UNITY_TO_QUEST3_CANONICAL
 
 
 STEP_POS = 0.02       # meters per key press
@@ -174,13 +178,19 @@ class KeyboardVRSim(Node):
     def _build_msg(self, side: str) -> PoseStamped:
         msg = PoseStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = "quest3_tracking_world_canonical"
+        msg.header.frame_id = "quest3_tracking_world_unity"
 
         p = self.pos[side]
         r = self.rot[side]
 
-        msg.pose.position = Point(x=float(p[0]), y=float(p[1]), z=float(p[2]))
-        quat = r.as_quat()
+        # Internal state is in robot axes; publish the raw Unity the receiver
+        # emits so this simulator agrees with production. M is an involution,
+        # so p_u = M p_c and R_u = M R_c M.
+        M = UNITY_TO_QUEST3_CANONICAL
+        p_u = M @ p
+        q_u = Rotation.from_matrix(M @ r.as_matrix() @ M.T)
+        msg.pose.position = Point(x=float(p_u[0]), y=float(p_u[1]), z=float(p_u[2]))
+        quat = q_u.as_quat()
         msg.pose.orientation = Quaternion(
             x=float(quat[0]), y=float(quat[1]),
             z=float(quat[2]), w=float(quat[3]),

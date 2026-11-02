@@ -1,0 +1,13 @@
+# Deployment override: real Quest input, CR5 stays in its assembly backend (sim/fake).
+# Copy next to your evidence, replace device_id with the headset asset id, then:
+#   ros2 launch morla_cr5_driver cr5_sim.launch.py deployment:=/abs/path/quest-input.real.yaml
+# The real backend requires an explicit device_id; process_mode managed lets the
+# session start the guarded receiver with publish_teleop_events:=true itself.
+deployment_version: 1
+deployment_id: cr5_quest_input_real
+instances:
+  quest:
+    backend: real
+    device_id: REPLACE_QUEST_ASSET
+    parameters:
+      process_mode: managed

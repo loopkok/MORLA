@@ -75,8 +75,14 @@ def default_catalog():
             descriptor['configuration_schema']['properties'].update({'image_topic':{'type':'string'},'compressed':{'type':'boolean'},'device_path':{'type':'string'},'width':{'type':'integer','minimum':1},'height':{'type':'integer','minimum':1},'fps':{'type':'number','exclusiveMinimum':0},'camera_backend':{'type':'string','enum':['ros_image','uvc']}})
             descriptor['backend_variants']['real']={'available':True,'requires':['rclpy or cv2','camera driver','stable device fingerprint'],'validation_level':'requires_camera_driver'}
         if descriptor['plugin_id']=='morla.input.quest':
+            # One instance covers one or both hands; the event stream carries
+            # the deadman (grip in controller mode, pinch in hand mode).
+            descriptor['configuration_schema']['properties']['side']={'type':'string','enum':['left','right','both']}
+            descriptor['configuration_schema']['properties']['pinch_range_m']={'type':'array','items':{'type':'number'},'minItems':2,'maxItems':2}
+            descriptor['backend_variants']['real']={'available':True,'requires':['rclpy','guarded Quest receiver with publish_teleop_events'],'validation_level':'requires_physical_acceptance'}
             for side in ('left','right'):
                 descriptor['ports'][side+'_scalar']=_port('output','scalar')
+                descriptor['ports'][side+'_hold']=_port('output','scalar',dtype='bool')
                 descriptor['ports'][side+'_axes']=_port('output','axes_buttons',2,axis_names=['x','y'])
         if descriptor['kind']=='input':
             descriptor['configuration_schema']['properties']['process_mode']={'type':'string','enum':['auto','managed','external']}

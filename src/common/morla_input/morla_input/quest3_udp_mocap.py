@@ -164,6 +164,13 @@ def pose_in_parent_frame(
 # Compatibility alias; this is a handedness-changing basis conversion, not TF.
 UNITY_TO_ROBOT = UNITY_TO_QUEST3_CANONICAL
 
+# Frame ids name the basis they contain: the default raw-Unity output cannot be
+# confused with the legacy canonical frames.
+WORLD_FRAME_ID_UNITY = "quest3_tracking_world_unity"
+WORLD_FRAME_ID_CANONICAL = "quest3_tracking_world_canonical"
+BODY_FRAME_ID_UNITY = "quest3_operator_body_unity"
+BODY_FRAME_ID_CANONICAL = "quest3_operator_body_canonical"
+
 
 def _quat_to_matrix(q: np.ndarray) -> np.ndarray:
     """Convert unit quaternion ``[x, y, z, w]`` to a 3x3 rotation matrix."""
@@ -248,10 +255,17 @@ class Quest3UDPMocap(Node):
         # Unified input is wrist-local raw in robot axes. Robot-specific MANO
         # and finger-length adaptation belongs in that robot's retargeter.
         self.declare_parameter("landmark_preprocess", "raw")
-        # Unity LH → robot (X left, Y back, Z up). If false: keep Unity axes
-        # (landmarks only apply legacy X flip).
-        self.declare_parameter("convert_to_robot", True)
-        self.declare_parameter("coordinate_basis_id", "quest3_canonical_legacy_v1")
+        # The receiver republishes what Quest sends: raw Unity (X right, Y up,
+        # Z forward), for poses and for landmarks alike. Mapping into a robot's
+        # own axes belongs to that robot (binding input_rotation / profile
+        # input_rotation_to_robot_body), never to the input layer.
+        #
+        # convert_to_robot stays as a debug/offline escape hatch: true restores
+        # the historical canonical republish (X left, Y back, Z up). Production
+        # composable bindings declare unity_left_handed_v1 and will drop
+        # canonical frames at runtime, so the two are not meant to be mixed.
+        self.declare_parameter("convert_to_robot", False)
+        self.declare_parameter("coordinate_basis_id", "unity_left_handed_v1")
         self.declare_parameter("coordinate_contract_version", 0)
         self.declare_parameter("kinematics_hash", "")
         # Mixed/IOBT: Touch 6DoF also published on quest3/{side}_wrist_pose so
@@ -312,11 +326,16 @@ class Quest3UDPMocap(Node):
         self.controller_as_wrist = bool(self.get_parameter("controller_as_wrist").value)
         self._teleop_events_enabled = bool(self.get_parameter("publish_teleop_events").value)
         self._teleop_epoch = uuid.uuid4().hex
-        self._teleop_sequence = 0
+        # Per-side streams: the input instance selects a hand, it never has to
+        # pick a different plugin.
+        self._teleop_sequence = {"left": 0, "right": 0}
         event_qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                                history=HistoryPolicy.KEEP_LAST, depth=16)
-        self._teleop_events_pub = self.create_publisher(
-            String, 'quest3/right_teleop_events', event_qos)
+        self._teleop_events_pub = {
+            side: self.create_publisher(
+                String, f"quest3/{side}_teleop_events", event_qos)
+            for side in ("left", "right")
+        }
         self.publish_landmarks_left = bool(
             self.get_parameter("publish_landmarks_left").value
         )
@@ -355,12 +374,12 @@ class Quest3UDPMocap(Node):
         # When IOBT is on, Quest already expressed head/hand/controller in the
         # hips frame — those use quest3_operator_body_* instead.
         self._world_frame_id = (
-            "quest3_tracking_world_canonical" if self.convert_to_robot
-            else "quest3_tracking_world_unity"
+            WORLD_FRAME_ID_CANONICAL if self.convert_to_robot
+            else WORLD_FRAME_ID_UNITY
         )
         self._body_frame_id = (
-            "quest3_operator_body_canonical" if self.convert_to_robot
-            else "quest3_operator_body_unity"
+            BODY_FRAME_ID_CANONICAL if self.convert_to_robot
+            else BODY_FRAME_ID_UNITY
         )
         self._iobt_lock = threading.Lock()
         self._last_iobt_time = 0.0
@@ -750,14 +769,18 @@ class Quest3UDPMocap(Node):
         self.mix_pub.publish(msg)
 
     def _publish_teleop_event(self, side, kind, source, frame_id, values, arrival_time):
-        if side != 'right' or not getattr(self, '_teleop_events_enabled', False):
+        if not getattr(self, '_teleop_events_enabled', False) or side not in self._teleop_sequence:
             return
-        self._teleop_sequence += 1
-        row = {'version': 1, 'side': side, 'kind': kind, 'source': source,
-               'epoch': self._teleop_epoch, 'sequence': self._teleop_sequence,
+        self._teleop_sequence[side] += 1
+        # v2 adds the required `basis`: a consumer compares it with the basis
+        # its binding was compiled for instead of assuming a frame. v1 rows
+        # carried no basis and are rejected rather than silently reinterpreted.
+        row = {'version': 2, 'basis': self.coordinate_basis_id,
+               'side': side, 'kind': kind, 'source': source,
+               'epoch': self._teleop_epoch, 'sequence': self._teleop_sequence[side],
                'sent_ns': int((arrival_time or time.time()) * 1e9),
                'frame_id': frame_id, 'values': values}
-        self._teleop_events_pub.publish(String(data=json.dumps(row, allow_nan=False)))
+        self._teleop_events_pub[side].publish(String(data=json.dumps(row, allow_nan=False)))
 
     def _note_wrist_gap(self, side: str, arrival_time: float) -> None:
         if not self._print_latency or arrival_time <= 0.0:
@@ -1011,16 +1034,12 @@ class Quest3UDPMocap(Node):
 
             if len(values) == 63:
                 landmarks = np.array(values).reshape(21, 3)
+                # Raw Unity on the wire. In the default (Unity) mode the points
+                # are republished untouched, so a retargeter receives exactly
+                # what Quest sent and declares its own Unity -> hand basis.
                 if self.convert_to_robot:
-                    # Full Unity→robot axis map (X left, Y back, Z up).
-                    mapped = unity_landmarks_to_robot(landmarks)
-                else:
-                    # Legacy: X-only flip, keep Unity Y/Z.
-                    mapped = np.zeros_like(landmarks)
-                    mapped[:, 0] = -landmarks[:, 0]
-                    mapped[:, 1] = landmarks[:, 1]
-                    mapped[:, 2] = landmarks[:, 2]
-                processed_landmarks = self.process_landmarks(mapped, side)
+                    landmarks = unity_landmarks_to_robot(landmarks)
+                processed_landmarks = self.process_landmarks(landmarks, side)
                 self.publish_mocap_data(processed_landmarks, side, arrival_time)
 
     def publish_hand_markers(self, hand_data, hand):

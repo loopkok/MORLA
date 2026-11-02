@@ -392,21 +392,21 @@
       }
     },
     "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
-    "input_basis_id": "quest3_canonical_legacy_v1",
+    "input_basis_id": "unity_left_handed_v1",
     "input_frame_policy": "incremental_operator_aligned",
-    "input_rotation_source": "algebraically_derived_from_legacy_arm_rotations_and_urdf_mounts",
+    "input_rotation_source": "legacy_arm_rotations_rebased_to_unity",
     "input_rotation_to_robot_body": [
       0.0,
-      0.999999999993,
       -3.673205e-06,
-      -1.0,
+      -0.999999999993,
+      1.0,
       0.0,
       0.0,
       0.0,
-      3.673205e-06,
-      0.999999999993
+      0.999999999993,
+      -3.673205e-06
     ],
-    "kinematics_hash": "8075939dfb12af5870b4153344f58bd4efca5e86ec57c3981d757afb64fef55f",
+    "kinematics_hash": "2f8d4464f58ad7c4f0387310fa0d8eec1012bcb3a1a129ecd74d9517ad6e8511",
     "robot_body_frame": "t_bracket_base",
     "robot_id": "nero",
     "version": 1
@@ -575,7 +575,7 @@
     ],
     "dataset_fps": 30,
     "hold_frames": 10,
-    "kinematics_hash": "8075939dfb12af5870b4153344f58bd4efca5e86ec57c3981d757afb64fef55f",
+    "kinematics_hash": "2f8d4464f58ad7c4f0387310fa0d8eec1012bcb3a1a129ecd74d9517ad6e8511",
     "layout_hash": "e1307f3dbb4a33e24ea67027fec730859d9effadd32b1d7e6dbd8a1a721d267b",
     "max_gap_ms": 100.0,
     "metadata": {
@@ -598,32 +598,32 @@
           }
         },
         "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
-        "input_basis_id": "quest3_canonical_legacy_v1",
+        "input_basis_id": "unity_left_handed_v1",
         "input_frame_policy": "incremental_operator_aligned",
-        "input_rotation_source": "algebraically_derived_from_legacy_arm_rotations_and_urdf_mounts",
+        "input_rotation_source": "legacy_arm_rotations_rebased_to_unity",
         "input_rotation_to_robot_body": [
           0.0,
-          0.999999999993,
           -3.673205e-06,
-          -1.0,
+          -0.999999999993,
+          1.0,
           0.0,
           0.0,
           0.0,
-          3.673205e-06,
-          0.999999999993
+          0.999999999993,
+          -3.673205e-06
         ],
-        "kinematics_hash": "8075939dfb12af5870b4153344f58bd4efca5e86ec57c3981d757afb64fef55f",
+        "kinematics_hash": "2f8d4464f58ad7c4f0387310fa0d8eec1012bcb3a1a129ecd74d9517ad6e8511",
         "robot_body_frame": "t_bracket_base",
         "robot_id": "nero",
         "version": 1
       },
       "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
-      "kinematics_hash": "8075939dfb12af5870b4153344f58bd4efca5e86ec57c3981d757afb64fef55f"
+      "kinematics_hash": "2f8d4464f58ad7c4f0387310fa0d8eec1012bcb3a1a129ecd74d9517ad6e8511"
     },
     "profile_id": "nero_right_xhand",
     "profile_version": 1,
     "robot_id": "nero",
-    "schema_hash": "3c837ea5ecb11be689b1667e6a36ff5d15ae7cde8d306f40d57f40142220be19",
+    "schema_hash": "22ebd6b6d91e751d235fd2f2678f27eb55c527c5207b5dd10a918e2ffacf0ada",
     "schema_version": 2,
     "sensor_specs": [
       {
@@ -1009,13 +1009,26 @@
     "source": "quest",
     "strict_packets": true
   },
-  "kinematics_hash": "8075939dfb12af5870b4153344f58bd4efca5e86ec57c3981d757afb64fef55f",
+  "input_basis_id": "unity_left_handed_v1",
+  "input_rotation_to_robot_body": [
+    0.0,
+    -3.673205e-06,
+    -0.999999999993,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.999999999993,
+    -3.673205e-06
+  ],
+  "kinematics_hash": "2f8d4464f58ad7c4f0387310fa0d8eec1012bcb3a1a129ecd74d9517ad6e8511",
   "layout_hash": "e1307f3dbb4a33e24ea67027fec730859d9effadd32b1d7e6dbd8a1a721d267b",
+  "migrated_from": "quest3_canonical_legacy_v1",
   "mode_default": "sim",
   "profile_id": "nero_right_xhand",
   "profile_version": 1,
   "robot_id": "nero",
-  "schema_hash": "3c837ea5ecb11be689b1667e6a36ff5d15ae7cde8d306f40d57f40142220be19",
+  "schema_hash": "22ebd6b6d91e751d235fd2f2678f27eb55c527c5207b5dd10a918e2ffacf0ada",
   "sensors": [
     {
       "action_observation_only": true,

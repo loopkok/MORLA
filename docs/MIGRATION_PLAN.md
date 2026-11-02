@@ -344,7 +344,7 @@ pause在POLICY/PLAYBACK时转发policy pause并确认，在manual时disarm；res
 
 保留 Astral 接收器的 UDP/TCP_wired/TCP_wireless、多连接、`PacketGuard`、IOBT 启动 hold/frame latch、controller_as_wrist、Joy、body names/input_mix、延迟诊断和来源限龄。
 
-统一默认 `convert_to_robot=true`、`landmark_preprocess=raw`、`enable_xhand_pinky_adapt=false`。`raw` 的真实含义是已完成 Unity→robot 轴转换并以 wrist 为原点，仍为 21 点，尚未做 MANO 或机器人指长补偿；不能误认为“原 Unity 数据”。mocap 的新 packet/session/frame 消息沿用原实现。
+统一默认 `convert_to_robot=false`（2026-11-02 回归 Unity 基准，见 §6.2.1；此前为 `true`）、`landmark_preprocess=raw`、`enable_xhand_pinky_adapt=false`。关闭转换时位姿与 landmarks 原样输出 Unity（X 右、Y 上、Z 前），landmarks 以 wrist 为原点、仍为 21 点，尚未做 MANO 或机器人指长补偿；Unity→各机器人坐标系的变换由机器人自己声明。`convert_to_robot=true` 仅保留为调试开关，输出旧 canonical 基准。mocap 的新 packet/session/frame 消息沿用原实现。
 
 input_source 的 Quest/glove 来源选择由 morla_input launch 编排：同侧同一种统一 landmarks 只有一个来源发布；Glove 占用右 landmarks 时关闭 Quest 的对应 landmarks，不关闭该侧 wrist/Joy。输入设备不会决定末端是 Wuji/XHand/夹爪；profile 分开记录 `input_source` 与 `end_effector_type`。
 
@@ -377,11 +377,31 @@ vr_to_arm_rot: [0.0, 0.0, 1.0,
 
 frame/session 改变：disarm、清滤波/旧锚并要求重新 start；不把“frame 名字不同”当作可忽略。Nero 原自动第一帧校准改为和 Astral 一样显式 start/prepare_reanchor。
 
+### 6.2.1 回归 Unity 基准（2026-11-02 起生效，覆盖 §6.1/§6.2 的 canonical 默认）
+
+§6.1/§6.2 的 `convert_to_robot=true` 与 `A_new=A_old*M^T` 是历史迁移记录。操作员决定把输入层还原为“只输出 Unity 原始方向”，Unity→各自坐标系的变换下放到每台机器人：
+
+- 接收器默认 `convert_to_robot=false`；位姿与 21 点 landmarks 均为 Unity（X 右、Y 上、Z 前），帧 id 以 `_unity` 结尾；事件行 `version: 2` 必带 `basis: unity_left_handed_v1`，v1 行明确拒绝。
+- Quest 绑定/装配必须声明 `input_basis_id: unity_left_handed_v1`：缺失 → `INPUT_BASIS_MISSING`，其他值 → `INPUT_BASIS_UNSUPPORTED`，Unity 基准下 `input_rotation` det 必须为 −1，编译期拒绝。运行期 `InputFrame.input_basis_id` 与声明不符的帧被丢弃并限频告警。
+- 从旧 canonical 矩阵换算一律**右乘**：`U = A_old·M`（等价 `A_old = U·Mᵀ`）。`M·M = diag(1,−1,−1) ≠ I`，逆是 `Mᵀ`，不能把 `M` 当自逆使用。
+- 声明值（profile `input_rotation_to_robot_body` / binding `input_rotation`）与有效值：
+
+| 机器人 | 声明（Unity→body / base） | 有效 Unity→solver base |
+| --- | --- | --- |
+| Astral 左/右 | `M` = `[[-1,0,0],[0,0,-1],[0,1,0]]` | `M` |
+| Nero 公共 body | `[[0,0,-1],[1,0,0],[0,1,0]]` | 左 `[[0,1,0],[0,0,1],[-1,0,0]]`、右 `[[0,1,0],[0,0,-1],[1,0,0]]`（URDF 安装链推出，等于重构前 `vr_to_arm_rot` 字面值） |
+| CR5 | `[[0,0,-1],[1,0,0],[0,1,0]]` | 同左 |
+
+Unity→右手 base 的矩阵必然 det −1，是基变换而不是姿态；控制器只将其作用于增量（`Δp_base=U·Δp_unity`、`ΔR_base=U·ΔR_unity·Uᵀ`），所以不需要 proper rotation。Nero 有效矩阵回到重构前字面值，是“基准还给输入层、行为不变”的证据（`test_nero_coordinate_equivalence.py`，4e-6）。
+
+- Hand retargeter 声明自己的 Unity→hand 矩阵：XHand 默认 `F=diag(-1,1,1)`（与旧 XNero 数值等价），Wuji 的 Quest 配置声明 `M`；glove 来源保持 identity，不连带转换同一话题。
+- 迁移：已保存装配缺 `input_basis_id` 会在 start 时被拒，需重新编译保存新 revision；12 个 profile 的 `kinematics_hash` 全变，旧数据集不能与新 profile 混用，需重录或保留只读归档。
+
 ### 6.3 XHand 预处理及关节约定
 
 把旧 Quest 的 MANO 预处理迁到 `xhand_retargeting/preprocess.py`，其输入是统一 raw，不再要求整个 mocap 全局切 MANO。Wuji 仍使用现有 raw 后端，不再被 XHand 小指算法污染；左右末端类型不同可同时运行。
 
-必须保留：21 点顺序、1.05 缩放、以腕居中、SVD 帧估计、左右 `OPERATOR2MANO`、现有小指 stretch 的可配置兼容行为、滤波顺序。旧 landmarks 从 Unity 只做 `F=diag(-1,1,1)`，新 raw 做 M；兼容预处理先按 `old_points=F*M^T*new_raw_points` 重建旧输入轴，再执行旧算法。这样先做到同输入数值等价，再注册新的改进手型参数。
+必须保留：21 点顺序、1.05 缩放、以腕居中、SVD 帧估计、左右 `OPERATOR2MANO`、现有小指 stretch 的可配置兼容行为、滤波顺序。旧 landmarks 从 Unity 只做 `F=diag(-1,1,1)`；新输入本身就是 Unity，所以 XHand 预处理直接把 `input_basis`（缺省 `F`）作用在 Unity 点上，与旧式 `F*M^T*(M*u)` 数值等价。Wuji backend 仍吃历史 canonical 轴，由 Quest 专用 launch 注入 `input_basis=M`；glove 来源注入 identity。每个 hand retargeter 自己声明 Unity→hand 矩阵，输入层不再携带任何手的约定。
 
 原小指算法逐级使用已移动的上游点，可能产生折线；初版用 profile 显式选择 `legacy_xhand_pinky`，默认 XHand 兼容 profile 保留原效果，Wuji 永不开。新的修正算法另配版本，不与框架迁移混在一次变更里。
 

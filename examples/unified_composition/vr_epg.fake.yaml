@@ -3,10 +3,11 @@ assembly_id: vr_epg_unified
 revision: 1
 instances:
   vr:
-    plugin: morla.input.quest_right
+    plugin: morla.input.quest
     backend: fake
     parameters:
       process_mode: external
+      side: right
   gripper:
     plugin: morla.jodell.epg50_060
     backend: fake

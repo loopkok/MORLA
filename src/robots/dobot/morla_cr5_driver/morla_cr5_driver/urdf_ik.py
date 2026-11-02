@@ -37,7 +37,8 @@ class IKSolver:
     def __init__(self, *, joint_lower=None, joint_upper=None, joint_signs=None,
                  joint_offsets=None, urdf_path=None, max_iterations=100,
                  max_solve_s=.05, clock=time.monotonic,
-                 position_tolerance_m=.0002, angle_tolerance_rad=.002):
+                 position_tolerance_m=.0002, angle_tolerance_rad=.002,
+                 retry_trust=(.3, .6, 1.2)):
         import pinocchio as pin
         self.pin = pin
         self.path = default_urdf_path() if urdf_path is None else urdf_path
@@ -72,8 +73,14 @@ class IKSolver:
         if (not np.isfinite(position_tolerance_m) or not 1e-7<=position_tolerance_m<=.0002 or
                 not np.isfinite(angle_tolerance_rad) or not 1e-6<=angle_tolerance_rad<=.002):
             raise ValueError('Invalid CR5 IK tolerance')
+        if (not isinstance(retry_trust,(tuple,list)) or not 0<len(retry_trust)<=4
+                or any(type(t) not in (int,float) or not np.isfinite(t) or not 0<t<=2
+                       for t in retry_trust)
+                or any(b<=a for a,b in zip(retry_trust,retry_trust[1:]))):
+            raise ValueError('Invalid CR5 IK trust ladder')
         self.position_tolerance_m=position_tolerance_m;self.angle_tolerance_rad=angle_tolerance_rad
         self.max_iterations, self.max_solve_s, self.clock = max_iterations, max_solve_s, clock
+        self.retry_trust = tuple(float(t) for t in retry_trust)
         self.seed = None
         self.last_report = {}
 
@@ -94,12 +101,27 @@ class IKSolver:
     def solve(self, target):
         if self.seed is None:raise RuntimeError('Measured CR5 seed required')
         target=validate_transform(target)
+        started=self.clock()
+        # One local window is narrower than the joint travel a wrist turn needs:
+        # from the ready pose a 10 deg tool rotation already costs ~15 deg of
+        # joint motion, so a single 0.3 rad solve stalls short of the target and
+        # the controller drops the tick, holding the arm while the operator's
+        # wrist keeps turning. Retry wider before giving up. The velocity limiter
+        # downstream still shapes the command, so a wider window cannot become a
+        # frame-sized jump on the arm.
+        for trust in self.retry_trust:
+            result=self._solve_once(target,trust,started)
+            if result is not None:return result
+            if self.last_report['reason']=='deadline':break
+        return None
+
+    def _solve_once(self,target,trust,started):
         desired=self.pin.SE3(target[:3,:3],target[:3,3])
-        q=self.seed.copy();started=self.clock()
+        q=self.seed.copy()
         weights=np.diag([1.,1.,1.,.3,.3,.3])
         # A local trust region prevents selection of a distant equivalent branch.
-        lo=np.maximum(self.lower_limits,self.seed-.3)
-        hi=np.minimum(self.upper_limits,self.seed+.3)
+        lo=np.maximum(self.lower_limits,self.seed-trust)
+        hi=np.minimum(self.upper_limits,self.seed+trust)
         reason='iteration_limit';pos=angle=float('inf')
         for iteration in range(self.max_iterations):
             if self.clock()-started>self.max_solve_s:
@@ -118,7 +140,8 @@ class IKSolver:
                           and self.clock()-started<=self.max_solve_s)
                 if accepted:
                     self.last_report={'success':True,'iterations':iteration,'position_error_m':pos,
-                                      'angle_error_rad':angle,'elapsed_s':self.clock()-started}
+                                      'angle_error_rad':angle,'elapsed_s':self.clock()-started,
+                                      'trust_rad':trust}
                     return q.copy()
                 reason='fk_verification';break
             J=self.pin.computeFrameJacobian(self.model,self.data,self.signs*q+self.offsets,
@@ -137,5 +160,6 @@ class IKSolver:
             if not improved:
                 reason='stalled_or_unreachable';break
         self.last_report={'success':False,'reason':reason,'position_error_m':pos,
-                          'angle_error_rad':angle,'elapsed_s':self.clock()-started}
+                          'angle_error_rad':angle,'elapsed_s':self.clock()-started,
+                          'trust_rad':trust}
         return None

@@ -87,6 +87,10 @@ def catalog():
     epg=ROOT/'src/robots/jodell/morla_epg_driver'
     rows=[json.loads((PACKAGE/'descriptor.json').read_text()),json.loads((epg/'descriptor.json').read_text())]
     rows += [json.loads((arm/name).read_text()) for name in ('descriptor.json','jog_controller.json')]
+    installed={(d['plugin_id'],d['plugin_version']) for d in default_catalog().list()}
+    # In a built workspace discover_descriptors() already finds these packages;
+    # registering them twice is an ambiguous-plugin error, not a config failure.
+    rows=[r for r in rows if (r['plugin_id'],r['plugin_version']) not in installed]
     return Catalog(default_catalog().list()+rows)
 
 
@@ -210,10 +214,11 @@ def test_selected_ros_input_plugin_reuses_common_host(monkeypatch):
     import sys,types
     from morla_input.ros_sources import RosInputManager
     from morla_vader5_input.source import create_ros_source
-    callbacks={};observed=[]
+    callbacks={};qos_seen={};observed=[]
     class Node:
         def __init__(self,*args):pass
-        def create_subscription(self,kind,topic,callback,qos):callbacks[topic]=callback
+        def create_subscription(self,kind,topic,callback,qos):
+            callbacks[topic]=callback;qos_seen[topic]=qos
         def get_logger(self):return SimpleNamespace(error=lambda text:observed.append(('error',text)))
         def destroy_node(self):pass
     class Executor:
@@ -222,7 +227,9 @@ def test_selected_ros_input_plugin_reuses_common_host(monkeypatch):
         def shutdown(self,**kw):pass
     modules={'rclpy':{'ok':lambda:True},'rclpy.node':{'Node':Node},
         'rclpy.executors':{'SingleThreadedExecutor':Executor},
-        'rclpy.qos':{'qos_profile_sensor_data':None,'QoSProfile':lambda **kw:kw,'ReliabilityPolicy':SimpleNamespace(RELIABLE=1)},
+        'rclpy.qos':{'qos_profile_sensor_data':None,'QoSProfile':lambda **kw:kw,
+            'ReliabilityPolicy':SimpleNamespace(RELIABLE=1,BEST_EFFORT=2),
+            'HistoryPolicy':SimpleNamespace(KEEP_LAST=1)},
         'sensor_msgs.msg':{'Joy':object},'geometry_msgs.msg':{'PoseStamped':object,'PoseArray':object},'std_msgs.msg':{'String':object}}
     for name,attrs in modules.items():
         module=types.ModuleType(name);module.__dict__.update(attrs);monkeypatch.setitem(sys.modules,name,module)
@@ -233,6 +240,8 @@ def test_selected_ros_input_plugin_reuses_common_host(monkeypatch):
         lambda f:observed.append(('frame',f.ports['hold_to_control'])),lambda iid:observed.append(('disconnect',iid)),
         clock=lambda:1_000_000_000,on_event=lambda iid,f,actions:observed.append(('event',actions)))
     manager.start()
+    qos=qos_seen['/vader5/events']
+    assert qos['depth']==1 and qos['reliability']==2 # Best effort, newest frame.
     try:
         callback=callbacks['/vader5/events'];callback(SimpleNamespace(data=json.dumps(row())))
         callback(SimpleNamespace(data=json.dumps(row(2,buttons=['START'],control_tick=False))))

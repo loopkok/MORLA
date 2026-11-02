@@ -18,7 +18,7 @@ from scipy.spatial.transform import Rotation
 
 from morla_core.coordinates import (
     fixed_transform_between_urdf, solver_tip_to_tcp, tcp_to_solver_tip,
-    validate_rotation, validate_transform,
+    validate_basis_change, validate_transform,
 )
 from morla_core.ownership import PolicyLease, fresh_header
 from morla_core.resource_locator import resolve_robot_asset
@@ -94,7 +94,10 @@ class NeroArmTeleopNode(Node):
         )
         if matrix.shape != (9,):
             raise ValueError("vr_to_arm_rot_after_unity_to_robot must have 9 values")
-        self.rotation_to_arm = validate_rotation(matrix.reshape(3, 3))
+        # Raw Unity input makes this a basis change (det -1), not a rotation:
+        # it only ever maps increments, and the conjugation in the pose
+        # processor keeps the resulting rotation proper.
+        self.rotation_to_arm = validate_basis_change(matrix.reshape(3, 3))
 
         model_id = str(self.get_parameter("description_model_id").value).strip()
         model_path = resolve_robot_asset(model_id)

@@ -94,22 +94,23 @@ def test_late_result_after_reset_cannot_reappear():
     finally:finish.set();c.close()
 
 
-def test_quest_right_controller_hand_switch_and_loss_revoke_runtime(tmp_path,monkeypatch):
+def test_quest_controller_hand_switch_and_loss_revoke_runtime(tmp_path,monkeypatch):
     from morla_core.plugins.registry import Catalog,default_catalog
     from morla_core.composition import load_document
-    from morla_input.quest_right import QuestRightSource
+    from morla_input.quest_events import QuestEventSource
     ComposableService=pytest.importorskip('morla_web_manager.composable_service').ComposableService
-    root=Path(__file__).parents[5]
     package=Path(__file__).parents[1]
     descriptors=[json.loads((package/name).read_text()) for name in ('descriptor.json','controller.json')]
-    descriptors.append(json.loads((root/'src/common/morla_input/quest_right_descriptor.json').read_text()))
-    catalog=Catalog(default_catalog().list()+descriptors)
+    installed={(d['plugin_id'],d['plugin_version']) for d in default_catalog().list()}
+    # In a built workspace discover_descriptors() already finds these packages;
+    # registering them twice is an ambiguous-plugin error, not a config failure.
+    catalog=Catalog(default_catalog().list()+[d for d in descriptors if (d['plugin_id'],d['plugin_version']) not in installed])
     class Entries(list):
         def select(self,**kwargs):return Entries(e for e in self if all(getattr(e,k)==v for k,v in kwargs.items()))
     entry=SimpleNamespace(group='morla.controllers',name='morla.cr5.cartesian_delta',load=lambda:create_controller)
     monkeypatch.setattr('importlib.metadata.entry_points',lambda **kw:Entries([entry]).select(**kw))
     svc=ComposableService(tmp_path/'store',resource_root=tmp_path/'locks');svc.catalog=catalog
-    a=load_document(package/'config/quest_right.fake.yaml')
+    a=load_document(package/'config/quest.fake.yaml')
     saved=svc.save({'assembly':a,'expected_revision':0})
     assert 'morla.cr5.cartesian_delta@1.0.0' in dict(saved['resolved']['lockfile']['plugins'])
     state=svc.start({'assembly_id':a['assembly_id'],'revision':1,'assembly_hash':saved['resolved']['assembly_hash'],'request_id':'start'})
@@ -117,12 +118,13 @@ def test_quest_right_controller_hand_switch_and_loss_revoke_runtime(tmp_path,mon
     def op(name):
         op_count[0]+=1
         return svc.operation(sid,{'operation':name,'request_id':f'{name}-{op_count[0]}'})
-    source=QuestRightSource('quest',on_transition=lambda:svc.disconnect_input('quest'))
+    source=QuestEventSource('quest',sides=('right',),on_transition=lambda:svc.disconnect_input('quest'))
     svc.inputs['quest']=source
     def send(kind,mode='controller',value=None):
         seq[0]+=1
-        row={'version':1,'side':'right','kind':kind,'source':mode,'epoch':'test-stream',
-             'sequence':seq[0],'sent_ns':time.time_ns(),'frame_id':'quest_world',
+        row={'version':2,'basis':'unity_left_handed_v1','side':'right','kind':kind,
+             'source':mode,'epoch':'test-stream','sequence':seq[0],
+             'sent_ns':time.time_ns(),'frame_id':'quest_world',
              'values':value if value is not None else [0,0,0,0,0,0,1]}
         frame=source.event(row)
         return svc.ingest_frame(sid,frame) if source.control_event(row,frame) else None
@@ -131,23 +133,36 @@ def test_quest_right_controller_hand_switch_and_loss_revoke_runtime(tmp_path,mon
         p[8]=[.005 if closed else .08,0,0];return p
     worker=None
     try:
+        # The fake backend starts at the all-zero pose, which is a CR5
+        # singularity: a sub-millimetre lateral target there is only reachable
+        # through a large null-space move, so J1's sign is solver-dependent.
+        # Start from a typical folded pose, where the same target is a small
+        # well-conditioned move.
+        svc.session.adapters['arm'].values[:]=[0.,.6,-.6,.3,.5,0.]
         send('pose')  # Disarmed packets cannot pre-arm or anchor.
         op('prepare');op('activate')
-        assert send('grip',value=1.) is None
-        assert send('pose')['accepted'] # Deadman is not enforced.
-        send('grip',value=0.)
-        send('grip',value=1.)
+        # Continuous follow: the shipped binding has no deadman, so the first
+        # fresh pose after activation anchors at the current arm pose and
+        # dispatches. Grip/button events stay inert.
+        assert send('pose')['accepted']
+        assert send('grip',value=1.) is None       # press frames are filtered out
+        assert send('grip',value=0.)['accepted'] is False  # button-only frame, no pose
         assert send('pose')['accepted']
         worker=svc.bindings['right_vr'].registry.plugins['morla.cr5.cartesian_delta']
         wait_result(worker)
-        deadline=time.monotonic()+1
-        while svc.session.adapters['arm'].values[0]<=0 and time.monotonic()<deadline:
-            time.sleep(.01);send('pose',value=[.002,0,0,0,0,0,1])
-        assert svc.session.adapters['arm'].values[0]>0
+        # Keep advancing the pose: a stream gap larger than max_age re-anchors
+        # the binding by design, and a constant pose would then command no
+        # delta at all.
+        # Unity +X is the operator's right, which is base +Y for this cell; the
+        # side the arm first turns to depends on the solver, only the movement
+        # itself is asserted here.
+        deadline=time.monotonic()+1;offset=.002
+        while abs(svc.session.adapters['arm'].values[0])<1e-4 and time.monotonic()<deadline:
+            time.sleep(.01);offset+=.0002;send('pose',value=[offset,0,0,0,0,0,1])
+        assert abs(svc.session.adapters['arm'].values[0])>1e-4
         before=list(svc.session.adapters['arm'].values)
         send('pose','hand',[.3,0,0,0,0,0,1])
         assert svc.session.lease is None and svc.session.status=='READY_DISARMED'
-        assert send('grip',value=1.) is None
         op('activate')
         # Landmarks now reach the common binding host for scalar/hand capabilities.
         # Cached pose samples are deduplicated per binding rather than at transport level.
@@ -164,10 +179,17 @@ def test_quest_right_controller_hand_switch_and_loss_revoke_runtime(tmp_path,mon
             send('landmarks','hand',landmarks(True))
             send('pose','hand',[.302,0,0,0,0,0,1])
         assert np.linalg.norm(np.asarray(svc.session.adapters['arm'].values)-before)>1e-5
-        # Pinch loss no longer revokes control; fresh wrist packets keep dispatching.
+        # A >max_age input gap re-anchors the binding without revoking control:
+        # the first fresh pose anchors at the current arm pose, so the gap
+        # itself commands no jump and tracking resumes without re-activation.
         time.sleep(.27)
-        assert send('pose','hand',[.301,0,0,0,0,0,1])['accepted']
+        held=list(svc.session.adapters['arm'].values)
         assert svc.session.status=='ACTIVE'
+        assert 'accepted' in send('landmarks','hand',landmarks(True))
+        assert send('pose','hand',[.301,0,0,0,0,0,1])['accepted']
+        wait_result(worker)
+        time.sleep(.1)
+        np.testing.assert_allclose(svc.session.adapters['arm'].values,held,atol=1e-3)
     finally:svc.close()
     assert worker is not None and not worker.thread.is_alive()
     assert not svc.session.resources.handles
@@ -189,15 +211,15 @@ def test_active_control_page_and_operations(tmp_path,monkeypatch):
         def select(self,**kwargs):return Entries(e for e in self if all(getattr(e,k)==v for k,v in kwargs.items()))
     entry=SimpleNamespace(group='morla.controllers',name='morla.cr5.cartesian_delta',load=lambda:guarded_factory)
     monkeypatch.setattr('importlib.metadata.entry_points',lambda **kw:Entries([entry]).select(**kw))
-    package=Path(__file__).parents[1];root=Path(__file__).parents[5]
+    package=Path(__file__).parents[1]
     app=create_app(tmp_path/'store',resource_root=tmp_path/'locks',mount_web=False)
     svc=app.state.composable
     clock=[1_000_000_000];svc.clock=lambda:clock[0]
-    svc.catalog=Catalog(default_catalog().list()+[
-        json.loads((package/'descriptor.json').read_text()),
-        json.loads((package/'controller.json').read_text()),
-        json.loads((root/'src/common/morla_input/quest_right_descriptor.json').read_text())])
-    a=load_document(package/'config/quest_right.fake.yaml')
+    descriptors=[json.loads((package/name).read_text()) for name in ('descriptor.json','controller.json')]
+    installed={(d['plugin_id'],d['plugin_version']) for d in default_catalog().list()}
+    # Same dedupe as above: a built workspace already discovers these manifests.
+    svc.catalog=Catalog(default_catalog().list()+[d for d in descriptors if (d['plugin_id'],d['plugin_version']) not in installed])
+    a=load_document(package/'config/quest.fake.yaml')
     saved=svc.save({'assembly':a,'expected_revision':0})
     state=svc.start({'assembly_id':a['assembly_id'],'revision':1,
         'assembly_hash':saved['resolved']['assembly_hash'],'request_id':'start'})
@@ -241,12 +263,42 @@ def test_readonly_probe_and_real_backend_controller():
 @pytest.mark.parametrize('parameters',[
     {'max_joint_velocity':True},
     {'position_scale':float('nan')}, {'smoothing_alpha':0},
-    {'input_rotation':[[1,0,0],[0,1,0],[0,0,-1]]}, {'unrecognized':1},
+    # The alignment is now allowed to be a det -1 basis change, so an invalid
+    # one has to fail on orthonormality rather than on its determinant sign.
+    {'input_rotation':[[1,0,0],[0,1,0],[0,0,-2]]}, {'unrecognized':1},
 ])
 def test_controller_parameters_fail_before_worker_or_enable(parameters):
     with pytest.raises(ValueError):
         create_controller({'instance':{'plugin_id':'morla.dobot.cr5','backend':'fake'},
                            'binding':{'parameters':parameters}})
+
+
+def test_shipped_input_rotation_is_the_unity_to_base_alignment():
+    """Quest sends raw Unity (X right, Y up, Z forward); CR5 solves in base_link.
+
+    Nero declares the same step as ``input_rotation_to_robot_body`` and
+    multiplies it by the ``t_bracket_base -> right_base_link`` URDF mount.
+    Astral's mount is identity. CR5's ``base_link`` is the URDF root, so the
+    mount factor is identity and the binding carries the whole Unity -> base
+    step alone. Only a yaw is admissible: any roll/pitch would tip the
+    operator's up axis away from base +Z, which no CR5 mounting can justify.
+    """
+    import yaml
+    for name in ('config/quest.fake.yaml','config/quest.sim.yaml'):
+        document=yaml.safe_load((Path(__file__).parents[1]/name).read_text())
+        binding=document['bindings'][0]
+        assert binding['input_basis_id']=='unity_left_handed_v1'
+        rotation=np.asarray(binding['parameters']['input_rotation'],dtype=float)
+        np.testing.assert_allclose(rotation.T@rotation,np.eye(3),atol=1e-12)
+        # Unity is left-handed, so a Unity -> right-handed-base map is a basis
+        # change, never a proper rotation. The controller only applies it to
+        # increments, so the reflection is safe.
+        assert np.isclose(np.linalg.det(rotation),-1)
+        # Operator on the base +X side facing the arm: right is base +Y, up is
+        # base +Z, pushing forward moves the tool along base -X.
+        np.testing.assert_allclose(rotation@[1,0,0],[0,1,0],atol=1e-12)
+        np.testing.assert_allclose(rotation@[0,1,0],[0,0,1],atol=1e-12)
+        np.testing.assert_allclose(rotation@[0,0,1],[-1,0,0],atol=1e-12)
 
 
 def test_ik_failure_discards_queued_work_and_latches_until_reset():

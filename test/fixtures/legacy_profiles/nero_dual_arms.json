@@ -345,21 +345,21 @@
       }
     },
     "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
-    "input_basis_id": "quest3_canonical_legacy_v1",
+    "input_basis_id": "unity_left_handed_v1",
     "input_frame_policy": "incremental_operator_aligned",
-    "input_rotation_source": "algebraically_derived_from_legacy_arm_rotations_and_urdf_mounts",
+    "input_rotation_source": "legacy_arm_rotations_rebased_to_unity",
     "input_rotation_to_robot_body": [
       0.0,
-      0.999999999993,
       -3.673205e-06,
-      -1.0,
+      -0.999999999993,
+      1.0,
       0.0,
       0.0,
       0.0,
-      3.673205e-06,
-      0.999999999993
+      0.999999999993,
+      -3.673205e-06
     ],
-    "kinematics_hash": "9deadffa7c271be784c51841a5e4259ef3fe29d62d460d50277ccb57771e2ed6",
+    "kinematics_hash": "99a948e5f9240b1104e472be9d24a3e039aa16b24a5f6abc00fc00f6e068a241",
     "robot_body_frame": "t_bracket_base",
     "robot_id": "nero",
     "version": 1
@@ -499,7 +499,7 @@
     ],
     "dataset_fps": 30,
     "hold_frames": 10,
-    "kinematics_hash": "9deadffa7c271be784c51841a5e4259ef3fe29d62d460d50277ccb57771e2ed6",
+    "kinematics_hash": "99a948e5f9240b1104e472be9d24a3e039aa16b24a5f6abc00fc00f6e068a241",
     "layout_hash": "1034b5bc51a23cbb89339203953a6285dbde988c5811f7052735610215ad84b3",
     "max_gap_ms": 100.0,
     "metadata": {
@@ -537,32 +537,32 @@
           }
         },
         "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
-        "input_basis_id": "quest3_canonical_legacy_v1",
+        "input_basis_id": "unity_left_handed_v1",
         "input_frame_policy": "incremental_operator_aligned",
-        "input_rotation_source": "algebraically_derived_from_legacy_arm_rotations_and_urdf_mounts",
+        "input_rotation_source": "legacy_arm_rotations_rebased_to_unity",
         "input_rotation_to_robot_body": [
           0.0,
-          0.999999999993,
           -3.673205e-06,
-          -1.0,
+          -0.999999999993,
+          1.0,
           0.0,
           0.0,
           0.0,
-          3.673205e-06,
-          0.999999999993
+          0.999999999993,
+          -3.673205e-06
         ],
-        "kinematics_hash": "9deadffa7c271be784c51841a5e4259ef3fe29d62d460d50277ccb57771e2ed6",
+        "kinematics_hash": "99a948e5f9240b1104e472be9d24a3e039aa16b24a5f6abc00fc00f6e068a241",
         "robot_body_frame": "t_bracket_base",
         "robot_id": "nero",
         "version": 1
       },
       "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
-      "kinematics_hash": "9deadffa7c271be784c51841a5e4259ef3fe29d62d460d50277ccb57771e2ed6"
+      "kinematics_hash": "99a948e5f9240b1104e472be9d24a3e039aa16b24a5f6abc00fc00f6e068a241"
     },
     "profile_id": "nero_dual_arms",
     "profile_version": 1,
     "robot_id": "nero",
-    "schema_hash": "5fc01bd989d16c12cf420692ef3d58bcd973250c376f7963fa61ca68b26c45f6",
+    "schema_hash": "4ae598a65fefc4601d41710265e8815e715082e2ba322e8f7b453468e6453721",
     "schema_version": 2,
     "sensor_specs": [],
     "state_blocks": [
@@ -879,13 +879,26 @@
     "source": "quest",
     "strict_packets": true
   },
-  "kinematics_hash": "9deadffa7c271be784c51841a5e4259ef3fe29d62d460d50277ccb57771e2ed6",
+  "input_basis_id": "unity_left_handed_v1",
+  "input_rotation_to_robot_body": [
+    0.0,
+    -3.673205e-06,
+    -0.999999999993,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.999999999993,
+    -3.673205e-06
+  ],
+  "kinematics_hash": "99a948e5f9240b1104e472be9d24a3e039aa16b24a5f6abc00fc00f6e068a241",
   "layout_hash": "1034b5bc51a23cbb89339203953a6285dbde988c5811f7052735610215ad84b3",
+  "migrated_from": "quest3_canonical_legacy_v1",
   "mode_default": "sim",
   "profile_id": "nero_dual_arms",
   "profile_version": 1,
   "robot_id": "nero",
-  "schema_hash": "5fc01bd989d16c12cf420692ef3d58bcd973250c376f7963fa61ca68b26c45f6",
+  "schema_hash": "4ae598a65fefc4601d41710265e8815e715082e2ba322e8f7b453468e6453721",
   "sensors": [],
   "state_blocks": [
     {

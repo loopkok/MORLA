@@ -120,6 +120,38 @@ if not _web_dist.is_dir():
         _web_dist = Path(get_package_share_directory('morla_web_manager')) / 'web/dist'
     except Exception:
         pass
+
+
+def _seed_saved_configurations():
+    """Save the CR5 MuJoCo bench once so it is a startable saved configuration.
+
+    The store is the only source of startable sessions, so the template ships as
+    a normal saved revision (visible under 打开已保存配置) instead of a separate
+    load button. An existing assembly with the same id is never touched: the
+    operator's edits (real Quest backend, device id) must survive restarts.
+    """
+    import logging
+    log = logging.getLogger('uvicorn.error')
+    try:
+        from morla_core.composition import load_document
+        from morla_core.resource_locator import (ResourceLookupError,
+                                                 morla_source_root, package_share)
+        try:
+            share = package_share('morla_cr5_driver')
+        except ResourceLookupError:
+            share = morla_source_root() / 'src/robots/dobot/morla_cr5_driver'
+        assembly = load_document(share / 'config/quest.sim.yaml')
+        # The YAML omits empty sections; the editor expects every section present.
+        assembly.setdefault('control_groups', {})
+        assembly['capture'].setdefault('auxiliary', [])
+        if any(item['assembly_id'] == assembly['assembly_id'] for item in _composable.store.list()):
+            return
+        _composable.save({'assembly': assembly, 'deployment': {}, 'expected_revision': 0})
+        log.info('saved configuration seeded: %s v%d', assembly['assembly_id'], assembly['revision'])
+    except Exception as exc:  # a missing CR5 install must not keep the console down
+        log.warning('CR5 MuJoCo saved configuration not seeded: %s', exc)
+
+
 def _static_options(directory):
     """StaticFiles options that also serve colcon symlink-install entries."""
     import inspect
@@ -323,6 +355,7 @@ _conn = _ConnectionManager()
 # --- lifespan --------------------------------------------------------------
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
+    await asyncio.to_thread(_seed_saved_configurations)
     init_node()
     broadcaster = asyncio.create_task(_ui_state_broadcaster())
     preview = asyncio.create_task(_quest_preview_supervisor())

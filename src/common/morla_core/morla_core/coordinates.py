@@ -18,6 +18,22 @@ UNITY_TO_QUEST3_CANONICAL = np.array(
     [[-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0]], dtype=float
 )
 
+# Basis ids travel with decoded input so a consumer can refuse a frame expressed
+# in a basis it was not calibrated for. The receiver emits the first by default.
+UNITY_LEFT_HANDED_BASIS_ID = "unity_left_handed_v1"
+QUEST_CANONICAL_BASIS_ID = "quest3_canonical_legacy_v1"
+INPUT_BASIS_IDS = (UNITY_LEFT_HANDED_BASIS_ID, QUEST_CANONICAL_BASIS_ID)
+
+
+def rebased_to_unity(matrix: np.ndarray) -> np.ndarray:
+    """Express a canonical-basis alignment in raw Unity: ``A @ M``.
+
+    Right-multiply, because ``canonical = M @ unity``. The result is det -1
+    whenever the input was a proper rotation, which is expected: Unity is
+    left-handed and every Unity-to-robot-base map is a basis change.
+    """
+    return validate_basis_change(validate_rotation(matrix) @ UNITY_TO_QUEST3_CANONICAL)
+
 
 def validate_rotation(rotation: np.ndarray, *, atol: float = 1e-7) -> np.ndarray:
     """Return a validated proper SO(3) rotation (reflections are rejected)."""

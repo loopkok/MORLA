@@ -60,10 +60,15 @@ class RosInputManager:
                             if bridge.control_event(frame):
                                 self.on_frame(frame)
                     self._guarded(iid, action)
-                from rclpy.qos import QoSProfile, ReliabilityPolicy
+                # Human input is a newest-value stream, not a log: frames are
+                # rejected once older than max_age_ms, so a queued frame is
+                # already unusable. Reliable depth 64 only delays the backlog.
+                from rclpy.qos import (HistoryPolicy, QoSProfile,
+                                       ReliabilityPolicy)
                 self.node.create_subscription(
                     String, bridge.topic, external,
-                    QoSProfile(depth=64, reliability=ReliabilityPolicy.RELIABLE))
+                    QoSProfile(depth=1, history=HistoryPolicy.KEEP_LAST,
+                               reliability=ReliabilityPolicy.BEST_EFFORT))
             else:
                 from .builtin_sources import subscribe
                 subscribe(self, instance)
@@ -88,11 +93,6 @@ class RosInputManager:
             self.on_frame(source.joy(list(message.axes), list(message.buttons)))
         self._guarded(iid, action)
 
-    def _epoch(self, iid):
-        self.sources[iid].reconnect()
-        self.cache[iid] = {}
-        self.on_disconnect(iid)
-
     def _emit(self, iid, values, frame_id):
         source = self.sources[iid]
         now = self.clock()
@@ -108,25 +108,29 @@ class RosInputManager:
         source.latest = frame
         self.on_frame(frame)
 
-    def _pose(self, iid, side, msg):
+    def _quest_event(self, iid, msg):
         def action():
-            p, q = msg.pose.position, msg.pose.orientation
-            self._emit(iid, {
-                side + '_pose': {
-                    'position': [p.x, p.y, p.z],
-                    'quaternion': [q.x, q.y, q.z, q.w]}},
-                msg.header.frame_id)
+            import json
+            if len(msg.data) > 16384:
+                raise InputError('Quest event oversized')
+            row = json.loads(msg.data)
+            source = self.sources[iid]
+            frame = source.event(row)
+            if source.control_event(row, frame):
+                self.on_frame(frame)
         self._guarded(iid, action)
 
     def _quest_joy(self, iid, side, msg):
         def action():
             if len(msg.axes) < 4:
                 raise InputError('Quest Joy shape mismatch')
-            values = {side+'_grip': msg.axes[1] > .5, 'scalar': float(msg.axes[0]),
-                      side+'_scalar': float(msg.axes[0]),
-                      side+'_axes': {'x':float(msg.axes[2]),'y':float(msg.axes[3])},
-                      'axes': {'x': float(msg.axes[2]), 'y': float(msg.axes[3])}}
-            self._emit(iid, values, msg.header.frame_id or 'input')
+            # Grip/trigger reach bindings through the guarded event stream;
+            # this topic only carries the thumbstick.
+            frame = self.sources[iid].axes(
+                side, {'x': float(msg.axes[2]), 'y': float(msg.axes[3])},
+                msg.header.frame_id or 'input')
+            if frame is not None:
+                self.on_frame(frame)
         self._guarded(iid, action)
 
     def _landmarks(self, iid, side, msg):

@@ -13,6 +13,9 @@ instances:
     device_id: VADER5_37D7_2401
     resource_key: vader5:events:VADER5_37D7_2401
     parameters:
+      # 受管 reader 需要显式 hidraw 路径；每次插拔后必须按实际枚举结果更新本行
+      # （当前台架：厂商 37d7 的配置接口，见 metadata.device_path_note）。
+      device: /dev/hidraw5
       # 以下为 2026-10-30 台架实际使用的输入参数（与 descriptor 默认值一致，显式记录）
       input_topic: /vader5/events
       deadzone: 0.08

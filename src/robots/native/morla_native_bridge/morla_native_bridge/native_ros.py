@@ -116,7 +116,8 @@ class NativeRosTransport:
         import rclpy
         from rclpy.node import Node
         from rclpy.executors import SingleThreadedExecutor
-        from rclpy.qos import qos_profile_sensor_data
+        from rclpy.qos import (HistoryPolicy, QoSProfile, ReliabilityPolicy,
+                               qos_profile_sensor_data)
         from sensor_msgs.msg import JointState
         from std_msgs.msg import Float64, Bool, String
         from std_srvs.srv import Trigger
@@ -140,7 +141,14 @@ class NativeRosTransport:
                 self.node.create_subscription(String, port['root'] + status_path, lambda msg, key=key: self._status(key, msg), 1)
             self.node.create_subscription(JointState, port['state'], lambda msg, key=key: self._sample(key, msg), qos_profile_sensor_data)
             message_type = Float64 if port['plugin_id'].endswith('gripper') else JointState
-            self.publishers[key] = self.node.create_publisher(message_type, port['command'], qos_profile_sensor_data)
+            # The Nero driver subscribes to joint_commands with RELIABLE/depth 1;
+            # a BEST_EFFORT publisher is QoS-incompatible and delivers nothing.
+            # depth 1 keeps the newest-setpoint semantics, so a slow driver can
+            # never accumulate a command backlog.
+            self.publishers[key] = self.node.create_publisher(
+                message_type, port['command'],
+                QoSProfile(reliability=ReliabilityPolicy.RELIABLE,
+                           history=HistoryPolicy.KEEP_LAST, depth=1))
             if port['plugin_id'] == 'morla.xhand.hand':
                 self.flags[(key, 'enable')] = self.node.create_publisher(Bool, port['enable'], 1)
                 self.flags[(key, 'stop')] = self.node.create_publisher(Bool, port['stop'], 1)
@@ -368,6 +376,16 @@ class NativeRosAdapter:
         result = self.session.operation(self.key, 'stop')
         self.active = False
         return result
+
+    def release(self):
+        # Soft disarm for a permit release. Output stops here, and the driver's
+        # own command watchdog (command_timeout_s) issues one measured-seeded
+        # hold and revokes streaming eligibility while the motors stay enabled.
+        # Routing this to ~/driver/estop would cut motor power instead, so a
+        # revoke followed by activate re-enabled the arm from a gravity-sagged
+        # pose; that is the whole point of keeping the two paths apart.
+        self.active = False
+        return True
 
     def close(self):
         self.session.close()

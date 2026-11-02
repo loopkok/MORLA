@@ -101,7 +101,7 @@ class AstralIntegrationDriver(Node):
     def emit(self) -> None:
         wrist = PoseStamped()
         wrist.header.stamp = self.get_clock().now().to_msg()
-        wrist.header.frame_id = "quest3_operator_body_canonical"
+        wrist.header.frame_id = "quest3_operator_body_unity"
         wrist.pose.orientation.w = 1.0
         self.wrist_pub.publish(wrist)
         self.gripper_pub.publish(Float64(data=0.5))

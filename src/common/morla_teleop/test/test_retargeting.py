@@ -54,6 +54,34 @@ def test_wuji_named_mapping_limits_no_scalar_expansion():
     with pytest.raises(ValueError,match='all 20'):controller(landmarks(),[0]*20,.01,{})
 
 
+def test_hand_binding_basis_overrides_the_hand_default():
+    from xhand_retargeting.preprocess import preprocess_xhand_landmarks
+    hand=instance('morla.xhand.hand','left');names=[joint['name'] for joint in hand['joints']]
+    stub=DexStub(['left_hand_'+name for name in names])
+    controller=XHandRetargetController(hand,stub)
+    raw=landmarks();basis=np.eye(3)
+    controller(raw,[0]*12,.01,{'input_basis':basis.reshape(-1).tolist()})
+    expected=preprocess_xhand_landmarks(raw,'left','legacy_xhand_pinky',input_basis=basis)
+    np.testing.assert_allclose(stub.calls[0],expected[[4,8]]-expected[[0,0]])
+
+
+def test_wuji_applies_its_declared_unity_to_hand_basis():
+    M=np.array([[-1.,0,0],[0,0,-1.],[0,1.,0]])
+    hand=instance('morla.wuji.hand')
+    calls=[]
+    backend=SimpleNamespace(retarget=lambda points:calls.append(np.asarray(points).copy()) or
+                            np.zeros(20),reset=lambda:None)
+    controller=WujiRetargetController(hand,backend)
+    raw=landmarks()
+    controller(raw,[0]*20,.01,{})
+    # Unconfigured: the topic's own convention passes through untouched.
+    np.testing.assert_array_equal(calls[-1],raw)
+    controller(raw,[0]*20,.01,{'input_basis':M.reshape(-1).tolist()})
+    np.testing.assert_allclose(calls[-1],(M@raw.T).T)
+    with pytest.raises(ValueError):
+        controller(raw,[0]*20,.01,{'input_basis':np.ones((3,3)).reshape(-1).tolist()})
+
+
 def test_selected_controller_plugin_only_loads_selected(monkeypatch):
     import importlib.metadata
     loaded=[]

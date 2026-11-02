@@ -14,6 +14,56 @@ class Solver:
         result=self.seed.copy();result[:3]=target[:3,3];return result
 
 
+class BranchSolver(Solver):
+    def __init__(self): self.resets=[]
+    def sync_state(self,seed,reset_branch=True):
+        self.resets.append(bool(reset_branch)); self.seed=np.asarray(seed)
+
+
+class ReachSolver(Solver):
+    """Solver whose reach ends at x=0.5, like a joint/wrist limit."""
+    def __init__(self): self.failures=0
+    def solve(self,target):
+        if target[0,3] > .5:
+            self.failures+=1
+            return None
+        return super().solve(target)
+
+
+def test_unreachable_jog_skips_tick_and_keeps_session_armed():
+    # A reach/limit miss is a normal jog event. The legacy teleop loops only
+    # skipped the tick; raising ControllerError here revoked the whole
+    # session, so the operator had to prepare/activate again mid-motion.
+    solver=ReachSolver();controller=CartesianController(solver,jog=True)
+    parameters={'axes_map':{'x':'x','y':'y'},'linear_speed':.1}
+    seed=[0,0,0,0,0,0,0]
+    forward={'x':1,'y':0}; backward={'x':-1,'y':0}
+    for _ in range(10): assert controller(forward,seed,.02,parameters) is not None
+    for _ in range(300): controller(forward,seed,.02,parameters)
+    assert solver.failures==1
+    held=controller.jog_target.copy()
+    # Holding the stick against the limit must not wind the target further out
+    # nor re-run the ~120 ms failed search every frame.
+    for _ in range(50): controller(forward,seed,.02,parameters)
+    assert solver.failures==1
+    np.testing.assert_allclose(controller.jog_target,held)
+    # Reversing the stick moves on the very next tick, without a reset.
+    assert controller(backward,seed,.02,parameters) is not None
+
+
+def test_branch_reset_only_on_first_solve_after_reset():
+    # A cold branch search costs ~100 ms; repeating it every tick starves the
+    # 50 Hz input queue. Only the first solve (or the first after a re-anchor)
+    # may reset the continuity branch.
+    solver=BranchSolver();controller=CartesianController(solver,jog=True)
+    parameters={'axes_map':{'x':'x','y':'y'}}
+    for _ in range(3): controller({'x':0,'y':0},[0]*7,.02,parameters)
+    assert solver.resets==[True,False,False]
+    controller.reset()
+    controller({'x':0,'y':0},[0]*7,.02,parameters)
+    assert solver.resets==[True,False,False,True]
+
+
 def test_nonidentity_tool_does_not_move_neutral_jog():
     tool=np.eye(4);tool[2,3]=.12
     controller=CartesianController(Solver(),jog=True)

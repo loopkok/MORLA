@@ -22,6 +22,10 @@ class CachedActuatorAdapter:
         self.thread = None
         self.active = False
         self.pending = None
+        self.last_command = None
+        # Hold target rewritten every cycle while a permit is released, so a
+        # streaming servo keeps holding instead of being powered down.
+        self.released = None
         self.sample = {'ready':False,'sample_ns':0,'source':'unavailable',
                        'measured':False,'synthetic':False,'values':[]}
 
@@ -49,6 +53,8 @@ class CachedActuatorAdapter:
                 with self.io:
                     with self.lock:
                         pending,self.pending = self.pending,None
+                        if pending is None and self.released is not None:
+                            pending = list(self.released)
                     if pending is not None:
                         self.transport.write(pending)
                     feedback = self.transport.read()
@@ -66,7 +72,7 @@ class CachedActuatorAdapter:
             except Exception as exc:
                 with self.lock:
                     was_active=self.active
-                    self.active=False; self.pending=None
+                    self.active=False; self.pending=None; self.released=None
                     self.sample.update(ready=False,fault=True,reason=str(exc))
                 if was_active:
                     try:
@@ -95,7 +101,7 @@ class CachedActuatorAdapter:
             self.transport.activate()
             with self.lock:
                 # Wait for an explicitly authorized first target; activation is not a command stream.
-                self.active=True; self.pending=None
+                self.active=True; self.pending=None; self.released=None
         return True
 
     def submit(self, target):
@@ -103,14 +109,40 @@ class CachedActuatorAdapter:
             if not self.active:
                 raise RuntimeError('ADAPTER_DISARMED')
             self.pending=list(target['values'])
+            self.last_command=list(target['values'])
         return {'accepted':True,'completed':False,'phase':'queued'}
 
     def _stop_locked(self):
         with self.lock:
-            self.active=False; self.pending=None
+            self.active=False; self.pending=None; self.released=None
         self.transport.stop()
 
     def stop(self):
+        if self.transport is not None:
+            with self.io: self._stop_locked()
+        return True
+
+    def release(self):
+        # Soft disarm: keep the servo enabled and rewrite a hold target every
+        # cycle, so a streaming device holds where it is. Cutting power instead
+        # (transport.stop) let the arm sag between a permit revoke and the next
+        # activate, which then re-enabled it low. The hold is the last commanded
+        # target, not the measurement: under gravity the arm sits slightly below
+        # its target, so re-targeting the measurement drops it every release.
+        with self.lock:
+            ready = self.sample.get('ready') and not self.sample.get('fault')
+            current = [float(value) for value in self.sample.get('values') or []]
+            if not ready or len(current) != len(self.instance['joints']):
+                # No trustworthy measurement to hold: powering down is the safe default.
+                fallback = True
+            else:
+                hold = self.last_command
+                if hold is None or len(hold) != len(current):
+                    hold = current
+                self.active=False; self.pending=None; self.released=list(hold)
+                fallback = False
+        if not fallback:
+            return True
         if self.transport is not None:
             with self.io: self._stop_locked()
         return True

@@ -57,6 +57,11 @@ def generate_launch_description():
         default_value="1.0",
         description="Post-retarget EMA; 1.0=off (rob_station official default)",
     )
+    input_basis_arg = DeclareLaunchArgument(
+        "input_basis",
+        default_value="[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]",
+        description="Unity -> hand-frame 3x3 as 9 floats; Quest landmarks need M",
+    )
 
     node = Node(
         package="wujihand_retargeting",
@@ -78,6 +83,9 @@ def generate_launch_description():
                 "nlopt_max_eval": ParameterValue(
                     LaunchConfiguration("nlopt_max_eval"), value_type=int
                 ),
+                "input_basis": ParameterValue(
+                    LaunchConfiguration("input_basis"), value_type=list
+                ),
             },
         ],
     )
@@ -90,6 +98,7 @@ def generate_launch_description():
         wuji_lib_left_arg,
         wuji_lib_right_arg,
         smoothing_arg,
+        input_basis_arg,
         nlopt_arg,
         node,
     ])

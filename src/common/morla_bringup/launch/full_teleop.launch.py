@@ -121,7 +121,7 @@ def _setup(context, *args, **kwargs):
     coordinator = []
     description_actions = []
     arm_contract_args = {}
-    quest_basis_id = "quest3_canonical_legacy_v1"
+    quest_basis_id = "unity_left_handed_v1"
     quest_kinematics_hash = ""
     quest_coordinate_version = 0
     if control_profile_id:
@@ -138,6 +138,12 @@ def _setup(context, *args, **kwargs):
                 f"control profile arms {sorted(profile_sides)} do not match arm_side {arm_side!r}"
             )
         coordinate_contract = build_coordinate_contract(profile.values)
+        if coordinate_contract.input_basis_id != "unity_left_handed_v1":
+            raise RuntimeError(
+                f"profile {control_profile_id!r} declares input_basis_id "
+                f"{coordinate_contract.input_basis_id!r}; the receiver emits raw "
+                "Unity, so profiles must declare unity_left_handed_v1"
+            )
         description_actions = profile_description_actions(profile)
         quest_basis_id = coordinate_contract.input_basis_id
         quest_kinematics_hash = coordinate_contract.kinematics_hash
@@ -381,6 +387,14 @@ def _setup(context, *args, **kwargs):
                     "retarget_backend": backend,
                     "hand_model": _opt(context, "hand_model") or "wuji_hand",
                     "wuji_lib_config_right": wuji_right,
+                    # Quest landmarks arrive raw Unity; the Wuji backend keeps
+                    # its historical canonical axes. Glove sources already use
+                    # the identity default.
+                    "input_basis": (
+                        "[-1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0]"
+                        if right_src == "quest3"
+                        else "[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]"
+                    ),
                 }.items(),
             )
         )

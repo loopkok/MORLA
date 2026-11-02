@@ -5,6 +5,10 @@ log/
 /build_*/
 /install_*/
 /log_*/
+# Timestamped backups taken before a rebuild (build.pre-<sha>/).
+/build.pre-*/
+/install.pre-*/
+/log.pre-*/
 CMakeFiles/
 
 # ==================== Python ====================

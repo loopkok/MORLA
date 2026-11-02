@@ -356,7 +356,9 @@ class MocapConfig:
     ema_alpha: float = 0.7
     landmark_preprocess: str = "raw"  # raw is the unified default; mano is diagnostics-only
     enable_xhand_pinky_adapt: bool = False
-    convert_to_robot: bool = True  # Unity LH → X left, Y back, Z up
+    # Raw Unity (X right, Y up, Z forward) is the default contract; true is a
+    # debug escape hatch that restores canonical (X left, Y back, Z up).
+    convert_to_robot: bool = False
     controller_as_wrist: bool = True
     viz: bool = False
     print_every: float = 1.0  # seconds; 0 = print every event
@@ -796,14 +798,11 @@ class Quest3MocapStandalone:
             if len(values) != 63:
                 return
             landmarks = np.array(values, dtype=float).reshape(21, 3)
+            # Default mode republishes raw Unity untouched: the retargeter
+            # declares its own Unity -> hand basis.
             if self.convert_to_robot:
-                mapped = unity_landmarks_to_robot(landmarks)
-            else:
-                mapped = np.zeros_like(landmarks)
-                mapped[:, 0] = -landmarks[:, 0]
-                mapped[:, 1] = landmarks[:, 1]
-                mapped[:, 2] = landmarks[:, 2]
-            processed = self.process_landmarks(mapped, side)
+                landmarks = unity_landmarks_to_robot(landmarks)
+            processed = self.process_landmarks(landmarks, side)
             smoothed = self._apply_ema(processed, side)
             msg = HandLandmarks(
                 points=smoothed,
@@ -1126,14 +1125,16 @@ def _parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         "--convert-to-robot",
         dest="convert_to_robot",
         action="store_true",
-        default=True,
-        help="Unity LH → robot axes (X left, Y back, Z up). Default: on.",
+        default=False,
+        help="Debug only: republish canonical axes (X left, Y back, Z up). "
+             "Default: raw Unity (X right, Y up, Z forward).",
     )
     p.add_argument(
         "--no-convert-to-robot",
         dest="convert_to_robot",
         action="store_false",
-        help="Keep Unity axes (landmarks only legacy X flip).",
+        default=False,
+        help="Republish raw Unity axes (default; poses and landmarks alike).",
     )
     p.add_argument(
         "--allow-legacy-packets", action="store_true",

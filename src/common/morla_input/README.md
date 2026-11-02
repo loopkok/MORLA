@@ -33,25 +33,31 @@ Quest3 VR 手部 / 手柄 / 头部 / IOBT 身体数据接收节点。支持 UDP 
 **下游（MORLA 工作空间）：**
 
 - **Astral 臂**：订 `quest3/{side}_wrist_pose`。默认 `controller_as_wrist:=true`，握柄时手柄位姿会写到同一话题，臂 IK 不用改。
-- **Wuji 手**：接收 `raw`（Unity→机器人轴、腕局部、21×3），由 `wujihand_retargeting` 执行自己的 MANO 映射。
+- **Wuji 手**：接收 raw Unity（腕局部 21×3），由 `wujihand_retargeting` 用自己声明的 Unity→手矩阵转换后执行 MANO 映射。
 - **XHand**：统一输入不做 MANO/手指补偿；`xhand_retargeting` 从 raw 恢复并执行旧 XNero MANO 与可选 `legacy_xhand_pinky` 兼容处理。
 
 `morla_input` 的 ROS 启动只发布 wrist-local raw landmarks；手型变换只由末端适配包负责。
 
 **坐标系：**
 
+接收器默认**原样输出 Unity 原始方向**（X 右、Y 上、Z 前；左手系），位姿、body 关节和
+21 点 landmarks 都不做轴变换。帧 id 以 `_unity` 结尾，表示内容就是 Unity 基。每个下游机器人
+（Astral / Nero / CR5 / 未来的机器人）在 Profile 或绑定里声明自己的 Unity→自身基矩阵。
+`convert_to_robot:=true` 只保留为调试/离线工具，显式恢复旧的 canonical 输出（帧 id 以
+`_canonical` 结尾；事件 `basis` 为 `quest3_canonical_legacy_v1`）。
+
 ```text
-IOBT 关：
-  quest3_tracking_world_canonical|quest3_tracking_world_unity
+IOBT 关（默认 convert_to_robot:=false）：
+  quest3_tracking_world_unity
    ├── head                 ← quest3/head_pose
    └── wrist | controller   ← quest3/{side}_wrist_pose（手柄默认也写这里）
-        └── landmarks       ← hand_landmarks/{side}（腕局部 robot axes + raw + EMA）
+        └── landmarks       ← hand_landmarks/{side}（腕局部 Unity + raw + EMA）
 
 IOBT 开（Quest 已把头/手/手柄及 body 关节变到 hips 躯干系；hips 仍为世界系）：
-  quest3_tracking_world_canonical|quest3_tracking_world_unity
+  quest3_tracking_world_unity
    └── hips                 ← quest3/hips_pose（人在房间里的位置）
-  quest3_operator_body_canonical|quest3_operator_body_unity ← hips 为原点
-   ├── head / wrist|controller / body_joints   ← 均已 hips 相对，本节点只做轴约定转换
+  quest3_operator_body_unity ← hips 为原点
+   ├── head / wrist|controller / body_joints   ← 均已 hips 相对，基仍是 Unity
    └── landmarks            ← 仍是腕局部
 ```
 
@@ -62,15 +68,17 @@ IOBT 开（Quest 已把头/手/手柄及 body 关节变到 hips 躯干系；hips
 
 `quest3_operator_body_*` 是操作者 hips 参考系，不是机器人本体。遥操作把其中的增量经 Profile 坐标契约映射到机器人安装/求解器坐标系；IOBT 开启后手腕相对操作者躯干，走路不会把整条臂拖走。
 
-**Unity → 机器人轴（`convert_to_robot:=true` 时）：**
+**canonical 基（仅 `convert_to_robot:=true` 的调试路径）：**
 
-| Unity (LH) | 机器人 |
-|------------|--------|
+| Unity (LH) | canonical |
+|------------|-----------|
 | X 右 | **X 左** = `-X_u` |
 | Y 上 | **Z 上** = `Y_u` |
 | Z 前 | **Y 后** = `-Z_u` |
 
-即 \((x,y,z)_r = (-x_u,\ -z_u,\ y_u)\)，姿态用 \(R_r = M R_u M^\top\)。
+即 \((x,y,z)_c = (-x_u,\ -z_u,\ y_u)\)，姿态用 \(R_c = M R_u M^\top\)，其中
+\(M = \begin{bmatrix}-1&0&0\\0&0&-1\\0&1&0\end{bmatrix}\)，det −1。这是基变换，不是 TF；
+canonical 从来只是 Astral 的历史约定，接收器默认不再输出它。
 
 > 建议 HTS 开启 head tracking（若要用头控底盘）；腕不再依赖 head，无 head 也可发腕。
 
@@ -107,10 +115,10 @@ challenge/response 自动估算 Quest 与 PC 单调时钟偏移。UDP/TCP 共用
 
 | 数据 | VR 原始 | 本节点处理 | 最终 `frame_id` |
 |------|---------|------------|-----------------|
-| hips | Unity 世界（Quest 已重定向为躯干系朝向） | 可选 Unity→canonical Quest basis | `quest3_tracking_world_*` |
-| body joints | Quest 已转 hips 相对（非 hips 关节） | 可选 Unity→canonical Quest basis（不再做 pose_in_parent_frame） | `quest3_operator_body_*` |
-| head / wrist / controller | IOBT 关：世界；开：hips 系（Quest 已转） | 可选 Unity→canonical Quest basis | 关=`quest3_tracking_world_*`；开=`quest3_operator_body_*` |
-| landmarks | Unity 腕局部 21×3 | Unity→机器人轴、wrist-local raw、EMA | `hand_{side}` |
+| hips | Unity 世界（Quest 已重定向为躯干系朝向） | 默认原样；调试时可选 Unity→canonical | `quest3_tracking_world_unity` |
+| body joints | Quest 已转 hips 相对（非 hips 关节） | 默认原样（不再做 pose_in_parent_frame）；调试时可选 Unity→canonical | `quest3_operator_body_unity` |
+| head / wrist / controller | IOBT 关：世界；开：hips 系（Quest 已转） | 默认原样；调试时可选 Unity→canonical | 关=`quest3_tracking_world_unity`；开=`quest3_operator_body_unity` |
+| landmarks | Unity 腕局部 21×3 | 默认原样（腕居中 raw + EMA）；调试时可选 Unity→canonical | `hand_{side}` |
 
 ## 数据流
 
@@ -173,7 +181,8 @@ buttons（6 位 mask，0/1）：`[primary(X/A), secondary(Y/B), stickPress, menu
 | `viz` | `true` | RViz markers |
 | `landmark_preprocess` | `raw` | ROS 接收器只输出 raw；MANO 由机器人末端包处理 |
 | `allow_legacy_packets` | `false` | 明确兼容旧 Quest APK；关闭包时效/序号/session 防护 |
-| `convert_to_robot` | `true` | `true`：Unity→机器人轴（X左 Y后 Z上）；`false`：保留 Unity 轴（landmarks 仅旧版翻 X） |
+| `convert_to_robot` | `false` | `false`：输出 raw Unity（契约）；`true`：调试用，恢复 canonical（X左 Y后 Z上） |
+| `coordinate_basis_id` | `unity_left_handed_v1` | 事件行声明的输入基；与 `convert_to_robot` 必须一致（true 时只能是 `quest3_canonical_legacy_v1`） |
 | `controller_as_wrist` | `true` | 手柄 6DoF 同时写到 `quest3/{side}_wrist_pose`，臂 IK 跟柄 |
 
 Wuji 与 XHand 可从同一个 Quest 输入并行接收不同侧数据；profile 选择 landmark 来源与末端类型，
@@ -191,20 +200,19 @@ ros2 run morla_input quest3_udp_mocap --ros-args -p arm_side:=both -p protocol:=
 ros2 run morla_input quest3_udp_mocap --ros-args \
   -p arm_side:=both -p protocol:=tcp_wired
 
-# Wuji 兼容
+# 默认：raw Unity 输出（机器人各自声明 Unity→自身基矩阵）
 ros2 run morla_input quest3_udp_mocap --ros-args \
   -p arm_side:=both -p protocol:=tcp_wired \
-  -p landmark_preprocess:=raw \
-  -p convert_to_robot:=true
+  -p landmark_preprocess:=raw
 
-# 关闭机器人轴转换（保持 Unity 轴）
+# 调试：恢复旧的 canonical 输出（不参与正常遥操作）
 ros2 run morla_input quest3_udp_mocap --ros-args \
-  -p arm_side:=both -p protocol:=tcp_wired -p convert_to_robot:=false
+  -p arm_side:=both -p protocol:=tcp_wired -p convert_to_robot:=true
 ```
 
 ### 无 ROS 独立脚本
 
-与本包处理链路一致（含可选 Unity→机器人轴），不依赖 `rclpy`。仅需 `numpy`；`--viz` 可选 `matplotlib`。
+与本包处理链路一致（默认 raw Unity，`--convert-to-robot` 仅调试），不依赖 `rclpy`。仅需 `numpy`；`--viz` 可选 `matplotlib`。
 
 先准备 TCP 有线：
 
@@ -213,7 +221,7 @@ adb reverse tcp:8000 tcp:8000
 # HTS：TCP + localhost:8000，开启 head tracking
 ```
 
-**推荐：TCP 有线 + Wuji(raw) + 机器人轴转换 + 可视化 + 落盘**
+**推荐：TCP 有线 + Wuji(raw Unity) + 可视化 + 落盘**
 
 ```bash
 cd /home/robot/loopkok/quest3/morla_input
@@ -221,21 +229,18 @@ python3 scripts/quest3_mocap_standalone.py \
   --protocol tcp_wired \
   --arm-side both \
   --landmark-preprocess raw \
-  --convert-to-robot \
   --viz \
   --jsonl /tmp/mocap.jsonl
 ```
 
-关闭轴转换时加 `--no-convert-to-robot`。
-
 其他示例：
 
 ```bash
-# 仅 TCP 有线打印（默认已开启 convert_to_robot）
+# 仅 TCP 有线打印（默认 raw Unity）
 python3 scripts/quest3_mocap_standalone.py --protocol tcp_wired --arm-side both
 
-# 保持 Unity 轴
-python3 scripts/quest3_mocap_standalone.py --protocol tcp_wired --no-convert-to-robot
+# 调试：恢复旧 canonical 输出
+python3 scripts/quest3_mocap_standalone.py --protocol tcp_wired --convert-to-robot
 
 # UDP + 可视化
 python3 scripts/quest3_mocap_standalone.py --protocol udp --port 9000 --viz
@@ -253,6 +258,17 @@ rx.start()
 rx.stop()
 ```
 
+### 离线监听已有姿态流
+
+[scripts/quest3_pose_listener.py](../../../scripts/quest3_pose_listener.py) 只读订阅一个已经在跑的接收器（不连头显、不建 TCP），用于分析输入质量。它按 `quest3/input_mix` 标出手柄/裸手窗口，落 `samples.jsonl`、`events.jsonl`、`summary.json`，并统计每路到达率与间隔分位、`{side}_wrist_pose` 与 `{side}_controller_pose` 的镜像一致性（接收器开 `controller_as_wrist` 时两者相同），以及按运动段拟合跟踪点相对腕部的旋转杠杆臂 `Δp=(R₁−R₀)·r_local`。需要和接收器同一个 ROS 域（本机台架是 `ROS_DOMAIN_ID=91`、`ROS_LOCALHOST_ONLY=1`）。
+
+```bash
+export ROS_DOMAIN_ID=91 ROS_LOCALHOST_ONLY=1
+source /opt/ros/humble/setup.bash && source install/setup.bash
+/usr/bin/python3 scripts/quest3_pose_listener.py --side right --duration 120
+# 默认输出 ~/quest3_capture/<时间戳>/；--landmarks 同时记录 hand_landmarks/<side>
+```
+
 ## 在系统中的位置
 
 ```text
@@ -268,6 +284,7 @@ quest3_udp_mocap
 
 | 日期 | 项 | 说明 |
 |------|----|------|
+| 2026-11-02 | 回归 Unity 基准 | 默认 `convert_to_robot: false`：位姿、body 关节与 21 点 landmarks 全部原样输出 Unity，帧 id 改 `_unity`，landmark 的 X-only 翻转删除；事件行升到 `version: 2` 并带必填 `basis`。Unity→自身基矩阵由每台机器人声明 |
 | 2026-10-12 | Quest 包时效 | ROS 接收端与独立脚本共用 session/sequence/UTC 时间戳检查，默认拒绝旧 APK 的无包头数据；TCP 行缓冲限长 |
 | 2026-08-26 | 手柄按键流 | 解析 Quest 端新增 `{side} buttons:` 行 → `sensor_msgs/Joy`，发布 `quest3/{side}_controller_joy`（axes=[trigger,grip,stickX,stickY]，buttons=[primary,secondary,stickPress,menu,triggerClick,gripClick]），`package.xml` 增 `sensor_msgs` 依赖 |
 | 2026-08-25 | IOBT 帧稳定 | sticky latch（见过 body 包即不回退世界系）+ hold gate（启动后 head/wrist/controller 在帧确定前不发布，`_WRIST_SETTLE_S=1.0`），从源头消除 `frame_id` 在 `robot_world`↔`robot_body` 间切换，修复下游 `astral_arm_teleop` 跨系做 delta 导致的 IK 失败；独立脚本同步 sticky latch |
@@ -278,10 +295,12 @@ quest3_udp_mocap
 | 2026-08 | convert_to_robot | 启动可选 Unity→机器人轴 |
 详见顶层 [README](../../../README.md) 与 [CHANGELOG.md](../../../CHANGELOG.md)。
 
-## 来源明确的右侧遥操输入（2026-10-29）
+## 来源明确的双手遥操输入（2026-11-01）
 
-可选参数 `publish_teleop_events:=true` 在 `/quest3/right_teleop_events` 输出 v1 JSON 事件，包含 side/source/kind、接收器 epoch、递增 sequence、host wall sent_ns、frame_id 和 values。pose 明确来自 controller 或 hand；grip 来自控制器，landmarks 来自当前原始 canonical 21 点，不使用历史 EMA。默认关闭，原腕/手柄/关键点话题保持原接口。
+可选参数 `publish_teleop_events:=true` 在 `/quest3/{left,right}_teleop_events` 按手输出 v2 JSON 事件，包含 side/source/kind、接收器 epoch、每手递增 sequence、host wall sent_ns、frame_id、values 和必填 `basis`。pose 明确来自 controller 或 hand；grip/trigger 来自控制器，landmarks 来自当前原始 Unity 21 点，不使用历史 EMA。v1 行会被显式拒绝，不会静默按新基解释。未开启时两侧事件话题都不发布，腕/手柄/关键点标准话题仍保持原接口。
 
-新增静态组件 `morla.input.quest_right`，ROS 输入宿主使用 `QuestRightSource` 产生 `right_pose/right_hold`。右握把或右手拇指/食指捏合充当 deadman；来源/epoch/frame 改变、过期、重连均要求重新释放/按下。旧手柄按键不能在手追踪模式下授权；腕和 deadman 独立限龄。该输入不绑定任何机器人型号。
+静态组件 `morla.input.quest` 覆盖双手，用实例参数 `side: left|right|both`（默认 `both`）选择本实例接受哪只手；ROS 输入宿主用 `QuestEventSource` 产生 `{side}_pose/{side}_hold/{side}_grip/{side}_scalar/{side}_landmarks`，外加兼容的 `scalar`（右手，或只选左手时的左手）。没有按手区分的独立插件：同一实例既能只控制右臂，也能双臂同时接入。握把（手柄模式）或拇指/食指捏合（手部追踪模式）充当 deadman；来源/epoch/frame 改变、过期、重连均要求重新释放/按下；一手切换手柄/裸手只重建该手的锚点，不打断另一手。旧手柄按键不能在手追踪模式下授权；腕和 deadman 独立限龄。摇杆不经过事件流，仍订阅 `quest3/{side}_controller_joy`，只填 `{side}_axes`/`axes`。该输入不绑定任何机器人型号。
+
+托管进程按同一 `side` 参数传 `arm_side:=left|right|both`；`process_mode: external` 时必须自行保证接收器带 `publish_teleop_events`。
 
 CR5 的启动、fake 演练与现场配置见 [CR5 VR 指南](../../../docs/integrations/cr5_vr.md)。

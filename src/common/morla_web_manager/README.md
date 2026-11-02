@@ -8,6 +8,10 @@ scalar_map 支持比例或米制单自由度目标；pinch_filtered/trigger_filt
 
 Web stop 会关闭输入管理器；UR11 的“ROS stop 后输入到宿主退出才回收”属于无 Web 网关差异。旧 Profile/钢琴入口仍为独立兼容流程；不要把旧路由状态当成组合会话状态。
 
+无参数脚本 `tools/start_morla_web.sh`（桌面图标「MORLA 控制台」）只启动本页面，所有组合与会话在「组合配置」里完成。
+
+「组合配置」实例区按 输入设备 / 机器人本体与执行器 / 传感器与相机 三个板块组织：选择组件即可自动命名并添加，运行后端、安装侧、角色和输入采集进程都在实例卡片内调整；绑定、采集投影与部署 JSON 分层折叠。底部汇总「校验并预览 → 保存下一版本 → 启动已保存版本」，任何修改都会使已校验结果与可启动状态失效；已有运行会话时不允许重复启动。急停与停止会话需二次确认。
+
 测试入口：[主机手册](../../../docs/testing/host_build_and_hardware_acceptance.md)、[报告模板](../../../docs/testing/host_acceptance_report_template.md)；软件与未测项见[实现记录](../../../docs/architecture_refactor/UNIFIED_IMPLEMENTATION.md)。
 
 
@@ -117,4 +121,4 @@ Nero 的工作位 → HOME → 工作位可在同一次位置控制许可内连�
 
 ### CR5 MuJoCo 调试
 
-统一 Web 的「组合配置」提供「加载 CR5 MuJoCo 仿真」模板，包含 CR5 sim、Quest 输入和场景相机。预览、保存并启动后可查看实时 MuJoCo 画面；显式连接输入、激活后使用现有本地 IK 控制链路。页面重新打开会恢复当前会话及其保存配置。`GET /api/v2/templates/cr5-sim` 返回受信任的包内模板；`GET /api/v2/sessions/{session_id}/cameras/{camera_id}/frame` 返回最新 JPEG，未生成帧时为 503，未知/非相机为 404。配置与启动说明见 [CR5 包说明](../../robots/dobot/morla_cr5_driver/README.md#cr5-mujoco-仿真与-web)。
+组合配置不再提供 CR5 专用快捷按钮；CR5 sim 模板从「打开已保存配置 → vader5_cr5_sim」恢复，或通过 `GET /api/v2/templates/cr5-sim` 取得包内模板后导入。模板包含 CR5 sim、Quest 输入和场景相机。预览、保存并启动后可查看实时 MuJoCo 画面；显式连接输入、激活后使用现有本地 IK 控制链路。页面重新打开会恢复当前会话及其保存配置。`GET /api/v2/sessions/{session_id}/cameras/{camera_id}/frame` 返回最新 JPEG，未生成帧时为 503，未知/非相机为 404；`GET /api/v2/sessions/{session_id}/cameras/{camera_id}/stream` 以 `multipart/x-mixed-replace` 推流（按 `(source_ns, sample_ns)` 去重，约 30 fps，会话结束自动断开），页面预览用它而不是轮询 `frame`。仿真相机可交互调整视角：`POST /api/v2/sessions/{session_id}/cameras/{camera_id}/view`，体 `{action: orbit|pan|zoom|reset, dx, dy}`，`dx/dy` 为指针位移像素（滚轮用 `dy`，向下为正=拉远）；相机移动排队在渲染线程执行，不阻塞 JPEG 编码。预览图左键拖动旋转、右键或 Shift 拖动平移、滚轮缩放，「复位视角」回到配置相机的位置。真机相机没有 `view`，返回 400；非相机实例返回 404。配置与启动说明见 [CR5 包说明](../../robots/dobot/morla_cr5_driver/README.md#cr5-mujoco-仿真与-web)。

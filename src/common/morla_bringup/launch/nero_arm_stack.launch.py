@@ -37,6 +37,12 @@ def _setup(context, *args, **kwargs):
         raise RuntimeError(f"profile_id {profile_id!r} has no enabled Nero arm")
     sides = sorted({component["side"] for component in arms})
     coordinate_contract = build_coordinate_contract(profile.values)
+    if coordinate_contract.input_basis_id != "unity_left_handed_v1":
+        raise RuntimeError(
+            f"profile_id {profile_id!r} declares input_basis_id "
+            f"{coordinate_contract.input_basis_id!r}; the receiver emits raw Unity, "
+            "so Nero profiles must declare unity_left_handed_v1"
+        )
 
     input_nodes = []
     if LaunchConfiguration("with_input").perform(context).lower() in ("true", "1", "yes"):

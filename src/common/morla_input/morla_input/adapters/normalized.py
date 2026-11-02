@@ -34,6 +34,7 @@ class InputFrame:
     valid: bool = True
     port_metadata: dict | None = None
     synthetic: bool = False
+    input_basis_id: str | None = None
 
 
 class InputStream:
@@ -55,7 +56,8 @@ class InputStream:
         self.connected = False
         self.latest = None
 
-    def accept(self, ports, sequence, *, epoch, frame_id="input", source_time_ns=None):
+    def accept(self, ports, sequence, *, epoch, frame_id="input", source_time_ns=None,
+               input_basis_id=None):
         if not self.connected or epoch != self.epoch:
             raise InputError("unknown or retired input epoch")
         if type(sequence) is not int or sequence <= self.sequence:
@@ -64,6 +66,9 @@ class InputStream:
             raise InputError("invalid input payload")
         if not isinstance(frame_id, str) or not 1 <= len(frame_id) <= 128:
             raise InputError("invalid frame identity")
+        if input_basis_id is not None and (not isinstance(input_basis_id, str)
+                                           or not 1 <= len(input_basis_id) <= 64):
+            raise InputError("invalid input basis id")
         now = self.clock()
         # A remote client clock is deliberately not compared to the host clock.
         # Its clock-domain sample is metadata; local arrival drives the watchdog.
@@ -71,7 +76,8 @@ class InputStream:
             raise InputError("invalid source time")
         self.sequence = sequence
         self.latest = InputFrame(self.source_id, epoch, sequence, now, frame_id,
-                                 deepcopy(ports), source_time_ns)
+                                 deepcopy(ports), source_time_ns,
+                                 input_basis_id=input_basis_id)
         return self.latest
 
     def read(self):

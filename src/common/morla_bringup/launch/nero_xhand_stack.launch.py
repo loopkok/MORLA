@@ -37,6 +37,12 @@ def _setup(context, *args, **kwargs):
     arms = [item for item in components if item.get("type") == "nero_arm"]
     hands = [item for item in components if item.get("type") == "xhand"]
     coordinate_contract = build_coordinate_contract(profile.values)
+    if coordinate_contract.input_basis_id != "unity_left_handed_v1":
+        raise RuntimeError(
+            f"profile_id {profile_id!r} declares input_basis_id "
+            f"{coordinate_contract.input_basis_id!r}; the receiver emits raw Unity, "
+            "so Nero profiles must declare unity_left_handed_v1"
+        )
     if not arms and not hands:
         raise RuntimeError(f"profile {profile_id!r} has no enabled Nero/XHand components")
 
@@ -212,6 +218,10 @@ def _setup(context, *args, **kwargs):
                     "retarget_config_file": retarget_config,
                     "description_model_id": item.get("description_model_id", f"xhand_{side}"),
                     "preprocess_mode": compatibility.get("preprocess_mode", "legacy_xhand_pinky"),
+                    # Raw Unity landmarks -> the legacy XNero X flip. This is
+                    # also the node default; spelled out so the Quest contract
+                    # is visible where the hand is wired.
+                    "input_basis": [-1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0],
                     "index_bend_sign": float(compatibility.get("index_bend_right_sign",
                                                                    compatibility.get("index_bend_sign", 1.0))),
                     "joint_lower_limits": lower_limits,

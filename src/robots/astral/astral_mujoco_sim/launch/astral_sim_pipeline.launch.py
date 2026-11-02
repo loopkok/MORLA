@@ -74,7 +74,7 @@ def _launch_setup(context, *args, **kwargs):
     description_actions = []
     profile_hands = []
     profile_has_head = True
-    quest_basis_id = "quest3_canonical_legacy_v1"
+    quest_basis_id = "unity_left_handed_v1"
     quest_kinematics_hash = ""
     quest_coordinate_version = 0
     side_coordinate_extra = {}
@@ -102,6 +102,12 @@ def _launch_setup(context, *args, **kwargs):
                 "Wuji Hand is supported as a simulated dexterous hand"
             )
         coordinate_contract = build_coordinate_contract(profile.values)
+        if coordinate_contract.input_basis_id != "unity_left_handed_v1":
+            raise RuntimeError(
+                f"profile {control_profile_id!r} declares input_basis_id "
+                f"{coordinate_contract.input_basis_id!r}; the receiver emits raw "
+                "Unity, so profiles must declare unity_left_handed_v1"
+            )
         description_actions = profile_description_actions(profile)
         quest_basis_id = coordinate_contract.input_basis_id
         quest_kinematics_hash = coordinate_contract.kinematics_hash
@@ -271,6 +277,9 @@ def _launch_setup(context, *args, **kwargs):
                     f"dexpilot_urdf_{side}": urdf_path,
                     "smoothing_alpha": 0.7,
                     "max_joint_rate": 1.5,
+                    # Quest landmarks are raw Unity; this backend's historical
+                    # convention is canonical, i.e. M applied to Unity.
+                    "input_basis": [-1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0],
                 }],
             ),
             Node(

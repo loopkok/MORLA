@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Astral robot_world → base_link mapping + PoseProcessor / TCP checks.
+"""Astral Unity → base_link mapping + PoseProcessor / TCP checks.
 
-Unlike Nero (per-arm vr_to_arm_rot), Astral default map is identity because
-Quest3 already publishes robot_world aligned with Astral axes.
+The helper checks below run the per-side mapping in the legacy canonical frame
+(``vr_to_arm_rot = I``), which is what the mathematical checks are written in.
+The shipped profile declares ``M`` (Unity → legacy canonical) for both arms;
+the full Unity-side behaviour is covered by
+``src/common/morla_input/test/test_nero_coordinate_equivalence.py``.
 
 Usage:
   ros2 run astral_arm_teleop test_vr_mapping
@@ -88,7 +91,7 @@ def test_tcp_roundtrip() -> bool:
     return ok
 
 
-def test_e2e_ik(side: str) -> bool:
+def _e2e_ik(side: str) -> bool:
     print("\n" + "=" * 60)
     print(f"TEST: e2e VR delta → IK → FK ({side}, urdf_numerical)")
     print("=" * 60)
@@ -139,8 +142,8 @@ def main():
         "identity_axes": test_identity_axes(),
         "pose_processor": test_pose_processor_delta(),
         "tcp_roundtrip": test_tcp_roundtrip(),
-        "e2e_left": test_e2e_ik("left"),
-        "e2e_right": test_e2e_ik("right"),
+        "e2e_left": _e2e_ik("left"),
+        "e2e_right": _e2e_ik("right"),
     }
     print("\n" + "=" * 60)
     print("SUMMARY")

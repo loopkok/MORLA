@@ -1,5 +1,6 @@
 """Explicit IK/controller adapters around the established MORLA solvers."""
 from __future__ import annotations
+import inspect
 import time
 import numpy as np
 from .controllers import ControllerError
@@ -18,18 +19,47 @@ def solver_for(instance):
 class CartesianController:
     def __init__(self,solver,*,jog=False,clock=time.monotonic_ns,max_solve_ns=50_000_000):
         self.solver,self.jog,self.clock,self.max_solve_ns=solver,jog,clock,max_solve_ns
+        # Nero/Astral analytic solvers keep a continuity branch across solves.
+        # Resetting it every tick turns each frame into a full cold search
+        # (~100 ms) and makes the 50 Hz input queue go stale. Only reset the
+        # branch on the first solve after an anchor/gap; later ticks warm-start.
+        try:
+            self._warm_sync='reset_branch' in inspect.signature(solver.sync_state).parameters
+        except (TypeError,ValueError):
+            self._warm_sync=False
         self.reset()
 
     def reset(self):
         self.anchor_input=None; self.anchor_robot=None
+        # Jog integrates on a commanded pose kept across ticks, never on the
+        # measured pose: anchoring on the measurement would fold the servo's
+        # gravity droop into the next command, so the arm would sink while a
+        # stick is held and stay sunk after release.
+        self.jog_target=None
+        # Jog directions that hit an unreachable target. Retrying them costs a
+        # ~120 ms failed solve per frame, so they stay masked until released.
+        self.jog_blocked=None
+        self._synced=False
 
     def __call__(self,value,measured,dt,parameters):
         from scipy.spatial.transform import Rotation
-        rotation=np.asarray(parameters.get('input_rotation',np.eye(3)),dtype=float).reshape(3,3)
-        if not np.isfinite(rotation).all() or not np.allclose(rotation.T@rotation,np.eye(3),atol=1e-8) or not np.isclose(np.linalg.det(rotation),1):
-            raise ControllerError('input rotation must be a proper calibrated rotation')
+        from morla_core.coordinates import validate_basis_change
+        # Raw-Unity input is left-handed, so the calibrated alignment is a basis
+        # change with det -1. It only ever maps increments (and their rotation
+        # conjugation stays proper), so accepting the reflection is safe here.
+        try:
+            rotation=validate_basis_change(
+                np.asarray(parameters.get('input_rotation',np.eye(3)),dtype=float).reshape(3,3))
+        except ValueError as exc:
+            raise ControllerError('input rotation must be an orthonormal basis change: '+str(exc)) from exc
         seed=np.asarray(measured,dtype=float)
-        self.solver.sync_state(seed)
+        if not self._synced:
+            self.solver.sync_state(seed)
+            self._synced=True
+        elif self._warm_sync:
+            self.solver.sync_state(seed,reset_branch=False)
+        else:
+            self.solver.sync_state(seed)
         tool=np.asarray(parameters.get('solver_tip_from_tool',np.eye(4)),dtype=float).reshape(4,4)
         from morla_core.coordinates import validate_transform
         validate_transform(tool)
@@ -46,9 +76,25 @@ class CartesianController:
                 axes.append(value[key] if key is not None else 0.0)
             axes=np.asarray(axes,dtype=float)
             if not np.isfinite(axes).all() or np.any(np.abs(axes)>1): raise ControllerError('invalid jog axis')
+            if self.jog_blocked is not None:
+                # A rejected analytic solve scans every arm-angle candidate
+                # (~120 ms, vs ~5 ms for a warm solve), so re-attempting the
+                # same wall at input rate starves the whole chain. Keep the
+                # blocked directions out of the target until the operator
+                # pulls the stick back, which clears them.
+                if np.any(axes*self.jog_blocked<0):
+                    self.jog_blocked=None
+                else:
+                    axes=np.where(axes*self.jog_blocked>0,0.0,axes)
             speed=float(parameters.get('linear_speed',0.08)); angular=float(parameters.get('angular_speed',0.3))
-            target=current.copy(); target[:3,3]+=rotation@axes[:3]*speed*dt
-            target[:3,:3]=Rotation.from_rotvec(rotation@axes[3:]*angular*dt).as_matrix()@current[:3,:3]
+            if self.jog_target is None:
+                self.jog_target=current.copy()
+            # Integrate into a candidate and commit only after a successful
+            # solve: a refused step must not wind the target further out.
+            target=self.jog_target.copy()
+            if np.any(axes):
+                target[:3,3]+=rotation@axes[:3]*speed*dt
+                target[:3,:3]=Rotation.from_rotvec(rotation@axes[3:]*angular*dt).as_matrix()@target[:3,:3]
         else:
             if not isinstance(value,dict): raise ControllerError('pose requires position/quaternion')
             position=np.asarray(value['position'],dtype=float); quat=np.asarray(value['quaternion'],dtype=float)
@@ -66,9 +112,17 @@ class CartesianController:
         # Tool offsets must already be resolved and versioned by the compiler.
         target_tip=target@np.linalg.inv(tool)
         result=self.solver.solve(target_tip)
-        if result is None: raise ControllerError('IK unreachable or limit failure')
+        if result is None:
+            # Both legacy teleop loops (nero/astral) skip the tick and stay
+            # armed on an unreachable pose. Raising here let one reach/limit
+            # event revoke the composable session. Dropping the frame keeps
+            # the last feasible jog target, so reversing the stick resumes
+            # immediately instead of requiring prepare/activate again.
+            if self.jog: self.jog_blocked=axes.copy()
+            return None
         result=np.asarray(result,dtype=float)
         if result.shape!=seed.shape or not np.isfinite(result).all(): raise ControllerError('invalid IK result')
+        if self.jog: self.jog_target=target
         return result.tolist()
 
 

@@ -2,109 +2,277 @@
   {
     "profile_id": "astral_dual_gripper",
     "source_path": "src/robots/astral/morla_astral_robot/config/profiles/astral_dual_gripper.yaml",
-    "source_sha256": "536c314afde7b99caf84d53e05a0d6c06ecf5b8519d5b6de284d16084e0d7ba7",
-    "schema_hash": "2e9df65346e227c9363ba61d1e6118bd16ebc58808a56cec4291b7c98c986133",
+    "source_sha256": "0252d54a3194aa938b4345dbd7ff2153c467ca400c9fd2d930ba63e0e6db0b82",
+    "schema_hash": "bb0d986813bb9580a1f72c06d9aa4939436727067c3491ef91a2ae13445c88ab",
     "layout_hash": "73ebff5be09c77493b2d86a3f9021d347bb2625f6574ffe9424d4ea2059bd836",
     "state_dim": 16,
-    "action_dim": 16
+    "action_dim": 16,
+    "kinematics_hash": "537f3cef391f66204a9f18273e0a8913c7b33027b72f0e088eee63b58c3dceb7",
+    "input_basis_id": "unity_left_handed_v1",
+    "input_rotation_to_robot_body": [
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    "migrated_from": "quest3_canonical_legacy_v1"
   },
   {
     "profile_id": "astral_dual_gripper_wuji",
     "source_path": "src/robots/astral/morla_astral_robot/config/profiles/astral_dual_gripper_wuji.yaml",
-    "source_sha256": "8695abd2a0a67118201819f0d640fa9c4ddcca7988a504c50d74d72bb1e46be5",
-    "schema_hash": "92c10ecf618f051617690b94fcb6f691b20ce7c84c80e1a8022883880c97e65c",
+    "source_sha256": "9b7a9b4e4eb335993eea1a87e8ae8b35c733c249829ffd65fa4114d2bc79bc8b",
+    "schema_hash": "a886d75644cc06d4850e2cc9d5dcc816469374c95844e49070fa3958ee2452a0",
     "layout_hash": "da300e1d50c2098d7957c0918071d50eb197b51c7aa7de4c62e2a7f6ce9d431e",
     "state_dim": 35,
-    "action_dim": 35
+    "action_dim": 35,
+    "kinematics_hash": "dd8e6d4405f013f52f5abe52701a5a699e0e0269faf961b2c0f716f4403e5a4c",
+    "input_basis_id": "unity_left_handed_v1",
+    "input_rotation_to_robot_body": [
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    "migrated_from": "quest3_canonical_legacy_v1"
   },
   {
     "profile_id": "astral_dual_wuji",
     "source_path": "src/robots/astral/morla_astral_robot/config/profiles/astral_dual_wuji.yaml",
-    "source_sha256": "b275b166335de03dea2db720b95f753b63d6e36336129338d2ba65587ea61b2f",
-    "schema_hash": "258efd249153152598a91f8455f96856fdbfa44c57e39be45a96cf52eeca9d67",
+    "source_sha256": "284c8590e07bb65e5f6c8d3de126b34a16dd228e28c0ca2ba8bc58904479fb3d",
+    "schema_hash": "025c82f271b3dbd25128588cb140d0a0271329cd9c4df84477d406c2ce52281f",
     "layout_hash": "b97f29add4521570939058c8b60ff97c12e30c651a80218a00d44c8add11d656",
     "state_dim": 54,
-    "action_dim": 54
+    "action_dim": 54,
+    "kinematics_hash": "defb73ef6ead4c0e845815a2209e37ce58a9094f4132ac17c7899056151d5234",
+    "input_basis_id": "unity_left_handed_v1",
+    "input_rotation_to_robot_body": [
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    "migrated_from": "quest3_canonical_legacy_v1"
   },
   {
     "profile_id": "astral_left_gripper",
     "source_path": "src/robots/astral/morla_astral_robot/config/profiles/astral_left_gripper.yaml",
-    "source_sha256": "a12b45cda27bca7f32e01c353d2a04dabefbd7032b72a3357c130c95558ece28",
-    "schema_hash": "5d60f679988e24dbd607eea86ceabf0d24b1417998b9b3f2e01c14628b5355d6",
+    "source_sha256": "a68cab59c2d77fefa915885c4d8c89475d33b057bb522c66ef1bbaf4368d5a8c",
+    "schema_hash": "8718fc6f16bd4b182da9e7e1a7d06cba551391de6c8478057752fa091685a985",
     "layout_hash": "1cc062d70ffbdb8e3a760b68bebc364fb79879c7d1146d96f409f421305638bf",
     "state_dim": 8,
-    "action_dim": 8
+    "action_dim": 8,
+    "kinematics_hash": "f92244b42b9f47e0e4745cfc30fb94e95cc18b60f9bdb62a323b748a802bae5a",
+    "input_basis_id": "unity_left_handed_v1",
+    "input_rotation_to_robot_body": [
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    "migrated_from": "quest3_canonical_legacy_v1"
   },
   {
     "profile_id": "astral_left_gripper_3cam",
     "source_path": "src/robots/astral/morla_astral_robot/config/profiles/astral_left_gripper_3cam.yaml",
-    "source_sha256": "7748b54dc5417664d7a53412a0b364075201518028f408f7d3ad0a17238f168a",
-    "schema_hash": "ef548f81cc1bf34c1a825958d2dff9c318281318ea70ba3c105a1da93d9867f0",
+    "source_sha256": "9618878102c68469c9f8cbbad823b9b2955fe6431d2fbb464930696916bc689f",
+    "schema_hash": "cf0474c02b4935408516e5ce8330fbd917d6e79c18294faa9bd57df7afdf1442",
     "layout_hash": "675fe5d7a1a9dd371d96277591766f381395402e400bd99297c2ccc4fda498a6",
     "state_dim": 8,
-    "action_dim": 8
+    "action_dim": 8,
+    "kinematics_hash": "f92244b42b9f47e0e4745cfc30fb94e95cc18b60f9bdb62a323b748a802bae5a",
+    "input_basis_id": "unity_left_handed_v1",
+    "input_rotation_to_robot_body": [
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    "migrated_from": "quest3_canonical_legacy_v1"
   },
   {
     "profile_id": "astral_left_wuji",
     "source_path": "src/robots/astral/morla_astral_robot/config/profiles/astral_left_wuji.yaml",
-    "source_sha256": "9a101662331abd9a31e23a85931c7c1a6b85705233a9128ea28f4358277b807b",
-    "schema_hash": "f1ebce83597ce3140048011b568bf37ae996e2bdbf2c6ed4e03f141f1a2f7e82",
+    "source_sha256": "5a18cc6378644a0ea40b43957a6ba1bbfcf7d339f215c57d76442b2f6183c66b",
+    "schema_hash": "f2f9425e4e85630d7d60fd8763e03e28e317058c96e48c57da8ac4db28182ef1",
     "layout_hash": "046c703fa2b72de19963fc110bb53f13b3a7f3b8a96283cccf7d8f4dcb68e642",
     "state_dim": 27,
-    "action_dim": 27
+    "action_dim": 27,
+    "kinematics_hash": "c087fe8e78a0dacf6a78abcbf15d9ec1300aece803edec2822982331399e3ed3",
+    "input_basis_id": "unity_left_handed_v1",
+    "input_rotation_to_robot_body": [
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    "migrated_from": "quest3_canonical_legacy_v1"
   },
   {
     "profile_id": "astral_right_gripper",
     "source_path": "src/robots/astral/morla_astral_robot/config/profiles/astral_right_gripper.yaml",
-    "source_sha256": "c5d5271e5415978394d8987985a7bdbfeb0d3c084fa2dff5f29fdd8f5a5b60d2",
-    "schema_hash": "a3388de002fd4527e013de9381b630b8619c3bb0f089df4d129a3a29856841f0",
+    "source_sha256": "8330f4e2f11fded03c073db34bff2ca11db3f920d36ef122282f87121e7c9507",
+    "schema_hash": "25812126552f394b6e97c77f5c8949ba5b604a687ae7ac82695956c2ee44a567",
     "layout_hash": "373028f3ad8763e6a08956ed91b9bb53d5c34ca957466f2909cf7a0b73d7b51d",
     "state_dim": 8,
-    "action_dim": 8
+    "action_dim": 8,
+    "kinematics_hash": "a0277c7abbe6b2ce8717523c325cdf8f8e135cc4933bffd76d969ac06e484748",
+    "input_basis_id": "unity_left_handed_v1",
+    "input_rotation_to_robot_body": [
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    "migrated_from": "quest3_canonical_legacy_v1"
   },
   {
     "profile_id": "astral_right_wuji",
     "source_path": "src/robots/astral/morla_astral_robot/config/profiles/astral_right_wuji.yaml",
-    "source_sha256": "c0ed23c20d228fd638b407cfb71dfad197790106f21dcf4853dc6510b46e5f99",
-    "schema_hash": "60e393acfe6bdbe646ec68f5bed9b9ebdfbbe875b7f7a812c7f8e062a2bcbc32",
+    "source_sha256": "0e8702dd01a66b56b04c0bf287b548af97bef2522ff84ca7bf0c452a3bc39a0b",
+    "schema_hash": "224c9ea005d48d7e062c66224e94a2bc87db5b3ce33f68ab2a2bb78d0ba74b2d",
     "layout_hash": "44e9aa84634a5d804c32b883e2da72962559c712032b6655c517d2a9f870697b",
     "state_dim": 27,
-    "action_dim": 27
+    "action_dim": 27,
+    "kinematics_hash": "2a226a92d8d3f0dbca690443248fbfe7f6b547c01800efaab713514935fc536d",
+    "input_basis_id": "unity_left_handed_v1",
+    "input_rotation_to_robot_body": [
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    "migrated_from": "quest3_canonical_legacy_v1"
   },
   {
     "profile_id": "nero_dual_arms",
     "source_path": "src/robots/nero/morla_nero_robot/config/profiles/nero_dual_arms.yaml",
-    "source_sha256": "f1cbd0a6dfec4c92cb1d25893bf4895edbb4d8e8097567b86101804507f5b106",
-    "schema_hash": "5fc01bd989d16c12cf420692ef3d58bcd973250c376f7963fa61ca68b26c45f6",
+    "source_sha256": "a54114182bce125b84f6be925cd6e0a1b724e18149584e3cc75e474859075526",
+    "schema_hash": "4ae598a65fefc4601d41710265e8815e715082e2ba322e8f7b453468e6453721",
     "layout_hash": "1034b5bc51a23cbb89339203953a6285dbde988c5811f7052735610215ad84b3",
     "state_dim": 14,
-    "action_dim": 14
+    "action_dim": 14,
+    "kinematics_hash": "99a948e5f9240b1104e472be9d24a3e039aa16b24a5f6abc00fc00f6e068a241",
+    "input_basis_id": "unity_left_handed_v1",
+    "input_rotation_to_robot_body": [
+      0.0,
+      -3.673205e-06,
+      -0.999999999993,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.999999999993,
+      -3.673205e-06
+    ],
+    "migrated_from": "quest3_canonical_legacy_v1"
   },
   {
     "profile_id": "nero_dual_xhand",
     "source_path": "src/robots/nero/morla_nero_robot/config/profiles/nero_dual_xhand.yaml",
-    "source_sha256": "32c388620b7d40b68ce624218ab24b66075518a0a1aeeb73c84fbd1a7e5795ba",
-    "schema_hash": "0a513539f288b2ac1067821e0cce80eabc9277a85cbc1b2cc591b9d6faf97b1f",
+    "source_sha256": "ea62168abb5f5b9f21257efde6e27eba8f565b7103c7420b2bc36613c9af3686",
+    "schema_hash": "4bee461594ab4b976d0ebe8e6028ac584693b3e14e7cbac670f94956a7d739e1",
     "layout_hash": "6ff0cd51f0fed20ef4129408116481d3f63504575ea82d101b8ebe5863367df3",
     "state_dim": 38,
-    "action_dim": 38
+    "action_dim": 38,
+    "kinematics_hash": "3cca5ad24f0531a424f1f78a93e60545a6a11bbeac58015de57a95dd593e12d6",
+    "input_basis_id": "unity_left_handed_v1",
+    "input_rotation_to_robot_body": [
+      0.0,
+      -3.673205e-06,
+      -0.999999999993,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.999999999993,
+      -3.673205e-06
+    ],
+    "migrated_from": "quest3_canonical_legacy_v1"
   },
   {
     "profile_id": "nero_left_xhand",
     "source_path": "src/robots/nero/morla_nero_robot/config/profiles/nero_left_xhand.yaml",
-    "source_sha256": "b4ba61ad22fc69aa69f2a9c0a0d608c839da3eff7c7cb9d43f7fa02328c6ae59",
-    "schema_hash": "a8151aa526cc3062c038f5869c99d58c45409522c20d8944faa4955d6a089a01",
+    "source_sha256": "88e2863c21f4c0f7ed20dc63528b9e9b8056ff47636105caa5c2d8eea07e1042",
+    "schema_hash": "b8903dfde5776ed20a5350ac0fbdfb371916109d50687cc4c830ee905f801f6e",
     "layout_hash": "ee691afd7529c3ca2ca01d1ee5d7bb0b3a5fc2159c5cc0cf2b80a5e7256c4a6b",
     "state_dim": 19,
-    "action_dim": 19
+    "action_dim": 19,
+    "kinematics_hash": "900b602d6b75b912b57fc6b9e18ec78090cdb8864d68230f02e1288e3ad32f5f",
+    "input_basis_id": "unity_left_handed_v1",
+    "input_rotation_to_robot_body": [
+      0.0,
+      -3.673205e-06,
+      -0.999999999993,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.999999999993,
+      -3.673205e-06
+    ],
+    "migrated_from": "quest3_canonical_legacy_v1"
   },
   {
     "profile_id": "nero_right_xhand",
     "source_path": "src/robots/nero/morla_nero_robot/config/profiles/nero_right_xhand.yaml",
-    "source_sha256": "1dce1048ec6a3720877a68140a8cb4e14c77ba49789612a3b2f08a627e62a21f",
-    "schema_hash": "3c837ea5ecb11be689b1667e6a36ff5d15ae7cde8d306f40d57f40142220be19",
+    "source_sha256": "a608666c1a1df6ea88024b6a1db63e5555c59c691ef027d72e3053cc9f255d0a",
+    "schema_hash": "22ebd6b6d91e751d235fd2f2678f27eb55c527c5207b5dd10a918e2ffacf0ada",
     "layout_hash": "e1307f3dbb4a33e24ea67027fec730859d9effadd32b1d7e6dbd8a1a721d267b",
     "state_dim": 19,
-    "action_dim": 19
+    "action_dim": 19,
+    "kinematics_hash": "2f8d4464f58ad7c4f0387310fa0d8eec1012bcb3a1a129ecd74d9517ad6e8511",
+    "input_basis_id": "unity_left_handed_v1",
+    "input_rotation_to_robot_body": [
+      0.0,
+      -3.673205e-06,
+      -0.999999999993,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.999999999993,
+      -3.673205e-06
+    ],
+    "migrated_from": "quest3_canonical_legacy_v1"
   }
 ]

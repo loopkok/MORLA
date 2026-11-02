@@ -61,6 +61,10 @@ class XHandDexRetargetingNode(Node):
         self.declare_parameter("retarget_config_file", "")
         self.declare_parameter("description_model_id", "")
         self.declare_parameter("preprocess_mode", "legacy_xhand_pinky")
+        # Unity -> XHand frame. The legacy XNero path is an X flip.
+        self.declare_parameter(
+            "input_basis", [-1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+        )
         self.declare_parameter("index_bend_sign", 1.0)
         self.declare_parameter("joint_lower_limits", [0.0])
         self.declare_parameter("joint_upper_limits", [0.0])
@@ -228,7 +232,10 @@ class XHandDexRetargetingNode(Node):
             return
         try:
             robot_points = preprocess_xhand_landmarks(
-                points, self.side, self.preprocess_mode
+                points, self.side, self.preprocess_mode,
+                input_basis=np.asarray(
+                    self.get_parameter("input_basis").value, dtype=float
+                ),
             )
             retargeter = self.retargeter
             retargeting_type = retargeter.optimizer.retargeting_type

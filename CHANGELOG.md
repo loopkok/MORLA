@@ -1,6 +1,164 @@
 # Changelog（MORLA）
 
+## 2026-11-02
+
+### Quest 姿态流双轮实测：手柄与裸手对比，偏差定位在输入端
+
+- 症状：同一套 CR5 组合遥操、同一坐标系声明下，操作员用右手柄推流时 web 可视化里「机械臂对手柄基本方向都不怎么对」，裸手（捏合）时明显更好。
+- 工具：新增只读监听脚本 [scripts/quest3_pose_listener.py](scripts/quest3_pose_listener.py)。订阅 `quest3/{left,right}_wrist_pose`、`/{side}_controller_pose`、`head_pose`、`hips_pose`、`/{side}_teleop_events`、`input_mix`、`input_epoch`（QoS 与接收器一致：流 BEST_EFFORT depth 50、事件 depth 16、latched RELIABLE TRANSIENT_LOCAL 各 depth 1），按 `input_mix` 标出 controller / hand / none 窗口，落 `samples.jsonl`、`events.jsonl`、`summary.json`，并做三项统计：每路到达率与间隔分位、腕/手柄镜像逐样本比对、按分段最小二乘拟合「跟踪点相对腕部的旋转杠杆臂」`Δp=(R₁−R₀)·r_local`。用法见 [morla_input README](src/common/morla_input/README.md#离线监听已有姿态流)；必须带上接收器所在域（本机 `ROS_DOMAIN_ID=91`、`ROS_LOCALHOST_ONLY=1`），否则收不到任何话题。
+- 采集：261.31 s，手柄 0.02–94.37 s、裸手 94.37–172.38 s、手柄 172.38–261.31 s（中途 epoch：0.02 s `tcp_disconnected`、128.13 s 左腕/landmarks 断开、206.56 s 左右手柄断开，下游各 disarm 一次）。
+- 结论一（坐标系没错）：腕姿与手柄流帧 id 相同、四元数/位置都合法；接收器 `controller_as_wrist` 镜像逐样本一致——498 个样本，位置与四元数最大差 0。两轮的分歧不是 Unity→base 矩阵或方向表的问题。
+- 结论二（手柄流本身稀疏）：裸手轮腕姿 88.6 Hz（间隔 p90 13.5 ms、最大 39.8 ms）；手柄轮腕/手柄镜像只有 21.1 Hz（p90 144.8 ms、最大 466.4 ms），同一时间头/髋仍是 89–90 Hz，摇杆 11.8 Hz。即接收器与网络没有丢，是头显端手柄位姿的发送频率低。按绑定 `max_age_ms: 250`，手柄轮有效采集的 34 s 内出现 9 次 >250 ms 的空档（108 次 >100 ms），每次都会让 `BindingController.step` 重置并按当前臂位姿重锚；裸手轮只有一次接收器中段整体停摆造成的 44 s 整段空档，没有任何逐样本空档。重锚本身不跳变，但连续重锚等于把手的绝对位置信息反复丢掉，表现为「方向越来越不对」。手柄轮 0 条包拒绝（裸手轮 1 条告警）。
+- 结论三（手柄跟踪点带 17.8 cm 杠杆臂）：最小二乘拟合手柄位姿相对腕部的偏移 `r=[-0.076, 0.075, 0.143]`（|r|=17.8 cm，110 对样本，|Δp| 均值 8.1 mm，残差中位 4.3 mm）；裸手腕部同一拟合 `r=[-0.003,-0.01,0.03]`（3.2 cm，残差≈位移本身、无相关性，说明腕姿是腕原点而非先验点）。手腕转 1 rad 时手柄点会额外平移约 18 cm，经 `position_scale 0.8` 变成工具端最多约 7 cm 的位移。按运动段统计，手柄轮 7.23 m 位姿路径里 4.70 m（65%）由旋转引起，裸手轮 7.25 m 里只有 0.91 m（13%）。
+- 结论四（姿态基准不同）：手柄静止时俯仰约 −45°（操作员握持角），裸手约 0°；位置均值手柄 [0.037, 0.098, 0.55]、裸手 [0.12, 0.192, 0.557]（米）。增量映射下恒定姿态差本身不产生运动，但会让「把柄转一点」产生的关节响应与裸手明显不同。
+- 建议（未实施）：①先做 1 分钟确认测试——手柄模式下只转手腕、不平移，观察工具是否绕轴自转而几乎不平移；②接收器侧或绑定层加手柄原点修正 `p_wrist ≈ p_ctrl − R_ctrl·r`（`r` 作为参数，当前拟合值可直接作初值），让手柄轮与裸手轮走同一条映射；③把该绑定 `max_age_ms` 250 → 400，覆盖手柄流 p99 空档；④手柄流频率只能由头显 App 侧提高，代码无法补数据。以上都未改随包配置。
+
+### CR5 + Vader 5 Pro 台架一键启动（网页 + MuJoCo 实时镜像）
+
+- 新增 Vader 全流程装配 [cr5.sim.yaml](src/common/morla_vader5_input/config/cr5.sim.yaml)（`vader5_cr5_sim`：CR5 sim 50 Hz、Vader pad、场景相机）与 [vader5_cr5_sim.launch.py](src/common/morla_vader5_input/launch/vader5_cr5_sim.launch.py)（`assembly`/`deployment`/`input_backend`/`port`/`store` 五个参数，直接转给 `morla-composable-session`）。此前只有 Quest 路径的 `cr5.sim.yaml`，Vader 台架在文档里只出现在验收记录中。
+- 新增 [tools/start_cr5_pad_sim.sh](tools/start_cr5_pad_sim.sh)：无参数一键起台架——固定 `ROS_DOMAIN_ID=91`/`ROS_LOCALHOST_ONLY=1`，source 系统 ROS 与工作区，用 `/usr/bin/python3`（uv/conda py 在 PATH 前面时 import 不到工作区包）；端口已占用则复用已有会话而不是报错；每次运行重新解析 Flydigi hidraw 配置节点（插拔会换节点名），检测到多个手柄时拒绝启动；等 `/api/v2/active-session` 就绪后再打开浏览器与 MuJoCo 窗口，退出时一并关掉 viewer。`OPEN_BROWSER=0` / `NO_VIEWER=1` / `PORT` 可覆盖。
+- 新增 [tools/cr5_live_viewer.py](tools/cr5_live_viewer.py)：会话宿主在自己的进程里跑权威仿真，这个工具加载同一份 `mjcf/cr5/cr5.xml`，按 50 Hz 轮询会话的臂关节状态驱动被动 `mujoco.viewer`，只读、从不下发命令。`tools/cr5_pad_sim_terminal.sh` 与 [tools/start_morla_web_terminal.sh](tools/start_morla_web_terminal.sh) 是桌面图标用的包装脚本（跑完保留窗口显示退出码），避免 `.desktop` 的 Exec 行里写 shell 引号。
+- 未验证：本次只落了脚本与配置，没有重新跑一遍完整台架（会话宿主、`/api/v2/active-session`、`mujoco.viewer` 的目标状态分别在此之前验证过，但一键脚本与桌面图标包装未做端到端冒烟）。
+
+### CR5 遥操改为持续跟随：去掉握把 deadman（对齐旧 Nero/Astral 语义）
+
+- 症状：操作员实测 CR5 组合遥操，“手柄有时候回到了锚点位置，机械臂没回到大致位置”，整体手感和旧 Nero/Astral 不一致。
+- 根因：随包 CR5 绑定声明了 `binding.deadman: quest.right_hold`，握把是离合：松手、输入断流 >250 ms 或 source/frame 变化都会 `controller.reset()` 并按当时机械臂位姿重新建锚；此后把柄移回旧锚点，映射的是新锚点，机械臂自然不会回到旧位置。旧 Nero/Astral 节点在 `/teleop/start` 只标定一次 `vr_init`，没有握把离合，所以手回原位、臂回原位。
+- 改动：[quest.sim.yaml](src/robots/dobot/morla_cr5_driver/config/quest.sim.yaml)/[quest.fake.yaml](src/robots/dobot/morla_cr5_driver/config/quest.fake.yaml) 删除 `deadman`，会话 ACTIVE 后持续跟随；松手或松开捏合不再停止，停止必须显式 stop/revoke。握把/捏合结果仍写入 `quest.right_hold` 并保留在 `capture.auxiliary`，仅作采集辅助数据，不再门控运动。输入断流超过 `max_age_ms` 时 `BindingController.step` 仍会重置并按当前臂位姿重新建锚，第一帧命令等于实测位姿，不产生跳变，也不撤权。
+- 已保存配置：`cr5_quest_sim` 保存为 revision 7（`assembly_hash c4ba1ec632342652332a8da3c5224b529233b8acb7bdbacc40d683176f64a62e`），其余参数沿用 revision 6（Unity 基 `unity_left_handed_v1`、`input_rotation [[0,0,-1],[1,0,0],[0,1,0]]`、`smoothing_alpha 0.8`、`position_scale 0.8`、`max_joint_velocity 1.0`）。旧 revision 仍只读保留。
+- 测试：[test_cr5_vr.py](src/robots/dobot/morla_cr5_driver/test/test_cr5_vr.py) 的整链用例改为持续跟随断言——激活后首个 pose 即建锚并派发，grip 按下被过滤、松开只产生无 pose 的空帧，断流 270 ms 后按当前臂位姿重锚且关节无跳变、会话保持 ACTIVE；`morla_cr5_driver` 26 passed。
+- 文档：[cr5_vr.md](docs/integrations/cr5_vr.md) 操作步骤 2–5 与捏合说明、[cr5.md](docs/integrations/cr5.md)、包 README 同步；2026-10-29 的实施记录保留为历史。
+
+### Web 仿真预览帧率：相机 60 fps + MJPEG 流控 60 Hz
+
+- 症状：操作员实测后感觉 web 里的 MuJoCo 预览“刷新不过来”，怀疑整条遥操链路有延迟。
+- 实测（00:44–00:46 会话）：Quest 接收器 500 Hz 原始包、腕姿间隔 11.8–12.3 ms（约 82 Hz）、`recv_to_pub` 0.5 ms（p95 0.7 ms）；CR5 IK 单次 0.34 ms；用当前参数离线闭环（手 0.4 m/s）TCP 滞后仅 4.7 mm，手停后残差 0.1 mm。控制链不是瓶颈。预览侧：相机出帧 37.7 ms（约 27 fps）、帧龄中位 17 ms、MJPEG 流 3 s 82 帧（27 fps）、偶发 80 ms 空档；web 进程占用约 1.2/16 核，不存在 CPU 饥饿。
+- 根因：相机 `fps: 30`，渲染线程每帧后 `wait(1/30)`（周期 ≈ 33.3 ms + 渲染 ≈ 37 ms）；[composable_api.py](src/common/morla_web_manager/morla_web_manager/composable_api.py) 的 MJPEG 循环每个 chunk 后 `asyncio.sleep(1/30)`，把预览硬限制在约 30 fps。
+- 改动：流控改 1/60；模板 [quest.sim.yaml](src/robots/dobot/morla_cr5_driver/config/quest.sim.yaml) 的 `scene_camera.fps` 15 → 60；已保存配置 `cr5_quest_sim` 保存为 revision 8（`assembly_hash c08d1d0aa0d51f4762bf3dbc63ec3cf74a89e51149f5cc52ab4f6578c375ba03`）。预期预览约 40–50 fps（受 50 Hz 仿真步进与渲染线程偶尔跳帧限制）；控制链与 UI 的 500 ms 会话状态轮询不受影响。
+- 测试：[test_composable_api.py](src/common/morla_web_manager/test/test_composable_api.py) 3 passed / 1 failed（`test_mobile_input_and_recording` 为既有失败：其注释仍假设 deadman 已回退，与 2026-11-01 的 `phone.hold_to_control` 门控矛盾，与本次改动无关）；`test_cr5_mujoco.py` 5 passed；`morla_cr5_driver` 26 passed。
+
+### Quest 输入层回归 Unity 基准：坐标对齐下放到每台机器人
+
+- 动机：canonical（X 左、Y 后、Z 上）最早只是 Astral 一家的约定，重构时被推广成接收器默认，于是每个下游都被迫绕一层——Nero 矩阵改名成 `vr_to_arm_rot_after_unity_to_robot` 并按 `A_old·Mᵀ` 换算，CR5 只能用 canonical→base 的 Rz(−90°)，手部 retargeter 里埋着 `F·Mᵀ` 的反向补偿，`convert_to_robot=false` 对 landmarks 也只是 X 翻转。操作员要求接收器**只输出 Unity 原始方向**（位姿与 21 点 landmarks 都是），Unity→各自坐标系的变换由 Astral、Nero 左右臂、CR5 以及后续每台机器人自己声明。
+- 接收器（[quest3_udp_mocap.py](src/common/morla_input/morla_input/quest3_udp_mocap.py)）：`convert_to_robot` 默认改为 `false`，位姿/四元数/landmarks/body joints 原样输出，帧 id 走 `quest3_tracking_world_unity` / `quest3_operator_body_unity`；删除 landmarks 的 X-only 翻转。事件行升到 `version: 2` 并新增必填 `basis`，v1 行以 “Unsupported Quest event version” 拒绝。`convert_to_robot:=true` 保留为调试开关，仍输出旧 canonical。
+- 契约（[coordinates.py](src/common/morla_core/morla_core/coordinates.py)、[coordinate_contract.py](src/common/morla_core/morla_core/coordinate_contract.py)）：新增 `UNITY_LEFT_HANDED_BASIS_ID='unity_left_handed_v1'`、`QUEST_CANONICAL_BASIS_ID`、`rebased_to_unity(A)=validate_basis_change(validate_rotation(A)@M)`、`validate_basis_change`（det ±1）；`resolve_arm_input_rotation` 与 12 个 profile 的 `input_rotation_to_robot_body` 改为 Unity 声明。Astral 声明 `M=[[-1,0,0],[0,0,-1],[0,1,0]]`；Nero 公共 body 声明 Rz(−90°)·M=`[[0,-3.673205e-06,-0.999999999993],[1,0,0],[0,0.999999999993,-3.673205e-06]]`，经 URDF 安装链得到的有效矩阵正是重构前字面值（左 `[[0,1,0],[0,0,1],[-1,0,0]]`、右 `[[0,1,0],[0,0,-1],[1,0,0]]`）。
+- 编译/运行门禁：Quest 绑定必须声明 `input_basis_id`——缺失 `INPUT_BASIS_MISSING`、非 Unity `INPUT_BASIS_UNSUPPORTED`、Unity 基准下 `input_rotation` det 非 −1 拒绝；`InputFrame.input_basis_id` 由 `QuestEventSource` 填充，`BindingEngine` 对声明与帧不一致的输入丢弃该帧并每 binding 每秒告警一次，不抛异常、不撤权。非 Quest 绑定（Vader5 jog、glove）不受影响。
+- 机器人侧：`CartesianController`/CR5 `input_rotation` 改用 `validate_basis_change`（允许 det −1；只作用于增量 `Δp=U·Δp_u`、`ΔR=U·ΔR_u·Uᵀ`，相似变换 det 仍为 +1）；Astral 节点参数与 profile 注入统一为 Unity 基准；CR5 模板 [quest.sim.yaml](src/robots/dobot/morla_cr5_driver/config/quest.sim.yaml) 换成真正的 Unity→base 矩阵 `[[0,0,-1],[1,0,0],[0,1,0]]` 并声明 unity basis。Nero 参数名 `vr_to_arm_rot_after_unity_to_robot` 保留（launch 注入/内部键），只更新注释。
+- 手部：`preprocess_xhand_landmarks` 新增 `input_basis`（缺省 `F=diag(-1,1,1)`，`F@u == F@Mᵀ@(M@u)`，旧 XNero 数值不变）；Wuji controller 优先读 binding 参数 `input_basis`，Quest 专用 launch 注入 `M`、glove 来源注入 identity，API 缺省 identity 避免连带转换同一话题上的 glove 数据。
+- 迁移（有意门禁，不自动改写）：带 Quest pose/landmark 绑定的旧装配缺 `input_basis_id`，start 时以 “compile and save a new revision” 拒绝，旧 revision 仍可只读查看；`input_basis_id` 进入 Quest 3D 绑定的 `input_mapping_hash`，12 个 profile 的 `schema/layout/kinematics_hash` 全变——旧数据集与新 profile 的哈希校验会失败，不要原地改 hash，重新录制或保留只读归档 profile。fixture 已按新语义重算，并补 `input_basis_id`/`input_rotation_to_robot_body`/`migrated_from` 断言，避免退化成生成器快照。
+- 文档：[cr5_vr.md](docs/integrations/cr5_vr.md) §2.1 重写为 Unity 基准 + 声明/有效矩阵表，删除“canonical 是统一默认”“必须是 proper rotation”的旧表述；[device_integration_guide.md](docs/device_integration_guide.md)、[MIGRATION_PLAN.md](docs/MIGRATION_PLAN.md)（新增 §6.2.1）、[morla_input README](src/common/morla_input/README.md)、Astral README 同步。
+- 验证：`scripts/test_composable.sh --layer pure` 230 passed / 1 skipped；`morla_core` 55 passed / 1 skipped、`test_composition.py` 35 passed、`morla_teleop` engine 25 passed；接收器原样输出 4 passed、Nero 行为等价 3 passed、astral/xhand/nero 批次 139 passed（`test_geometric_ik.py`/`test_ik_solver.py` 是脚本式用例，pytest 直接收集会报 `fixture 'solver'/'gt' not found`，属既有环境噪声，不计入）。实体 Quest/CR5 方向未复测，现场仍按 cr5_vr.md 的三步核对。
+
 ## 2026-11-01
+
+### 遥操 grip deadman 真正生效（按住才动）、核实并锁定 CR5 输入坐标对齐
+
+- 症状：操作员只点了 Web「激活运动许可」并在 Quest 端点开始推流，**没有按 grip**，CR5 就跟着手柄动；同时怀疑旋转方向不对。
+- 根因：`binding.deadman` 只出现在编译器允许字段里，`BindingEngine`/`BindingController` 都没有读它——回退 2026-10-30 门禁时把 runtime 的 deadman 一起删了，binding 级也从未实现，于是握把/捏合退化成纯记录端口。
+- 修法：[engine.py](src/common/morla_teleop/morla_teleop/engine.py) 新增 `_deadman_held()`，在 `targets()` 里对声明了 `deadman` 的绑定做门控：值必须是 `True` 或 >0.5，且该端口的 `received_ns` 在 `max_age_ms`（CR5 250 ms）内；不满足不派发目标，从按住变松开的那一帧 `controller.reset()` 清锚（手在松开期间漂移，重按不能跳变）；`reset()`/`close()` 清空状态。未声明 `deadman` 的绑定行为不变。新增 `test_deadman_gates_targets_until_held_and_reanchors_on_release`。
+- 影响面（这是行为变更）：CR5 `quest.right_hold`（手柄握把 / 裸手捏合）与 `morla_vader5_input` 全部模板的 `pad.hold_to_control` 现在都是**按住才动**；松开只停止派发，不撤权，仍需显式 stop/revoke。已保存的装配无需改动，重新启动即生效。
+- CR5 输入坐标：调查结论是现有 `input_rotation`（Rz(−90°)）**不是随手翻 Z**——它就是 Nero 写在 `input_rotation_to_robot_body` 的同一步 canonical→body 基变换；Nero 左右臂结果不同是因为再乘了各自 `base_link` 的 URDF 安装（左右相差 180° yaw）：左 `[[0,0,1],[0,-1,0],[1,0,0]]`、右 `[[0,0,1],[0,1,0],[-1,0,0]]`；Astral 的安装是单位阵；CR5 的 `base_link` 就是 URDF 根节点，没有可推导的安装链，合成结果等于该基变换本身。重构前 Nero 走的是 `convert_to_robot:=false` 的裸 Unity 位姿，每臂矩阵直接作用在 Unity 增量上（`vr_to_arm_rot`，左 `[[0,1,0],[0,0,1],[-1,0,0]]`、右 `[[0,1,0],[0,0,-1],[1,0,0]]`）；统一迁移时按 `A_new=A_old·Mᵀ` 换算并改名 `vr_to_arm_rot_after_unity_to_robot`（依据 [MIGRATION_PLAN.md](docs/MIGRATION_PLAN.md) §6.2），两种写法互为 `legacy_unity = 合约 @ M`，`test_nero_coordinate_equivalence.py` 已证明逐位一致（4e-6）。唯一物理假设是「操作员站在基座 +X 一侧、面向机械臂」，此时只允许 yaw（任何 roll/pitch 都会把“上”从 base +Z 拉偏）。新增 `test_shipped_input_rotation_is_the_canonical_to_base_alignment` 锁定 proper rotation、Z 不变和左右前后四向映射；若现场是操作员站在 −X 一侧，改成 Rz(+90°) 即可。推导、对比表和现场三步核对写进 [cr5_vr.md](docs/integrations/cr5_vr.md) §2.1。
+- 验证：`morla_teleop` 43 passed；`morla_cr5_vr` 用例改为按新语义断言（未按 grip 的 pose 返回 `accepted:false / release_or_reanchor_required`、松开后重按重锚、握把超过 250 ms 视为松开、捏合过期不撤权但停止派发），`morla_cr5_driver` 26 passed；`scripts/test_composable.sh --layer pure` 221 passed / 1 skipped。用模板参数离线复算从起始位形 `[0,0,π/2,0,-π/2,0]` 推手 15 cm（`position_scale` 0.8）：手向前 → J2 +16.6°/J3 −18.9°，手向右 → J1 −14.9°/J6 −14.9°，手向上 → J3 −22.3°/J4 +19.5°，与文档方向表一致。实体 Quest/CR5 未复测。
+
+### CR5 VR 遥操：修腕部 IK（信任域阶梯 + 良好条件起始位形）、提高速度与位移比例
+
+- 症状：实体 Quest 捏合遥操 CR5 仿真时「手感不对」——手腕转动机械臂几乎不动，转动后连平移也一起失效，整条链像死掉。
+- 根因（用测试数据复现）：位置映射是对的（20 cm 手位移 → 4.9 cm 机器人位移，IK 往返 < 0.2 mm）；坏在旋转。`IKSolver` 每次求解把关节包在种子 ±0.3 rad 的信任域里，而模板起始位形 `[0,-0.5,1,-0.5,1,0]` 的腕部接近奇异（Jacobian 最小奇异值 0.023、cond 86），绕 base z 只转 −5° 就要 15.7° 关节行程，±10° 已不可解（`stalled_or_unreachable`，残差 1.33°）。位姿目标是从锚点重算的绝对目标，求解失败即整帧丢弃，于是机械臂冻结：实测腕转 30° 后臂动 0.0°，随后 20 cm 手推位移 0.000 m。
+- 修法：[urdf_ik.py](src/robots/dobot/morla_cr5_driver/morla_cr5_driver/urdf_ik.py) 新增 `retry_trust` 阶梯，`solve()` 在报告失败前按 `0.3 → 0.6 → 1.2` rad 逐级重试（`_solve_once` 保留原 DLS 主体，`last_report` 增加 `trust_rad`）；命中 deadline 即停止重试，避免加倍超时。[vr_controller.py](src/robots/dobot/morla_cr5_driver/morla_cr5_driver/vr_controller.py) 位姿模式用三级阶梯，**jog 仍只用一个 0.3 rad 窗口**——一次被拒绝的摇杆方向必须保持被拒绝，否则 `CartesianController.jog_blocked` 的轴向屏蔽失效。模板 [config/quest.sim.yaml](src/robots/dobot/morla_cr5_driver/config/quest.sim.yaml) 起始位形按操作员指定改为 `[0,0,π/2,0,-π/2,0]`（J3 +90°、J5 −90°，其余归零；σ_min 0.209、cond 8.8，是试过的位形里最好的），`position_scale` 0.25 → 0.8，`max_joint_velocity` 0.3 → 1.0 rad/s（原 17°/s 明显发粘）。速度限幅仍在底层按上行命令整形，更宽的窗口不会变成整帧跳变。
+- 验证：`morla_cr5_driver` 21 passed（新增 `test_tool_rotation_beyond_one_trust_window_is_recovered`：三轴 ±30° 均解出且 FK 复核 < 0.2 mm / 0.002 rad，单窗口 jog 仍拒绝，乱序阶梯报错）；离线整链用 `create_controller` + 模板参数从新位形出发，腕转 ±30°、手推 15 cm 前/右均产生关节运动（绕输入 z 腕转 30° 只动 J6 −30°，绕输入 y 动 J5 +29.8°，推杆 15 cm 动 J3 −22.5°；旧逻辑为 0.0）。真机与实体头显未复测。
+- 附带：pytest 若要跑 IK 用例必须保留 ROS 的 `PYTHONPATH`（用 `PYTHONPATH=...` 前缀整体覆盖会让用户级 cmeel Pinocchio 抢先加载，报 `undefined symbol: EIGENPY_ARRAY_APIPyArray_RUNTIME_VERSION`，`importorskip` 静默跳过全部 IK 测试）。运行中的 Web 控制台需重启才能加载新 controller/solver；已保存配置 `cr5_quest_sim` 不会自动刷新（启动 seed 只补缺失的 assembly_id），需在页面保存下一版本才会带上新位形与参数。
+
+### 组合配置页补齐纯网页操作：CR5 仿真写入已保存配置、实机输入设备标识
+
+- 现象：文档一直写「加载 CR5 MuJoCo 仿真」→ 预览 → 保存 → 启动，但 `GET /api/v2/templates/cr5-sim` 只有接口、没有入口，网页里只能从头搭 CR5 装配；切到 real 后除部署 JSON 外无处填写 `device_id`，很容易在校验时才撞上 `real backend requires explicit device_id`。
+- 改动：CR5 仿真不再做成单独的加载按钮，而是**由管理端启动时写成一条普通已保存配置**（[web_server.py](src/common/morla_web_manager/morla_web_manager/web_server.py) `_seed_saved_configurations`）：读 `share/morla_cr5_driver/config/quest.sim.yaml`，补齐编辑器需要的空段（`control_groups`、`capture.auxiliary`），仅当 store 里没有 `cr5_quest_sim` 时保存 v1；已存在则不覆盖，操作员改成 real 与 device_id 后的编辑必须跨重启保留。缺 CR5 包或依赖时只记 warning，不影响控制台启动。组合页「打开已保存配置」直接列出并启动它，路径与其它保存版本完全一致（无新按钮、无新接口）。另外输入实例在后端为 real 且描述符声明 `device_id` 时显示「设备标识」输入框，写入 `parameters.device_id`（[ComposableTab.tsx](src/common/morla_web_manager/web/src/components/ComposableTab.tsx)）。`npm run build` 通过（`index-CS1a27OR.js`，296.49 kB / gzip 101.09 kB）。
+- 验证：临时 store 连跑两次 seed 均只有 `cr5_quest_sim v1`（ID 与 hash 不变，幂等），存档含 `arm/quest/scene_camera` 三实例、`right_vr` 绑定（`quest.right_pose → arm.position_target`, deadman `quest.right_hold`, 控制器 `morla.cr5.cartesian_delta`），`compile_valid: true`；`test_composable_api.py` 4 passed。用 `quest: real` + `parameters.device_id` 调 `/api/v2/assemblies/compile` 得 200，去掉 `device_id` 得 422 `real backend requires explicit device_id`。浏览器实点未复测。
+
+### Quest 输入合并为单插件：用 `side` 选左/右/双手，删除 `morla.input.quest_right`
+
+- 动机：`morla.input.quest_right` 实际上是一个按手区分的插件——接收器把事件话题写死为 `quest3/right_teleop_events`、发布函数 `if side != 'right': return`、`QuestRightSource` 拒收 `side != 'right'`——与组合计划「左右手用实例身份与配置表达」冲突，且左手没有等价的事件流输入。改为一个 `morla.input.quest`，实例参数 `side: left|right|both`（默认 both）。
+- 接收器：`publish_teleop_events` 改为按手发布 `/quest3/{left,right}_teleop_events`，每手独立 sequence，去掉右侧硬编码（[quest3_udp_mocap.py](src/common/morla_input/morla_input/quest3_udp_mocap.py)）。托管进程按同一 `side` 传 `arm_side:=left|right|both`，不再重映射事件话题（[processes.py](src/common/morla_input/morla_input/processes.py)）。
+- 输入：新增 `QuestEventSource`（[quest_events.py](src/common/morla_input/morla_input/quest_events.py)，取代 `quest_right.py`），保留全部逐事件校验（epoch/sequence/sent_ns/source/kind、过期与重放拒绝），并按手输出 `{side}_pose/{side}_hold/{side}_grip/{side}_scalar/{side}_landmarks`；`scalar` 仍镜像右手（只选左手时镜像左手），`right_hold` 保留，旧 CR5 绑定路径不用改。首次看到某只手只采纳其模式，真正的手柄↔裸手切换才重建锚点，因此右手切模式不会误重锚左手。摇杆不经过事件流，继续订阅 `quest3/{side}_controller_joy` 只填 `{side}_axes`/`axes`（[builtin_sources.py](src/common/morla_input/morla_input/builtin_sources.py)、[ros_sources.py](src/common/morla_input/morla_input/ros_sources.py)）。
+- 描述符/UI：`quest` 增加 `side`（含 both）与 `left_hold/right_hold` 端口，real 后端标记可用；删除 `quest_right_descriptor.json`、它的进程入口和页面标签，组合页的侧别下拉对输入显示为「使用手（左/右/双手）」。
+- 迁移：CR5 模板改名为 `config/quest.sim|fake|real.example.yaml`（`side: right`），launch、`/api/v2/templates/cr5-sim`、EPG 示例与文档同步。**已保存的旧装配若仍写 `morla.input.quest_right` 会编译失败**，把插件改成 `morla.input.quest`、加 `side: right` 即可，`quest.right_pose`/`quest.right_hold` 绑定名不变。`process_mode: external` 时接收器必须自行带 `publish_teleop_events`，否则没有事件（腕/手柄/关键点标准话题仍在，但本插件不再订阅）。
+- 验证：`scripts/test_composable.sh --layer pure` 217 passed + 1 skipped（新增 `test_quest_events.py` 13 条、`test_teleop_events.py` 2 条；`test_standard_source.py` 的摇杆用例改为只断言 axes）；`test_composable_api.py` 4 passed；`test_cr5_mujoco.py` 5 passed（顺带修了构建工作区下 `catalog()` 重复注册 CR5 描述符的老问题）；`npm run build` 通过。端到端：Nero 右手 sim + `side: right` 注入事件，左手法事件期间右臂关节变化 ≤0.0035 rad（伺服收敛），右手 0.15 m 输入产生 0.141/0.0587/0.1485 rad 关节变化，会话保持 ACTIVE、无输入错误；双臂 `side: both` 装配编译出 4 个实例。真机与 Quest 实流未复测；运行中的 8080 控制台需重启加载新前端与新描述符。
+
+### 撤销运动许可改为软停止：不再断电下垂
+
+- 症状：Vader 遥操 Nero 真机时，点「撤销许可」机械臂往下掉一段，再点「激活运动许可」又掉一下，全程摇杆没动。
+- 根因：`disarm` → `session.revoke()` → `_group_stop()` → `adapter.stop()`，而两套真机适配器的 `stop()` 都是断电：原生桥把 stop 映射到驱动的 `~/driver/estop`（[native_ros.py](src/robots/native/morla_native_bridge/morla_native_bridge/native_ros.py) 启动计划里的 `port['stop']`），驱动调用 SDK 的 `electronic_emergency_stop()`；CR5 的 `CR5Transport.stop()` 发 `DisableRobot()`。断电后重力把臂拉下垂，`activate()` 的 enable 在已经下垂的姿态上重新使能，于是每次循环都掉一次。旧链路的 `/teleop/disarm` 只是软 disarm（电机保持使能、原地锁住），组合路径把「撤销」做成了「断电」，比旧链路重一档。
+- 修法：区分软释放与断电。`revoke()` 与 `switch`（换手）走新增的 `adapter.release()`；`estop()`、`stop()`、`reset()`、激活失败补偿、部分下发失败仍走 `adapter.stop()`。内置适配器：`NativeRosAdapter.release()` 只停发目标、不碰 `~/driver/estop`，由驱动自己的命令看门狗（`command_timeout_s`）发一次以实测位姿为种子的保持目标并撤销流式许可；`CachedActuatorAdapter.release()`（CR5 真机 / LoopHand）按 rate 持续重写最后一条下行目标（从未收到命令时退回实测），让流式伺服保持力矩，反馈陈旧或故障时回退到 `stop()`；`FakeAdapter` 记录 `release` 调用；MuJoCo 适配器的 `stop()` 改为保留 `ctrl` 里最后一条命令，不再把实测位姿写回。组合页提示补充「撤销许可只停止输出并保持当前位姿（电机仍使能），急停或停止会话才会断电」。
+- 顺带修正保持目标：最初用实测位姿做保持目标，仿真仍会掉 0.0086 rad（约 0.5°）——伺服稳态本来就停在目标下方一点，把实测写回目标等于交还了这部分重力补偿，而且每次循环累积。现统一保持**最后下行目标**。实测一次 sim 会话连续 activate/disarm/activate/disarm，qpos 漂移 0.00023 rad 且不随循环累积（改前每次 0.0086 rad）。
+- 验证：`morla_runtime` 65 passed（新增 `test_revoke_releases_softly_and_only_estop_cuts_power`、`test_native_release_keeps_power_and_stop_still_cuts_it`、`test_cached_actuator.py` 三条：保持最后目标、无命令时保持实测、无反馈回退断电）；`morla_cr5_driver` 24 passed；`morla_teleop` 42 passed；`morla_vader5_input` 11 passed；`test_composable_api.py` 4 passed；`npm run build` 通过。**真机未复测**：下垂是否消失需在 Nero 上重跑一次激活/撤销循环确认。
+
+### 组合遥操：不可达 IK 只跳帧，不再撤销整个会话
+
+- 症状：Vader → Nero MuJoCo 组合会话里，推杆十几秒后机械臂突然停住，会话退回 READY_DISARMED，必须重新 prepare/activate；实测一次测试留下 `input_errors.pad="IK unreachable or limit failure"` 与 4 组重复的 prepare/activate。2026-10-30 台架记录里 fake CR5 一轮 54 s 内 22 次重新激活是同一问题。
+- 根因：`CartesianController.__call__` 在求解器返回 `None` 时抛 `ControllerError`，异常从 `BindingEngine.targets` 冒到 `ComposableService.ingest_frame` 的兜底，触发 `_reset_bindings()` + `session.revoke('input_or_controller_failed')`。旧链路 `nero_arm_teleop`（[teleop_node.py](src/robots/nero/nero_arm_teleop/nero_arm_teleop/teleop_node.py) 求解失败打 warning 后 `return`）与 `astral_arm_teleop`（`ik_fail` 计数后 `return`）都只跳过该拍、保持 armed。用同一 `IKSolver` 在当前位姿复现：只推 x 约 958 帧（21 s）、x+y+z 614 帧、六轴全推 399 帧后目标越界（joint7 顶到限位）——正常操作必然遇到。
+- 修法：jog 模式把增量积分到候选目标，**求解成功后**才提交 `jog_target`；求解返回 `None` 时直接返回 `None` 跳过该帧（绝对位姿模式同样跳帧）。会话保持 ACTIVE，顶住限位不会让目标越积越远，回拉杆下一帧立即恢复运动。
+- 验证：`morla_teleop` 42 passed（新增 `test_unreachable_jog_skips_tick_and_keeps_session_armed`：推过 x=0.5 的假可达边界后持续推 50 帧目标不变、回拉一帧恢复）。实机/仿真联调未复测。
+
+### CR5 组合测试在已构建工作区可复现
+
+- 症状：`morla_cr5_driver` 两个组合用例在 source 过 `install/setup.bash` 的环境里报 `ambiguous plugin registration: ('morla.dobot.cr5', '1.0.0')`，另一个用例断言 `values[0]>0` 失败。
+- 根因一：用例把源码 `descriptor.json` 追加到 `default_catalog()`，而构建后的工作区 `discover_descriptors()` 已从 ament 索引收进同一个描述符，重复注册；与 [vader5 测试](src/common/morla_vader5_input/test/test_vader5.py) 相同的去重写法即可解决。
+- 根因二：fake 臂从全零位姿起步，而 CR5 全零位是奇异位形——0.5 mm 的侧向目标只能借一个较大的零空间动作到达，J1 往正负方向都能解出，`values[0]>0` 依赖求解器分支；另外输入中断超过 `max_age` 后绑定按设计重锚，测试只发同一个位姿会得到零增量、永远不动。现用例从常见折叠位姿起步并让偏移逐帧递增。
+- 验证：`morla_cr5_driver` 24 passed（连续 3 轮 `test_cr5_vr.py` 均为 14 passed），`morla_teleop` 42 passed，`morla_vader5_input` 11 passed。仅测试与夹具改动，未改运行时代码。
+
+### 组合页仿真预览可旋转/平移/缩放视角
+
+- 症状：仿真预览只能看描述符里配置的那一个机位，鼠标拖不动，和 MuJoCo 自带 viewer 的体验不一致。
+- 修法：仿真相机改用自由相机（`MjvCamera`，`mjCAMERA_FREE`）渲染；初始参数由配置相机的 `cam_xpos/cam_xmat` 反解 `azimuth/elevation/distance/lookat`，首帧与原来逐像素一致（实测 mean abs diff 0.0），旋转支点落在配置相机的视线方向（本工程场景即世界原点）。新增 `POST /api/v2/sessions/{id}/cameras/{id}/view`，体 `{action: orbit|pan|zoom|reset, dx, dy}`，像素位移在渲染线程里按相机分辨率归一化后交给 `mjv_moveCamera`，与 viewer 的鼠标手感一致；动作进队列由渲染线程执行，不阻塞 JPEG 编码。前端预览图左键拖动旋转、右键/Shift 拖动平移、滚轮缩放（`passive:false` 防止页面滚动），带「复位视角」，请求按 ~30 ms 合并。真机相机没有视角，接口返回 400。
+- 验证：用 `quest_right.sim.yaml` 实起一个 MuJoCo 组合会话，640×480 帧连续验证 orbit/pan/zoom 均改变画面（mean abs diff 8.5 / 9.8 / 6.8），reset 回到原视角（0.3，JPEG 量化残差），非法动作与对机械臂调用被拒绝；`test_composable_api.py` 4 passed（新增 view 路由的 200/400/404/422 分支）；`npm run build` 通过。浏览器实机拖拽未复测。
+
+### 组合页仿真画面改 MJPEG 推流
+
+- 症状：仿真遥操时"画面延迟大"，而控制链实测约 17 ms。
+- 根因：组合页把 `cameras/<id>/frame` 当图片轮询，`setInterval(..., 100)` 每 100 ms 换一次 `src`，视觉上只有约 10 fps、滞后 0–100 ms；渲染线程本来跑 30 fps。
+- 修法：新增 `GET /api/v2/sessions/{id}/cameras/{id}/stream`，以 `multipart/x-mixed-replace` 推最新缓存帧（30 Hz 轮询、按 `(source_ns, sample_ns)` 去重，会话结束或 adapter 关闭时自动结束），前端 `<img>` 直接指向该流、删除 `frameTick` 轮询。
+- 验证：`npm run build`（tsc + vite）通过；用 FastAPI TestClient + 桩会话实测返回 200、`multipart/x-mixed-replace; boundary=frame`、帧内含 JPEG；未知会话 404。浏览器实机预览未复测。
+
+### Vader 默认采样率改为 100 Hz
+
+- `publish_hz` 默认值在 reader 参数与 `ReportStream` 兜底里由 50 改为 100，受管进程与独立 launch 都受益；已保存的四个 revision 未改描述符，摘要不变，仍可直接启动。
+- 原因：50 Hz 目标受 SDK 报告粒度（约 2.2 ms）量化后实测只有 45.5 Hz（间隔 p50 21.98 ms）；100 Hz 实测约 99 Hz，把输入量化从约 21 ms 降到约 10 ms。旧链路控制环是 125/150 Hz。
+- 部署或实例参数里显式写 `"publish_hz": 50` 仍会被原样透传（`processes.plan` 只在参数存在时传 `-p`）。
+- 验证：`morla_vader5_input` 11 passed；实际出流率沿用 2026-10-30 的 100 Hz 实测（约 99 行/s）。
+
+### Vader 采样率改为可配置（`publish_hz`）
+
+- 50 Hz 只是 `ReportStream` 的发布上限，不是硬件或 SDK 能力：SDK 连续 `read_batch`（约 493 Hz），每批只把最新一份作为运动采样发出，按钮边沿不受节流。此前 `publish_hz` 只存在于 reader 参数里，受管进程启动计划不传它，因此 Web 启动的 reader 恒为 50；部署里写了也不会生效。
+- `descriptor.json` 的 `configuration_schema`/`defaults` 增加 `publish_hz`（1–100，默认 50），`processes.plan` 在参数存在时透传 `-p publish_hz:=...`。部署/装配实例参数里写 `publish_hz: 100` 即可把输入量化从 20 ms 降到 10 ms；宿主订阅现为 BEST_EFFORT depth=1，提高速率不会积累队列。**后续修正**：描述符里的两处 `publish_hz` 当晚已撤回——lockfile 记录插件描述符摘要，改它会让已保存 revision 在启动时报 `preview/installed dependency hash changed`；参数仍可写在部署/实例参数里（编译不过滤 schema），默认值改由 reader 参数承担，见上方「Vader 默认采样率改为 100 Hz」。
+- `test_vader5.py` 的 `catalog()` 改为按 (plugin_id, version) 去重：工作区已安装时 `discover_descriptors()` 已包含这些包，原写法重复注册会报 `ambiguous plugin registration`，属测试环境问题而非配置错误；同时补充断言输入订阅为 BEST_EFFORT depth=1。
+- 验证：`morla_vader5_input` 11 passed；`morla_core` 23 passed/1 skipped；`morla_teleop` 41 passed。`ReportStream` 按 493 Hz 喂入时实测 50 Hz 出 50 行/s、100 Hz 出 99 行/s；`plan` 输出含 `-p publish_hz:=100`。真机 USB 下的实际出流率未复测。
+
+### 遥操 QoS 对齐：输入改最新值、原生命令恢复可达
+
+- 对比旧 Quest3 双臂 Nero 链路：`quest3_udp_mocap` 的腕姿/头/控制器流与 `nero_arm_teleop` 的订阅端都是 BEST_EFFORT + KEEP_LAST depth=1（始终取最新一帧，旧帧直接丢弃）；旧遥操以 125 Hz 定时器消费最新位姿，关节命令 depth=1；驱动订阅 RELIABLE depth=1。新组合链的 Vader 事件在 reader 与 `RosInputManager` 两端都是 RELIABLE depth=64，慢一拍不会丢旧帧而是积压最多 64 帧（50 Hz 下约 1.28 s），而 `max_age_ms=250` 又会把积压帧判为陈旧并触发断链——与「最新值」输入语义和时效检查互相矛盾。现把 `morla_input/ros_sources.py` 的外部输入订阅改为 BEST_EFFORT + depth=1；源端发布保持原样，reliable 发布者对 best-effort 订阅仍兼容。
+- 另发现真实执行器命令路径不通：`morla_native_bridge/native_ros.py` 用 `qos_profile_sensor_data`（BEST_EFFORT depth=5）发布 `/joint_commands`，而 `nero_robot_driver` 用 RELIABLE depth=1 订阅；ROS 2 可靠性不兼容时两者根本不建立连接。本机 rclpy/Fast DDS 实测同一主题下 BEST_EFFORT 发布 → RELIABLE 订阅收到 0 条，RELIABLE 发布 → BEST_EFFORT 订阅收到 21123 条。现改为 RELIABLE + depth=1：与驱动、旧遥操发布端都兼容，且 depth=1 仍只保留最新设定值，慢驱动不会积累命令队列。仿真是进程内直连，不受此影响，因此该缺陷只能在真机暴露；当前无 CAN，未做实机复验。
+- 同一规则补到 Quest 事件：新组合链的 `morla.input.quest_right` 订阅 `/quest3/right_teleop_events` 原为 BEST_EFFORT depth=16（90 Hz 下约 178 ms 积压），`QuestRightSource` 同样按 250 ms wall-clock 判陈旧，卡顿超过约 180 ms 仍会重演「积压帧被判陈旧→断链」。现改为 depth=1（[builtin_sources.py](src/common/morla_input/morla_input/builtin_sources.py)），发布端保持 depth=16 不变；事件丢帧只会让下一个 kind 事件补上，sequence 检查只拒绝回放、不要求连续。
+- 时延构成（控制通路）：旧链 Quest 事件驱动 + 125 Hz 定时器（8 ms 量化）+ 热 IK 3.4 ms；新链在 ROS 单线程回调里同步跑 `BindingEngine.targets`，命令率等于输入率（Vader 实测 47.9–48.8 Hz，20 ms 量化）+ 热 IK 4–6 ms，激活首帧仍有一次约 100–330 ms 冷解。相机预览另受仿真 30 fps 渲染与 Web 100 ms 轮询影响（33–133 ms 视觉滞后），不属于控制回路。
+- 验证：`morla_input` 测试 32 passed/1 skipped（`test_flake8` 为包内既有 263 项风格告警，未作为门禁）；`morla_teleop` 41 passed；QoS 兼容性结论由本机 rclpy 探针实测。Quest 事件 depth=1 只用单元测试与 CR5 组合模板编译验证，未上 Quest APK + 真机/仿真联调。旧 Quest 链路与真机 CAN 未复测。
+
+### 组合配置 Cartesian jog 每帧冷启动 IK 修正
+
+- 症状：组合会话激活后约 0.4 s 即 `group_stopped/input_disconnect` 退回 READY_DISARMED；50 Hz 手柄事件被逐个判为陈旧（`Stale/foreign-clock Vader event`），MuJoCo 相机画面中的机械臂不随摇杆运动。仅影响重构后的组合路径，旧 `nero_arm_teleop` 实机遥操不受影响。
+- 根因：`morla_teleop.kinematics.CartesianController.__call__` 每个输入帧都调用 `solver.sync_state(seed)`，Nero/Astral 解析 IK 的默认 `reset_branch=True` 会丢弃连续性分支，每次求解退化为约 106 ms 的冷搜索；输入按 50 Hz 到达时队列持续积压，超过 `max_age_ms=250` 后 `Vader5Source` 拒绝事件，`RosInputManager._guarded` 按断链撤销人控许可。旧遥操节点只在 `_capture_anchor()` 同步一次，之后靠热连续性求解（约 3.4 ms）。
+- 修法：`CartesianController` 只在锚定/复位后的首帧以 `reset_branch=True` 同步；后续帧对支持该关键字的求解器传 `reset_branch=False`，不支持的自定义求解器保持原行为。`reset()` 重新置位首帧标志，重锚或输入间隙后仍会重置分支。`BindingEngine` 的 `joint_jog` 路径不受影响（本就约 0.1 ms/帧）。
+- 验证：同一 `BindingEngine.targets` 链路实测每帧耗时由约 106 ms（逐帧 `sync_state`）降到首帧 0.33 s、第二帧 0.13 s、之后 4–6 ms；`morla_teleop` 测试 41 项通过（新增 `test_branch_reset_only_on_first_solve_after_reset`）。修正只写入源码/构建副本，需重启 Web 控制台并新建会话后生效；未执行实机 CAN/Quest3 复测。
+
+### 组合配置界面三板块重构
+
+- 实例组装拆成「输入设备」「机器人本体 / 执行器」「传感器 / 相机」三个并列板块，各自选择组件后一键添加；实例名按组件自动生成（pad/arm/camera 等，冲突时追加序号），不再需要先填名称再选组件。
+- 采集进程模式并入输入卡片，安装侧、运行后端、角色与自由度就地调整；控制绑定改为卡片 + 四列端口选择，映射参数折叠；数据采集投影、部署/安装关系/完整装配 JSON 收入折叠区；底部汇总「校验并预览 → 保存下一版本 → 启动已保存版本」并显示当前步骤；已有运行会话时禁用重复启动。急停/停止会话增加确认弹窗。
+- 统一暗色卡片、输入框、按钮、状态标签与空状态样式；会话状态显示中文阶段名并保留原始状态码。
+- 移除组合页右上角硬编码的「加载 CR5 MuJoCo 仿真」按钮；CR5 仿真改由「打开已保存配置 → vader5_cr5_sim」或 `GET /api/v2/templates/cr5-sim` 模板导入恢复，后端接口继续保留。
+- 冒烟：无头 Chrome 在页面内依次添加 Vader5 fake、Nero arm fake、camera fake，一键生成 `binding_1`；「校验并预览」返回观测 7 维 / 动作 7 维 / 相机 1 路；保存后「启动已保存版本」由禁用变为可用，`/assemblies` 出现 `my_workcell` v1（测试配置与无头浏览器进程随后删除）。`npm run build` 通过。
+
+### 组合配置会话轮询修正
+
+- 会话状态轮询遇到 404（服务重启或会话已停止）时清空会话并停止轮询，避免旧标签页对已消失会话持续刷 404。`npm run build` 通过。
+- 无参数脚本 `tools/start_morla_web.sh` 与桌面图标「MORLA 控制台」：只启动网页控制台，所有组合与会话在「组合配置」里完成。
 
 ### CR5 MuJoCo / Web 调试环境
 

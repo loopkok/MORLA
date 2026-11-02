@@ -819,21 +819,21 @@
       }
     },
     "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
-    "input_basis_id": "quest3_canonical_legacy_v1",
+    "input_basis_id": "unity_left_handed_v1",
     "input_frame_policy": "incremental_operator_aligned",
-    "input_rotation_source": "legacy_astral_identity_axis_alignment",
+    "input_rotation_source": "legacy_astral_identity_rebased_to_unity",
     "input_rotation_to_robot_body": [
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
       1.0,
-      0.0,
-      0.0,
-      0.0,
-      1.0,
-      0.0,
-      0.0,
-      0.0,
-      1.0
+      0.0
     ],
-    "kinematics_hash": "e8a8eb580d5a7720714e368de2d1bce8d9d78e521c6d24d5e8ff2cd55290dec4",
+    "kinematics_hash": "defb73ef6ead4c0e845815a2209e37ce58a9094f4132ac17c7899056151d5234",
     "robot_body_frame": "body_link",
     "robot_id": "astral",
     "version": 1
@@ -1243,7 +1243,7 @@
     ],
     "dataset_fps": 30,
     "hold_frames": 10,
-    "kinematics_hash": "e8a8eb580d5a7720714e368de2d1bce8d9d78e521c6d24d5e8ff2cd55290dec4",
+    "kinematics_hash": "defb73ef6ead4c0e845815a2209e37ce58a9094f4132ac17c7899056151d5234",
     "layout_hash": "b97f29add4521570939058c8b60ff97c12e30c651a80218a00d44c8add11d656",
     "max_gap_ms": 100.0,
     "metadata": {
@@ -1281,32 +1281,32 @@
           }
         },
         "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
-        "input_basis_id": "quest3_canonical_legacy_v1",
+        "input_basis_id": "unity_left_handed_v1",
         "input_frame_policy": "incremental_operator_aligned",
-        "input_rotation_source": "legacy_astral_identity_axis_alignment",
+        "input_rotation_source": "legacy_astral_identity_rebased_to_unity",
         "input_rotation_to_robot_body": [
+          -1.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          -1.0,
+          0.0,
           1.0,
-          0.0,
-          0.0,
-          0.0,
-          1.0,
-          0.0,
-          0.0,
-          0.0,
-          1.0
+          0.0
         ],
-        "kinematics_hash": "e8a8eb580d5a7720714e368de2d1bce8d9d78e521c6d24d5e8ff2cd55290dec4",
+        "kinematics_hash": "defb73ef6ead4c0e845815a2209e37ce58a9094f4132ac17c7899056151d5234",
         "robot_body_frame": "body_link",
         "robot_id": "astral",
         "version": 1
       },
       "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
-      "kinematics_hash": "e8a8eb580d5a7720714e368de2d1bce8d9d78e521c6d24d5e8ff2cd55290dec4"
+      "kinematics_hash": "defb73ef6ead4c0e845815a2209e37ce58a9094f4132ac17c7899056151d5234"
     },
     "profile_id": "astral_dual_wuji",
     "profile_version": 1,
     "robot_id": "astral",
-    "schema_hash": "258efd249153152598a91f8455f96856fdbfa44c57e39be45a96cf52eeca9d67",
+    "schema_hash": "025c82f271b3dbd25128588cb140d0a0271329cd9c4df84477d406c2ce52281f",
     "schema_version": 2,
     "sensor_specs": [],
     "state_blocks": [
@@ -2109,13 +2109,26 @@
     "source": "quest",
     "strict_packets": true
   },
-  "kinematics_hash": "e8a8eb580d5a7720714e368de2d1bce8d9d78e521c6d24d5e8ff2cd55290dec4",
+  "input_basis_id": "unity_left_handed_v1",
+  "input_rotation_to_robot_body": [
+    -1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -1.0,
+    0.0,
+    1.0,
+    0.0
+  ],
+  "kinematics_hash": "defb73ef6ead4c0e845815a2209e37ce58a9094f4132ac17c7899056151d5234",
   "layout_hash": "b97f29add4521570939058c8b60ff97c12e30c651a80218a00d44c8add11d656",
+  "migrated_from": "quest3_canonical_legacy_v1",
   "mode_default": "sim",
   "profile_id": "astral_dual_wuji",
   "profile_version": 1,
   "robot_id": "astral",
-  "schema_hash": "258efd249153152598a91f8455f96856fdbfa44c57e39be45a96cf52eeca9d67",
+  "schema_hash": "025c82f271b3dbd25128588cb140d0a0271329cd9c4df84477d406c2ce52281f",
   "sensors": [],
   "state_blocks": [
     {

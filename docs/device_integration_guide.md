@@ -145,7 +145,7 @@ MORLA 的核心是把设备能力、物理安装、控制权、输入意图和�
 
 当前 pose 控制器按 `position=[x,y,z]`、`quaternion=[qx,qy,qz,qw]` 读取；mount 的七元素格式同样为 `[x,y,z,qx,qy,qz,qw]`。MJCF 使用自身的四元数排列，进入模型时需要转换。编译器接受十六元素 mount，但当前单场景 builder 只接受七元素；不要把“编译通过”当作十六元素矩阵已能执行。自建矩阵消费者时明确 4×4 展平顺序并转换到已支持格式。不要将四元数数组当欧拉角，也不要通过逐项取负猜测镜像。
 
-已有 Quest 的 canonical 基变换为 `(-x_unity,-z_unity,y_unity)`，它属于特定输入基变换，**不是所有新设备都必须先套一次的通用公式**。左手系到右手系的反射要在输入基转换层完成；`input_rotation` 必须是行列式 +1 的真正旋转。
+Quest 接收器默认原样输出 Unity 左手系（X 右、Y 上、Z 前），位姿与 21 点 landmarks 都是；Unity→机器人自身坐标系的变换由**每台机器人自己声明**，不是输入层或公共层的默认。新设备接线时，在 Quest 绑定（或 profile 的 `input_rotation_to_robot_body`）里声明 `input_basis_id: unity_left_handed_v1` 和该机器人自己的 `input_rotation`，并用测试锁定三轴映射。左手系→右手系 base 的反射必然使该矩阵行列式为 −1：它是基变换，不是姿态，控制器只把它作用于增量（`Δp_base = U·Δp_unity`、`ΔR_base = U·ΔR_unity·Uᵀ`）。旧 canonical 写法（`M = [[-1,0,0],[0,0,-1],[0,1,0]]`，`(-x_unity,-z_unity,y_unity)`）换算为 Unity 写法一律右乘：`U = A_old·M`；注意 `M·M = diag(1,−1,−1) ≠ I`，逆是 `Mᵀ`。如果某个新设备不是 Quest，而是自己约定坐标系的输入（如 glove），则不需要 `input_basis_id`，其约定写在该设备自己的描述里。
 
 IOBT 的 hips 参考系是操作者躯干坐标，不等于机器人 body/base。重置 VR 原点、由 world 切换 body、更换手套标定或左右手切换时，必须更新输入 epoch/参考 frame、清除滤波并重新建立锚点。
 
@@ -423,11 +423,11 @@ InputFrame(
 1. 设备层：HID/蓝牙/USB/UDP/TCP/SDK 的实际读取、身份选择、断流检测。
 2. 标准化层：产生 InputFrame，轴/骨架/pose/按钮转换及 per-port 时间。
 3. 宿主接线：把 frame 送入当前会话的 `ComposableService.ingest_frame()` 或等价受信宿主；管理 source 的 read/disconnect 生命周期。
-4. 绑定层：Assembly 的 source、controller、target；最终经 runtime.submit。deadman 仍可作为输入端口发布，但 runtime 不再强制。
+4. 绑定层：Assembly 的 source、controller、target；最终经 runtime.submit。deadman 是输入端口，由 binding 的 `deadman` 字段声明、`BindingEngine` 执行：未按住或该端口超过 `max_age_ms`，绑定不产生目标；从按住变松开的那一帧清锚，避免重按时跳变。runtime 的授权/租约不读 deadman，也不会因此自动撤权。
 
 只实现 `read()` 或只发 `InputEnvelope` ROS 消息不会自动驱动绑定。现有 `InputEnvelope.msg` 的 `source_epoch` 是 uint64，而 Python InputFrame 使用字符串；当前 runtime ROS bridge 未订阅 InputEnvelope。新增 ROS 输入通用桥时需显式解决类型转换、会话认证、epoch 和接线，不能直接假定两个类型等价。
 
-deadman 的“同源、严格 True/False、先释放再按下”约束已随重构删除，不再由编译器或 runtime 检查；输入仍把它作为意图端口发布。手套+脚踏、双设备组合按钮如需安全联锁，必须自建显式聚合与撤权逻辑，不能依赖原有门禁。
+deadman 的“同源、严格 True/False、先释放再按下”编译期校验已随重构删除，编译器不再拒绝跨源或非布尔声明；执行期只按 binding 声明做门控——跨源声明在本帧源不匹配，结果是该绑定永远不派发（安全失败，不是放行）。deadman 端口名不得缺失：端口不存在、为假、或超过 `max_age_ms` 都算松开。手套+脚踏、双设备组合按钮如需真正的安全联锁与撤权，仍必须自建显式聚合逻辑；binding deadman 只停止派发，不做撤权。
 
 ### 6.2 新 controller 的接口
 

@@ -78,8 +78,10 @@ def test_profile_contract_is_explicit_hashable_and_sensitive_to_alignment():
         "robot_body_frame": contract.robot_body_frame,
         "arms": {side: dict(row) for side, row in contract.arms.items()},
     }
+    # A raw-Unity alignment is a basis change, so the perturbed value must have
+    # det -1 to be a valid declaration.
     changed["coordinate_contract"]["arms"]["left"]["input_rotation_to_solver_base"] = [
-        1, 0, 0, 0, 1, 0, 0, 0, 1
+        -1, 0, 0, 0, 1, 0, 0, 0, 1
     ]
     changed_contract = build_coordinate_contract(changed)
     assert changed_contract.kinematics_hash != contract.kinematics_hash
@@ -90,12 +92,15 @@ def test_profile_contract_is_explicit_hashable_and_sensitive_to_alignment():
     assert payload["kinematics_hash"] == changed_contract.kinematics_hash
 
 
-def test_all_registered_arm_profiles_resolve_proper_rotations_from_their_urdf():
+def test_all_registered_arm_profiles_resolve_unity_basis_changes_from_their_urdf():
     registry = ProfileRegistry.from_index()
     checked = 0
     for profile_id in registry.ids():
         profile = registry.load(profile_id)
         contract = build_coordinate_contract(profile.values)
+        # The receiver publishes raw Unity, so every shipped profile declares
+        # the left-handed basis and resolves to a det -1 basis change.
+        assert contract.input_basis_id == "unity_left_handed_v1"
         for component in profile.values["components"]:
             if not component.get("enabled") or component.get("type") not in {"arm", "nero_arm"}:
                 continue
@@ -103,7 +108,7 @@ def test_all_registered_arm_profiles_resolve_proper_rotations_from_their_urdf():
             alignment = contract.resolve_arm_input_rotation(component["side"], str(model))
             assert np.all(np.isfinite(alignment))
             np.testing.assert_allclose(alignment.T @ alignment, np.eye(3), atol=1e-7)
-            assert np.linalg.det(alignment) == pytest.approx(1.0, abs=1e-7)
+            assert np.linalg.det(alignment) == pytest.approx(-1.0, abs=1e-7)
             checked += 1
     assert checked == 17  # eight Astral profiles and four Nero profiles by active arm side
 

@@ -87,4 +87,15 @@ def test_cr5_template_and_camera_preview_contract(tmp_path):
         response = client.get(f'/api/v2/sessions/{sid}/cameras/camera/frame')
         assert response.status_code == 200 and response.content == b'jpeg-bytes'
         assert response.headers['cache-control'] == 'no-store'
+        # A preview without a viewpoint (real camera) cannot be orbited.
+        view = f'/api/v2/sessions/{sid}/cameras/camera/view'
+        assert client.post(view, json={'action': 'orbit', 'dx': 10, 'dy': 0}).status_code == 400
+        calls = []
+        svc.session.adapters['camera'].view = lambda action, dx=0., dy=0.: calls.append((action, dx, dy)) or {'accepted': True}
+        assert client.post(view, json={'action': 'orbit', 'dx': 10, 'dy': -4}).json() == {'accepted': True}
+        assert client.post(view, json={'action': 'reset'}).status_code == 200
+        assert calls == [('orbit', 10., -4.), ('reset', 0., 0.)]
+        assert client.post(view, json={'action': 'spin'}).status_code == 422
+        assert client.post(view, json={'action': 'zoom', 'dx': 0, 'dy': 1e9}).status_code == 422
+        assert client.post(f'/api/v2/sessions/{sid}/cameras/grip/view', json={'action': 'orbit'}).status_code == 404
         svc.session.adapters.pop('camera'); svc.session.instances.pop('camera')

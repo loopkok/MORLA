@@ -57,6 +57,32 @@ def test_local_roundtrips_and_continuity():
         q=n
 
 
+def test_tool_rotation_beyond_one_trust_window_is_recovered():
+    """A wrist turn costs more joint travel than one 0.3 rad local window.
+
+    The pose teleop target is absolute, so a refused solve is not a dropped
+    sample the arm can catch up from: the frame is skipped and the arm holds.
+    The solver therefore retries with a wider window before reporting failure.
+    """
+    ready=np.array([0.,0.,np.pi/2,0.,-np.pi/2,0.])   # config/quest.sim.yaml
+    s=IKSolver();base=s.fk(ready)
+    for axis in 'xyz':
+        target=base.copy()
+        target[:3,:3]=Rotation.from_euler(axis,30,degrees=True).as_matrix()@base[:3,:3]
+        s.sync_state(ready);solved=s.solve(target)
+        assert solved is not None,(axis,s.last_report)
+        assert np.max(np.abs(solved-ready))<=1.2
+        np.testing.assert_allclose(s.fk(solved)[:3,3],target[:3,3],atol=.0002)
+        assert Rotation.from_matrix(s.fk(solved)[:3,:3].T@target[:3,:3]).magnitude()<=.002
+    # Jog keeps one window: a refused stick step must stay refused.
+    jog=IKSolver(retry_trust=(.3,))
+    target=base.copy()
+    target[:3,:3]=Rotation.from_euler('z',30,degrees=True).as_matrix()@base[:3,:3]
+    jog.sync_state(ready);assert jog.solve(target) is None
+    with pytest.raises(ValueError,match='trust ladder'):
+        IKSolver(retry_trust=(.6,.3))
+
+
 def test_joint_mapping_and_intersected_limits():
     signs=np.array([-1,1,-1,1,-1,1]);offsets=np.array([.1,-.1,.1,0,.2,0])
     s=IKSolver(joint_signs=signs,joint_offsets=offsets,joint_lower=[-1]*6,joint_upper=[1]*6)

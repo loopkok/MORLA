@@ -38,6 +38,8 @@ class MujocoDeviceSession:
         self.active = set()
         self.cache = {}
         self.camera_cache = {}
+        self.view_lock = threading.Lock()
+        self.view_actions = {}
         self.render_error = None
         self.error = None
         self.closed = False
@@ -135,11 +137,48 @@ class MujocoDeviceSession:
         # Offscreen rendering/encoding has its own context and MjData. It never
         # holds the stepping or command lock while graphics/codec work runs.
         renderers = {}
+        views = {}
         try:
             import io
             from PIL import Image
             local_data = self.mujoco.MjData(self.model)
             last = {}
+            def free_camera(key):
+                # The preview starts as an orbit camera aimed exactly like the
+                # configured camera: MuJoCo free cameras pivot on lookat, so
+                # plant lookat on the existing view ray (the world origin for
+                # the shipped scenes) with distance = the pivot distance.
+                position = local_data.cam_xpos[self.camera_ids[key]].copy()
+                forward = -local_data.cam_xmat[self.camera_ids[key]].reshape(3, 3)[:, 2]
+                distance = max(.5, float(-position @ forward))
+                camera = self.mujoco.MjvCamera()
+                camera.type = self.mujoco.mjtCamera.mjCAMERA_FREE
+                camera.azimuth = float(self.np.degrees(self.np.arctan2(forward[1], forward[0])))
+                camera.elevation = float(self.np.degrees(self.np.arcsin(self.np.clip(forward[2], -1, 1))))
+                camera.distance = distance
+                camera.lookat[:] = position + forward * distance
+                views[key] = camera
+                return camera
+            def move_camera(key, camera, size):
+                with self.view_lock:
+                    actions = self.view_actions.pop(key, [])
+                mouse = self.mujoco.mjtMouse
+                for action, dx, dy in actions:
+                    if action == 'reset':
+                        free_camera(key)
+                        return views[key]
+                    if action == 'orbit':
+                        self.mujoco.mjv_moveCamera(self.model, mouse.mjMOUSE_ROTATE_H, dx / size[0], 0., camera)
+                        self.mujoco.mjv_moveCamera(self.model, mouse.mjMOUSE_ROTATE_V, 0., dy / size[1], camera)
+                    elif action == 'pan':
+                        self.mujoco.mjv_moveCamera(self.model, mouse.mjMOUSE_MOVE_H, dx / size[0], 0., camera)
+                        self.mujoco.mjv_moveCamera(self.model, mouse.mjMOUSE_MOVE_V, 0., dy / size[1], camera)
+                    elif action == 'zoom':
+                        # Wheel down (positive dy) zooms out; a quarter weight
+                        # keeps one notch near 10% instead of jumping to a new
+                        # distance.
+                        self.mujoco.mjv_moveCamera(self.model, mouse.mjMOUSE_ZOOM, 0., -dy / size[1] * .25, camera)
+                return camera
             while not self.stop_event.is_set():
                 with self.state_lock:
                     qpos, simtime = self.qpos_snapshot.copy(), self.time_snapshot
@@ -160,7 +199,8 @@ class MujocoDeviceSession:
                     if size not in renderers:
                         renderers[size] = self.mujoco.Renderer(self.model, height=size[1], width=size[0])
                     renderer = renderers[size]
-                    renderer.update_scene(local_data, camera=self.camera_ids[key])
+                    camera = move_camera(key, views.get(key) or free_camera(key), size)
+                    renderer.update_scene(local_data, camera=camera)
                     pixels = renderer.render()
                     output = io.BytesIO()
                     Image.fromarray(pixels).save(output, format='JPEG', quality=90)
@@ -198,6 +238,19 @@ class MujocoDeviceSession:
         with self.state_lock:
             return copy.deepcopy(self.cache.get(key, self.camera_cache.get(key, {'ready': False, 'sample_ns': 0, 'ports': {}})))
 
+    def view(self, key, action, dx=0., dy=0.):
+        # Camera moves are queued for the render thread: MjvCamera is only
+        # touched there, and a drag must never wait on a JPEG encode.
+        if key not in self.camera_ids:
+            raise KeyError('sim camera not found: ' + str(key))
+        if action not in ('orbit', 'pan', 'zoom', 'reset'):
+            raise ValueError('unknown camera view action: ' + str(action))
+        if not all(type(value) in (int, float) and -5000 <= value <= 5000 for value in (dx, dy)):
+            raise ValueError('camera view delta out of range')
+        with self.view_lock:
+            self.view_actions.setdefault(key, []).append((action, float(dx), float(dy)))
+        return {'accepted': True, 'action': action}
+
     def activate(self, key):
         if not self.configured or self.closed or self.error:
             raise RuntimeError('SIM_NOT_READY')
@@ -213,14 +266,12 @@ class MujocoDeviceSession:
         return {'accepted': True, 'status': 'queued_latest', 'execution_ack': False}
 
     def stop(self, key):
-        with self.state_lock:
-            current = list(self.cache.get(key, {}).get('values', []))
         with self.command_lock:
             self.active.discard(key)
             self.pending.pop(key, None)
-            if current:
-                # Explicit hold policy, never a zero-position stop.
-                self.pending[key] = current
+            # Explicit hold policy, never a zero-position stop: leave the last
+            # command in ctrl. Re-targeting the measured pose instead would
+            # hand back the gravity droop and sag a little on every stop.
         return True
 
     def close(self):
@@ -245,6 +296,7 @@ class MujocoAdapter:
     def configure(self, context): self.session.configure()
     def health(self, now_ns): return self.session.health(self.key)
     def read(self, now_ns): return self.session.read(self.key)
+    def view(self, action, dx=0., dy=0.): return self.session.view(self.key, action, dx, dy)
     def prepare(self): return not self.session.closed
     def activate(self):
         self.active = self.session.activate(self.key)

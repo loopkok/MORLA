@@ -1,5 +1,5 @@
 deployment_version: 1
-deployment_id: cr5_quest_right_real
+deployment_id: cr5_quest_real
 instances:
   arm:
     backend: real
@@ -15,7 +15,7 @@ instances:
     stop_verified: false
   quest:
     backend: real
-    device_id: quest_right_guarded
+    device_id: quest3_guarded
     resource_key: quest:tracking:8000
     verified: false
     stop_verified: false

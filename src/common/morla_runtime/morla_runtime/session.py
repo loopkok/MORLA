@@ -76,7 +76,10 @@ class RuntimeSession:
 
     def revoke(self, producer=None, resources=None, reason='producer_release'):
         with self.lock:
-            errors = self._group_stop(reason)
+            # Releasing authority is a soft stop: the device stays enabled and
+            # holds its last target, so the next activate does not re-enable a
+            # gravity-sagged arm. Only estop/stop/reset cut motor power.
+            errors = self._group_stop(reason, soft=True)
             if not errors:
                 self.status = 'ESTOP_LATCHED' if self.estop_latched else 'READY_DISARMED'
             return self.state()
@@ -374,8 +377,10 @@ class RuntimeSession:
             if self.estop_latched:
                 raise RuntimeErrorCode('RESET_REQUIRED')
             self._revoke()
-            # All old output is stopped before any grant.
-            errors = self._group_stop('authority_switch')
+            # All old output is stopped before any grant. The handover keeps
+            # the devices enabled: immediately re-activating a powered-down
+            # arm would re-enable it from a gravity-sagged pose.
+            errors = self._group_stop('authority_switch', soft=True)
             if errors:
                 raise RuntimeErrorCode('STOP_ACK_MISSING')
             try:
@@ -426,10 +431,12 @@ class RuntimeSession:
             self._now()
             return self.state()
 
-    def _stop_adapters(self, targets, timeout_s=1.0):
+    def _stop_adapters(self, targets, timeout_s=1.0, soft=False):
         # Independent devices stop concurrently. A hanging injected adapter cannot
         # hold the control plane forever. Real SDK state remains in owned child
         # processes and must have its separately verified board watchdog.
+        # A soft stop releases output without powering the device down; adapters
+        # without a release() keep the hard stop.
         jobs, errors = [], []
         grouped = {}
         for key in targets:
@@ -440,7 +447,9 @@ class RuntimeSession:
             done, outcome = threading.Event(), {}
             def stop_one(keys=keys, done=done, outcome=outcome):
                 try:
-                    if self.adapters[keys[0]].stop() is False:
+                    adapter = self.adapters[keys[0]]
+                    stops = getattr(adapter, 'release', None) if soft else None
+                    if (stops or adapter.stop)() is False:
                         raise RuntimeErrorCode('STOP_ACK_MISSING')
                     outcome['ok'] = True
                 except Exception as exc:
@@ -461,10 +470,10 @@ class RuntimeSession:
                         self.adapters[key].active = False
         return errors
 
-    def _group_stop(self, reason):
+    def _group_stop(self, reason, soft=False):
         self._operation_generation += 1
         self._revoke()
-        errors = self._stop_adapters(self._actuators())
+        errors = self._stop_adapters(self._actuators(), soft=soft)
         self.status = 'FAULTED' if errors or reason not in ('lease_expired',) else 'READY_DISARMED'
         self._event('group_stopped', reason=reason, errors=errors)
         return errors

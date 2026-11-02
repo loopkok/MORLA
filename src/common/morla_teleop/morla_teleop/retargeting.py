@@ -38,8 +38,16 @@ def _bounded(instance,names,values):
     return np.clip(values,[pair[0] for pair in limits],[pair[1] for pair in limits]).tolist()
 
 
+def _hand_input_basis(parameters,instance_parameters):
+    """Resolve this hand's Unity -> hand-frame matrix, binding first."""
+    value=parameters.get('input_basis',instance_parameters.get('input_basis'))
+    if value is None:return None
+    from morla_core.coordinates import validate_basis_change
+    return validate_basis_change(np.asarray(value,dtype=float).reshape(3,3))
+
+
 class XHandRetargetController:
-    """Quest canonical robot-axis landmarks -> established XHand MANO/DexPilot."""
+    """Raw Unity landmarks -> established XHand MANO/DexPilot."""
     def __init__(self,instance,retargeter=None):
         self.instance=instance;self.parameters=instance.get('parameters',{})
         self.side=self.parameters.get('side','left')
@@ -74,7 +82,13 @@ class XHandRetargetController:
             # from installed config; injected tests/backends must expose reset.
             fresh=type(self)(self.instance)
             self.retargeter=fresh.retargeter;self._needs_reset=False
-        points=preprocess_xhand_landmarks(_landmarks(value),self.side,self.parameters.get('preprocess_mode','legacy_xhand_pinky'))
+        # The receiver publishes raw Unity; each hand owns its Unity -> hand
+        # matrix. Binding parameters win over the hand instance so one shared
+        # hand instance can serve different rigs.
+        basis=_hand_input_basis(parameters,self.parameters)
+        points=preprocess_xhand_landmarks(_landmarks(value),self.side,
+                                          self.parameters.get('preprocess_mode','legacy_xhand_pinky'),
+                                          input_basis=basis)
         optimizer=self.retargeter.optimizer;indices=optimizer.target_link_human_indices
         references=points[indices,:] if optimizer.retargeting_type=='POSITION' else points[indices[1,:],:]-points[indices[0,:],:]
         output=np.asarray(self.retargeter.retarget(references),dtype=float)
@@ -120,7 +134,14 @@ class WujiRetargetController:
     def __call__(self,value,measured,dt,parameters):
         if self._needs_reset:
             self.backend=type(self)(self.instance).backend;self._needs_reset=False
-        output=np.asarray(self.backend.retarget(_landmarks(value)),dtype=float)
+        points=_landmarks(value)
+        # Landmarks arrive raw Unity. The backend expects the historical
+        # canonical axes, so the shipped Quest configs declare M here; an
+        # unconfigured hand passes the points through untouched (the glove
+        # publisher on the same topic keeps its own convention).
+        basis=_hand_input_basis(parameters,self.parameters)
+        if basis is not None:points=(basis@points.T).T
+        output=np.asarray(self.backend.retarget(points),dtype=float)
         if output.shape!=(20,) or not np.isfinite(output).all():raise ValueError('Wuji backend must return all 20 finite joints')
         lookup=dict(zip(_WUJI,output))
         return _bounded(self.instance,self.names,[lookup[name] for name in self.names])

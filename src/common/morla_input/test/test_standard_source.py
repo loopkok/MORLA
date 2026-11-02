@@ -25,16 +25,18 @@ def test_named_axes_and_scalar_keep_individual_sample_times():
     assert ports['left_scalar']['received_ns']==50
 
 
-def test_dual_quest_scalars_do_not_overwrite_each_other():
+def test_quest_joy_carries_only_the_thumbstick():
     from types import SimpleNamespace
     from morla_input.ros_sources import RosInputManager
-    from morla_input.adapters.normalized import InputStream
+    from morla_input.quest_events import QuestEventSource
     frames=[];clock=[100]
     manager=RosInputManager([],frames.append,lambda source:None,clock=lambda:clock[0])
-    source=InputStream('vr',clock=lambda:clock[0]);source.reconnect()
+    source=QuestEventSource('vr',clock=lambda:clock[0],sides=('left','right'));source.reconnect()
     manager.sources['vr']=source;manager.cache['vr']={}
-    manager._quest_joy('vr','left',SimpleNamespace(axes=[.2,0,0,0],header=SimpleNamespace(frame_id='left')))
+    manager._quest_joy('vr','left',SimpleNamespace(axes=[.2,.8,0,.5],header=SimpleNamespace(frame_id='left')))
     clock[0]=200
-    manager._quest_joy('vr','right',SimpleNamespace(axes=[.8,0,0,0],header=SimpleNamespace(frame_id='right')))
-    assert frames[-1].ports['left_scalar']==.2 and frames[-1].ports['right_scalar']==.8
-    assert frames[-1].port_metadata['left_scalar']['received_ns']==100
+    manager._quest_joy('vr','right',SimpleNamespace(axes=[.8,.0,.1,.2],header=SimpleNamespace(frame_id='right')))
+    assert frames[-1].ports['left_axes']=={'x':0.,'y':.5}
+    assert frames[-1].ports['right_axes']=={'x':.1,'y':.2}
+    # Grip, trigger and landmarks own ports in the event stream.
+    assert 'left_grip' not in frames[-1].ports and 'scalar' not in frames[-1].ports

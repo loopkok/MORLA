@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """End-to-end dataflow test — NO hardware / no driver required.
 
-Quest wrist (robot_world, convert_to_robot:=true) → PoseProcessor(vr_to_arm_rot)
-→ IK → SafetyFilter.
-Default ``vr_to_arm_rot = I``.
+Quest wrist (raw Unity, default ``convert_to_robot:=false``) →
+PoseProcessor(vr_to_arm_rot) → IK → SafetyFilter.
+Default ``vr_to_arm_rot = I`` (no profile); the Astral launch injects ``M``
+(Unity → legacy canonical base) from the profile.
 
 Usage:
   ros2 run astral_arm_teleop test_dataflow --ros-args \\

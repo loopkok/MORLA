@@ -151,6 +151,19 @@ the runtime no longer requires a verified board/driver watchdog before activatio
 so that evidence is an operator responsibility. No stop request writes all-zero
 joint targets.
 
+**Soft release vs power-down.** `revoke()`/`disarm` (and the `switch` handover) use
+`adapter.release()` when the adapter provides it: output stops, but the device keeps
+its enable state and holds its last target, so a following `activate()` does not
+re-enable a gravity-sagged arm. `estop()`, `stop()`, `reset()` and failure
+compensation always call `adapter.stop()`, which is the device's power-down path
+(Nero/Astral `~/driver/estop`, CR5 `DisableRobot`). Built-ins: `FakeAdapter` records
+a `release` call, the MuJoCo adapter's `stop` leaves the last command in `ctrl`,
+`NativeRosAdapter.release` lets the driver's command watchdog issue one hold, and
+`CachedActuatorAdapter.release` rewrites the last commanded target (else the measured
+pose) every cycle so a streaming servo keeps holding; it falls back to `stop()` when
+feedback is stale or faulted. Holding a *measured* pose instead of the target hands
+back the gravity droop and sags a little on every release.
+
 ## Validation
 
 Tests under `test/` cover lifecycle/idempotence, resolved round-trip, estop latch

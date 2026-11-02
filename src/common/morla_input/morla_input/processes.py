@@ -2,12 +2,14 @@
 def quest(instance):
     p=instance.get('parameters',{})
     if instance.get('backend')=='fake': return []
+    side=p.get('side','both')
+    if side not in ('left','right','both'): side='both'
     return [['ros2','run','morla_input','quest3_udp_mocap','--ros-args',
              '-p','publish_teleop_events:=true','-p','controller_as_wrist:=true','-p','viz:=false',
+             '-p','arm_side:='+side,
              '-p','protocol:='+p.get('protocol','tcp_wired'),
              '-p','tcp_port:='+str(p.get('tcp_port',8000)),
-             '-p','udp_port:='+str(p.get('udp_port',9000)),
-             '-r','quest3/right_teleop_events:='+p.get('input_topic','/quest3/right_teleop_events')]]
+             '-p','udp_port:='+str(p.get('udp_port',9000))]]
 
 
 def gamepad(instance):

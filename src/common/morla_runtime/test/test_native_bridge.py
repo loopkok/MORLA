@@ -183,6 +183,27 @@ def _wait(runtime, request_id):
     raise AssertionError('operation did not settle')
 
 
+def test_native_release_keeps_power_and_stop_still_cuts_it():
+    from morla_runtime.native_ros import NativeRosAdapter
+    class Session:
+        transport = object()
+        enabled = True
+        def __init__(self): self.operations = []
+        def operation(self, key, operation):
+            self.operations.append(operation)
+            return True
+    session = Session()
+    adapter = NativeRosAdapter({'instance_id': 'right', 'operations': {}}, session)
+    adapter.active = True
+    # A permit release must not reach ~/driver/estop: that cut motor power and
+    # let the arm sag before the next activate re-enabled it.
+    assert adapter.release() is True
+    assert not adapter.active and session.operations == []
+    adapter.active = True
+    assert adapter.stop() is True
+    assert session.operations == ['stop']
+
+
 @pytest.mark.parametrize('message,status', [
     ('queued', {'estop_status': 'sent', 'estop_seq': 7}),
     ('queued [morla_seq=8]', {'estop_status': 'sent', 'estop_seq': 7}),

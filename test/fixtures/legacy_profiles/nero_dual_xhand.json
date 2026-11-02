@@ -738,21 +738,21 @@
       }
     },
     "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
-    "input_basis_id": "quest3_canonical_legacy_v1",
+    "input_basis_id": "unity_left_handed_v1",
     "input_frame_policy": "incremental_operator_aligned",
-    "input_rotation_source": "algebraically_derived_from_legacy_arm_rotations_and_urdf_mounts",
+    "input_rotation_source": "legacy_arm_rotations_rebased_to_unity",
     "input_rotation_to_robot_body": [
       0.0,
-      0.999999999993,
       -3.673205e-06,
-      -1.0,
+      -0.999999999993,
+      1.0,
       0.0,
       0.0,
       0.0,
-      3.673205e-06,
-      0.999999999993
+      0.999999999993,
+      -3.673205e-06
     ],
-    "kinematics_hash": "930e744138645543ab849223550240f90c2881227644851b4310bbaf29a2b503",
+    "kinematics_hash": "3cca5ad24f0531a424f1f78a93e60545a6a11bbeac58015de57a95dd593e12d6",
     "robot_body_frame": "t_bracket_base",
     "robot_id": "nero",
     "version": 1
@@ -1066,7 +1066,7 @@
     ],
     "dataset_fps": 30,
     "hold_frames": 10,
-    "kinematics_hash": "930e744138645543ab849223550240f90c2881227644851b4310bbaf29a2b503",
+    "kinematics_hash": "3cca5ad24f0531a424f1f78a93e60545a6a11bbeac58015de57a95dd593e12d6",
     "layout_hash": "6ff0cd51f0fed20ef4129408116481d3f63504575ea82d101b8ebe5863367df3",
     "max_gap_ms": 100.0,
     "metadata": {
@@ -1104,32 +1104,32 @@
           }
         },
         "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
-        "input_basis_id": "quest3_canonical_legacy_v1",
+        "input_basis_id": "unity_left_handed_v1",
         "input_frame_policy": "incremental_operator_aligned",
-        "input_rotation_source": "algebraically_derived_from_legacy_arm_rotations_and_urdf_mounts",
+        "input_rotation_source": "legacy_arm_rotations_rebased_to_unity",
         "input_rotation_to_robot_body": [
           0.0,
-          0.999999999993,
           -3.673205e-06,
-          -1.0,
+          -0.999999999993,
+          1.0,
           0.0,
           0.0,
           0.0,
-          3.673205e-06,
-          0.999999999993
+          0.999999999993,
+          -3.673205e-06
         ],
-        "kinematics_hash": "930e744138645543ab849223550240f90c2881227644851b4310bbaf29a2b503",
+        "kinematics_hash": "3cca5ad24f0531a424f1f78a93e60545a6a11bbeac58015de57a95dd593e12d6",
         "robot_body_frame": "t_bracket_base",
         "robot_id": "nero",
         "version": 1
       },
       "description_revision": "sha256:19d1dede4fe08cccfc166f130624a8654aa22422142a3d20c493f5616ab8a9a3",
-      "kinematics_hash": "930e744138645543ab849223550240f90c2881227644851b4310bbaf29a2b503"
+      "kinematics_hash": "3cca5ad24f0531a424f1f78a93e60545a6a11bbeac58015de57a95dd593e12d6"
     },
     "profile_id": "nero_dual_xhand",
     "profile_version": 1,
     "robot_id": "nero",
-    "schema_hash": "0a513539f288b2ac1067821e0cce80eabc9277a85cbc1b2cc591b9d6faf97b1f",
+    "schema_hash": "4bee461594ab4b976d0ebe8e6028ac584693b3e14e7cbac670f94956a7d739e1",
     "schema_version": 2,
     "sensor_specs": [
       {
@@ -1848,11 +1848,11 @@
     "xhand": {
       "left": {
         "hand_id": 0,
-        "serial_port": "configure_on_host"
+        "serial_port": "/dev/serial/bi-id/usb-FTDI_USB-RS485-WE_FTAEFQWY-if00-port0"
       },
       "right": {
         "hand_id": 0,
-        "serial_port": "configure_on_host"
+        "serial_port": "/dev/serial/bi-id/usb-FTDI_USB-RS485-WE_FTAAUYUK-if00-port0"
       }
     }
   },
@@ -1862,13 +1862,26 @@
     "source": "quest",
     "strict_packets": true
   },
-  "kinematics_hash": "930e744138645543ab849223550240f90c2881227644851b4310bbaf29a2b503",
+  "input_basis_id": "unity_left_handed_v1",
+  "input_rotation_to_robot_body": [
+    0.0,
+    -3.673205e-06,
+    -0.999999999993,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.999999999993,
+    -3.673205e-06
+  ],
+  "kinematics_hash": "3cca5ad24f0531a424f1f78a93e60545a6a11bbeac58015de57a95dd593e12d6",
   "layout_hash": "6ff0cd51f0fed20ef4129408116481d3f63504575ea82d101b8ebe5863367df3",
+  "migrated_from": "quest3_canonical_legacy_v1",
   "mode_default": "sim",
   "profile_id": "nero_dual_xhand",
   "profile_version": 1,
   "robot_id": "nero",
-  "schema_hash": "0a513539f288b2ac1067821e0cce80eabc9277a85cbc1b2cc591b9d6faf97b1f",
+  "schema_hash": "4bee461594ab4b976d0ebe8e6028ac584693b3e14e7cbac670f94956a7d739e1",
   "sensors": [
     {
       "action_observation_only": true,

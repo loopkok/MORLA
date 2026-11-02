@@ -64,9 +64,10 @@ def make_unity_hand(seed):
 @pytest.mark.parametrize("side", ["left", "right"])
 @pytest.mark.parametrize("seed", range(20))
 def test_legacy_pinky_path_matches_xnero_source(side, seed):
+    # The receiver now publishes raw Unity; the historical XNero result is the
+    # default Unity -> XHand basis (the X flip) applied to exactly that stream.
     unity = make_unity_hand(seed)
-    robot_raw = unity @ M.T
-    actual = preprocess_xhand_landmarks(robot_raw, side, "legacy_xhand_pinky")
+    actual = preprocess_xhand_landmarks(unity, side, "legacy_xhand_pinky")
     expected = old_xnero_reference(unity, side, pinky=True)
     np.testing.assert_allclose(actual, expected, rtol=0.0, atol=1e-12)
 
@@ -74,19 +75,33 @@ def test_legacy_pinky_path_matches_xnero_source(side, seed):
 @pytest.mark.parametrize("side", ["left", "right"])
 def test_mano_only_mode_matches_source_before_pinky(side):
     unity = make_unity_hand(77)
-    robot_raw = unity @ M.T
-    actual = preprocess_xhand_landmarks(robot_raw, side, "legacy_xhand")
+    actual = preprocess_xhand_landmarks(unity, side, "legacy_xhand")
     expected = old_xnero_reference(unity, side, pinky=False)
     np.testing.assert_allclose(actual, expected, rtol=0.0, atol=1e-12)
 
 
 def test_side_specific_mano_frames_are_preserved_and_input_is_not_mutated():
-    raw = make_unity_hand(3) @ M.T
+    raw = make_unity_hand(3)
     before = raw.copy()
     left = preprocess_xhand_landmarks(raw, "left")
     right = preprocess_xhand_landmarks(raw, "right")
     assert not np.allclose(left, right)
     np.testing.assert_array_equal(raw, before)
+
+
+def test_explicit_input_basis_replaces_the_legacy_x_flip():
+    unity = make_unity_hand(11)
+    default = preprocess_xhand_landmarks(unity, "right")
+    # Passing the same flip as a flat 9-vector must be identical.
+    np.testing.assert_array_equal(
+        preprocess_xhand_landmarks(unity, "right", input_basis=F.reshape(-1)), default
+    )
+    identity = preprocess_xhand_landmarks(unity, "right", input_basis=np.eye(3))
+    assert not np.allclose(identity, default)
+    with pytest.raises(ValueError):
+        preprocess_xhand_landmarks(unity, "right", input_basis=np.ones((3, 3)))
+    with pytest.raises(ValueError):
+        preprocess_xhand_landmarks(unity, "right", input_basis=[1, 0, 0])
 
 
 @pytest.mark.parametrize(

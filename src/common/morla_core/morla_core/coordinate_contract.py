@@ -9,8 +9,13 @@ from typing import Any
 import numpy as np
 
 from .coordinates import (
+    INPUT_BASIS_IDS,
+    QUEST_CANONICAL_BASIS_ID,
+    UNITY_LEFT_HANDED_BASIS_ID,
+    UNITY_TO_QUEST3_CANONICAL,
     CoordinateError,
     fixed_transform_between_urdf,
+    validate_basis_change,
     validate_rotation,
 )
 
@@ -19,11 +24,25 @@ def _canonical(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
-def _matrix9(value: Any, label: str) -> list[float]:
+def _matrix9(value: Any, label: str, *, basis_id: str) -> list[float]:
+    """Validate a declared alignment in its own basis.
+
+    Raw-Unity alignments are basis changes and must have det -1; canonical
+    alignments are proper rotations. Accepting the wrong sign would rotate the
+    arm with reflected axes, so the basis id decides the contract.
+    """
     matrix = np.asarray(value, dtype=float)
     if matrix.shape == (9,):
         matrix = matrix.reshape(3, 3)
-    validate_rotation(matrix)
+    if basis_id == UNITY_LEFT_HANDED_BASIS_ID:
+        validate_basis_change(matrix)
+        if not np.isclose(np.linalg.det(matrix), -1.0, atol=1e-7, rtol=0.0):
+            raise CoordinateError(
+                f"{label} must have determinant -1 in the raw Unity basis "
+                "(use A_new = A_old @ M to rebase a canonical matrix)"
+            )
+    else:
+        validate_rotation(matrix)
     return [float(x) for x in matrix.reshape(-1)]
 
 
@@ -67,7 +86,7 @@ class CoordinateContract:
         arm = self.arm(side)
         direct = arm.get("input_rotation_to_solver_base")
         if direct is not None:
-            return np.asarray(direct, dtype=float).reshape(3, 3)
+            return validate_basis_change(np.asarray(direct, dtype=float).reshape(3, 3))
         if self.input_rotation_to_robot_body is None:
             raise CoordinateError("contract has neither a common nor per-arm input alignment")
         T_body_base = fixed_transform_between_urdf(
@@ -75,7 +94,10 @@ class CoordinateContract:
         )
         R_base_body = T_body_base[:3, :3].T
         R_body_input = np.asarray(self.input_rotation_to_robot_body, dtype=float).reshape(3, 3)
-        return validate_rotation(R_base_body @ R_body_input)
+        # A Unity-basis input makes the product improper: the URDF mount is a
+        # proper rotation and the input alignment is a basis change. Only deltas
+        # are mapped through it, so the reflection never becomes a pose.
+        return validate_basis_change(R_base_body @ R_body_input)
 
     def resolve_arm_tool_transform(self, side: str, urdf_path: str) -> np.ndarray:
         """Derive ``T_solver_tip_from_tool`` from the named URDF fixed chain.
@@ -118,12 +140,14 @@ def build_coordinate_contract(profile: dict[str, Any]) -> CoordinateContract:
     explicit = profile.get("coordinate_contract") or {}
     if explicit and explicit.get("version") != 1:
         raise CoordinateError("unsupported coordinate_contract version")
-    basis_id = str(explicit.get("input_basis_id", "quest3_canonical_legacy_v1"))
+    basis_id = str(explicit.get("input_basis_id", UNITY_LEFT_HANDED_BASIS_ID))
+    if basis_id not in INPUT_BASIS_IDS:
+        raise CoordinateError(f"unknown input_basis_id {basis_id!r}")
     frame_policy = str(explicit.get("input_frame_policy", "incremental_operator_aligned"))
     body_frame = str(explicit.get("robot_body_frame", "body_link" if robot_id == "astral" else "t_bracket_base"))
     common_alignment_raw = explicit.get("input_rotation_to_robot_body")
     common_alignment = None if common_alignment_raw is None else _matrix9(
-        common_alignment_raw, "input_rotation_to_robot_body"
+        common_alignment_raw, "input_rotation_to_robot_body", basis_id=basis_id
     )
     alignment_source = str(explicit.get("input_rotation_source", "legacy_component_matrix"))
     declared_arms = explicit.get("arms", {})
@@ -141,12 +165,24 @@ def build_coordinate_contract(profile: dict[str, Any]) -> CoordinateContract:
         declaration = declared_arms.get(side, {})
         if not isinstance(declaration, dict):
             raise CoordinateError(f"coordinate_contract.arms.{side} must be a mapping")
-        legacy_key = "vr_to_arm_rot_after_unity_to_robot" if robot_id == "nero" else "vr_to_arm_rot"
+        # ``vr_to_arm_rot_after_unity_to_robot`` existed only while the receiver
+        # emitted canonical; a Unity-basis contract falls back to the original
+        # per-arm Unity key, which is what that value was before the rebase.
+        legacy_key = ("vr_to_arm_rot_after_unity_to_robot"
+                      if robot_id == "nero" and basis_id == QUEST_CANONICAL_BASIS_ID
+                      else "vr_to_arm_rot")
         raw_alignment = declaration.get("input_rotation_to_solver_base")
         if raw_alignment is None and common_alignment is None:
-            raw_alignment = component.get(legacy_key, np.eye(3).reshape(-1))
+            raw_alignment = component.get(legacy_key)
+            if raw_alignment is None:
+                # The undeclared legacy alignment was identity in the canonical
+                # basis; its raw-Unity rebase is M (identity @ M). A declared
+                # common alignment already covers every arm, so it is never
+                # shadowed by a per-arm fallback.
+                raw_alignment = (np.eye(3).reshape(-1) if basis_id == QUEST_CANONICAL_BASIS_ID
+                                 else UNITY_TO_QUEST3_CANONICAL.reshape(-1))
         alignment = None if raw_alignment is None else _matrix9(
-            raw_alignment, f"arms.{side}.input_rotation_to_solver_base"
+            raw_alignment, f"arms.{side}.input_rotation_to_solver_base", basis_id=basis_id
         )
         solver_base = str(declaration.get("solver_base_frame", f"{side}_base_link"))
         solver_tip = str(declaration.get("solver_tip_frame", f"{side}_link7"))

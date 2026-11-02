@@ -12,12 +12,17 @@ quest3_udp_mocap:
     arm_side: "both"
     ema_alpha: 0.7
     viz: true
-    # Unified output is wrist-local robot-axis raw; MANO/finger adaptation is
-    # selected by a robot-specific retargeter (XHand or Wuji).
+    # Unified output is wrist-local raw landmarks; MANO/finger adaptation and
+    # the Unity -> hand basis are selected by a robot-specific retargeter
+    # (XHand or Wuji).
     landmark_preprocess: "raw"
-    # Unity LH → canonical Quest axes (X left, Y back, Z up). false = keep raw Unity.
-    convert_to_robot: true
-    coordinate_basis_id: "quest3_canonical_legacy_v1"
+    # The node republishes raw Unity (X right, Y up, Z forward) for poses and
+    # landmarks. Each robot declares its own Unity -> own-frame matrix.
+    # convert_to_robot: true is a debug escape hatch that restores the
+    # historical canonical axes (X left, Y back, Z up); do not mix it with
+    # bindings that declare input_basis_id: unity_left_handed_v1.
+    convert_to_robot: false
+    coordinate_basis_id: "unity_left_handed_v1"
     # Mixed/IOBT: also publish Touch 6DoF on quest3/{side}_wrist_pose (arm IK).
     controller_as_wrist: true
     # Set false if another source (e.g. glove) owns that landmarks topic.

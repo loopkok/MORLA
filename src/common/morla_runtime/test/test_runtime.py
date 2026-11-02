@@ -106,11 +106,27 @@ def test_partial_dispatch_stops_all(tmp_path):
 
 
 def test_switch_missing_ack_does_not_grant(runtime):
-    permit = arm(runtime)
-    runtime.adapters['arm'].stop = lambda: False
+    arm(runtime)
+    # A handover stops the old producer's output softly; an unacknowledged
+    # release must not grant authority to the new producer either.
+    runtime.adapters['arm'].release = lambda: False
     with pytest.raises(RuntimeErrorCode): runtime.switch('policy', input_received_ns=runtime.clock())
     assert runtime.lease is None
     assert runtime.status == 'FAULTED'
+
+
+def test_revoke_releases_softly_and_only_estop_cuts_power(runtime):
+    arm(runtime)
+    calls = runtime.adapters['arm'].calls
+    runtime.revoke('human')
+    # Disarm keeps the device enabled: powering it down dropped a real arm
+    # under gravity, so the next activate re-enabled it from a sagged pose.
+    assert calls[-1] == ('release',)
+    assert runtime.status == 'READY_DISARMED'
+    runtime.activate('activate-again')
+    runtime.estop()
+    assert calls[-1] == ('stop',)
+    assert runtime.status == 'ESTOP_LATCHED'
 
 
 def test_stale_feedback_does_not_stop_active_group(runtime):

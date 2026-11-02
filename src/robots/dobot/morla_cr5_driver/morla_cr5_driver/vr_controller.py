@@ -7,7 +7,7 @@ from scipy.spatial.transform import Rotation
 from morla_teleop.kinematics import CartesianController
 from .kinematics import vector6
 from .urdf_ik import IKSolver
-from morla_core.coordinates import validate_rotation, validate_transform
+from morla_core.coordinates import validate_basis_change, validate_transform
 
 
 def validate_parameters(parameters, *, jog=False):
@@ -29,7 +29,7 @@ def validate_parameters(parameters, *, jog=False):
         for key,maximum in [('linear_speed',.25),('angular_speed',1)]:
             if key in parameters and (type(parameters[key]) not in (int,float) or not np.isfinite(parameters[key]) or not 0<parameters[key]<=maximum):
                 raise ValueError('Invalid Cartesian '+key)
-    if 'input_rotation' in parameters:validate_rotation(parameters['input_rotation'])
+    if 'input_rotation' in parameters:validate_basis_change(parameters['input_rotation'])
     if 'solver_tip_from_tool' in parameters:validate_transform(parameters['solver_tip_from_tool'])
 
 
@@ -44,6 +44,7 @@ class AsyncCartesianController:
         self.filtered_pose = None
         self.pending = None
         self.result = None
+        self.last_output = None
         self.error = None
         self.first_request_ns = None
         self.closed = False
@@ -55,6 +56,7 @@ class AsyncCartesianController:
             self.generation += 1
             self.pending = self.result = self.error = None
             self.first_request_ns = None
+            self.last_output = None
 
     def __call__(self, value, measured, dt, parameters):
         measured = vector6(measured)
@@ -72,10 +74,16 @@ class AsyncCartesianController:
             self.condition.notify()
             result = measured.copy() if self.result is None else self.result[0].copy()
         # Limit actual outgoing joint velocity, independently of controller response rate.
+        # The limit is applied to the previous command, not to the measured pose:
+        # anchoring on the measurement would let the commanded pose trail the arm
+        # wherever gravity takes it, so the servo would never build the error needed
+        # to hold position (and would ratchet down until IK loses the seed).
         speed = float(parameters.get('max_joint_velocity', .3))
         if not 0 < speed <= 1: raise ValueError('Invalid CR5 joint velocity')
         step = speed * min(.05, max(0., dt))
-        return (measured + np.clip(result - measured, -step, step)).tolist()
+        origin = measured if self.last_output is None else self.last_output
+        self.last_output = origin + np.clip(result - origin, -step, step)
+        return self.last_output.tolist()
 
     def _run(self):
         while True:
@@ -118,7 +126,14 @@ class AsyncCartesianController:
                     self.error = error
                     if error:
                         self.pending = self.result = None
-                    if result is not None: self.result = (vector6(result), requested_ns)
+                    if result is not None:
+                        self.result = (vector6(result), requested_ns)
+                    elif error is None and self.result is not None:
+                        # An unreachable jog tick is a live answer holding the
+                        # last feasible target, not a stalled worker: refresh
+                        # the timestamp so the 300 ms expiry does not revoke
+                        # the session while the stick is held at a limit.
+                        self.result = (self.result[0], requested_ns)
 
     def close(self):
         with self.condition:
@@ -140,7 +155,12 @@ def _create(context, *, jog=False):
     hardware=instance.get('parameters',{})
     solver=IKSolver(**({'position_tolerance_m':.00001,'angle_tolerance_rad':.0001} if jog else {}),
                     joint_lower=hardware.get('joint_lower'),joint_upper=hardware.get('joint_upper'),
-                    joint_signs=hardware.get('urdf_joint_signs'),joint_offsets=hardware.get('urdf_joint_offsets'))
+                    joint_signs=hardware.get('urdf_joint_signs'),joint_offsets=hardware.get('urdf_joint_offsets'),
+                    # A jog tick is a small deliberate step: keep one local window so a
+                    # refused stick direction stays refused and the blocked-axis mask
+                    # keeps working. Pose teleop retries wider instead of dropping the
+                    # whole frame when the wrist turns past one window.
+                    retry_trust=(.3,) if jog else (.3,.6,1.2))
     controller=AsyncCartesianController(solver, clock=context.get('clock', time.monotonic_ns),jog=jog)
     controller.requires_fresh_input=instance['backend']=='real'
     return controller

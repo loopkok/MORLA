@@ -78,6 +78,13 @@ class WujiHandRetargetNode(Node):
         self.declare_parameter("home_position", [0.0] * NUM_JOINTS)
         self.declare_parameter("viz", False)
         self.declare_parameter("fps_print_interval", 5.0)
+        # Unity -> hand-frame basis for the landmark topic. Identity keeps the
+        # historical glove convention; Quest-fed deployments pass M (or their
+        # own Unity -> hand matrix).
+        self.declare_parameter(
+            "input_basis",
+            [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0],
+        )
 
         self.hand_side = str(self.get_parameter("hand_side").value).lower()
         self.backend_name = str(self.get_parameter("retarget_backend").value).lower()
@@ -107,6 +114,11 @@ class WujiHandRetargetNode(Node):
         self._policy_lease = PolicyLease()
         self.declare_parameter('max_joint_rate', 1.5)
         self._max_joint_rate = float(self.get_parameter('max_joint_rate').value)
+        self._input_basis = np.asarray(
+            self.get_parameter("input_basis").value, dtype=np.float64
+        ).reshape(3, 3)
+        if not np.allclose(self._input_basis.T @ self._input_basis, np.eye(3), atol=1e-6):
+            raise ValueError("input_basis 必须是正交矩阵（Unity -> 手部坐标系）")
         self._last_pub_times = {}
         sides = ("left", "right") if self.hand_side == "both" else (self.hand_side,)
         self._backends: Dict[str, object] = {}
@@ -257,6 +269,10 @@ class WujiHandRetargetNode(Node):
             [[p.position.x, p.position.y, p.position.z] for p in msg.poses[:21]],
             dtype=np.float32,
         )
+        # Landmarks arrive raw Unity; express them in this hand's own frame
+        # before handing them to the backend.
+        if not np.allclose(self._input_basis, np.eye(3)):
+            kp = (self._input_basis @ kp.T).T
         try:
             qpos = self._backends[side].retarget(kp)
         except Exception as exc:  # noqa: BLE001
