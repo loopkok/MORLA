@@ -13,12 +13,10 @@
 - 结论四（姿态基准不同）：手柄静止时俯仰约 −45°（操作员握持角），裸手约 0°；位置均值手柄 [0.037, 0.098, 0.55]、裸手 [0.12, 0.192, 0.557]（米）。增量映射下恒定姿态差本身不产生运动，但会让「把柄转一点」产生的关节响应与裸手明显不同。
 - 建议（未实施）：①先做 1 分钟确认测试——手柄模式下只转手腕、不平移，观察工具是否绕轴自转而几乎不平移；②接收器侧或绑定层加手柄原点修正 `p_wrist ≈ p_ctrl − R_ctrl·r`（`r` 作为参数，当前拟合值可直接作初值），让手柄轮与裸手轮走同一条映射；③把该绑定 `max_age_ms` 250 → 400，覆盖手柄流 p99 空档；④手柄流频率只能由头显 App 侧提高，代码无法补数据。以上都未改随包配置。
 
-### CR5 + Vader 5 Pro 台架一键启动（网页 + MuJoCo 实时镜像）
+### Vader 5 Pro 驱动 CR5 sim 的装配入口
 
-- 新增 Vader 全流程装配 [cr5.sim.yaml](src/common/morla_vader5_input/config/cr5.sim.yaml)（`vader5_cr5_sim`：CR5 sim 50 Hz、Vader pad、场景相机）与 [vader5_cr5_sim.launch.py](src/common/morla_vader5_input/launch/vader5_cr5_sim.launch.py)（`assembly`/`deployment`/`input_backend`/`port`/`store` 五个参数，直接转给 `morla-composable-session`）。此前只有 Quest 路径的 `cr5.sim.yaml`，Vader 台架在文档里只出现在验收记录中。
-- 新增 [tools/start_cr5_pad_sim.sh](tools/start_cr5_pad_sim.sh)：无参数一键起台架——固定 `ROS_DOMAIN_ID=91`/`ROS_LOCALHOST_ONLY=1`，source 系统 ROS 与工作区，用 `/usr/bin/python3`（uv/conda py 在 PATH 前面时 import 不到工作区包）；端口已占用则复用已有会话而不是报错；每次运行重新解析 Flydigi hidraw 配置节点（插拔会换节点名），检测到多个手柄时拒绝启动；等 `/api/v2/active-session` 就绪后再打开浏览器与 MuJoCo 窗口，退出时一并关掉 viewer。`OPEN_BROWSER=0` / `NO_VIEWER=1` / `PORT` 可覆盖。
-- 新增 [tools/cr5_live_viewer.py](tools/cr5_live_viewer.py)：会话宿主在自己的进程里跑权威仿真，这个工具加载同一份 `mjcf/cr5/cr5.xml`，按 50 Hz 轮询会话的臂关节状态驱动被动 `mujoco.viewer`，只读、从不下发命令。`tools/cr5_pad_sim_terminal.sh` 与 [tools/start_morla_web_terminal.sh](tools/start_morla_web_terminal.sh) 是桌面图标用的包装脚本（跑完保留窗口显示退出码），避免 `.desktop` 的 Exec 行里写 shell 引号。
-- 未验证：本次只落了脚本与配置，没有重新跑一遍完整台架（会话宿主、`/api/v2/active-session`、`mujoco.viewer` 的目标状态分别在此之前验证过，但一键脚本与桌面图标包装未做端到端冒烟）。
+- 新增 [cr5.sim.yaml](src/common/morla_vader5_input/config/cr5.sim.yaml)（`vader5_cr5_sim`：CR5 sim 50 Hz、Vader pad fake/real 可选、场景相机）与 [vader5_cr5_sim.launch.py](src/common/morla_vader5_input/launch/vader5_cr5_sim.launch.py)（`assembly`/`deployment`/`input_backend`/`port`/`store` 五个参数原样转给 `morla-composable-session`）。此前随包只有 Quest 路径的 CR5 装配，Vader 驱动 CR5 sim 只出现在验收记录里，没有可复用的装配文件。
+- 未验证：没有用实体手柄跑过这条装配的完整链路。
 
 ### CR5 遥操改为持续跟随：去掉握把 deadman（对齐旧 Nero/Astral 语义）
 
