@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3"><name>cr5_mujoco_sim</name><version>0.1.0</version>
 <description>CR5 shared MuJoCo kinematic and physics simulator</description>
-<maintainer email="robot@localhost">MORLA</maintainer><license>Apache-2.0</license>
+<maintainer email="maintainers@morla.dev">MORLA</maintainer><license>Apache-2.0</license>
 <exec_depend>morla_runtime</exec_depend><exec_depend>morla_cr5_driver</exec_depend>
 <exec_depend>morla_web_manager</exec_depend><exec_depend>robot_description</exec_depend>
 <exec_depend>launch</exec_depend><exec_depend>launch_ros</exec_depend>
