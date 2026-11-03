@@ -52,7 +52,8 @@ def cell(tmp_path):
             wait()
             return response
         send('pose');send();send('pose',side='left');send(side='left')
-        yield SimpleNamespace(client=client,svc=svc,rt=svc.session,sid=sid,clock=clock,send=send,action=action,wait=wait)
+        yield SimpleNamespace(client=client,svc=svc,rt=svc.session,sid=sid,clock=clock,send=send,
+                              action=action,wait=wait,manager=manager,publisher=publisher,seq=seq)
 
 
 def test_quest_full_record_save_discard_and_work_position(cell):
@@ -304,6 +305,23 @@ def test_anchor_timeout_and_late_success_cannot_regain_authority(cell,monkeypatc
         c.svc.operator.tick()
         assert c.svc.operator.activity!='human' and c.svc.bindings is bindings
     finally:unblock.set()
+
+
+def test_reanchor_anchors_on_input_current_after_controller_build(cell,monkeypatch):
+    """CR5 controller construction costs ~1 s; the anchor must not go stale behind it."""
+    from morla_teleop.engine import BindingEngine
+    c=cell
+    original=BindingEngine._binding_controller
+    def slow(self,binding):
+        c.clock[0]+=400_000_000
+        c.send('controller_state',settle=False)
+        return original(self,binding)
+    monkeypatch.setattr(BindingEngine,'_binding_controller',slow)
+    c.send(grip=1.)
+    assert c.svc.operator.handoff.state()['status']=='SUCCEEDED'
+    assert c.svc.operator.activity=='human'
+    stuck=c.svc.operator.handoff.state()['acks']['grip_control']
+    assert stuck['acknowledged'] is True
 
 
 def test_pause_during_takeover_cancels_late_anchor(cell,monkeypatch):

@@ -52,7 +52,7 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q \
 
 ## 右手柄 / 右手追踪 VR 遥操（2026-10-29）
 
-已补齐来源明确的 Quest 输入、持续跟随（无 deadman）、相对建锚、姿态滤波、异步本地 URDF / Pinocchio FK/IK、统一 runtime 输出和本机控制页。随包 `quest.sim.yaml`/`quest.fake.yaml` 不声明 `binding.deadman`：会话 ACTIVE 后机械臂持续跟随手柄，松手或松开捏合都不会停止，只有显式 stop/revoke 才会停；激活后的第一帧以当前手柄位姿和实测关节 FK 的 TCP 建锚。输入断流超过 `max_age_ms`（250 ms）时绑定按当前臂位姿重新建锚，不产生跳变，也不撤权；切换手柄/裸手、重定位或 source/frame 变化同样清锚。握把/捏合结果仍写入 `quest.right_hold` 并作为采集辅助数据，但不再门控运动。fake 与 real 共用实际 CR5 几何模型和 IK，fake 反馈仍为合成数据；真实跟随尚需现场验收。
+已补齐来源明确的 Quest 输入、相对建锚、姿态滤波、异步本地 URDF / Pinocchio FK/IK、统一 runtime 输出和本机控制页。随包 `quest.sim.yaml`/`quest.fake.yaml` 不声明 `binding.deadman`，但握把/捏合仍写入 `quest.right_hold`，公共工作站据此发布 `operator_hold`（TTL 250 ms）并门控运动：**按住右手 grip 才跟随，松开即停**（不撤权，会话保持 ACTIVE）；只有显式 stop/revoke 才会停止整个遥操。激活后的第一帧以当前手柄位姿和实测关节 FK 的 TCP 建锚。输入断流超过 `max_age_ms`（250 ms）时先因 hold 过期停止输出，随后绑定按当前臂位姿重新建锚，不产生跳变，也不撤权；切换手柄/裸手、重定位或 source/frame 变化同样清锚。裸手模式下 `right_hold` 来自捏合，因此捏合门控跟随（这是运行时行为，不是绑定 `deadman`）。fake 与 real 共用实际 CR5 几何模型和 IK，fake 反馈仍为合成数据；真实跟随尚需现场验收。
 
 在已构建本包与公共 morla_web_manager 的 Humble 环境，配置 ADB reverse TCP 8000 后运行：
 

@@ -2,6 +2,26 @@
 
 ## 2026-11-03
 
+### 文档：CR5 遥操的握把门控语义更正
+
+- 三处文档（`cr5_vr.md` §4 步骤 2–5 与捏合说明、`cr5.md`、`morla_cr5_driver/README.md`）此前写“会话 ACTIVE 后持续跟随，松手/松开捏合不停止”，与现网行为相反。
+- 实际：随包绑定虽不声明 `binding.deadman`，接收器仍把 grip/捏合写入 `quest.right_hold`，公共工作站据此发布 `operator_hold`（TTL 250 ms），`BindingEngine._deadman_held` 把它并入门控——**按住右手 grip 才跟随，松开或 grip 数据中断超过 250 ms 即停止输出并保持位置，不撤权**；再按 grip 的上升沿会重新发起 `teleop_start` 并重锚。裸手模式的 `right_hold` 来自捏合，同样门控跟随，且捏合不会自动发起开始遥操。
+- 证据：2026-11-03 14:30 实机会话 trace 中 `operator_hold` 的 `source=input-quest` 随 grip 翻转，松开时记录 `control_gate reason=deadman_released_or_stale`。
+- 仅文档更正，无代码或配置变更，未重跑测试。
+
+### 文档：CR5 VR 手柄输入速率实测更正
+
+- `docs/integrations/cr5_vr.md` §2.2 的「手柄腕姿 21.1 Hz」标注作废。2026-11-03 14:30 实机会话 trace 实测 `right_pose` **85.8 Hz**（活跃 97.3 s、8352 个样本），间隔中位 11.2 ms、p90 12.1 ms、p99 22.9 ms、最大 922 ms，超过 250 ms 的空档 97 s 内 2 次（合计 1.24 s）；`right_grip`/`right_hold` 与位姿同一采样序号、同速率。
+- 21.1 Hz 是快照修复前位姿/按键/关键点共用 `depth=1` 话题时的到达率，不是头显端采样率。同时撤回早前“把该绑定 `max_age_ms` 放宽到 400 覆盖手柄 p99 空档”的建议：现网 p99 仅 22.9 ms，250 ms 余量约 10 倍，放宽只会延长失效输入被接受的时间。
+- 仅文档更正，无代码或配置变更，未重跑测试。统计方法：按 `port_metadata.right_pose.sample_sequence` 去重、取 `source_time_ns` 计算到达间隔。
+
+### 重锚使用构造控制器之后的输入，修复 `reanchor requires fresh bound input`
+
+- 症状：Web 里按握把开始遥操仍报 `重锚失败 control_1: reanchor requires fresh bound input`，而 trace 中 `right_pose` 更新约 78 Hz、失败瞬间端口龄期仅 1.7–7.1 ms。
+- 根因：重锚 worker 先 `engine._binding_controller()` 构造新控制器，CR5 插件首次导入（约 220 ms）加 Pinocchio 读 URDF 建模型（约 700–1050 ms）合计约 1 s；`reanchor()` 用的却是 worker 启动前 `poll()` 深拷贝的那份帧，此时已超出绑定 `max_age_ms: 250`。与输入链路无关，握手/快照均为正常。
+- 修复：构造完控制器后从同一输入源重读最新帧，校验代次一致与基声明一致，再用该帧锚定，并把实际使用的帧回写给 job，供 `_validate` 用同一帧复检。
+- 回归：新增 `test_reanchor_anchors_on_input_current_after_controller_build`（构造控制器期间推进 400 ms 并投递新帧），修复前失败、修复后通过；`test_workstation_operator.py` 19 项通过（1 项既有基线失败排除），`--layer pure` 285 passed/1 skipped，`--layer fake` 仅既有 mobile 基线失败。未做实体 Quest 现场验收，需重启 Web 后确认。
+
 ### Quest depth=1 最新状态快照修复
 
 - 公共 Quest 保持 `BEST_EFFORT + KEEP_LAST depth=1`，接收器按手发布 v3 状态快照，位姿、手柄状态或裸手关键点更新后立即携带当前字段发布，避免后到按键覆盖队列中的位姿；不等待配对、不放宽 250 ms 时效。
@@ -106,10 +126,10 @@
 - 工具：新增只读监听脚本 [scripts/quest3_pose_listener.py](scripts/quest3_pose_listener.py)。订阅 `quest3/{left,right}_wrist_pose`、`/{side}_controller_pose`、`head_pose`、`hips_pose`、`/{side}_teleop_events`、`input_mix`、`input_epoch`（QoS 与接收器一致：流 BEST_EFFORT depth 50、事件 depth 16、latched RELIABLE TRANSIENT_LOCAL 各 depth 1），按 `input_mix` 标出 controller / hand / none 窗口，落 `samples.jsonl`、`events.jsonl`、`summary.json`，并做三项统计：每路到达率与间隔分位、腕/手柄镜像逐样本比对、按分段最小二乘拟合「跟踪点相对腕部的旋转杠杆臂」`Δp=(R₁−R₀)·r_local`。用法见 [morla_input README](src/common/morla_input/README.md#离线监听已有姿态流)；必须带上接收器所在域（本机 `ROS_DOMAIN_ID=91`、`ROS_LOCALHOST_ONLY=1`），否则收不到任何话题。
 - 采集：261.31 s，手柄 0.02–94.37 s、裸手 94.37–172.38 s、手柄 172.38–261.31 s（中途 epoch：0.02 s `tcp_disconnected`、128.13 s 左腕/landmarks 断开、206.56 s 左右手柄断开，下游各 disarm 一次）。
 - 结论一（坐标系没错）：腕姿与手柄流帧 id 相同、四元数/位置都合法；接收器 `controller_as_wrist` 镜像逐样本一致——498 个样本，位置与四元数最大差 0。两轮的分歧不是 Unity→base 矩阵或方向表的问题。
-- 结论二（手柄流本身稀疏）：裸手轮腕姿 88.6 Hz（间隔 p90 13.5 ms、最大 39.8 ms）；手柄轮腕/手柄镜像只有 21.1 Hz（p90 144.8 ms、最大 466.4 ms），同一时间头/髋仍是 89–90 Hz，摇杆 11.8 Hz。即接收器与网络没有丢，是头显端手柄位姿的发送频率低。按绑定 `max_age_ms: 250`，手柄轮有效采集的 34 s 内出现 9 次 >250 ms 的空档（108 次 >100 ms），每次都会让 `BindingController.step` 重置并按当前臂位姿重锚；裸手轮只有一次接收器中段整体停摆造成的 44 s 整段空档，没有任何逐样本空档。重锚本身不跳变，但连续重锚等于把手的绝对位置信息反复丢掉，表现为「方向越来越不对」。手柄轮 0 条包拒绝（裸手轮 1 条告警）。
+- 结论二（手柄流本身稀疏）：裸手轮腕姿 88.6 Hz（间隔 p90 13.5 ms、最大 39.8 ms）；手柄轮腕/手柄镜像只有 21.1 Hz（p90 144.8 ms、最大 466.4 ms），同一时间头/髋仍是 89–90 Hz，摇杆 11.8 Hz。即接收器与网络没有丢，是头显端手柄位姿的发送频率低。按绑定 `max_age_ms: 250`，手柄轮有效采集的 34 s 内出现 9 次 >250 ms 的空档（108 次 >100 ms），每次都会让 `BindingController.step` 重置并按当前臂位姿重锚；裸手轮只有一次接收器中段整体停摆造成的 44 s 整段空档，没有任何逐样本空档。重锚本身不跳变，但连续重锚等于把手的绝对位置信息反复丢掉，表现为「方向越来越不对」。手柄轮 0 条包拒绝（裸手轮 1 条告警）。**2026-11-03 更正：其中「21.1 Hz」是旧投递链路（位姿/按键/关键点共用 `depth=1` 话题）的到达率，不是头显端发送频率；v3 状态快照后实机 trace 实测 `right_pose` 85.8 Hz、p99 间隔 22.9 ms，见 2026-11-03「CR5 VR 手柄输入速率实测更正」条目。**
 - 结论三（手柄跟踪点带 17.8 cm 杠杆臂）：最小二乘拟合手柄位姿相对腕部的偏移 `r=[-0.076, 0.075, 0.143]`（|r|=17.8 cm，110 对样本，|Δp| 均值 8.1 mm，残差中位 4.3 mm）；裸手腕部同一拟合 `r=[-0.003,-0.01,0.03]`（3.2 cm，残差≈位移本身、无相关性，说明腕姿是腕原点而非先验点）。手腕转 1 rad 时手柄点会额外平移约 18 cm，经 `position_scale 0.8` 变成工具端最多约 7 cm 的位移。按运动段统计，手柄轮 7.23 m 位姿路径里 4.70 m（65%）由旋转引起，裸手轮 7.25 m 里只有 0.91 m（13%）。
 - 结论四（姿态基准不同）：手柄静止时俯仰约 −45°（操作员握持角），裸手约 0°；位置均值手柄 [0.037, 0.098, 0.55]、裸手 [0.12, 0.192, 0.557]（米）。增量映射下恒定姿态差本身不产生运动，但会让「把柄转一点」产生的关节响应与裸手明显不同。
-- 建议（未实施）：①先做 1 分钟确认测试——手柄模式下只转手腕、不平移，观察工具是否绕轴自转而几乎不平移；②接收器侧或绑定层加手柄原点修正 `p_wrist ≈ p_ctrl − R_ctrl·r`（`r` 作为参数，当前拟合值可直接作初值），让手柄轮与裸手轮走同一条映射；③把该绑定 `max_age_ms` 250 → 400，覆盖手柄流 p99 空档；④手柄流频率只能由头显 App 侧提高，代码无法补数据。以上都未改随包配置。
+- 建议（未实施）：①先做 1 分钟确认测试——手柄模式下只转手腕、不平移，观察工具是否绕轴自转而几乎不平移；②接收器侧或绑定层加手柄原点修正 `p_wrist ≈ p_ctrl − R_ctrl·r`（`r` 作为参数，当前拟合值可直接作初值），让手柄轮与裸手轮走同一条映射；③把该绑定 `max_age_ms` 250 → 400，覆盖手柄流 p99 空档（**2026-11-03 撤回**：现网手柄 p99 间隔 22.9 ms，250 ms 余量约 10 倍，放宽只会延长失效输入的接受时间）；④手柄流频率只能由头显 App 侧提高，代码无法补数据（**2026-11-03 撤回**：实机已实测 85.8 Hz，受限的是当时的投递链路，不是 App 发送频率）。以上都未改随包配置。
 
 ### Vader 5 Pro 驱动 CR5 sim 的装配入口
 
@@ -123,7 +143,7 @@
 - 改动：[quest.sim.yaml](src/robots/dobot/morla_cr5_driver/config/quest.sim.yaml)/[quest.fake.yaml](src/robots/dobot/morla_cr5_driver/config/quest.fake.yaml) 删除 `deadman`，会话 ACTIVE 后持续跟随；松手或松开捏合不再停止，停止必须显式 stop/revoke。握把/捏合结果仍写入 `quest.right_hold` 并保留在 `capture.auxiliary`，仅作采集辅助数据，不再门控运动。输入断流超过 `max_age_ms` 时 `BindingController.step` 仍会重置并按当前臂位姿重新建锚，第一帧命令等于实测位姿，不产生跳变，也不撤权。
 - 已保存配置：`cr5_quest_sim` 保存为 revision 7（`assembly_hash c4ba1ec632342652332a8da3c5224b529233b8acb7bdbacc40d683176f64a62e`），其余参数沿用 revision 6（Unity 基 `unity_left_handed_v1`、`input_rotation [[0,0,-1],[1,0,0],[0,1,0]]`、`smoothing_alpha 0.8`、`position_scale 0.8`、`max_joint_velocity 1.0`）。旧 revision 仍只读保留。
 - 测试：[test_cr5_vr.py](src/robots/dobot/morla_cr5_driver/test/test_cr5_vr.py) 的整链用例改为持续跟随断言——激活后首个 pose 即建锚并派发，grip 按下被过滤、松开只产生无 pose 的空帧，断流 270 ms 后按当前臂位姿重锚且关节无跳变、会话保持 ACTIVE；`morla_cr5_driver` 26 passed。
-- 文档：[cr5_vr.md](docs/integrations/cr5_vr.md) 操作步骤 2–5 与捏合说明、[cr5.md](docs/integrations/cr5.md)、包 README 同步；2026-10-29 的实施记录保留为历史。
+- 文档：[cr5_vr.md](docs/integrations/cr5_vr.md) 操作步骤 2–5 与捏合说明、[cr5.md](docs/integrations/cr5.md)、包 README 同步；2026-10-29 的实施记录保留为历史。**2026-11-03 更正：去掉 `binding.deadman` 并没有解除门控——`quest.right_hold` 仍由公共工作站作为 `operator_hold` 注入，实际是“按住 grip 才跟随”，见 2026-11-03「CR5 遥操的握把门控语义更正」。**
 
 ### Web 仿真预览帧率：相机 60 fps + MJPEG 流控 60 Hz
 

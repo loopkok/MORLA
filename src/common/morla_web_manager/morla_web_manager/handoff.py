@@ -84,10 +84,19 @@ class Handoff:
             try:
                 binding=job['binding'];frame=job['frame']
                 engine=BindingEngine(self.rt,bindings={})
-                if not engine._input_basis_matches(binding,frame):raise ValueError('reanchor input basis mismatch')
                 controller=engine._binding_controller(binding)
+                # Building a controller (plugin import plus a fresh IK model) can
+                # take about a second, far beyond the binding max_age. Anchor on
+                # the input current at reanchor time, not the one staged before
+                # the worker started, or a healthy stream looks stale.
+                source=self.svc.inputs.get(frame.source_id)
+                latest=source.read() if source is not None else None
+                if latest is None or latest.source_epoch!=frame.source_epoch:
+                    raise ValueError('重锚期间输入已断开或切换')
+                frame=latest
+                if not engine._input_basis_matches(binding,frame):raise ValueError('reanchor input basis mismatch')
                 ack=controller.reanchor(frame,seeds[binding['target'].split('.',1)[0]])
-                future.set_result({'controller':controller,'ack':ack})
+                future.set_result({'controller':controller,'ack':ack,'frame':frame})
             except BaseException as exc:
                 if controller is not None:
                     try:controller.close()
@@ -165,6 +174,9 @@ class Handoff:
                 if future is not None and future.done() and job['binding']['id'] not in p['staged']:
                     try:result=future.result()
                     except Exception as exc:raise RuntimeError('重锚失败 '+job['binding']['id']+': '+str(exc)) from exc
+                    # Keep the job frame equal to the one the controller anchored
+                    # on; _validate re-checks freshness against exactly that frame.
+                    job['frame']=result.get('frame',job['frame'])
                     p['staged'][job['binding']['id']]=result['controller']
                     p['acks'][job['binding']['id']]=result['ack']
                     self.rt.trace('handoff',{'phase':'binding_ack','request_id':p['request_id'],
