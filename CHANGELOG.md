@@ -2,6 +2,12 @@
 
 ## 2026-11-03
 
+### CR5 默认关节限位
+
+- CR5 descriptor 增加默认 `joint_lower` / `joint_upper`：按 J1..J6 为 ±[2π, π, 2.7925, 2π, 2π, 2π] rad。J2 收紧至 ±180°，其他关节沿用 URDF；J2 的关节元数据同步收紧，URDF/MJCF 模型不变。
+- Web 设备参数和配置编译器从公共 descriptor 继承默认值，已有装配/部署中的显式限位保持优先；更新驱动 README 与真机 Web 操作手册，说明默认值与现场限位核对的关系。
+- 六关节默认数组、元数据与 URDF 对照检查通过，差异空白检查通过。本机 Python 缺少 pytest/numpy，未完成驱动测试与配置编译验证；未连接或操作真机。详细记录见 [实施日志](docs/integrations/CR5_DEFAULT_JOINT_LIMITS_2026-11-03.md)。
+
 ### CR5 真机 Web 分阶段操作手册
 
 - 新增 [完整操作手册](docs/integrations/CR5_REAL_WEB_OPERATION_2026-11-03.md)：无预设、无手写配置，依次验证 CR5 反馈/使能/失能、小幅关节插补、Quest 右手柄遥操；包含构建网络、页面字段、低幅度初试、停止和验收记录。

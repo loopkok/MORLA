@@ -36,7 +36,7 @@ ros2 launch morla_cr5_driver cr5_driver.launch.py resolved_path:=/tmp/cr5.resolv
 
 无预设的 Web 配置、使能/失能、小幅运动及 Quest 遥操分阶段流程见 [CR5 真机 Web 操作手册](../../../../docs/integrations/CR5_REAL_WEB_OPERATION_2026-11-03.md)。
 
-配置模板为本包 `config/deployment.real.example.yaml`。填写实际设备身份、IP 与 6 个 joint_lower/joint_upper（rad），然后使用 compile 的 `--deployment` 参数编译。`verified/stop_verified` 现在只是记录字段，不参与编译或运行门禁；descriptor 的 ±2π 仅是外层保护范围，不是认证物理限位。
+配置模板为本包 `config/deployment.real.example.yaml`。填写实际设备身份、IP，并核对 6 个 joint_lower/joint_upper（rad），然后使用 compile 的 `--deployment` 参数编译。`verified/stop_verified` 现在只是记录字段，不参与编译或运行门禁；默认 joint_lower/joint_upper 按 J1..J6 为 ±[2π, π, 2.7925, 2π, 2π, 2π] rad：J2 为 ±180°，其余沿用 URDF。关节元数据采用同一范围；URDF/MJCF 模型本身不变。Web 未显式填写时显示并使用这些默认值，已有装配或部署配置中的显式值优先。默认值不是现场已验证的安全限位，应按实际部署核对或收紧。
 
 真实 CR5、固件兼容、设备停止/断网 watchdog、旧动作缓存、零位/方向、安装 TCP 和长稳均未验收。主机命令超时/watchdog已移除，不能替代设备 watchdog；断链或上游停发命令时执行器保持最后目标。现已提供基于纯 CR5 URDF / Pinocchio 的本地数值 IK 和右侧 VR controller；不使用 Nero/Astral 参数或控制器内置 IK。动力学仿真尚未接入。
 
