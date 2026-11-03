@@ -24,7 +24,7 @@ JointState 发布实际采样时间且不重复刷新缓存样本时间；state/
 
 原 Profile 遥操节点和新组合 CartesianController 的输入处理、循环和过滤路径不同；复用同一求解器不推出完整链路验证等价。
 
-2026-10-29 已在当前工作区补齐 CR5 URDF / Pinocchio 本地数值 FK/IK 后端、异步 controller 及选中加载、右手柄/右手来源感知输入、Quest 装配和控制页。完整流程见 [CR5 VR 遥操](cr5_vr.md)。复用公共增量映射和 TCP 逻辑，没有复制 Nero/Astral 几何参数。2026-11-02 起随包 Quest 装配不再声明 `binding.deadman`，但握把/捏合仍写入 `quest.right_hold`，公共工作站据此发布 `operator_hold`（TTL 250 ms）并门控运动：**必须按住右手 grip 才跟随，松开即停**（不撤权，会话保持 ACTIVE）。停止需显式 stop/revoke；输入断流超过 `max_age_ms` 时按当前臂位姿重新建锚，不产生跳变也不撤权。2026-11-03 更正了此前“持续跟随、松手/松开捏合不停止”的描述。
+CR5 使用自身 URDF / Pinocchio 本地 FK/IK、异步控制器与公共 Quest 输入。完整流程见 [CR5 VR 遥操](cr5_vr.md)。2026-11-03 修复页面持续跟随保存为 deadman 空字符串时误入 hold 门控：deadman 缺失或空字符串都表示持续跟随；显式 quest.right_hold 才表示按住模式。operator_hold 只辅助已配置门控，不强制控制所有映射。停止使用 Web 暂停/停止；不放宽输入有效期。
 
 真实设备身份/IP、实际 joint_lower/joint_upper、零位/方向、物理停止/断网 watchdog、安装 TCP 和输入基座旋转仍需现场验证。真实模式的 kinematics_verified / binding calibration_verified 只是记录字段，回退后不再阻止激活；方向、零点和 TCP 必须现场核对后再运动。纯 CR5 本地 URDF 已接入统一 robot_description，未迁入夹爪/ros2_control/OCS2；fake/real 遥操均使用本地 IK，无控制器 IK 回退。物理仿真与实机尚未验收。
 

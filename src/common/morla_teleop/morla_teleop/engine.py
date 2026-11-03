@@ -176,7 +176,7 @@ class BindingEngine:
         grip is open and keeping the old anchor would jump the arm on re-press.
         """
         source = binding.get('deadman')
-        if source is None:
+        if source is None or source == '':
             return True
         owner, _, port = source.partition('.')
         held = False

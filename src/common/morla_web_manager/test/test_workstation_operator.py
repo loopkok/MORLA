@@ -13,7 +13,7 @@ from morla_input.ros_sources import RosInputManager
 
 
 @pytest.fixture
-def cell(tmp_path):
+def cell(tmp_path,request):
     clock=[1_000_000_000]
     with TestClient(create_app(tmp_path/'store',resource_root=tmp_path/'locks')) as client:
         svc=client.app.state.composable;svc.clock=lambda:clock[0]
@@ -24,6 +24,16 @@ def cell(tmp_path):
             'bindings':[{'id':'grip_control','source':'quest.scalar','target':'grip.closure',
                          'deadman':'quest.right_hold','controller':'morla.scalar_map','parameters':{}}],
             'capture':{'state':['grip.position'],'action':['grip.closure'],'images':{}}}
+        if getattr(request,'param',None)=='dual':
+            import copy
+            assembly['instances']['grip2']=copy.deepcopy(assembly['instances']['grip'])
+            assembly['bindings'].append({**copy.deepcopy(assembly['bindings'][0]),'id':'second','target':'grip2.closure'})
+            assembly['capture']['state'].append('grip2.position')
+            assembly['capture']['action'].append('grip2.closure')
+        if getattr(request,'param',None)=='continuous_empty':
+            assembly['bindings'][0]['deadman']=''
+        if getattr(request,'param',None)=='continuous_missing':
+            assembly['bindings'][0].pop('deadman')
         saved=svc.save({'assembly':assembly,'expected_revision':0})
         state=svc.start({'assembly_id':'operators','revision':1,'assembly_hash':saved['resolved']['assembly_hash'],'request_id':'launch'})
         sid=state['session_id']
@@ -322,6 +332,75 @@ def test_reanchor_anchors_on_input_current_after_controller_build(cell,monkeypat
     assert c.svc.operator.activity=='human'
     stuck=c.svc.operator.handoff.state()['acks']['grip_control']
     assert stuck['acknowledged'] is True
+
+
+@pytest.mark.parametrize('cell',['continuous_empty','continuous_missing'],indirect=True)
+def test_continuous_follow_releases_grip_without_gating_and_pause_still_stops(cell):
+    c=cell
+    assert c.rt.resolved['bindings'][0].get('deadman') in (None,'')
+    c.send(grip=1.);assert c.svc.operator.activity=='human'
+    c.send(grip=0.,trigger=.7)
+    assert c.rt.adapters['grip'].values==pytest.approx([.7])
+    c.action('teleop_pause');c.send(grip=0.,trigger=.9)
+    assert c.rt.adapters['grip'].values==pytest.approx([.7])
+
+
+def test_explicit_hold_binding_stops_on_release(cell):
+    c=cell;c.send(grip=1.);c.send(grip=1.,trigger=.6)
+    assert c.rt.adapters['grip'].values==pytest.approx([.6])
+    c.send(grip=0.,trigger=.9)
+    assert c.rt.adapters['grip'].values==pytest.approx([.6])
+
+
+@pytest.mark.parametrize('cell',['dual'],indirect=True)
+def test_all_controllers_are_built_before_any_mapping_is_anchored(cell,monkeypatch):
+    from morla_teleop.engine import BindingEngine
+    from morla_teleop.controllers import BindingController
+    c=cell;built=Event();anchors=[]
+    original_build=BindingEngine._binding_controller;original_anchor=BindingController.reanchor
+    def build(self,binding):
+        result=original_build(self,binding)
+        if binding['id']=='second':
+            assert built.wait(1)
+            c.clock[0]+=400_000_000
+            c.send('pose',settle=False);c.send(grip=1.,settle=False)
+        else:built.set()
+        return result
+    def anchor(self,frame,measured):
+        anchors.append((self.binding['id'],c.clock[0]))
+        assert c.clock[0]>=1_400_000_000
+        return original_anchor(self,frame,measured)
+    monkeypatch.setattr(BindingEngine,'_binding_controller',build)
+    monkeypatch.setattr(BindingController,'reanchor',anchor)
+    c.send(grip=1.)
+    assert c.svc.operator.handoff.state()['status']=='SUCCEEDED'
+    assert len(anchors)==2
+
+
+@pytest.mark.parametrize('refresh_pose',[False,True])
+def test_bound_pose_after_build_requires_its_own_fresh_sample(cell,monkeypatch,refresh_pose):
+    from morla_teleop.engine import BindingEngine
+    from morla_teleop.controllers import BindingController
+    c=cell;original_build=BindingEngine._binding_controller
+    # This regression uses the real bound-port freshness check on right_pose,
+    # independently of the scalar mapping used to keep the fixture hardware-free.
+    original_anchor=BindingController.reanchor
+    def build(self,binding):
+        c.clock[0]+=400_000_000;c.send(settle=False)
+        if refresh_pose:c.send('pose',settle=False)
+        return original_build(self,binding)
+    def anchor(self,frame,measured):
+        probe=BindingController({**self.binding,'source':'quest.right_pose'},self.names,clock=c.svc.clock)
+        if not probe.input_fresh(frame):raise ValueError('bound pose expired')
+        return original_anchor(self,frame,measured)
+    monkeypatch.setattr(BindingEngine,'_binding_controller',build)
+    monkeypatch.setattr(BindingController,'reanchor',anchor)
+    c.send(grip=1.)
+    if refresh_pose:
+        assert c.svc.operator.handoff.state()['status']=='SUCCEEDED'
+    else:
+        assert c.svc.operator.handoff.state()['status']=='FAILED'
+        assert 'bound pose expired' in c.svc.operator.handoff.state()['error']
 
 
 def test_pause_during_takeover_cancels_late_anchor(cell,monkeypatch):

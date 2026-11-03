@@ -34,6 +34,8 @@ ros2 launch morla_cr5_driver cr5_driver.launch.py resolved_path:=/tmp/cr5.resolv
 
 ## real 部署
 
+无预设的 Web 配置、使能/失能、小幅运动及 Quest 遥操分阶段流程见 [CR5 真机 Web 操作手册](../../../../docs/integrations/CR5_REAL_WEB_OPERATION_2026-11-03.md)。
+
 配置模板为本包 `config/deployment.real.example.yaml`。填写实际设备身份、IP 与 6 个 joint_lower/joint_upper（rad），然后使用 compile 的 `--deployment` 参数编译。`verified/stop_verified` 现在只是记录字段，不参与编译或运行门禁；descriptor 的 ±2π 仅是外层保护范围，不是认证物理限位。
 
 真实 CR5、固件兼容、设备停止/断网 watchdog、旧动作缓存、零位/方向、安装 TCP 和长稳均未验收。主机命令超时/watchdog已移除，不能替代设备 watchdog；断链或上游停发命令时执行器保持最后目标。现已提供基于纯 CR5 URDF / Pinocchio 的本地数值 IK 和右侧 VR controller；不使用 Nero/Astral 参数或控制器内置 IK。动力学仿真尚未接入。
@@ -52,7 +54,7 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q \
 
 ## 右手柄 / 右手追踪 VR 遥操（2026-10-29）
 
-已补齐来源明确的 Quest 输入、相对建锚、姿态滤波、异步本地 URDF / Pinocchio FK/IK、统一 runtime 输出和本机控制页。随包 `quest.sim.yaml`/`quest.fake.yaml` 不声明 `binding.deadman`，但握把/捏合仍写入 `quest.right_hold`，公共工作站据此发布 `operator_hold`（TTL 250 ms）并门控运动：**按住右手 grip 才跟随，松开即停**（不撤权，会话保持 ACTIVE）；只有显式 stop/revoke 才会停止整个遥操。激活后的第一帧以当前手柄位姿和实测关节 FK 的 TCP 建锚。输入断流超过 `max_age_ms`（250 ms）时先因 hold 过期停止输出，随后绑定按当前臂位姿重新建锚，不产生跳变，也不撤权；切换手柄/裸手、重定位或 source/frame 变化同样清锚。裸手模式下 `right_hold` 来自捏合，因此捏合门控跟随（这是运行时行为，不是绑定 `deadman`）。fake 与 real 共用实际 CR5 几何模型和 IK，fake 反馈仍为合成数据；真实跟随尚需现场验收。
+CR5 采用公共 Quest v3 快照、相对建锚、异步本地 URDF / Pinocchio FK/IK 和公共 Runtime。运动使能由绑定决定：deadman 缺失或空字符串（Web“持续跟随”）时，启动后松开 grip 仍跟随；显式 quest.right_hold 时按住才跟随，释放停止该映射。持续跟随必须用 Web 暂停/停止。裸手捏合仅在按住模式用于使能，不自动开始全局遥操。fake 与 real 共用几何模型；现场验收单独进行。
 
 在已构建本包与公共 morla_web_manager 的 Humble 环境，配置 ADB reverse TCP 8000 后运行：
 

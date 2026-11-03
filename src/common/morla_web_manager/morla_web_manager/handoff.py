@@ -75,25 +75,20 @@ class Handoff:
         self.poll()
         return {'status':p['status'],'transition':self.state()}
 
-    def _launch(self, job, seeds):
+    def _launch(self, job, seeds, *, building=False):
         from morla_teleop.engine import BindingEngine
         if not self.slots.acquire(blocking=False):return
-        future=Future();job['future']=future
+        future=Future();job['build_future' if building else 'future']=future
         def run():
             controller=None
             try:
                 binding=job['binding'];frame=job['frame']
                 engine=BindingEngine(self.rt,bindings={})
-                controller=engine._binding_controller(binding)
-                # Building a controller (plugin import plus a fresh IK model) can
-                # take about a second, far beyond the binding max_age. Anchor on
-                # the input current at reanchor time, not the one staged before
-                # the worker started, or a healthy stream looks stale.
-                source=self.svc.inputs.get(frame.source_id)
-                latest=source.read() if source is not None else None
-                if latest is None or latest.source_epoch!=frame.source_epoch:
-                    raise ValueError('重锚期间输入已断开或切换')
-                frame=latest
+                if building:
+                    controller=engine._binding_controller(binding)
+                    future.set_result({'controller':controller})
+                    return
+                controller=job['build_future'].result()['controller']
                 if not engine._input_basis_matches(binding,frame):raise ValueError('reanchor input basis mismatch')
                 ack=controller.reanchor(frame,seeds[binding['target'].split('.',1)[0]])
                 future.set_result({'controller':controller,'ack':ack,'frame':frame})
@@ -110,6 +105,9 @@ class Handoff:
         for key,seed in p['seeds'].items():
             if any(abs(a-b)>.02 for a,b in zip(seed,feedback[key])):
                 raise ValueError('重锚期间设备姿态已改变，请重新开始：'+key)
+        for key,seed in p.get('freeze_seeds',{}).items():
+            if any(abs(a-b)>.02 for a,b in zip(seed,feedback[key])):
+                raise ValueError('接管期间设备姿态已改变，请重新开始：'+key)
         for job in p['jobs']:
             binding=job['binding'];controller=p['staged'][binding['id']]
             if not controller.input_fresh(job['frame']):raise ValueError('重锚输入在确认前过期：'+binding['id'])
@@ -158,6 +156,7 @@ class Handoff:
                 if operation['status']!='SUCCEEDED':raise RuntimeError('设备激活未确认：'+operation['status'])
             if not p['stage_prepared']:
                 p['seeds']=self.feedback()
+                p['freeze_seeds']=copy.deepcopy(p['seeds'])
                 for job in p['jobs']:
                     source=self.svc.inputs.get(job['frame'].source_id)
                     frame=source.read() if source is not None else None
@@ -168,6 +167,31 @@ class Handoff:
                     p['prediction']=self.svc.policy.prepare_resume()
                 p['stage_prepared']=True
                 p['phase']='reanchoring' if p['destination']=='human' else 'preparing'
+            # Construct every plugin before starting the age-limited anchor
+            # phase. A fast mapping must not expire behind a cold IK model.
+            for job in p['jobs']:
+                if job.get('build_future') is None:self._launch(job,p['seeds'],building=True)
+            if any(job.get('build_future') is None or not job['build_future'].done() for job in p['jobs']):return
+            for job in p['jobs']:job['build_future'].result()
+            if p['jobs'] and not p.get('anchor_sampled'):
+                feedback=self.feedback()
+                if any(abs(a-b)>.02 for key,seed in p['seeds'].items() for a,b in zip(seed,feedback[key])):
+                    raise ValueError('控制器准备期间设备姿态已改变，请重新开始')
+                frames={}
+                for job in p['jobs']:
+                    old=job['frame'];iid=old.source_id
+                    if iid not in frames:
+                        source=self.svc.inputs.get(iid)
+                        frames[iid]=copy.deepcopy(source.read()) if source is not None else None
+                    frame=frames[iid]
+                    if frame is None or frame.source_epoch!=old.source_epoch or frame.input_basis_id!=old.input_basis_id:
+                        raise ValueError('控制器准备期间输入已断开或切换')
+                    port=job['binding']['source'].split('.',1)[1]
+                    if ((old.port_metadata or {}).get(port,{}).get('frame_id',old.frame_id)!=
+                            (frame.port_metadata or {}).get(port,{}).get('frame_id',frame.frame_id)):
+                        raise ValueError('控制器准备期间输入坐标系已改变')
+                    job['frame']=frame
+                p['seeds']=feedback;p['anchor_sampled']=True
             for job in p['jobs']:
                 if job['future'] is None:self._launch(job,p['seeds'])
                 future=job['future']
@@ -240,7 +264,7 @@ class Handoff:
     def _retire(self, p):
         if p['prediction'] is not None:p['prediction'].cancel()
         for job in p['jobs']:
-            future=job['future']
+            future=job['future'] or job.get('build_future')
             if future is None:continue
             def cleanup(future):
                 try:self._cleanup_bindings({'staged':future.result()['controller']})
