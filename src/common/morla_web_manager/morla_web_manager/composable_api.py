@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 import json
+import logging
 import math
 import os
 from pathlib import Path
@@ -19,11 +20,21 @@ def router(service):
     api=APIRouter(prefix="/api/v2")
     def call(fn,*args,**kwargs):
         try: return fn(*args,**kwargs)
+        except HTTPException: raise
         except ServiceError as exc: raise HTTPException(exc.status,str(exc)) from exc
         except (ValueError,KeyError,TypeError) as exc:
             raise HTTPException(422,detail=getattr(exc,"diagnostics",str(exc))) from exc
         except FileNotFoundError as exc: raise HTTPException(404,str(exc)) from exc
         except RuntimeError as exc: raise HTTPException(409,str(exc)) from exc
+        # OSError covers ConnectionError/TimeoutError: a device, port or socket
+        # is unreachable. That is availability, not a bad request, so 503 and a
+        # readable reason instead of an unhandled crash the browser cannot parse.
+        except OSError as exc:
+            raise HTTPException(503,detail=f'{type(exc).__name__}: {exc}') from exc
+        except Exception as exc:
+            # The operator gets a readable JSON reason; the traceback stays here.
+            logging.getLogger('morla.composable').exception('unhandled %s', getattr(fn,'__qualname__',fn))
+            raise HTTPException(500,detail=f'{type(exc).__name__}: {exc}') from exc
 
     @api.get('/active-session')
     def active_session():
@@ -305,6 +316,11 @@ def create_app(root=None,resource_root=None,*,mount_web=True,diagnostic_root=Non
     app.add_middleware(ConfigurationBoundary)
     app.state.composable=service
     app.include_router(router(service))
+    # Starlette's default 500 body is plain text; the browser then reports
+    # "JSON.parse: unexpected character" and the operator learns nothing.
+    @app.exception_handler(Exception)
+    async def unhandled(request:Request,exc:Exception):
+        return JSONResponse({'detail':f'{type(exc).__name__}: {exc}'},status_code=500)
     @app.middleware("http")
     async def boundary(request:Request,call_next):
         if request.method in {"POST","PUT","PATCH","DELETE"}:

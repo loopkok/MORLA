@@ -306,7 +306,7 @@ def test_anchor_timeout_and_late_success_cannot_regain_authority(cell,monkeypatc
     monkeypatch.setattr(BindingController,'reanchor',delayed)
     try:
         c.send(grip=1.,settle=False);assert entered.wait(1)
-        c.clock[0]+=3_100_000_000;c.svc.operator.tick()
+        c.clock[0]+=15_100_000_000;c.svc.operator.tick()
         assert c.svc.operator.handoff.pending is None
         assert c.svc.operator.handoff.state()['status']=='FAILED'
         assert c.svc.operator.activity=='playback' and c.svc.operator.gate=='playback'

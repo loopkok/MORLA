@@ -1,5 +1,47 @@
 # Changelog（MORLA）
 
+## 2026-11-04
+
+### CR5 ServoJ 参数改为可配置（默认值不变）
+
+- `transport.py` 新增 `servo_parameters()`：`write()` 的 `t` / `lookahead_time` / `gain` 从 arm 参数 `servo_t`、`servo_lookahead_time`、`servo_gain` 读取，省略时保持 Dobot 官方 Python API `dobot_api.py` 的默认 **0.1 / 50 / 500**。取值按该 API 注释校验（`t`∈[0.02, 3600] s、`lookahead_time`∈[20, 100]、`gain`∈[200, 1000]，拒绝布尔/非数/NaN），在打开任何 socket 前抛 `ValueError`。默认路径生成的 `ServoJ(...)` 字符串与改动前逐字节相同，行为未变。
+- `descriptor.json` 的 `configuration_schema` 增加这三个可选字段（带 `default` 注释），但**不写入 `defaults`**：未显式设置的既有装配，其解析参数与 `resolved_hash` 不变，不需要重新保存。`config/deployment.real.example.yaml` 给出注释示例。
+- Web：`web/src/lib/workcell.ts` 的 `parameterLabels` 增加 `servo_t`/`servo_lookahead_time`/`servo_gain` 中文标签（“ServoJ 插补时间 / s”“ServoJ 前瞻平滑”“ServoJ 跟随增益”），与设备其他参数走同一条 `ValueField` 渲染路径；`npm run build` 已重出 `web/dist`（`index-CAXhbszg.js`），`npm run test:workcell` 13 passed。字段来自 descriptor schema，无需改前端逻辑；Web 进程重启后同时生效。
+- 未改任何取值，未上机验证。调参时的取值依据、测量口径与风险见 [CR5 Quest 遥操顿挫](docs/integrations/CR5_QUEST_SMOOTHNESS_2026-11-04.md)。
+- 回归：`morla_cr5_driver/test` **52 passed**（新增默认/覆盖的逐字节 `ServoJ` 字符串用例，以及 9 组越界、类型与 NaN 拒绝）；`morla_core` 组合契约 **35 passed**。
+
+### CR5 指令端 24 Hz 阶梯：微分 IK 改为从上一拍指令积分
+
+- 症状：`max_joint_velocity` 由 0.3 提到 0.8 后（日志 `20261104T055945Z_cr5_real_quest_9070f2953e13444bb2fd02f2ba24cb62`）速度饱和从 39.8% 降到 6.3%，但操作员仍报“一顿一顿、不丝滑”。
+- 数据定位：指令关节在“新反馈样本之后那一拍”的平均步长 **0.356°**，其余拍 **0.092°**；这些拍只占 24.9% 的拍数却承担 **56%** 的总行程。关节 4 的步长自相关在 lag 4 拍处 0.69，FFT 峰值 21.9–23.2 Hz，正是 30004 反馈的 24.3 Hz。手部输入与笛卡尔目标是平滑的（90 Hz 单调移动），阶梯是播种引入的。
+- 根因：`DifferentialIKSolver` 每拍都用实测关节 `sync_state(measured)` 重新播种。反馈 24 Hz、循环 90 Hz，两次样本之间目标冻在旧实测上；样本落地时实测和 `current` 一起跳，解就跳一步。`max_joint_velocity` 越高，原本被摊成 0.19°/拍斜坡的跳变越会整段落在一拍里，所以提速反而让阶梯更明显。
+- Astral 已是同一根治模式：`astral_arm_teleop_node` 的 `ik.sync_state(self._flip_q(self.q_cmd), reset_branch=False)`（注释 “Warm-start from last *commanded* q (after vel limit), not raw IK jump”），homing 用 `homing_follow_tol` 0.25 rad 防 windup。
+- 修法：
+  - `differential_ik.py`：`solve(target, seed=None)`，`seed` 是积分基准并同时作为吸收窗口（`position_lead_m` / `rotation_lead_rad`）的锚点，缺省仍为 `sync_state` 的值。
+  - `morla_teleop/kinematics.py`：`CartesianController.__call__(..., seed=None)`；有 seed 时用它播种和求解，实测仍用于 `current_tcp` 报告与结果形状校验；只在 `solve` 显式接受 `seed` 的求解器上传参（严格模式/`FakeSolver` 不受影响，严格模式同样通过 `sync_state` 得到指令基准）。
+  - `vr_controller.py`：`__call__` 在每个请求里快照 `integration_seed(measured, last_output, command_lead_rad)`，worker 用这份 seed 求解；`command_lead_rad`（默认 0.3 rad，`0 < x ≤ 1`）把指令到实测的领先量夹住，臂被挡住或伺服不跟时指令不会跑飞；报告新增 `command_seed`（积分基准）与 `integration_seed`（`CartesianController` 侧），与既有 `feedback_seed` 对照即可读出实时领先量。
+- 默认值依据：同一份真机日志里指令领先实测最大 **7.18°（0.125 rad）**、中位 2.04°，0.3 rad 的护栏留 2 倍以上余量，正常跟随时不触发，因此不会把 24 Hz 抖动带回 seed。
+- 回归：`morla_cr5_driver` 全部测试通过（新增“显式 seed 是积分基准与吸收锚点”“积分 seed 跟随指令并被实测限幅”“陈旧反馈不重置积分基准”“`command_lead_rad` 参数校验”）；`morla_teleop` 的 `test_kinematics.py`/`test_engine.py` 36 passed（新增 seed 传参用例）。另用真实 `DifferentialIKSolver` 做了 22.5 Hz 反馈 / 90 Hz 循环的闭环仿真：根治版“新样本拍”与其余拍平均步长比 **1.00**，旧播种 **0.43**（约 2.3 倍差异）。
+- 真机第三轮验证（同日 14:40，装配 revision 3，`max_joint_velocity 1.0`、`smoothing_alpha 0.6`，日志 `20261104T064042Z_cr5_real_quest_2e789513…`，93.5 s / 7619 指令 / 81.5 Hz）：新样本拍与其余拍步长均值 **0.293° vs 0.298°（0.98×，修复前 3.85×）**；步长 20–26.5 Hz 频段能量 **1.70%（修复前 46.4%）**，FFT 主峰不再出现在 22.4 Hz；IK 单拍更新中位 **0.476°（修复前 2.292°=上限）**、`position_lead_limited` **0.0%（前 7.8%）**、`absorbed_position_m` 中位 **0.0 mm（前 24.2 mm）**；`command_seed − feedback_seed` 最大 13.49°，0.3 rad 护栏触发 **0/7615** 拍。指令→实测最优延迟仍为 **206–208 ms**（六轴一致），ServoJ `t=0.1` 未改。三轮完整对比表与统计口径见 [CR5 Quest 遥操顿挫：三轮真机量化结果](docs/integrations/CR5_QUEST_SMOOTHNESS_2026-11-04.md)。
+- 未做：ServoJ 取值未改（默认仍为 `t=0.1`，实测 195–220 ms 指令→反馈延迟，是剩余延迟的主因；参数现已可配置，见同日上一条）；未重新做主观手感验收。
+
+### 未捕获异常只回纯文本 500，页面只剩 `JSON.parse: unexpected character`
+
+- 症状：工作站里对 `cr5_real_quest` 点“启动工作站”，页面报 `JSON.parse: unexpected character at line 1 column 1 of the JSON data`；浏览器网络面板显示 `POST /api/v2/sessions → 500`，`content-type: text/plain`，响应体 21 字节。
+- 根因：真机 CR5（192.168.5.1）当时不可达——本机只有 Wi-Fi `192.168.10.106/24`，有线口 `enp4s0` 为 `NO-CARRIER`，`ping 192.168.5.1` 全丢。`RuntimeSession.start()` 在 `DobotChannel.__init__` 建 29999 连接时抛 `TimeoutError`；`TimeoutError` 是 `OSError` 子类，`composable_api.call()` 只映射 `ServiceError/ValueError/KeyError/TypeError/FileNotFoundError/RuntimeError`，于是漏成未捕获异常 → Starlette 回纯文本 `Internal Server Error` → 前端 `response.json()` 解析这段文本报上述错误。装配本身没问题：同一 revision 调 `/assemblies/compile` 返回 200。
+- 修复（后端）：`call()` 增加 `OSError`（含 `ConnectionError`/`TimeoutError`）→ **503**，`HTTPException` 原样透传，兜底 `Exception` → **500 JSON**，detail 均为 `类型: 消息`；`web_server.py` 与 `composable_api.create_app` 各自注册 `@app.exception_handler(Exception)`，任何路由（含 `/api/v1/*`）的未捕获异常都返回 `{"detail": "..."}` 并把 traceback 留在服务端日志。
+- 修复（错误可读性）：`DobotChannel` 与 30004 反馈连接失败时抛 `ConnectionError('CR5 <host>:<port> unreachable: ...')`，把断网、机器人没上电、端口占用直接指到具体端口。
+- 修复（前端）：`client.ts` 的 `get()`/`post()` 与 `ComposableTab.request()` 先读文本再解析，非 JSON 时报“接口 `/api/v2/xxx` 返回了非 JSON 响应（HTTP 500，text/plain）：…”，不再抛裸 `JSON.parse`；“导入配置文件”与“应用导入配置”对非 JSON 输入提示文件名与开头内容（防止把 yaml 当 JSON 导入）。
+- 回归：`morla_cr5_driver/test` **39 passed**（新增“不可达时报出 host:port”，29999/30003/30004 三个端口各断言一次）；`morla_web_manager/test` **315 passed, 2 skipped, 4 failed**，4 项均为既有基线失败（`test_mobile_input_and_recording` + 3 项 piano 用例），与本次改动无关；前端 `npm run build` 通过（`index-DEbXQ2Qc.js`，JSON `null` 仍按合法响应处理，不误判为非 JSON）。本次未连接真实机器人，故障现场的网络状态由 `ip -brief link`/`ip route get`/`ping` 判定，恢复链路后需重启 Web 复测。
+
+### CR5 使能回执延迟导致“使能后立刻失能 / 设备状态不允许提交控制权”
+
+- 症状：真机阶段一点“开始遥操”，CR5 确实使能但随即失能，随后页面报“设备状态不允许提交控制权”。把“通信超时”从 0.2 s 改到 0.5 s 无效。
+- 根因（实测）：29999 dashboard 是“先执行、后应答”，使能要等控制器走完刹车与伺服序列。本机实测 `EnableRobot()` 回执 **5193.6 ms**、反馈 `enable_status=1` 于 **4234.7 ms**；对照 `DisableRobot()` 回执 0.7 ms、`PositiveSolution`/`GetErrorID` 0.4–1.7 ms。驱动用同一个 `timeout_s` 约束所有命令，schema 上限 0.5 s，因此使能必然超时 → 适配器判 activate 失败 → 框架硬停（`DisableRobot`）→ 状态 FAULTED → 接管守卫报上述提示。同一通道还无请求 id，超时那条晚到的 `0,{},EnableRobot();`（19 B）被读成下一条命令的应答，实测与 `DisableRobot();` 的 20 B 拼成 `0,{},EnableRobot();0,{},DisableRobot();`。
+- 修复（4 处）：① dashboard 通道单独使用新参数 `enable_timeout_s`（schema 0.5–30、默认 10 s），`timeout_s` 继续只管 30003 运动与反馈连接；② `activate()`/`stop()` 以反馈 `enable_status` 为权威，回执超时不算失败，被拒（非 0 码/回显不符）仍报错；③ 通道带 dirty 标记，超时后在下一命令前用非阻塞 `select` 抽干晚到字节，避免错配；④ 接管总期限 3 s → 15 s（`handoff.py`），覆盖冷启动 + ~5 s 使能。没有放宽用户可见的通信/指令超时，也不新增 watchdog。
+- 宽限只作用于使能/失能那一次调用：`PositiveSolution`/`InverseSolution` 与使能共用 29999 dashboard，若整条通道放宽到 10 s，IK 失败一次就要卡 10 s。实现为 `_state_command()` 内临时提高 `channel.timeout` 并 `finally` 还原，有测试断言还原后仍是 `timeout_s`。
+- 回归：`pytest src/robots/dobot/morla_cr5_driver/test` **38 passed**（新增“超时后脏通道丢弃晚到回执”与“回执超时由反馈确认、被拒仍失败”两项）；`morla_web_manager/test`（除 `test_piano_home.py`）**305 passed, 2 skipped, 4 failed**，4 项均为既有基线失败（`test_mobile_input_and_recording` + 3 项缺 `MORLA_PIANO_PROJECT` 的 piano 用例）。已保存的 `cr5_real_bench` 装配重新编译通过，解析出 `timeout_s=0.5`、`enable_timeout_s=10`。未重跑真机使能；现场需重启 Web 并保存新装配 revision（新增默认参数会改变解析快照）后复测阶段一。
+
 ## 2026-11-03
 
 ### CR5 默认关节限位

@@ -28,6 +28,13 @@ class CartesianController:
             self._warm_sync='reset_branch' in inspect.signature(solver.sync_state).parameters
         except (TypeError,ValueError):
             self._warm_sync=False
+        # A solver that accepts an explicit integration base lets the caller
+        # (CR5 differential IK) step from the last command instead of being
+        # re-seeded from a slow measured sample every tick.
+        try:
+            self._seed_aware='seed' in inspect.signature(solver.solve).parameters
+        except (TypeError,ValueError):
+            self._seed_aware=False
         self.reset()
 
     def reset(self):
@@ -81,7 +88,15 @@ class CartesianController:
                           'input':copy.deepcopy(value),'reanchor_acknowledged':True}
         return {'acknowledged':True,'kind':'cartesian','current_tcp':current.tolist()}
 
-    def __call__(self,value,measured,dt,parameters):
+    def __call__(self,value,measured,dt,parameters,seed=None):
+        """Map one input tick to joint commands.
+
+        `seed` is the joint vector the solver integrates from. Callers that
+        hold a commanded joint state (the CR5 async controller) pass it so the
+        step continues from the last command instead of being re-seeded from a
+        slow measured sample; `measured` still provides the true pose for the
+        reported `current_tcp` and the feedback diagnostics.
+        """
         from scipy.spatial.transform import Rotation
         from morla_core.coordinates import validate_basis_change
         # Raw-Unity input is left-handed, so the calibrated alignment is a basis
@@ -92,19 +107,23 @@ class CartesianController:
                 np.asarray(parameters.get('input_rotation',np.eye(3)),dtype=float).reshape(3,3))
         except ValueError as exc:
             raise ControllerError('input rotation must be an orthonormal basis change: '+str(exc)) from exc
-        seed=np.asarray(measured,dtype=float)
+        measured=np.asarray(measured,dtype=float)
+        start=measured if seed is None else np.asarray(seed,dtype=float)
+        if start.shape!=measured.shape or not np.isfinite(start).all():
+            raise ControllerError('invalid controller seed')
         if not self._synced:
-            self.solver.sync_state(seed)
+            self.solver.sync_state(start)
             self._synced=True
         elif self._warm_sync:
-            self.solver.sync_state(seed,reset_branch=False)
+            self.solver.sync_state(start,reset_branch=False)
         else:
-            self.solver.sync_state(seed)
+            self.solver.sync_state(start)
         tool=np.asarray(parameters.get('solver_tip_from_tool',np.eye(4)),dtype=float).reshape(4,4)
         from morla_core.coordinates import validate_transform
         validate_transform(tool)
-        current=np.asarray(self.solver.fk(seed),dtype=float)@tool
-        self.last_report={'stage':'mapping','input':copy.deepcopy(value),'feedback_seed':seed.tolist(),
+        current=np.asarray(self.solver.fk(measured),dtype=float)@tool
+        self.last_report={'stage':'mapping','input':copy.deepcopy(value),'feedback_seed':measured.tolist(),
+                          'integration_seed':start.tolist(),
                           'current_tcp':current.tolist(),'dt_s':dt}
         if self.jog:
             if not isinstance(value,dict): raise ControllerError('Cartesian jog requires named axes')
@@ -145,8 +164,8 @@ class CartesianController:
             input_pose=np.eye(4); input_pose[:3,3]=position; input_pose[:3,:3]=Rotation.from_quat(quat).as_matrix()
             if self.anchor_input is None:
                 self.anchor_input=input_pose; self.anchor_robot=current.copy()
-                self.last_report.update(stage='anchored',target_tcp=current.tolist(),target_values=seed.tolist())
-                return seed.tolist()
+                self.last_report.update(stage='anchored',target_tcp=current.tolist(),target_values=start.tolist())
+                return start.tolist()
             scale=float(parameters.get('position_scale',1))
             target=self.anchor_robot.copy()
             target[:3,3]+=rotation@(position-self.anchor_input[:3,3])*scale
@@ -155,7 +174,8 @@ class CartesianController:
         # Tool offsets must already be resolved and versioned by the compiler.
         target_tip=target@np.linalg.inv(tool)
         self.last_report.update(stage='solving',target_tcp=target.tolist(),target_tip=target_tip.tolist())
-        result=self.solver.solve(target_tip)
+        solve_arguments={'seed':start} if (seed is not None and self._seed_aware) else {}
+        result=self.solver.solve(target_tip,**solve_arguments)
         self.last_report.update(stage='held' if result is None else 'solved',
                                 target_values=None if result is None else np.asarray(result).tolist(),
                                 solver_report=copy.deepcopy(getattr(self.solver,'last_report',{})))
@@ -168,7 +188,7 @@ class CartesianController:
             if self.jog: self.jog_blocked=axes.copy()
             return None
         result=np.asarray(result,dtype=float)
-        if result.shape!=seed.shape or not np.isfinite(result).all(): raise ControllerError('invalid IK result')
+        if result.shape!=start.shape or not np.isfinite(result).all(): raise ControllerError('invalid IK result')
         if self.jog: self.jog_target=target
         return result.tolist()
 

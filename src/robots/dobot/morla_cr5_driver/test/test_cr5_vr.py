@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 from morla_cr5_driver.kinematics import ControllerSolver,FakeSolver,pose_from_controller,pose_to_controller
 from morla_cr5_driver.transport import CR5Transport
-from morla_cr5_driver.vr_controller import AsyncCartesianController,create_controller
+from morla_cr5_driver.vr_controller import AsyncCartesianController,create_controller,integration_seed
 
 
 def pose(x=0.):return {'position':[x,0,0],'quaternion':[0,0,0,1]}
@@ -79,6 +79,38 @@ def test_async_anchor_velocity_and_reset_fences_old_results():
         np.testing.assert_allclose(c.result[0],[.2,0,0,0,0,0])
     finally:c.close()
     assert not c.thread.is_alive()
+
+
+def test_integration_seed_follows_the_command_and_is_lead_bounded():
+    measured=np.array([.1,0,0,0,0,0])
+    np.testing.assert_allclose(integration_seed(measured,None,.25),measured)
+    np.testing.assert_allclose(integration_seed(measured,measured+.1,.25),measured+.1)
+    np.testing.assert_allclose(integration_seed(measured,measured+.9,.25),measured+.25)
+
+
+def test_stale_feedback_does_not_reset_the_integration_base():
+    # 30004 feedback arrives at ~25 Hz while the loop runs at ~90 Hz. The seed
+    # must keep following the command instead of snapping back to the repeated
+    # stale sample, which is what made the commanded joints staircase.
+    c=AsyncCartesianController(FakeSolver())
+    def wait_report(previous):
+        deadline=time.monotonic()+2
+        while time.monotonic()<deadline:
+            with c.condition:
+                sample=c.report.get('sample_ns')
+                if sample is not None and sample!=previous:return sample
+            time.sleep(.001)
+        raise AssertionError('IK worker report missing')
+    try:
+        previous=None
+        for tick in range(30):
+            # The first tick anchors at x=0; the hand then sweeps away from it.
+            c(pose(.1*tick),[0]*6,.02,{'max_joint_velocity':1.})
+            previous=wait_report(previous)
+        np.testing.assert_allclose(c.report['feedback_seed'],[0]*6)
+        np.testing.assert_allclose(c.report['command_seed'],[.3,0,0,0,0,0])
+        assert c.last_output[0]>.3
+    finally:c.close()
 
 
 def test_late_result_after_reset_cannot_reappear():

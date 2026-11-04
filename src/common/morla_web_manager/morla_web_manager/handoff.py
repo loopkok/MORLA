@@ -58,7 +58,9 @@ class Handoff:
         snapshot=self._snapshot()
         p={'request_id':request_id,'kind':kind,'destination':destination,'desired_paused':desired_paused,
            'phase':'reanchoring' if destination=='human' else 'preparing','status':'RUNNING',
-           'deadline_ns':self.svc.clock()+3_000_000_000,'acks':{},'jobs':jobs,'seeds':seeds,
+           # A real device enable is not instant: the CR5 needs ~5 s to release
+           # its brakes before it acknowledges. Bound the wait, do not race it.
+           'deadline_ns':self.svc.clock()+15_000_000_000,'acks':{},'jobs':jobs,'seeds':seeds,
            'snapshot':snapshot,'staged':{},'prepared':None,'prediction':None,'activation':None,'replay_bounds':None}
         p['stage_prepared']=False
         self.pending=p

@@ -20,8 +20,18 @@ const workStates:Record<string,string>={RUNNING:'移动中',SUCCEEDED:'已到达
 const metric=(n:number|undefined,scale=1,digits=2)=>n==null?'—':(n*scale).toFixed(digits)
 async function request<T>(path:string,body?:unknown):Promise<T>{
  const response=await fetch('/api/v2'+path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)})
- const result=await response.json()
- if(!response.ok){const error=new Error(typeof result.detail==='string'?result.detail:JSON.stringify(result.detail)) as Error & {status?:number};error.status=response.status;throw error}
+ // A crash page or a proxy error is plain text; report it as such instead of
+ // letting JSON.parse raise "unexpected character at line 1 column 1".
+ const text=await response.text()
+ let result:any=null,parsed=false
+ if(text){try{result=JSON.parse(text);parsed=true}catch{parsed=false}}
+ // JSON `null` is a valid answer (/active-session uses it); only a parse
+ // failure means the body was not JSON at all.
+ if(!parsed){
+  const error=new Error(`接口 ${path} 返回了非 JSON 响应（HTTP ${response.status}）：${text.slice(0,200)||'空响应'}`) as Error & {status?:number}
+  error.status=response.status;throw error
+ }
+ if(!response.ok){const error=new Error(typeof result.detail==='string'?result.detail:JSON.stringify(result.detail??result)) as Error & {status?:number};error.status=response.status;throw error}
  return result
 }
 function Section({title,note,children}:{title:string;note?:string;children:React.ReactNode}){return <section className="wc-section"><div className="wc-section-heading"><h3>{title}</h3>{note&&<p>{note}</p>}</div>{children}</section>}
@@ -318,7 +328,7 @@ export function ComposableTab(){
   </>}
 
   <footer className="wc-flow-footer"><span>{active?'运行期间设置为只读。':'选择项会自动生成装配与控制配置。'}</span>{stage!=='run'?<button className="wc-primary" onClick={nextStage}>继续：{stages[stages.findIndex(s=>s.id===stage)+1]?.title}</button>:<button className="wc-text-button" onClick={()=>setStage('devices')}>返回设备设置</button>}</footer>
-  <details className="wc-details wc-file-tools"><summary>配置文件 · 导入与导出</summary><p className="wc-note">普通配置使用上方表单即可。导入会替换当前草稿；未识别的字段会保留在配置中。</p><div className="wc-inline"><button disabled={locked} onClick={()=>{const file=new Blob([JSON.stringify({assembly,deployment},null,2)],{type:'application/json'});const url=URL.createObjectURL(file);const a=document.createElement('a');a.href=url;a.download=assembly.assembly_id+'.json';a.click();URL.revokeObjectURL(url)}}>导出配置文件</button><label className="wc-file-input">导入配置文件<input disabled={locked} type="file" accept=".json,application/json" onChange={e=>{const file=e.target.files?.[0];if(file)void run(async()=>{const value=JSON.parse(await file.text());loadImport(value)});e.target.value=''}} /></label></div><details><summary>开发者文本编辑</summary><textarea aria-label="高级配置文本" rows={12} value={importText} onChange={e=>setImportText(e.target.value)} /><div className="wc-inline"><button disabled={locked} onClick={()=>setImportText(JSON.stringify({assembly,deployment},null,2))}>显示当前配置</button><button disabled={locked||!importText} onClick={()=>void run(async()=>loadImport(JSON.parse(importText)))}>应用导入配置</button></div></details></details>
+  <details className="wc-details wc-file-tools"><summary>配置文件 · 导入与导出</summary><p className="wc-note">普通配置使用上方表单即可。导入会替换当前草稿；未识别的字段会保留在配置中。</p><div className="wc-inline"><button disabled={locked} onClick={()=>{const file=new Blob([JSON.stringify({assembly,deployment},null,2)],{type:'application/json'});const url=URL.createObjectURL(file);const a=document.createElement('a');a.href=url;a.download=assembly.assembly_id+'.json';a.click();URL.revokeObjectURL(url)}}>导出配置文件</button><label className="wc-file-input">导入配置文件<input disabled={locked} type="file" accept=".json,application/json" onChange={e=>{const file=e.target.files?.[0];if(file)void run(async()=>{const text=await file.text();let value:unknown;try{value=JSON.parse(text)}catch{throw new Error(`不是有效的 JSON 配置文件：${file.name}（文件开头是「${text.slice(0,40).replace(/\n/g,' ')}」）`)}loadImport(value)});e.target.value=''}} /></label></div><details><summary>开发者文本编辑</summary><textarea aria-label="高级配置文本" rows={12} value={importText} onChange={e=>setImportText(e.target.value)} /><div className="wc-inline"><button disabled={locked} onClick={()=>setImportText(JSON.stringify({assembly,deployment},null,2))}>显示当前配置</button><button disabled={locked||!importText} onClick={()=>void run(async()=>{let value:unknown;try{value=JSON.parse(importText)}catch{throw new Error('导入文本不是有效的 JSON（必须以 { 开头，且不是 YAML）')}loadImport(value)})}>应用导入配置</button></div></details></details>
  </div>
  function loadImport(raw:unknown){
   const document=parseWorkcellDocument(raw),a=document.assembly

@@ -8,6 +8,7 @@ pose convergence. IKSolver remains the separate strict pose solver.
 import numpy as np
 from scipy.spatial.transform import Rotation
 from morla_core.coordinates import validate_transform
+from .kinematics import vector6
 from .urdf_ik import IKSolver
 
 
@@ -58,11 +59,22 @@ class DifferentialIKSolver(IKSolver):
         self.goal=goal.copy()
         return goal, distance>self.position_lead_m, angle>self.rotation_lead_rad
 
-    def solve(self, target):
+    def solve(self, target, seed=None):
+        """One bounded DLS step toward the absorbing target.
+
+        `seed` is the joint vector the step integrates from and defaults to the
+        last synced state. The CR5 controller passes its last commanded joints:
+        the 30004 feedback arrives at ~25 Hz, so re-seeding from the measured
+        sample on every 90 Hz tick would hold the command until a new sample
+        lands and then jump, which the operator feels as a staircase. The lead
+        window stays anchored on this same base, and the controller bounds how
+        far that base may run ahead of the measurement.
+        """
         if self.seed is None:
             raise RuntimeError('Measured CR5 seed required')
         raw=validate_transform(target)
-        started=self.clock();q=self.seed.copy();current=self._placement(q)
+        q0=vector6(self.seed if seed is None else seed)
+        started=self.clock();q=q0.copy();current=self._placement(q)
         goal, pos_limited, rot_limited=self._target(raw,current.homogeneous)
         desired=self.pin.SE3(goal[:3,:3],goal[:3,3])
         delta=current.actInv(desired)

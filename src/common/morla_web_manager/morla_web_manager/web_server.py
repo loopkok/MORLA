@@ -21,7 +21,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -420,6 +420,15 @@ app = FastAPI(title="morla_web_manager", version="0.1.0", lifespan=_lifespan)
 app.include_router(composable_router(_composable))
 from .request_boundary import ConfigurationBoundary
 app.add_middleware(ConfigurationBoundary)
+
+
+# Starlette answers an unhandled exception with the plain body
+# "Internal Server Error"; the browser then fails in JSON.parse and hides the
+# real cause. Keep the traceback in the server log, return the reason as JSON.
+@app.exception_handler(Exception)
+async def _unhandled(request: Request, exc: Exception):
+    logging.getLogger("morla.web").error("unhandled %s %s", request.method, request.url.path, exc_info=exc)
+    return JSONResponse({'detail': f'{type(exc).__name__}: {exc}'}, status_code=500)
 
 
 @app.get("/mobile")

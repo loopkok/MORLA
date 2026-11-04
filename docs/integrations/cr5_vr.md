@@ -32,10 +32,11 @@
 - 关节顺序 `joint1..joint6`，单位 rad；平移 m。URDF 第 3 关节限位 ±2.7925 rad，其余为 ±2π；IK 使用 URDF 与现场部署限位的交集。
 - 关节对齐：`q_URDF = urdf_joint_signs * q_hardware + urdf_joint_offsets`。默认正号/零偏只是初始约定，真实机器人必须验证。FK、Jacobian、IK 和输出逆变换使用同一约定。
 - `input_rotation` 把 Unity VR 的增量转到 URDF `base_link`（det −1 的基变换，见 2.1）；`solver_tip_from_tool` 是 **Link6 到任务 TCP** 的 4×4 刚体变换。后者的数值不是控制器 user/tool 的隐含配置。
-- IK 接口与公共层一致：`sync_state(measured_q)`、`fk(q)`、`solve(T)`。每次由当前实测关节播种，只在局部信赖域内求解，不全局随机重启、不对多圈关节强行 wrap。
+- IK 接口与公共层一致：`sync_state(q)`、`fk(q)`、`solve(T)`。播种源分两种：严格模式（`ik_mode: strict`）与 jog 沿用实测关节；微分模式（`ik_mode: differential`，默认）由**上一拍下发的指令关节**播种——30004 反馈只有 ~24 Hz，而控制回路 ~90 Hz，每拍用实测重新播种会让指令在两次样本之间冻住、新样本落地时跳一步（200 ms ServoJ 滞后下尤其明显）。实测关节仍提供报告里的真实位姿（`feedback_seed` / `current_tcp`），并把指令领先量限制在 `command_lead_rad`（默认 0.3 rad，代码上限 1.0）以内，防止臂被挡住时积分跑飞。Astral 的 `ik.sync_state(q_cmd)`（“Warm-start from last *commanded* q … not raw IK jump”）是同一模式。只在局部信赖域内求解，不全局随机重启、不对多圈关节强行 wrap。三轮真机量化对比与统计口径见 [CR5 Quest 遥操顿挫：三轮真机量化结果](CR5_QUEST_SMOOTHNESS_2026-11-04.md)。
 - 位姿模式（绝对目标）的局部窗口按 `retry_trust` 阶梯 `0.3 → 0.6 → 1.2` rad 逐级重试：目标每次从锚点重算，求解失败就是整帧丢弃、机械臂原地冻结，不能靠下一拍追回；模板位形下把工具绕某一轴转 30°，需要 0.6–1.2 rad 的关节行程（实测 x/z 轴要二级 0.6 rad、y 轴要三级 1.2 rad），单一 0.3 rad 窗口会直接判失败。摇杆（jog）仍只用一个 0.3 rad 窗口——被拒绝的摇杆方向必须保持被拒绝，否则 `jog_blocked` 的轴向屏蔽失效。命中 50 ms 预算即停止重试。
 - 本地 SE(3) 对数误差、阻尼最小二乘、线搜索；每次迭代限制增量，检查关节交集限位。最多 100 次迭代、50 ms 计算预算；成功必须 FK 位置误差 ≤0.2 mm、旋转角误差 ≤0.002 rad。不可达、停滞、超时返回失败；回退后上层不再自动撤销授权，需要显式 stop/revoke。
 - 外层仍按 `max_joint_velocity`（模板 `quest.sim.yaml` 为 1.0 rad/s；未配置时代码默认 0.3）裁剪输出关节速度，后台单槽 worker 隔离迟到解；完整任务 250 ms、结果年龄 300 ms 仍是拒绝门槛，不是硬实时保证。回退后不再限制相对实测关节步长（`max_joint_step` 参数仍被接受但已不生效）。
+- 微分模式的吸收窗口（`position_lead_m`、`rotation_lead_rad`）以**指令关节**为基准，而指令本身被 `command_lead_rad` 限制在实测关节附近，所以相对真实机械臂的总领先量仍然是有限的：关节不超过 `command_lead_rad`，笛卡尔额外不超过 `position_lead_m`。报告里的 `feedback_seed` 是实测、`command_seed` 是这一拍的积分基准，两者之差就是实时领先量。
 - URDF SHA-256 写入 device geometry 契约，求解器加载时校验模型身份；改变模型需同步契约、测试及重新编译 revision。
 
 ### 2.1 输入坐标系与 base_link 对齐
@@ -155,6 +156,7 @@ ros2 run morla_cr5_driver cr5_kinematics_check \
 - `urdf_joint_signs` / `urdf_joint_offsets`，验证模型与编码器关节方向/零点一致。
 - binding 的 `input_rotation`、`solver_tip_from_tool`，核验 base_link 安装方向及 Link6 到任务 TCP。
 - Deployment `calibrations` 的实测记录、标定摘要；当前参数必须显式用于 binding，不会由标定名字自动生成。
+- ServoJ 的可选参数 `servo_t` / `servo_lookahead_time` / `servo_gain`（arm 部署参数）：省略时就是 Dobot 官方 `dobot_api.py` 的 0.1 / 50 / 500，行为与之前完全相同；只在有实测依据时覆盖，范围 t∈[0.02, 3600] s、lookahead_time∈[20, 100]、gain∈[200, 1000]，越界在连接前即拒绝。
 - 验证后把 CR5 `kinematics_verified`、binding `calibration_verified` 和真实 Deployment 的 `verified/stop_verified` 置 true 作为记录；回退后这些字段不再参与门禁，不改开关也能激活。
 
 真实模板保留占位和 false，不应只修改开关就当作标定完成。现场还需验证使能、停止、设备 watchdog 和断网/主机掉电行为；主机命令 watchdog 已移除，断链或主机掉电时 ServoJ 保持最后目标，必须依靠设备侧保护或外部断电。
@@ -180,3 +182,7 @@ VR 默认驱动配置 50 Hz、位置比例 0.25、姿态平滑系数 0.35；实�
 ## 2026-11-02 连续微分跟随
 
 当前 CR5 专用控制器默认选择完整六维微分 IK，增加自适应阻尼、目标领先限制和超量吸收；旧严格求解可通过绑定参数 `ik_mode: strict` 选择。Web 绑定提供模式选择，运行状态提供控制器诊断。位置/姿态残差与目标吸收是显式报告项，近似更新不代表精确到位。参数、行为变化及本轮验证见 [优化记录](CR5_DIFFERENTIAL_IK_2026-11-02.md)。
+
+## 2026-11-04 ServoJ 参数可配置
+
+`ServoJ` 的 `t` / `lookahead_time` / `gain` 由 arm 部署参数 `servo_t` / `servo_lookahead_time` / `servo_gain` 覆盖，默认值保持 Dobot 官方 `dobot_api.py` 的 0.1 / 50 / 500，默认路径下发的控制串与之前逐字节一致。范围在 transport 构造时校验，越界或非数在打开连接前失败。尚未按现场固件调参；延迟来源、测量口径和建议起点见 [CR5 Quest 遥操顿挫](CR5_QUEST_SMOOTHNESS_2026-11-04.md)。

@@ -12,7 +12,7 @@ from morla_core.coordinates import validate_basis_change, validate_transform
 
 def validate_parameters(parameters, *, jog=False):
     allowed={'position_scale','input_rotation','solver_tip_from_tool','max_joint_step',
-             'max_joint_velocity','calibration_verified','smoothing_alpha','ik_mode',
+             'max_joint_velocity','command_lead_rad','calibration_verified','smoothing_alpha','ik_mode',
              'position_lead_m','rotation_lead_rad','damping_min','damping_max',
              'singularity_threshold','differential_step_rad'}
     if jog:allowed|={'axes_map','linear_speed','angular_speed'}
@@ -23,7 +23,7 @@ def validate_parameters(parameters, *, jog=False):
     for name,maximum in [('position_lead_m',.25),('rotation_lead_rad',1),
                           ('damping_min',1),('damping_max',1),('singularity_threshold',1),
                           ('differential_step_rad',.15),('position_scale',2),('max_joint_step',.3),
-                          ('max_joint_velocity',1),('smoothing_alpha',1)]:
+                          ('max_joint_velocity',1),('command_lead_rad',1),('smoothing_alpha',1)]:
         if name in parameters:
             value=parameters[name]
             if type(value) not in (int,float) or not np.isfinite(value) or not 0<value<=maximum:
@@ -39,6 +39,20 @@ def validate_parameters(parameters, *, jog=False):
                 raise ValueError('Invalid Cartesian '+key)
     if 'input_rotation' in parameters:validate_basis_change(parameters['input_rotation'])
     if 'solver_tip_from_tool' in parameters:validate_transform(parameters['solver_tip_from_tool'])
+
+
+def integration_seed(measured, last_output, lead):
+    """Joint seed the IK integrates from, bounded by the measured arm.
+
+    The 30004 feedback arrives at ~25 Hz while the control loop runs at ~90 Hz.
+    Re-seeding the differential IK from that measurement every tick makes the
+    command hold still until a new sample lands and then jump, which the
+    operator feels as a staircase. Integrating from the last commanded joints
+    removes the staircase; the measurement still bounds how far the command may
+    lead the real arm, so a blocked or lagging arm cannot wind the seed away.
+    """
+    if last_output is None:return measured.copy()
+    return measured+np.clip(last_output-measured,-lead,lead)
 
 
 class AsyncCartesianController:
@@ -81,7 +95,7 @@ class AsyncCartesianController:
             if self.closed:raise RuntimeError('CR5 controller closed')
             self.anchor_waiter=waiter
             self.pending=(self.generation,copy.deepcopy(value),vector6(measured),0.,
-                          copy.deepcopy(parameters),self.clock(),dict(self.trace_context),waiter)
+                          copy.deepcopy(parameters),self.clock(),dict(self.trace_context),waiter,None)
             self.condition.notify()
         return waiter.result(timeout=2.5)
 
@@ -99,6 +113,10 @@ class AsyncCartesianController:
 
     def __call__(self, value, measured, dt, parameters):
         measured = vector6(measured)
+        speed = float(parameters.get('max_joint_velocity', .3))
+        if not 0 < speed <= 1: raise ValueError('Invalid CR5 joint velocity')
+        lead = float(parameters.get('command_lead_rad', .3))
+        if not 0 < lead <= 1: raise ValueError('Invalid CR5 command lead')
         now = self.clock()
         with self.condition:
             if self.closed: raise RuntimeError('CR5 VR controller closed')
@@ -108,8 +126,11 @@ class AsyncCartesianController:
                 raise TimeoutError('CR5 IK initial result expired')
             if self.result is not None and now - self.result[1] > 300_000_000:
                 raise TimeoutError('CR5 IK result expired')
+            # Snapshot the integration base with the request: the worker must
+            # integrate from this tick's command, not from a later one.
+            seed = integration_seed(measured, self.last_output, lead)
             self.pending = (self.generation, copy.deepcopy(value), measured.copy(), dt,
-                            copy.deepcopy(parameters), now, dict(self.trace_context), None)
+                            copy.deepcopy(parameters), now, dict(self.trace_context), None, seed)
             self.condition.notify()
             result = measured.copy() if self.result is None else self.result[0].copy()
         # Limit actual outgoing joint velocity, independently of controller response rate.
@@ -117,8 +138,6 @@ class AsyncCartesianController:
         # anchoring on the measurement would let the commanded pose trail the arm
         # wherever gravity takes it, so the servo would never build the error needed
         # to hold position (and would ratchet down until IK loses the seed).
-        speed = float(parameters.get('max_joint_velocity', .3))
-        if not 0 < speed <= 1: raise ValueError('Invalid CR5 joint velocity')
         step = speed * min(.05, max(0., dt))
         origin = measured if self.last_output is None else self.last_output
         self.last_output = origin + np.clip(result - origin, -step, step)
@@ -129,7 +148,7 @@ class AsyncCartesianController:
             with self.condition:
                 self.condition.wait_for(lambda: self.closed or self.pending is not None)
                 if self.closed: return
-                generation, value, measured, dt, parameters, requested_ns, trace_context, anchor_waiter = self.pending
+                generation, value, measured, dt, parameters, requested_ns, trace_context, anchor_waiter, seed = self.pending
                 self.pending = None
             raw_value = copy.deepcopy(value)
             try:
@@ -160,7 +179,7 @@ class AsyncCartesianController:
                     ack=self.controller.reanchor(value,measured,parameters)
                     result=measured.tolist()
                 else:
-                    result = self.controller(value, measured, dt, parameters)
+                    result = self.controller(value, measured, dt, parameters, seed=seed)
                 if self.clock() - requested_ns > 250_000_000:
                     raise TimeoutError('CR5 full FK/IK deadline exceeded')
                 error = None
@@ -177,6 +196,7 @@ class AsyncCartesianController:
                     self.report['error'] = error
                     self.report['generation'] = generation
                     self.report['feedback_seed'] = measured.tolist()
+                    self.report['command_seed'] = None if seed is None else np.asarray(seed,dtype=float).tolist()
                     self.report['candidate_values'] = None if result is None else vector6(result).tolist()
                     self.report['delivered_to_device'] = False
                     self.report['raw_input'] = raw_value

@@ -73,6 +73,29 @@ def test_nonidentity_tool_does_not_move_neutral_jog():
     np.testing.assert_allclose(target,seed)
 
 
+def test_explicit_seed_integrates_from_the_last_command():
+    # The CR5 control loop runs at ~90 Hz but its 30004 feedback arrives at
+    # ~25 Hz. Re-seeding the solver from the measurement every tick holds the
+    # command until a new sample lands, then jumps. A caller that holds the
+    # commanded joints passes them as the integration seed; the measurement is
+    # still used for the reported pose and the lead limits.
+    class SeedSolver(Solver):
+        def __init__(self): self.synced=[]; self.solved=[]
+        def sync_state(self,seed): self.synced.append(np.asarray(seed,dtype=float)); super().sync_state(seed)
+        def solve(self,target,seed=None):
+            self.solved.append(None if seed is None else np.asarray(seed,dtype=float))
+            return super().solve(target)
+    solver=SeedSolver();controller=CartesianController(solver)
+    measured=np.zeros(7);command=np.array([.3,0,0,0,0,0,0])
+    controller.reanchor({'position':[0,0,0],'quaternion':[0,0,0,1]},measured,{})
+    controller({'position':[.01,0,0],'quaternion':[0,0,0,1]},measured,.02,{},seed=command)
+    np.testing.assert_allclose(solver.synced[-1],command)
+    np.testing.assert_allclose(solver.solved[-1],command)
+    np.testing.assert_allclose(controller.diagnostics()['feedback_seed'],measured)
+    with pytest.raises(ControllerError):
+        controller({'position':[.01,0,0],'quaternion':[0,0,0,1]},measured,.02,{},seed=[0,0,0])
+
+
 def test_reanchor_and_source_identity_and_input_gap():
     clock=[100];source=MobileAdapter('phone',clock=lambda:clock[0]);source.reconnect()
     binding={'source':'phone.scalar','target':'tool.closure','deadman':'phone.hold_to_control','controller':'morla.scalar_map'}

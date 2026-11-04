@@ -3,6 +3,35 @@ import type { ApiEnvelope, DataProcessJob, DataProcessRequest, DataProcessState,
 
 const base = import.meta.env.VITE_API_BASE ?? ''
 
+// Never let a non-JSON body surface as "JSON.parse: unexpected character":
+// name the endpoint and echo what actually came back instead.
+async function decode<T>(res: Response, path: string): Promise<ApiEnvelope<T>> {
+  const type = res.headers.get('content-type') ?? ''
+  const text = await res.text()
+  let body: any = null
+  let parsed = false
+  if (type.includes('json') && text) {
+    try {
+      body = JSON.parse(text)
+      parsed = true
+    } catch {
+      parsed = false
+    }
+  }
+  if (!res.ok) {
+    const detail = body?.detail ?? body?.message ?? (text.trim() || `HTTP ${res.status}`)
+    return { ok: false, message: typeof detail === 'string' ? detail : JSON.stringify(detail), data: null as unknown as T }
+  }
+  if (!parsed) {
+    return {
+      ok: false,
+      message: `接口 ${path} 返回了非 JSON 响应（HTTP ${res.status}${type ? '，' + type : ''}）：${text.slice(0, 200) || '空响应'}`,
+      data: null as unknown as T,
+    }
+  }
+  return body
+}
+
 async function post<T>(path: string, body?: unknown): Promise<ApiEnvelope<T>> {
   const res = await fetch(base + path, {
     method: 'POST',
@@ -11,22 +40,12 @@ async function post<T>(path: string, body?: unknown): Promise<ApiEnvelope<T>> {
   })
   // HTTP errors (409/503) arrive as {detail}; normalise into the envelope shape
   // so callers can always read .ok / .message.
-  if (!res.ok) {
-    let detail = `HTTP ${res.status}`
-    try {
-      const j = await res.json()
-      detail = j.detail ?? detail
-    } catch {
-      /* keep status */
-    }
-    return { ok: false, message: detail, data: null as unknown as T }
-  }
-  return res.json()
+  return decode<T>(res, path)
 }
 
 async function get<T>(path: string): Promise<ApiEnvelope<T>> {
   const res = await fetch(base + path)
-  return res.json()
+  return decode<T>(res, path)
 }
 
 export const api = {

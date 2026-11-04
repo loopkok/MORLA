@@ -1,9 +1,33 @@
 """Bounded CR5 TCP protocols. Constructors never enable motors."""
 import math
 import re
+import select
 import socket
 import time
 import threading
+
+
+# Dobot's official Python wrapper (dobot_api.py) declares these ServoJ
+# defaults and accepted ranges. Keep the defaults unchanged here: they are the
+# vendor's, not values tuned for this cell's firmware, payload or teleop lag.
+# A deployment may override them with `servo_t` / `servo_lookahead_time` /
+# `servo_gain` once on-robot evidence justifies new values.
+SERVO_DEFAULTS = {'t': .1, 'lookahead_time': 50., 'gain': 500.}
+SERVO_RANGES = {'t': (.02, 3600.), 'lookahead_time': (20., 100.), 'gain': (200., 1000.)}
+
+
+def servo_parameters(parameters):
+    """Validated ServoJ parameters, defaulting to Dobot's documented values."""
+    servo = {}
+    for name, default in SERVO_DEFAULTS.items():
+        value = parameters.get('servo_' + name, default)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+            raise ValueError(f'CR5 ServoJ {name} must be a finite number')
+        low, high = SERVO_RANGES[name]
+        if not low <= value <= high:
+            raise ValueError(f'CR5 ServoJ {name} outside [{low:g}, {high:g}]')
+        servo[name] = float(value)
+    return servo
 
 
 def parse_cr5_feedback(packet):
@@ -24,25 +48,50 @@ def parse_cr5_feedback(packet):
 class DobotChannel:
     def __init__(self, host, port, timeout):
         self.timeout = timeout
-        self.socket = socket.create_connection((host, port), timeout=timeout)
+        try:
+            self.socket = socket.create_connection((host, port), timeout=timeout)
+        except OSError as exc:
+            # Bare "timed out" loses the only fact the operator needs.
+            raise ConnectionError(f'CR5 {host}:{port} unreachable: {exc}') from exc
         self.socket.settimeout(timeout)
+        # The dashboard carries no request id, so a reply that missed its
+        # deadline is indistinguishable from the next command's reply. A
+        # timeout therefore poisons the channel until the late bytes go away.
+        self.dirty = False
+
+    def _resync(self):
+        self.dirty = False
+        if not hasattr(self.socket, 'fileno'):
+            return
+        while True:
+            ready, _, _ = select.select([self.socket], [], [], 0)
+            if not ready:
+                return
+            if not self.socket.recv(4096):
+                raise ConnectionError('CR5 disconnected')
 
     def request(self, command):
+        if getattr(self, 'dirty', False):
+            self._resync()
         deadline = time.monotonic() + self.timeout
         self.socket.settimeout(self.timeout)
         self.socket.sendall(command.encode('ascii'))
         data = bytearray()
-        while b';' not in data:
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                raise TimeoutError('CR5 response deadline exceeded')
-            self.socket.settimeout(remaining)
-            part = self.socket.recv(1024)
-            if not part:
-                raise ConnectionError('CR5 disconnected')
-            data.extend(part)
-            if len(data) > 8192:
-                raise ValueError('CR5 response oversized')
+        try:
+            while b';' not in data:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError('CR5 response deadline exceeded')
+                self.socket.settimeout(remaining)
+                part = self.socket.recv(1024)
+                if not part:
+                    raise ConnectionError('CR5 disconnected')
+                data.extend(part)
+                if len(data) > 8192:
+                    raise ValueError('CR5 response oversized')
+        except TimeoutError:
+            self.dirty = True
+            raise
         response = data.decode('ascii').strip()
         match = re.fullmatch(r'(-?\d+),\s*\{([^}]*)\},\s*(.*);', response, re.S)
         if not match or int(match[1]) != 0 or match[3].strip() != command:
@@ -55,11 +104,21 @@ class DobotChannel:
 
 class CR5Transport:
     def __init__(self, parameters):
+        # Reject bad ServoJ values before any socket is opened.
+        self.servo = servo_parameters(parameters)
         host = parameters['host']; timeout = parameters['timeout_s']
+        # Enable/disable run the controller's brake and servo sequence before
+        # they answer: measured 5.2 s to ack EnableRobot and 4.2 s to show
+        # enable_status=1 on feedback, against sub-millisecond read commands.
+        # Only those two calls get the wider deadline; FK/IK keep timeout_s.
+        self.enable_timeout = float(parameters.get('enable_timeout_s', 10.))
         self.dashboard = DobotChannel(host, 29999, timeout)
         try:
             self.motion = DobotChannel(host, 30003, timeout)
-            self.feedback = socket.create_connection((host, 30004), timeout=timeout)
+            try:
+                self.feedback = socket.create_connection((host, 30004), timeout=timeout)
+            except OSError as exc:
+                raise ConnectionError(f'CR5 {host}:30004 unreachable: {exc}') from exc
             self.feedback.settimeout(timeout)
         except Exception:
             if hasattr(self, 'motion'): self.motion.close()
@@ -103,16 +162,37 @@ class CR5Transport:
         with self.updated:
             ok = self.updated.wait_for(lambda: self.error or (
                 self.sample is not None and self.sample['sample_ns'] > after_ns and
-                self.sample['enable_status'] == enabled), timeout=.5)
+                self.sample['enable_status'] == enabled), timeout=self.enable_timeout)
             if not ok or self.error: raise RuntimeError('CR5 enable/disable feedback unconfirmed')
 
+    def _state_command(self, command):
+        """Run a command whose ack may arrive long after it took effect.
+
+        The controller acts first and answers afterwards, so a missed deadline
+        says nothing about whether the command ran. Feedback is the authority;
+        the unread ack is discarded before the next command on this channel.
+        Only this call gets the wide deadline: FK/IK share the channel and must
+        keep the short one.
+        """
+        channel = self.dashboard
+        original, channel.timeout = channel.timeout, max(channel.timeout, self.enable_timeout)
+        try:
+            return channel.request(command)
+        except TimeoutError:
+            return None
+        finally:
+            channel.timeout = original
+
     def activate(self):
-        self.dashboard.request('EnableRobot()')
-        self._wait_enabled(1, time.monotonic_ns())
+        after = time.monotonic_ns()
+        self._state_command('EnableRobot()')
+        self._wait_enabled(1, after)
 
     def write(self, values):
         numbers = ','.join(f'{math.degrees(v):.6f}' for v in values)
-        self.motion.request('ServoJ(' + numbers + ',t=0.100000,lookahead_time=50.000000,gain=500.000000)')
+        servo = self.servo
+        self.motion.request('ServoJ(' + numbers + f",t={servo['t']:.6f},"
+                            f"lookahead_time={servo['lookahead_time']:.6f},gain={servo['gain']:.6f})")
 
     @staticmethod
     def _six_reply(raw):
@@ -133,8 +213,9 @@ class CR5Transport:
 
     def stop(self):
         # Disable rather than a zero-position command; real stop latency requires acceptance.
-        self.dashboard.request('DisableRobot()')
-        self._wait_enabled(0, time.monotonic_ns())
+        after = time.monotonic_ns()
+        self._state_command('DisableRobot()')
+        self._wait_enabled(0, after)
 
     def close(self):
         self.closed.set()

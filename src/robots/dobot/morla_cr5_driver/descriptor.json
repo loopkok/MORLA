@@ -164,6 +164,32 @@
         "minimum": 0.01,
         "maximum": 0.5
       },
+      "enable_timeout_s": {
+        "type": "number",
+        "minimum": 0.5,
+        "maximum": 30
+      },
+      "servo_t": {
+        "type": "number",
+        "minimum": 0.02,
+        "maximum": 3600,
+        "default": 0.1,
+        "description": "ServoJ interpolation time in seconds; Dobot default 0.1"
+      },
+      "servo_lookahead_time": {
+        "type": "number",
+        "minimum": 20,
+        "maximum": 100,
+        "default": 50,
+        "description": "ServoJ look-ahead (D-like) term; Dobot default 50"
+      },
+      "servo_gain": {
+        "type": "number",
+        "minimum": 200,
+        "maximum": 1000,
+        "default": 500,
+        "description": "ServoJ proportional gain; Dobot default 500"
+      },
       "command_timeout_s": {
         "type": "number",
         "minimum": 0.05,
@@ -223,6 +249,7 @@
   "defaults": {
     "rate_hz": 20,
     "timeout_s": 0.2,
+    "enable_timeout_s": 10,
     "command_timeout_s": 0.3,
     "max_step_rad": 0.05,
     "kinematics_verified": false,

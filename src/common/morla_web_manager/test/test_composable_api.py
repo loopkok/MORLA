@@ -229,3 +229,23 @@ def test_diagnostic_logs_are_independent_downloadable_and_confined(tmp_path,monk
         directory=service.session.diagnostics.directory
         (directory/'trace-99999.jsonl').symlink_to(tmp_path/'outside')
         assert client.get(f'/api/v2/diagnostics/runs/{sid}/files/trace-99999.jsonl').status_code==404
+
+
+def test_device_unreachable_is_503_and_unknown_crash_is_json_500(tmp_path):
+    """A dead socket must not surface as a bare 500/plain text the UI cannot parse."""
+    with TestClient(create_app(tmp_path, resource_root=tmp_path/'locks')) as client:
+        store = client.app.state.composable.store
+
+        def unreachable(): raise ConnectionError('CR5 192.168.5.1:29999 unreachable: timed out')
+        store.list = unreachable
+        response = client.get('/api/v2/assemblies')
+        assert response.status_code == 503, response.text
+        assert response.headers['content-type'].startswith('application/json')
+        assert '192.168.5.1:29999' in response.json()['detail']
+
+        def crash(): raise ZeroDivisionError('division by zero')
+        store.list = crash
+        response = client.get('/api/v2/assemblies')
+        assert response.status_code == 500, response.text
+        assert response.headers['content-type'].startswith('application/json')
+        assert 'ZeroDivisionError' in response.json()['detail']

@@ -34,7 +34,7 @@
 - CR5 `smoothing_alpha=0.35` 越大越直接，按worker处理样本更新，没有固定时间常数换算。
 - Quest landmarks `ema_alpha=0.7`；CR5捏合保持使用原始关键点。Wuji命令滤波截止10 Hz；手重定向另有平滑参数。
 
-速度/步长：Nero遥操 `max_joint_delta_rad_per_step=0.065`，驱动 `max_joint_velocity_rad_s=1.0`，另有 `stream_position_mode/stream_j_speed_percent`。Astral左臂 `max_joint_vel=6.0 rad/s`。CR5 controller按 `max_joint_velocity`（默认 0.3 rad/s）裁剪输出关节速度；2026-10-30 回退后不再有相对实测步长限制（`max_joint_step` 参数仍被接受但不生效），Adapter 端的目标步长校验也已移除；ServoJ当前字面参数 `t=0.1,lookahead_time=50,gain=500` 固定在代码，固件兼容/实际效果待验证。各层关节限位与工作空间共同约束最终动作。
+速度/步长：Nero遥操 `max_joint_delta_rad_per_step=0.065`，驱动 `max_joint_velocity_rad_s=1.0`，另有 `stream_position_mode/stream_j_speed_percent`。Astral左臂 `max_joint_vel=6.0 rad/s`。CR5 controller按 `max_joint_velocity`（默认 0.3 rad/s）裁剪输出关节速度；2026-10-30 回退后不再有相对实测步长限制（`max_joint_step` 参数仍被接受但不生效），Adapter 端的目标步长校验也已移除；ServoJ 参数默认 `t=0.1,lookahead_time=50,gain=500`（Dobot 官方 `dobot_api.py` 默认值），可由 arm 部署参数 `servo_t/servo_lookahead_time/servo_gain` 覆盖并在连接前按官方范围校验；默认值未在本机调过，固件兼容/实际效果待验证。各层关节限位与工作空间共同约束最终动作。
 
 IK：Nero/Astral解析/几何路径的局部搜索窗口、连续性评分、分支滞回/回退影响跳解和耗时；Astral另有 `reach_margin`、人肘模式/权重/时效/平滑和escape/return帧数。`ik_max_iter/ik_tol/ik_w_pos/ik_w_ori/ik_w_reg/ik_dq_max` 等主要作用于Astral urdf_numerical后端，当前geometric不靠这些LM参数调手感。
 

@@ -54,6 +54,19 @@ def test_rotation_absorption_and_no_antipode_chasing():
     assert delta[0]==pytest.approx(np.deg2rad(-2))
 
 
+def test_explicit_seed_is_the_integration_base_and_the_lead_anchor():
+    solver=DifferentialIKSolver();solver.sync_state(READY)
+    command=READY.copy();command[0]+=np.deg2rad(1.5)
+    # At the command's own pose there is nothing left to do: the tick holds the
+    # supplied base instead of pulling it back toward the synced measurement.
+    np.testing.assert_allclose(solver.solve(solver.fk(command),seed=command),command,atol=1e-12)
+    # The absorbing lead window follows the same base.
+    hand=solver.fk(command);hand[0,3]+=.5
+    solver.solve(hand,seed=command)
+    assert solver.last_report['position_lead_limited']
+    assert np.linalg.norm(solver.goal[:3,3]-solver.fk(command)[:3,3])<=.050000001
+
+
 def test_singularity_adaptive_damping_and_static_hold():
     solver=DifferentialIKSolver()
     values=[]
@@ -100,7 +113,8 @@ def test_controller_selection_strict_and_differential(jog):
             assert 'solver' in controller.diagnostics()
         finally:controller.close()
     for options in ({'ik_mode':'bogus'},{'damping_min':.2,'damping_max':.1},
-                    {'position_lead_m':0},{'rotation_lead_rad':float('nan')}):
+                    {'position_lead_m':0},{'rotation_lead_rad':float('nan')},
+                    {'command_lead_rad':0},{'command_lead_rad':1.5}):
         with pytest.raises(ValueError):validate_parameters(options,jog=jog)
 
 

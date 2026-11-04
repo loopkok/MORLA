@@ -7,6 +7,10 @@ instances:
     resource_key: cr5:REPLACE_CR5_SERIAL
     parameters:
       host: REPLACE_CONTROLLER_IP
+      # ServoJ (30003), optional. Omitted keys keep Dobot's documented values:
+      # servo_t: 0.1              # interpolation time, s, range [0.02, 3600]
+      # servo_lookahead_time: 50  # look-ahead term, range [20, 100]
+      # servo_gain: 500           # proportional gain, range [200, 1000]
     verified: false
     stop_verified: false
 calibrations: {}

@@ -38,6 +38,10 @@ ros2 launch morla_cr5_driver cr5_driver.launch.py resolved_path:=/tmp/cr5.resolv
 
 配置模板为本包 `config/deployment.real.example.yaml`。填写实际设备身份、IP，并核对 6 个 joint_lower/joint_upper（rad），然后使用 compile 的 `--deployment` 参数编译。`verified/stop_verified` 现在只是记录字段，不参与编译或运行门禁；默认 joint_lower/joint_upper 按 J1..J6 为 ±[2π, π, 2.7925, 2π, 2π, 2π] rad：J2 为 ±180°，其余沿用 URDF。关节元数据采用同一范围；URDF/MJCF 模型本身不变。Web 未显式填写时显示并使用这些默认值，已有装配或部署配置中的显式值优先。默认值不是现场已验证的安全限位，应按实际部署核对或收紧。
 
+ServoJ（30003）的 `t` / `lookahead_time` / `gain` 可由部署参数 `servo_t`、`servo_lookahead_time`、`servo_gain` 覆盖；省略时保持 Dobot 官方 Python API `dobot_api.py` 的默认 **0.1 / 50 / 500**，生成的控制串与改动前一致。取值按官方注释的范围在 transport 构造时校验（`t` 0.02–3600 s、`lookahead_time` 20–100、`gain` 200–1000），非法值在建立任何连接前即失败。这些默认值是厂商脚本的，不是本机固件、负载或遥操延迟下调出来的。
+
+使能/失能走 29999 dashboard，其应答时间与读取类命令不在一个量级：本机实测 `EnableRobot()` 回执 5.19 s、反馈 `enable_status=1` 4.23 s，而 `PositiveSolution`/`GetErrorID` 仅 0.4–1.7 ms。因此 dashboard 单独使用 `enable_timeout_s`（schema 0.5–30，默认 10 s），`timeout_s` 仍只管运动（30003）与反馈连接。`activate()` 以反馈 `enable_status` 为权威：回执超时不判失败，晚到的回执在下一命令前丢弃（dashboard 无请求 id，否则会被当成下一条命令的应答）。不要把 `timeout_s` 提到 5 s 以上去等使能，它同时约束 ServoJ。
+
 真实 CR5、固件兼容、设备停止/断网 watchdog、旧动作缓存、零位/方向、安装 TCP 和长稳均未验收。主机命令超时/watchdog已移除，不能替代设备 watchdog；断链或上游停发命令时执行器保持最后目标。现已提供基于纯 CR5 URDF / Pinocchio 的本地数值 IK 和右侧 VR controller；不使用 Nero/Astral 参数或控制器内置 IK。动力学仿真尚未接入。
 
 ## 独立验证与组合
@@ -83,7 +87,9 @@ ros2 launch morla_cr5_driver cr5_sim.launch.py deployment:=/tmp/quest-input.real
 
 配置文件 `config/quest.sim.yaml` 设置六轴初始位置 `[0,0,π/2,0,-π/2,0]` rad（J3 +90°、J5 −90°，其余归零），避开全零伸直位且腕部条件最好（Jacobian 最小奇异值 0.209 / cond 8.8；旧位形 `[0,-0.5,1,-0.5,1,0]` 为 0.023 / cond 86）；仿真相机位于世界坐标。arm 必须保留 sim，输入可以独立选 fake/real。局域网访问请使用已有统一 Web 服务的 HOST 配置；session launch 的默认地址仅限本机。不要与已运行的 Web 服务抢占同一端口。
 
-仿真和真机遥操使用相同的本地 Pinocchio IK、TCP/增量映射和异步解算逻辑。仿真将物理关节反馈作为播种来源，状态标记 `source=simulation`、`synthetic=true`、`measured=false`。
+仿真和真机遥操使用相同的本地 Pinocchio IK、TCP/增量映射和异步解算逻辑。仿真的关节**反馈**来自物理仿真，状态标记 `source=simulation`、`synthetic=true`、`measured=false`。
+
+微分 IK 的**积分基准**是上一拍下发的指令关节，不是反馈样本：30004 反馈约 24 Hz、控制回路约 90 Hz，逐拍用反馈重新播种会让指令在样本之间停住、样本落地时跳一步（操作员体感为“一顿一顿”）。反馈仍然决定真实位姿，并把指令的领先量限制在 `command_lead_rad`（默认 0.3 rad）以内防止臂被挡住时积分跑飞。真机三轮量化对比见 [CR5 Quest 遥操顿挫](../../../../docs/integrations/CR5_QUEST_SMOOTHNESS_2026-11-04.md)。
 
 绝对位姿遥操的目标每次都由锚点重新计算，求解失败不是可以被下一拍追回来的丢样本，而是整帧丢弃、机械臂原地不动，因此求解器在报告失败前按信任域阶梯重试：位姿模式为 `0.3 → 0.6 → 1.2` rad，摇杆（jog）仍只用一个 0.3 rad 窗口——一次被拒绝的摇杆方向必须保持被拒绝，否则 `jog_blocked` 的轴向屏蔽会失效。速度与手感参数随模板提升到 `position_scale: 0.8`、`max_joint_velocity: 1.0` rad/s。真机仍未验收。
 
