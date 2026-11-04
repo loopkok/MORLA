@@ -2,6 +2,15 @@
 
 ## 2026-11-04
 
+### 冷机 EPG 无法“开始遥操”：接管前置校验从位置反馈改为设备健康
+
+- 症状：真机 EPG50 刚上电、尚未使能时，Web 点“开始遥操”被拒，提示“接管需要新鲜且有效的设备反馈：grip”。EPG 必须先被使能（`gSTA=3`）才回报夹爪宽度，而“开始遥操”正是要发起这次使能，于是冷机永远起不来；先手动使能再接管则正常。
+- 根因：`Handoff.begin()` 在发起激活之前调用 `feedback()`，要求每个执行器都已给出与关节数一致、有限的位置值（[handoff.py](src/common/morla_web_manager/morla_web_manager/handoff.py)）。这条要求对 CR5（上电即回报关节角）成立，对 EPG 不成立——[adapter.py](src/robots/jodell/morla_epg_driver/morla_epg_driver/adapter.py) 的 `health()` 在 `enabled and activation_state==3` 之前返回空 `values`（禁用态读回可能是 0 或 254 等看似合理的默认值，故刻意不回传）。
+- 修法：新增 `Handoff.health()`，只校验**可达性与新鲜度**（`ready is True`、无 `fault`、`sample_ns` 为整数且在 `max_age_ns` 内）；`begin()` 改用它，并把 `seeds` 留空。位置仍在 `poll()` 的激活阶段之后由 `stage_prepared` 的 `feedback()` 重新采样，`_validate()` 与提交前各再校验一次，因此“使能后位置不对/姿态已变”依旧会拒绝接管。故障设备（`ready=False` 或 `fault`）仍在使能前直接 422/失败，不会先使能再回滚。
+- 回归：`test_workstation_operator.py` **28 passed**；新增两条用例——(1) 禁用态 `health()['values']` 为空的设备可被 `teleop_start` 正常使能，且随后的输入能产生目标；(2) `ready=False` + `fault` 的设备仍在 `teleop_start` 时被拒（422，含“设备状态”）。`scripts/test_composable.sh --layer fake` **27 passed, 1 failed**，`--layer pure` **302 passed, 1 skipped**；失败项 `test_composable_api.py::test_mobile_input_and_recording`（`release_or_reanchor_required`）在 `HEAD`（`2ba91fd`）的独立 worktree 上以同样方式失败，属既有基线。
+- 细节、真机时间线与测试口径见 [docs/integrations/COLD_EPG_HANDOFF_2026-11-04.md](docs/integrations/COLD_EPG_HANDOFF_2026-11-04.md)。
+- 注意：首次按下握持键（`quest.right_hold`）时 `morla.input.quest` 会自带一个 `teleop_start`（[quest_events.py](src/common/morla_input/morla_input/quest_events.py) 的 `actions`），它会以该帧重新建锚，所以那一帧不产生指令；下一帧起正常。测试与现场都应据此判断“按下后第一帧不动”。
+
 ### CR5 ServoJ 参数改为可配置（默认值不变）
 
 - `transport.py` 新增 `servo_parameters()`：`write()` 的 `t` / `lookahead_time` / `gain` 从 arm 参数 `servo_t`、`servo_lookahead_time`、`servo_gain` 读取，省略时保持 Dobot 官方 Python API `dobot_api.py` 的默认 **0.1 / 50 / 500**。取值按该 API 注释校验（`t`∈[0.02, 3600] s、`lookahead_time`∈[20, 100]、`gain`∈[200, 1000]，拒绝布尔/非数/NaN），在打开任何 socket 前抛 `ValueError`。默认路径生成的 `ServoJ(...)` 字符串与改动前逐字节相同，行为未变。

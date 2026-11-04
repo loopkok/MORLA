@@ -297,6 +297,34 @@ def test_partial_anchor_failure_rolls_back_without_committing_human(cell,monkeyp
     finally:unblock.set()
 
 
+def test_disabled_device_without_position_can_be_enabled_by_teleop_start(cell,monkeypatch):
+    """A real EPG reports no width until enabled; starting teleop must still work."""
+    c=cell;adapter=c.rt.adapters['grip'];original=adapter.health
+    def health(now):
+        result=original(now)
+        if c.rt.status!='ACTIVE':result['values']=[]
+        return result
+    monkeypatch.setattr(adapter,'health',health)
+    assert c.action('teleop_start').status_code==200
+    assert c.rt.status=='ACTIVE' and c.svc.operator.activity=='human'
+    # The first grip press carries its own teleop_start (quest_events.actions),
+    # which re-anchors on that very frame and therefore commands nothing.
+    c.send(grip=1.,trigger=.4)
+    c.send(grip=1.,trigger=.4)
+    assert c.rt.adapters['grip'].values==pytest.approx([.4])
+
+
+def test_unhealthy_device_still_blocks_teleop_start_before_enabling(cell,monkeypatch):
+    c=cell;adapter=c.rt.adapters['grip'];original=adapter.health
+    def health(now):
+        return {**original(now),'ready':False,'fault':'bus down'}
+    monkeypatch.setattr(adapter,'health',health)
+    response=c.action('teleop_start')
+    assert response.status_code==422
+    assert '设备状态' in response.json()['detail']
+    assert c.rt.status!='ACTIVE'
+
+
 def test_anchor_timeout_and_late_success_cannot_regain_authority(cell,monkeypatch):
     from morla_teleop.controllers import BindingController
     c=cell;playback(c)

@@ -35,6 +35,23 @@ class Handoff:
             result[key]=list(values)
         return result
 
+    def health(self):
+        """Fresh healthy status for every actuator, before it is enabled.
+
+        A device that is still disabled may legitimately report no position:
+        the EPG withholds width until gSTA=3 (adapter.py). Enabling is exactly
+        what the operator's "start teleop" does, so requiring positions here
+        would make a cold real EPG impossible to start. Only reachability and
+        freshness are checked; `feedback()` re-checks positions after the
+        activation stage in `poll()` has completed.
+        """
+        now=self.svc.clock()
+        for key in self.rt._actuators():
+            health=self.rt.adapters[key].health(now)
+            if (health.get('ready') is not True or health.get('fault') or
+                    type(health.get('sample_ns')) is not int or not 0<=now-health['sample_ns']<=self.rt.max_age_ns):
+                raise ValueError('接管需要新鲜且健康的设备状态：'+key)
+
     def _snapshot(self):
         return {'activity':self.op.activity,'paused':self.op.paused,'return_to':self.op.return_to,
                 'interrupted':copy.deepcopy(self.op.interrupted),'runtime_status':self.rt.status,
@@ -43,7 +60,10 @@ class Handoff:
     def begin(self, destination, request_id, *, desired_paused=False, kind='takeover'):
         if self.pending:raise ValueError('控制权切换正在进行，请等待完成或暂停/停止')
         if self.rt._pending_operation is not None:raise ValueError('device operation pending')
-        seeds=self.feedback()
+        # Positions are re-read in poll() after activation; a disabled device
+        # (real EPG) cannot provide them yet.
+        self.health()
+        seeds={}
         jobs=[]
         if destination=='human':
             for binding in self.rt.resolved.get('bindings',[]):
