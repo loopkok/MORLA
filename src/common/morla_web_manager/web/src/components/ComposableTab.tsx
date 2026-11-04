@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { BasisFields, NumberInput, ObjectFields, PoseFields, ValueField } from './WorkcellFields'
-import { backendNames, bindingDefaults, compatible, initial, label, normalise, parseWorkcellDocument, parameterSchema, portLabel } from '../lib/workcell'
+import { backendNames, bindingDefaults, compatible, initial, label, normalise, parseWorkcellDocument, parameterSchema, portLabel, visibleDeviceFields } from '../lib/workcell'
 import type { Assembly, Binding, Component, Deployment, Device, Instance, Port, SimOptions } from '../lib/workcell'
 import './workcell.css'
 import { OperatorKeyboard } from './OperatorKeyboard'
@@ -144,7 +144,25 @@ export function ComposableTab(){
   next.control_groups=Object.fromEntries(Object.entries(next.control_groups).map(([key,g])=>[key,{...g,members:g.members.filter(x=>x!==id)}] as const).filter(([,g])=>g.members.length))
   const dep=structuredClone(deployment);if(dep.instances)delete dep.instances[id];changeDeployment(dep);changed(next)
  }
- const choices=(source:string,target:string)=>compatible(catalog,endpoints.find(e=>e.ref===source)?.port,endpoints.find(e=>e.ref===target)?.port)
+ const portName=(endpoint:Endpoint)=>endpoint.ref.slice(endpoint.instance.length+1)
+ const isQuest=(endpoint:Endpoint)=>assembly.instances[endpoint.instance]?.plugin==='morla.input.quest'
+ const questVisible=(endpoint:Endpoint)=>{
+  if(!isQuest(endpoint))return true
+  const side=deployment.instances?.[endpoint.instance]?.parameters?.side||assembly.instances[endpoint.instance].parameters?.side||'both'
+  const match=portName(endpoint).match(/^(left|right)_(pose|axes|scalar|hold|landmarks|buttons)$/)
+  return !!match&&(side==='both'||side===match[1])
+ }
+ const currentQuestPort=(endpoint:Endpoint)=>/^(left|right)_(pose|axes|scalar|hold|landmarks|buttons)$/.test(portName(endpoint))
+ const holdPort=(endpoint:Endpoint)=>/^(left_hold|right_hold|hold_to_control|deadman)$/.test(portName(endpoint))
+ const standardHold=(endpoint:Endpoint)=>sources.find(candidate=>candidate.instance===endpoint.instance&&(
+  isQuest(endpoint)?portName(candidate)===portName(endpoint).replace(/_(pose|axes|scalar|landmarks|buttons)$/,'_hold'):portName(candidate)==='hold_to_control'))
+ const signalLabel=(endpoint:Endpoint)=>{
+  if(!isQuest(endpoint))return portLabel(endpoint.ref)
+  const [side,kind]=portName(endpoint).split('_')
+  const names:Record<string,string>={pose:'侧位姿（手柄 / 裸手）',axes:'摇杆',scalar:'扳机 / 捏合开合量',hold:' Grip / 捏合',landmarks:'手关键点',buttons:'手柄按键'}
+  return names[kind]?endpoint.instance+' · '+(side==='left'?'左':'右')+names[kind]:portLabel(endpoint.ref)+'（兼容）'
+ }
+ const choices=(source:string,target:string)=>compatible(catalog,endpoints.find(e=>e.ref===source)?.port,endpoints.find(e=>e.ref===target)?.port,assembly.instances[target.split('.')[0]]?.plugin)
  function defaults(id:string,source:string,target:string){
   const sp=endpoints.find(e=>e.ref===source)?.port,ti=assembly.instances[target.split('.')[0]],td=ti&&descriptor(ti);if(!sp||!td)return{}
   const params=bindingDefaults(id,sp,td,assembly.instances[source.split('.')[0]]?.plugin==='morla.input.quest')
@@ -166,20 +184,29 @@ export function ComposableTab(){
  }
  function addBinding(){
   const target=targets.find(t=>!assembly.bindings.some(b=>b.target.split('.')[0]===t.instance));if(!target){setError(true);setMessage('每个执行器只能有一条控制映射。请添加设备，或编辑已有映射。');return}
-  const source=sources.find(s=>s.port.semantic==='pose6d'&&choices(s.ref,target.ref).length)||sources.find(s=>choices(s.ref,target.ref).length);if(!source){setError(true);setMessage('当前设备没有兼容的输入与控制目标。');return}
+  const available=sources.filter(s=>questVisible(s)&&!holdPort(s)&&!portName(s).endsWith('_buttons')&&choices(s.ref,target.ref).length)
+  const source=available.find(s=>isQuest(s)&&portName(s)==='right_pose')||available.find(s=>s.port.semantic==='pose6d')||available[0];if(!source){setError(true);setMessage('当前设备没有兼容的输入与控制目标。');return}
   let n=1;while(assembly.bindings.some(b=>b.id==='control_'+n))n++
-  changed({...assembly,bindings:[...assembly.bindings,buildBinding(source.ref,target.ref,'control_'+n)]})
+  const binding=buildBinding(source.ref,target.ref,'control_'+n)
+  const robot=assembly.instances[target.instance]
+  if((device(target.instance).backend||robot.backend)==='real'&&source.port.semantic==='pose6d')binding.deadman=standardHold(source)?.ref||binding.deadman
+  changed({...assembly,bindings:[...assembly.bindings,binding]})
  }
  const patchBinding=(index:number,patch:Partial<Binding>)=>changed({...assembly,bindings:assembly.bindings.map((b,i)=>i===index?{...b,...patch}:b)})
  function updateBinding(index:number,key:'source'|'target'|'controller',value:string){
   const old=assembly.bindings[index],source=key==='source'?value:old.source,target=key==='target'?value:old.target
   const next=buildBinding(source,target,old.id),controller=key==='controller'?value:choices(source,target).includes(old.controller)?old.controller:next.controller
-  patchBinding(index,{source,target,controller,deadman:key==='source'?next.deadman:old.deadman,input_basis_id:next.input_basis_id,parameters:defaults(controller,source,target)})
+  if(source===old.source&&target===old.target&&controller===old.controller)return
+  const selected=sources.find(e=>e.ref===source)
+  const previous=sources.find(e=>e.ref===old.source)
+  const previousHold=previous&&standardHold(previous)
+  const deadman=selected&&source!==old.source&&old.deadman&&old.deadman===previousHold?.ref
+   ?standardHold(selected)?.ref||old.deadman:old.deadman
+  patchBinding(index,{source,target,controller,deadman,input_basis_id:next.input_basis_id,parameters:defaults(controller,source,target)})
  }
  const device=(id:string)=>deployment.instances?.[id]||{}
  const patchDevice=(id:string,patch:Partial<Device>)=>changeDeployment({...deployment,deployment_version:1,deployment_id:deployment.deployment_id||assembly.assembly_id+'_hardware',instances:{...deployment.instances,[id]:{...device(id),...patch}}})
  function backend(id:string,value:string){const dep=structuredClone(deployment);if(dep.instances?.[id]){delete dep.instances[id].backend;if(value!=='real')delete dep.instances[id]}changeDeployment(dep);setInstance(id,{...assembly.instances[id],backend:value})}
- const options=(entries:Endpoint[])=>entries.map(e=><option key={e.ref} value={e.ref}>{portLabel(e.ref)} · {e.port.dim} 维</option>)
  const nextStage=()=>setStage(stages[Math.min(stages.findIndex(s=>s.id===stage)+1,stages.length-1)].id)
  async function loadTemplate(){const a=templateCache[template]||normalise(await request<Assembly>('/templates/'+template));const revision=saved.find(x=>x.assembly_id===a.assembly_id)?.revision||0;changed({...structuredClone(a),revision:revision+1});setDeployment({});setSavedRevision(revision);setSavedHash('');setMessage('已载入机器人与输入标定，可继续检查设备设置。')}
  async function check(){const result=await request<Resolved>('/assemblies/compile',{assembly,deployment});setResolved(result);setMessage('配置检查通过。请保存配置后启动。');return result}
@@ -205,10 +232,27 @@ export function ComposableTab(){
   {stage==='devices'&&<fieldset disabled={locked} className="wc-unframed">
    {(['input','actuator','sensor'] as const).map(kind=><Section key={kind} title={{input:'输入设备',actuator:'机器人与末端执行器',sensor:'相机与传感器'}[kind]} note={{input:'选择手柄、头显、手套或标准输入接口。',actuator:'机械臂、夹爪和灵巧手分别配置，可组合使用。',sensor:'图像采集为可选项，仿真相机与机械臂共用场景。'}[kind]}>
     <div className="wc-add-row"><select aria-label={kind+'组件'} value={catalog.filter(c=>c.kind===kind).some(c=>c.plugin_id===picks[kind])?picks[kind]:catalog.find(c=>c.kind===kind)?.plugin_id||''} onChange={e=>setPicks({...picks,[kind]:e.target.value})}>{catalog.filter(c=>c.kind===kind).map(c=><option key={c.plugin_id} value={c.plugin_id}>{label(c.plugin_id)}{c.joints?.length?` · ${c.joints.length} 轴`:''}</option>)}</select><button onClick={()=>add(kind)} disabled={!catalog.some(c=>c.kind===kind)}>添加设备</button><span className="wc-note">{count[kind]} 个设备</span></div>
-    {instances.filter(([,i])=>descriptor(i)?.kind===kind).map(([id,item])=>{const d=descriptor(item)!;const mode=device(id).backend||item.backend||'fake';const props=d.configuration_schema?.properties||{};const basic=kind==='sensor'?(mode==='real'?['camera_backend','width','height','fps','image_topic','compressed','device_path']:['width','height','fps']):kind==='input'?['side','process_mode','protocol','deadzone']:['side','rate_hz'];const rest=Object.fromEntries(Object.entries(props).filter(([key])=>!basic.includes(key)));return <article className="wc-device" key={id}><div className="wc-device-heading"><div><h4>{item.display_name||label(item.plugin)}</h4><code>{id}</code>{!!d.joints?.length&&<span className="wc-note">{d.joints.length} 轴</span>}</div><button className="wc-text-button wc-destructive" onClick={()=>remove(id)}>移除</button></div>
-     <div className="wc-form-grid"><label>显示名称<input value={String(item.display_name||'')} placeholder={label(item.plugin)} onChange={e=>setInstance(id,{...item,display_name:e.target.value})} /></label><label>运行方式<select aria-label={id+'运行后端'} value={mode} onChange={e=>backend(id,e.target.value)}>{Object.entries(d.backend_variants||{}).map(([key,status])=><option key={key} value={key} disabled={status.available===false}>{backendNames[key]||key}{status.available===false?'（未提供）':''}</option>)}</select></label></div>
+    {instances.filter(([,i])=>descriptor(i)?.kind===kind).map(([id,item])=>{const d=descriptor(item)!;const mode=device(id).backend||item.backend||'fake';const fields=d.configuration_schema?.properties||{};const props=visibleDeviceFields(d,mode,item.parameters,device(id).parameters);const basic=kind==='sensor'?(mode==='real'?['camera_backend','width','height','fps','image_topic','compressed']:['width','height','fps']):kind==='input'?['side','process_mode','protocol','deadzone']:['side','rate_hz'];const rest=Object.fromEntries(Object.entries(props).filter(([key])=>!basic.includes(key)));return <article className="wc-device" key={id}><div className="wc-device-heading"><div><h4>{item.display_name||label(item.plugin)}</h4><code>{id}</code>{!!d.joints?.length&&<span className="wc-note">{d.joints.length} 轴</span>}</div><button className="wc-text-button wc-destructive" onClick={()=>remove(id)}>移除</button></div>
+     <fieldset className="wc-pose"><legend>通用设置</legend><div className="wc-form-grid"><label>显示名称<input value={String(item.display_name||'')} placeholder={label(item.plugin)} onChange={e=>setInstance(id,{...item,display_name:e.target.value})} /></label><label>运行方式<select aria-label={id+'运行后端'} value={mode} onChange={e=>backend(id,e.target.value)}>{Object.entries(d.backend_variants||{}).map(([key,status])=><option key={key} value={key} disabled={status.available===false}>{backendNames[key]||key}{status.available===false?'（未提供）':''}</option>)}</select></label></div></fieldset>
      <ObjectFields value={Object.fromEntries(Object.entries(item.parameters||{}).filter(([key])=>basic.includes(key)))} properties={Object.fromEntries(basic.filter(key=>props[key]).map(key=>[key,props[key]]))} defaults={d.defaults} onChange={value=>{const params={...item.parameters};for(const key of basic)delete params[key];setInstance(id,{...item,parameters:{...params,...value}})}} />
-     <details className="wc-details"><summary>设备参数</summary><ObjectFields value={Object.fromEntries(Object.entries(item.parameters||{}).filter(([key])=>!basic.includes(key)))} properties={rest} defaults={d.defaults} onChange={value=>setInstance(id,{...item,parameters:{...Object.fromEntries(Object.entries(item.parameters||{}).filter(([key])=>basic.includes(key))),...value}})} /></details>
+     {(Object.keys(rest).length>0||Object.keys(item.parameters||{}).some(key=>!(key in fields)))&&<details className="wc-details"><summary>设备专用参数</summary><ObjectFields value={Object.fromEntries(Object.entries(item.parameters||{}).filter(([key])=>key in rest||!(key in fields)))} properties={rest} defaults={d.plugin_id==='morla.input.quest'?{pinch_range_m:[.015,.08],...d.defaults}:d.defaults} onChange={value=>setInstance(id,{...item,parameters:{...Object.fromEntries(Object.entries(item.parameters||{}).filter(([key])=>basic.includes(key)||(key in fields&&!(key in rest)))),...value}})} /></details>}
+     {mode==='real'&&<fieldset className="wc-pose"><legend>硬件连接</legend>
+      <div className="wc-form-grid">
+       <label>设备标识<input value={device(id).device_id||''} placeholder="设备序列号或资产标识" onChange={e=>patchDevice(id,{device_id:e.target.value})} /></label>
+       <label>设备资源标识<input value={device(id).resource_key||''} placeholder="默认使用设备标识" onChange={e=>patchDevice(id,{resource_key:e.target.value||undefined})} /></label>
+      </div>
+      <ObjectFields value={Object.fromEntries(Object.entries(device(id).parameters||{}).filter(([key])=>key in visibleDeviceFields(d,mode,item.parameters,device(id).parameters,true)))}
+       properties={visibleDeviceFields(d,mode,item.parameters,device(id).parameters,true)}
+       defaults={{...d.defaults,...item.parameters}}
+       onChange={parameters=>{
+        const shown=visibleDeviceFields(d,mode,item.parameters,device(id).parameters,true)
+        const retained=Object.fromEntries(Object.entries(device(id).parameters||{}).filter(([key])=>!(key in shown)))
+        patchDevice(id,{parameters:{...retained,...parameters}})
+       }} />
+      <div className="wc-inline"><Check text="已核对设备身份" value={!!device(id).verified} onChange={verified=>patchDevice(id,{verified})} /><Check text="已完成停止测试" value={!!device(id).stop_verified} onChange={stop_verified=>patchDevice(id,{stop_verified})} /></div>
+      {(d.resources?.sharing==='session'||!!device(id).session_id)&&<label>共享驱动标识<input value={String(device(id).session_id||'')} onChange={e=>patchDevice(id,{session_id:e.target.value||undefined})} /></label>}
+     </fieldset>}
+     {mode!=='real'&&<p className="wc-note">当前为{backendNames[mode]}。切换为真实设备后可配置{d.plugin_id==='morla.nero.arm'?' CAN 通道、固件协议与驱动初始关节位置':'硬件连接与驱动参数'}。</p>}
     </article>})}
     {!count[kind]&&<p className="wc-empty">尚未添加{kind==='input'?'输入设备':kind==='actuator'?'机器人或末端':'相机'}。</p>}
    </Section>)}
@@ -223,15 +267,6 @@ export function ComposableTab(){
     </article>)}
     <button disabled={!mountable.some(f=>!assembly.mounts.some(m=>m.child.split('.')[0]===f.split('.')[0]))} onClick={()=>{const child=mountable.find(f=>!assembly.mounts.some(m=>m.child.split('.')[0]===f.split('.')[0]));if(child)changed({...assembly,mounts:[...assembly.mounts,{child,parent:'world',transform:[0,0,0,0,0,0,1]}]})}}>添加安装关系</button>
    </Section>
-   <Section title="硬件连接" note="仅真实设备需要填写。身份核对和停止测试由操作人员确认，不会自动勾选。">
-    {instances.filter(([id,item])=>(device(id).backend||item.backend)==='real').map(([id,item])=>{const d=descriptor(item);const config=device(id);return <article className="wc-device" key={id}><h4>{label(item.plugin)} <code>{id}</code></h4><div className="wc-form-grid"><label>设备标识<input aria-label={id+'设备标识'} value={config.device_id||''} placeholder="序列号或台架资产标识" onChange={e=>patchDevice(id,{device_id:e.target.value})} /></label><label>设备资源标识<input aria-label={id+'设备资源标识'} value={config.resource_key||''} placeholder="留空时使用设备标识" onChange={e=>{patchDevice(id,{resource_key:e.target.value||undefined})}} /></label></div>
-     <ObjectFields value={config.parameters||{}} properties={d?.configuration_schema?.properties} defaults={{...d?.defaults,...item.parameters}} onChange={parameters=>patchDevice(id,{parameters})} />
-     <div className="wc-inline"><Check text="已核对设备身份" value={!!config.verified} onChange={verified=>patchDevice(id,{verified})} /><Check text="已完成停止测试" value={!!config.stop_verified} onChange={stop_verified=>patchDevice(id,{stop_verified})} /></div>
-     <details className="wc-details"><summary>总线与共享驱动</summary><ObjectFields value={Object.fromEntries(Object.entries(config).filter(([key])=>!['backend','device_id','resource_key','parameters','verified','stop_verified'].includes(key)))} properties={{session_id:{type:'string'},address:{type:'string'},serial:{type:'string'},bus:{type:'string'},secret_ref:{type:'string'}}} onChange={value=>{const keep=Object.fromEntries(Object.entries(config).filter(([key])=>['backend','device_id','resource_key','parameters','verified','stop_verified'].includes(key)));changeDeployment({...deployment,instances:{...deployment.instances,[id]:{...keep,...value}}})}} /></details>
-    </article>})}
-    {!instances.some(([id,item])=>(device(id).backend||item.backend)==='real')&&<p className="wc-empty">当前使用测试或仿真设备，无需硬件连接参数。</p>}
-    <details className="wc-details"><summary>标定记录</summary><ObjectFields value={deployment.calibrations||{}} allowNew onChange={calibrations=>changeDeployment({...deployment,calibrations})} /></details>
-   </Section>
    <Section title="协同控制组" note="需要联动停止的执行器可以编为一组。未分组的执行器使用独立控制组。">
     {Object.entries(assembly.control_groups).map(([id,group])=><article className="wc-device" key={id}><div className="wc-device-heading"><h4>{id}</h4><button className="wc-text-button wc-destructive" onClick={()=>{const next={...assembly.control_groups};delete next[id];changed({...assembly,control_groups:next})}}>删除组</button></div><div className="wc-inline">{actuators.map(([iid,item])=><Check key={iid} text={(item.display_name||label(item.plugin))+' · '+iid} value={group.members.includes(iid)} onChange={v=>changed({...assembly,control_groups:{...assembly.control_groups,[id]:{...group,members:v?[...group.members,iid]:group.members.filter(x=>x!==iid)}}})} />)}</div><p className="wc-note">组内故障处理：{group.fault_policy==='stop_group'?'停止该组':group.fault_policy}。同一执行器只能属于一个控制组。</p></article>)}
     <button disabled={!actuators.some(([id])=>!Object.values(assembly.control_groups).some(g=>g.members.includes(id)))} onClick={()=>{let n=1;while(assembly.control_groups['group_'+n])n++;const member=actuators.find(([id])=>!Object.values(assembly.control_groups).some(g=>g.members.includes(id)))?.[0];if(member)changed({...assembly,control_groups:{...assembly.control_groups,['group_'+n]:{members:[member],fault_policy:'stop_group'}}})}}>添加控制组</button>
@@ -239,21 +274,55 @@ export function ComposableTab(){
   </fieldset>}
 
   {stage==='control'&&<fieldset disabled={locked} className="wc-unframed">
-   <Section title="控制映射" note="选择哪个输入控制哪个执行器，再设置控制方式。更换输入、执行器或控制方式会重新生成该映射的参数，请核对后保存。">
+   <Section title="控制映射" note="为执行器配置控制模式、遥操输入和跟随门控。切换输入或控制模式后，请核对坐标标定。">
     {assembly.bindings.map((binding,index)=>{const source=endpoints.find(e=>e.ref===binding.source),target=assembly.instances[binding.target.split('.')[0]],d=target&&descriptor(target),cartesian=binding.controller.includes('cartesian'),jog=binding.controller.endsWith('jog'),joint=binding.controller==='morla.joint_jog',params=binding.parameters
+     const available=sources.filter(e=>questVisible(e)&&!holdPort(e)&&!portName(e).endsWith('_buttons')&&choices(e.ref,binding.target).length>0)
+     const hold=source&&standardHold(source)
+     const targetOptions=actuators.flatMap(([id])=>{
+      if(assembly.bindings.some(other=>other!==binding&&other.target.split('.')[0]===id))return []
+      const ports=targets.filter(t=>t.instance===id)
+      const compatiblePorts=ports.filter(t=>choices(binding.source,t.ref).length>0)
+      const primary=ports.find(t=>t.ref===binding.target)||compatiblePorts.find(t=>['closure','position_target'].includes(portName(t)))||compatiblePorts[0]
+      return primary?[primary]:[]
+     })
      const setParams=(parameters:Record<string,unknown>)=>patchBinding(index,{parameters})
      const cr5=binding.controller.startsWith('morla.cr5.')
      const common=cartesian?['position_scale','linear_speed','angular_speed',...(cr5?['max_joint_velocity','smoothing_alpha']:[])].filter(key=>jog?!['position_scale','smoothing_alpha'].includes(key):!['linear_speed','angular_speed'].includes(key)):joint?['speed']:[]
      const hidden=['input_rotation','input_basis','solver_tip_from_tool','axes_map',...common]
      const advanced=cr5?['max_joint_step','position_lead_m','rotation_lead_rad','damping_min','damping_max','singularity_threshold','differential_step_rad']:[]
      return <article className="wc-device" key={binding.id}><div className="wc-device-heading"><h4>{label(binding.controller)} <code>{binding.id}</code></h4><button className="wc-text-button wc-destructive" onClick={()=>changed({...assembly,bindings:assembly.bindings.filter((_,i)=>i!==index)})}>移除映射</button></div><div className="wc-form-grid">
-      <label>输入信号<select aria-label={binding.id+'输入信号'} value={binding.source} onChange={e=>updateBinding(index,'source',e.target.value)}>{options(sources)}</select></label>
-      <label>控制目标<select aria-label={binding.id+'控制目标'} value={binding.target} onChange={e=>updateBinding(index,'target',e.target.value)}>{options(targets)}</select></label>
-      <label>控制方式<select aria-label={binding.id+'控制方式'} value={binding.controller} onChange={e=>updateBinding(index,'controller',e.target.value)}>{choices(binding.source,binding.target).map(id=><option key={id} value={id}>{label(id)}</option>)}</select></label>
-      <label>运动使能信号<select aria-label={binding.id+'运动使能信号'} value={binding.deadman||''} onChange={e=>patchBinding(index,{deadman:e.target.value})}><option value="">持续跟随 · 无按住使能信号</option>{options(sources.filter(s=>s.instance===source?.instance&&s.port.semantic==='scalar'&&s.port.dim===1))}</select></label>
+      <label>控制目标<select aria-label={binding.id+'控制目标'} value={binding.target} onChange={e=>updateBinding(index,'target',e.target.value)}>{targetOptions.map(e=>{
+       const item=assembly.instances[e.instance]
+       return <option key={e.ref} value={e.ref}>{item.display_name||label(item.plugin)} · {e.instance}</option>
+      })}</select></label>
+      <label>控制模式<select value={binding.controller} onChange={e=>{
+       const controller=e.target.value
+       const selected=sources.find(candidate=>candidate.ref===binding.source&&choices(candidate.ref,binding.target).includes(controller))||available.find(candidate=>choices(candidate.ref,binding.target).includes(controller))
+       if(!selected)return
+       const next=buildBinding(selected.ref,binding.target,binding.id)
+       patchBinding(index,{...next,controller,deadman:selected.ref!==binding.source&&binding.deadman&&binding.deadman===hold?.ref?standardHold(selected)?.ref||binding.deadman:binding.deadman,parameters:defaults(controller,selected.ref,binding.target)})
+      }}>{[...new Set([binding.controller,...available.flatMap(e=>choices(e.ref,binding.target))])].map(id=><option key={id} value={id}>{(choices(binding.source,binding.target).includes(id)||available.some(e=>choices(e.ref,binding.target).includes(id)))?label(id):label(id)+'（已有配置，请核对）'}</option>)}</select></label>
+      <label>遥操输入<select aria-label={binding.id+'输入信号'} value={binding.source} onChange={e=>updateBinding(index,'source',e.target.value)}>{sources.filter(e=>e.ref===binding.source||available.includes(e)).map(e=><option key={e.ref} value={e.ref}>{signalLabel(e)}</option>)}</select></label>
+      <label>跟随门控<select value={!binding.deadman?'continuous':hold?.ref===binding.deadman?'hold':'custom'} onChange={e=>{
+       if(e.target.value==='continuous')patchBinding(index,{deadman:''})
+       if(e.target.value==='hold'&&hold)patchBinding(index,{deadman:hold.ref})
+      }}><option value="continuous">持续跟随</option>{hold&&<option value="hold">{source&&isQuest(source)?'按住跟随':'按住跟随'}</option>}{binding.deadman&&hold?.ref!==binding.deadman&&<option value="custom">已有自定义门控</option>}</select></label>
+     </div>
+     <p className="wc-note">{binding.deadman
+      ? '按住跟随接受当前输入的控制键，以及工作站的公共按住信号。键盘 S 需在运行页启用键盘控制。'
+      : '开始遥操后持续跟随，工作站暂停时停止。'}
+     </p>
+     {binding.deadman&&<p className="wc-note">跟随按键 · {[
+      ...inputs.filter(([,item])=>item.plugin==='morla.input.quest').map(()=> 'Quest 右 Grip / 捏合'),
+      ...inputs.filter(([,item])=>item.plugin==='morla.input.vader5').map(([id,item])=>'Vader '+String(device(id).parameters?.deadman_button||item.parameters?.deadman_button||descriptor(item)?.defaults?.deadman_button||'M3')),
+      ...(source&&isQuest(source)&&portName(source).startsWith('left_')?['Quest 左 Grip / 捏合']:[]),
+      '键盘 S',
+     ].join(' · ')}</p>}
+     {binding.deadman&&binding.deadman!==hold?.ref&&<p className="wc-note">已有门控绑定 · {binding.deadman}</p>}
+     <details className="wc-details"><summary>输入时效与求解设置</summary><div className="wc-form-grid">
       <label>输入有效期 / ms<NumberInput label={binding.id+'输入有效期'} schema={{minimum:1}} value={binding.max_age_ms||250} onChange={max_age_ms=>patchBinding(index,{max_age_ms})} /></label>
       {binding.controller.startsWith('morla.cr5.')&&<ValueField name="ik_mode" value={params.ik_mode||'differential'} schema={parameterSchema('ik_mode')} onChange={v=>setParams({...params,ik_mode:v})} />}
-     </div>
+     </div></details>
      {common.length>0&&<ObjectFields value={Object.fromEntries(Object.entries(params).filter(([key])=>common.includes(key)))} properties={Object.fromEntries(common.map(key=>[key,parameterSchema(key)]))} onChange={value=>{const next={...params};for(const key of common)delete next[key];setParams({...next,...value})}} />}
      {(jog||joint)&&<fieldset className="wc-pose"><legend>摇杆轴分配</legend><div className="wc-form-grid">{(joint?(d?.joints||[]).map(j=>j.name):['x','y','z','roll','pitch','yaw']).map((axis,i)=>{const map=params.axes_map as string[]|Record<string,string|null>|undefined;const current=joint?Array.isArray(map)?map[i]:null:!Array.isArray(map)?map?.[axis]:null;return <label key={axis}>{joint?`关节 ${i+1}`:({x:'沿 X 平移',y:'沿 Y 平移',z:'沿 Z 平移',roll:'绕 X 转动',pitch:'绕 Y 转动',yaw:'绕 Z 转动'}[axis])}<select aria-label={binding.id+' '+axis+'输入轴'} value={current||''} onChange={e=>{const next=joint?Array.from({length:d?.joints?.length||1},(_,j)=>Array.isArray(map)?map[j]??null:null):{...(!Array.isArray(map)?map:{})};if(Array.isArray(next))next[i]=e.target.value||null;else next[axis]=e.target.value||null;setParams({...params,axes_map:next})}}><option value="">不使用</option>{(source?.port.axis_names||[]).map(name=><option key={name}>{name}</option>)}</select></label>})}</div></fieldset>}
      {(cartesian||Boolean(params.input_basis))&&<BasisFields label={cartesian?'输入方向与基座坐标系':'手部输入坐标系'} value={(params.input_rotation||params.input_basis) as number[][]|undefined} onChange={v=>setParams({...params,[cartesian?'input_rotation':'input_basis']:v})} />}
@@ -262,6 +331,7 @@ export function ComposableTab(){
      <details className="wc-details" open={!cartesian&&!joint}><summary>{cartesian?'求解与跟随参数':'控制参数'}</summary><ObjectFields value={Object.fromEntries(Object.entries(params).filter(([key])=>!hidden.includes(key)&&key!=='calibration_verified'&&key!=='ik_mode'))} properties={Object.fromEntries([...advanced,...Object.keys(params).filter(key=>['input_range','output_range','pinch_range_m'].includes(key))].map(key=>[key,parameterSchema(key)]))} onChange={value=>{const keep=Object.fromEntries(Object.entries(params).filter(([key])=>hidden.includes(key)||key==='calibration_verified'||key==='ik_mode'));setParams({...keep,...value})}} allowNew={!cartesian&&!joint} /></details>
      </article>})}
     <button disabled={!sources.length||!targets.length} onClick={addBinding}>添加控制映射</button>
+    {inputs.some(([,item])=>item.plugin==='morla.input.quest')&&<details className="wc-details"><summary>Quest 工作站快捷键</summary><p className="wc-note">右 Grip 按下开始遥操或接管。右 A 开始录制或交还控制，右 B 结束并保存，右摇杆按下丢弃当前录制，左 X 回工作位。也可在运行页点击「开始遥操」或按 S。</p></details>}
     {!assembly.bindings.length&&<p className="wc-empty">尚无控制映射。先添加输入设备与执行器，再建立映射。</p>}
    </Section>
   </fieldset>}
@@ -276,7 +346,39 @@ export function ComposableTab(){
   {stage==='capture'&&<fieldset disabled={locked} className="wc-unframed">
    <Section title="记录设置" note="选择需要保存的观测与动作。无需采集时可保留默认投影，在运行页不启动记录。">
     <div className="wc-form-grid"><label>记录频率 / Hz<NumberInput label="记录频率" schema={{minimum:1,maximum:500}} value={assembly.capture.dataset_fps||30} onChange={v=>changed({...assembly,capture:{...assembly.capture,dataset_fps:v}})} /></label><label>动作数据来源<select value={assembly.capture.action_source} onChange={e=>changed({...assembly,capture:{...assembly.capture,action_source:e.target.value}})}>{[['command','控制指令'],['feedback','反馈位置'],['next_state','下一帧状态'],['requested','请求指令'],['authorized','授权指令'],['dispatched','已下发指令']].map(([id,title])=><option key={id} value={id}>{title}</option>)}</select></label></div>
-    {(['state','action','auxiliary'] as const).map(kind=><fieldset className="wc-pose" key={kind}><legend>{{state:'机器人观测',action:'机器人动作',auxiliary:'输入与辅助信号'}[kind]}</legend><div className="wc-form-grid">{(kind==='action'?targets:endpoints.filter(e=>e.port.direction==='output'&&e.port.semantic!=='image'&&(kind==='auxiliary'?descriptor(assembly.instances[e.instance])?.kind==='input':descriptor(assembly.instances[e.instance])?.kind!=='input'))).map(e=><Check key={e.ref} text={portLabel(e.ref)+` · ${e.port.dim} 维`} value={(assembly.capture[kind]||[]).includes(e.ref)} onChange={checked=>{let list=(assembly.capture[kind]||[]).filter(ref=>ref!==e.ref&&!(kind==='action'&&checked&&ref.split('.')[0]===e.instance));if(checked)list=[...list,e.ref];changed({...assembly,capture:{...assembly.capture,[kind]:list}})}} />)}</div></fieldset>)}
+    {(['state','action'] as const).map(kind=><fieldset className="wc-pose" key={kind}><legend>{{state:'机器人观测',action:'机器人动作'}[kind]}</legend><div className="wc-form-grid">{(kind==='action'?targets:endpoints.filter(e=>e.port.direction==='output'&&e.port.semantic!=='image'&&descriptor(assembly.instances[e.instance])?.kind!=='input')).map(e=><Check key={e.ref} text={portLabel(e.ref)+` · ${e.port.dim} 维`} value={(assembly.capture[kind]||[]).includes(e.ref)} onChange={checked=>{let list=(assembly.capture[kind]||[]).filter(ref=>ref!==e.ref&&!(kind==='action'&&checked&&ref.split('.')[0]===e.instance));if(checked)list=[...list,e.ref];changed({...assembly,capture:{...assembly.capture,[kind]:list}})}} />)}</div></fieldset>)}
+    {(()=>{
+     const used=new Set(assembly.bindings.flatMap(binding=>[binding.source,binding.deadman]))
+     const selected=assembly.capture.auxiliary||[]
+     const task=sources.filter(e=>used.has(e.ref))
+     const setChannels=(refs:string[], enabled:boolean)=>{
+      const next=enabled?[...new Set([...selected,...refs])]:selected.filter(ref=>!refs.includes(ref))
+      changed({...assembly,capture:{...assembly.capture,auxiliary:next}})
+     }
+     const fields=(channels:Endpoint[])=><div className="wc-form-grid">{channels.map(e=><Check key={e.ref} text={signalLabel(e)} value={selected.includes(e.ref)} onChange={checked=>setChannels([e.ref],checked)} />)}</div>
+     const extra=sources.filter(e=>!used.has(e.ref)&&(selected.includes(e.ref)||questVisible(e)))
+     const groups=[
+      {title:'位姿与开合量', accepts:(e:Endpoint)=>['pose6d','scalar'].includes(e.port.semantic)&&!holdPort(e)},
+      {title:'按键、摇杆与跟随状态', accepts:(e:Endpoint)=>e.port.semantic==='axes_buttons'||holdPort(e)},
+      {title:'手部关键点', accepts:(e:Endpoint)=>e.port.semantic==='hand_landmarks'},
+      {title:'其他信号', accepts:(e:Endpoint)=>!['pose6d','scalar','axes_buttons','hand_landmarks'].includes(e.port.semantic)},
+     ]
+     return <>
+      {task.length>0&&<fieldset className="wc-pose"><legend>遥操输入</legend><Check text="记录当前映射使用的输入" value={task.every(e=>selected.includes(e.ref))} onChange={checked=>setChannels(task.map(e=>e.ref),checked)} /><details className="wc-details"><summary>映射通道 · 已选 {task.filter(e=>selected.includes(e.ref)).length} / {task.length}</summary>{fields(task)}</details></fieldset>}
+      {extra.length>0&&<details className="wc-details"><summary>附加采集通道</summary>
+       {inputs.map(([id,item])=>{
+        const channels=extra.filter(e=>e.instance===id)
+        if(!channels.length)return null
+        const legacy=channels.filter(e=>isQuest(e)&&!currentQuestPort(e))
+        const deviceGroups=groups.map(group=>({...group,channels:channels.filter(e=>!legacy.includes(e)&&group.accepts(e))}))
+        return <fieldset className="wc-pose" key={id}><legend>{item.display_name||label(item.plugin)} · {id}</legend>
+         {deviceGroups.map(group=>group.channels.length>0&&<details key={group.title} className="wc-details"><summary>{group.title} · 已选 {group.channels.filter(e=>selected.includes(e.ref)).length}</summary>{fields(group.channels)}</details>)}
+         {legacy.length>0&&<details className="wc-details"><summary>已选兼容通道</summary>{fields(legacy)}</details>}
+        </fieldset>
+       })}
+      </details>}
+     </>
+    })()}
    </Section>
    <Section title="图像记录" note="为每一路图像设置数据集中的名称。相机可以显示但不录制。">
     {endpoints.filter(e=>e.port.semantic==='image'&&e.port.direction==='output').map(e=>{const entry=Object.entries(assembly.capture.images).find(([,ref])=>ref===e.ref);return <div className="wc-camera-row" key={e.ref}><Check text={portLabel(e.ref)} value={!!entry} onChange={checked=>{const images={...assembly.capture.images};if(checked){let name=e.instance,n=2;while(name in images)name=e.instance+'_'+n++;images[name]=e.ref}else if(entry)delete images[entry[0]];changed({...assembly,capture:{...assembly.capture,images}})}} />{entry&&<label>数据集图像名称<input aria-label={e.instance+'图像名称'} defaultValue={entry[0]} key={entry[0]} onBlur={event=>{const key=event.target.value.trim();if(!/^[a-z][a-z0-9_-]*$/.test(key)||key!==entry[0]&&key in assembly.capture.images){setError(true);setMessage('图像名称需唯一，使用小写字母、数字或下划线。');event.target.value=entry[0];return}const images={...assembly.capture.images};delete images[entry[0]];images[key]=e.ref;changed({...assembly,capture:{...assembly.capture,images}})}} /></label>}</div>})}
@@ -312,6 +414,7 @@ export function ComposableTab(){
    {session&&<Section title="运行控制" note="Quest3 右手柄 grip、Vader M3 或键盘 S 开始遥操。暂停遥操会停止跟随，停止工作站会释放设备连接。">
     <div className="wc-device-heading"><h4 data-testid="session-status">{session.operator?.transition?.status==='RUNNING'?'控制权切换中':states[session.status]||session.status}</h4><code>{session.session_id.slice(0,12)}</code></div>
     <p className="wc-note">当前控制：{session.operator?.transition?.status==='RUNNING'?'切换中，输出已冻结':controlNames[session.operator?.activity||'paused']||session.operator?.activity}{session.operator?.paused&&session.operator.activity!=='paused'?' · 已暂停':''}{session.operator?.return_to?' · 可交还 '+(controlNames[session.operator.return_to]||session.operator.return_to):''}{session.operator?.work_position?' · 工作位 '+(workStates[session.operator.work_position.status]||session.operator.work_position.status):''}</p>
+    {session.operator?.activity==='human'&&!session.operator.paused&&session.operator.transition?.status!=='RUNNING'&&assembly.bindings.map(binding=><p className="wc-note" key={binding.id}>{binding.target.split('.')[0]} · {binding.deadman?'按住控制键才跟随，松开后停止跟随。':'持续跟随，点击「暂停遥操」停止。'}</p>)}
     {session.operator?.transition&&<p className="wc-note" role="status">{handoffPhases[session.operator.transition.phase]||session.operator.transition.phase} · 已确认 {Object.keys(session.operator.transition.acks||{}).length} 条控制映射{session.operator.transition.error?' · '+session.operator.transition.error:''}</p>}
     {session.operator?.error&&<p className="wc-message is-error">{session.operator.error}</p>}
     {session.status!=='STOPPED'&&<OperatorKeyboard sessionId={session.session_id} onError={text=>{setError(true);setMessage(text)}} onUpdate={()=>void request<Session>(`/sessions/${session.session_id}/state`).then(setSession)} />}

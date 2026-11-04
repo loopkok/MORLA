@@ -65,3 +65,40 @@ test('shipped Vader maps migrate to M3/A/B/R3/X, custom maps remain unchanged',(
  old.instances.pad.parameters.action_buttons={M4:'teleop_start'}
  assert.deepEqual(model.normalise(old).instances,old.instances)
 })
+
+test('Quest hides actuator parameters and exposes only the selected protocol port', () => {
+ const properties = Object.fromEntries([
+  'side', 'protocol', 'pinch_range_m', 'initial_position', 'initial_positions',
+  'rate_hz', 'max_sample_age_ms', 'can_channel', 'board_scope_verified', 'udp_port', 'tcp_port',
+ ].map(key => [key, {}]))
+ const quest = {plugin_id:'morla.input.quest', kind:'input', configuration_schema:{properties}}
+ assert.deepEqual(Object.keys(model.visibleDeviceFields(quest, 'fake')), ['side', 'protocol', 'pinch_range_m'])
+ assert.deepEqual(Object.keys(model.visibleDeviceFields(quest, 'real', {protocol:'tcp_wired'}, undefined, true)), ['tcp_port'])
+ assert.deepEqual(Object.keys(model.visibleDeviceFields(quest, 'real', {protocol:'udp'}, undefined, true)), ['udp_port'])
+ const nero = {...quest, plugin_id:'morla.nero.arm', kind:'actuator'}
+ assert.ok('initial_position' in model.visibleDeviceFields(nero, 'real', undefined, undefined, true))
+ assert.ok('can_channel' in model.visibleDeviceFields(nero, 'real', undefined, undefined, true))
+})
+
+test('controllers respect robot identity as well as port semantics', () => {
+ const pose={semantic:'pose6d',dim:7,unit:'m_rad'}
+ const landmarks={semantic:'hand_landmarks',dim:63}
+ const joints={semantic:'joint_targets',dim:6,unit:'rad'}
+ const catalog=[{kind:'controller',plugin_id:'morla.cr5.cartesian_delta',controller_types:{inputs:['pose6d'],outputs:['joint_targets']}}]
+ assert.deepEqual(model.compatible(catalog,pose,joints,'morla.dobot.cr5'),['morla.cr5.cartesian_delta'])
+ assert.equal(model.compatible(catalog,landmarks,joints,'morla.dobot.cr5').length,0)
+ assert.ok(model.compatible(catalog,pose,{...joints,dim:7},'morla.nero.arm').includes('morla.cartesian_delta_ik'))
+ assert.deepEqual(model.compatible(catalog,landmarks,{...joints,dim:12},'morla.xhand.hand'),['morla.xhand.retarget'])
+})
+
+test('camera fields exclude arm and joint configuration in every backend', () => {
+ const properties=Object.fromEntries(['side','rate_hz','initial_position','initial_positions','width','height','fps','camera_backend','image_topic','compressed','device_path'].map(key=>[key,{}]))
+ const camera={plugin_id:'morla.camera',kind:'sensor',configuration_schema:{properties}}
+ for(const backend of ['fake','sim','real']) {
+  for(const connection of [true,false]) {
+   const fields=model.visibleDeviceFields(camera,backend,undefined,undefined,connection)
+   for(const key of ['side','initial_position','initial_positions','rate_hz'])assert.ok(!(key in fields))
+  }
+ }
+ assert.ok('device_path' in model.visibleDeviceFields(camera,'real',{camera_backend:'uvc'},undefined,true))
+})

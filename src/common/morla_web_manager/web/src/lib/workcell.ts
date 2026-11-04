@@ -1,6 +1,6 @@
 export type Schema = { type?: string; title?: string; description?: string; enum?: (string | number | boolean)[]; minimum?: number; maximum?: number; exclusiveMinimum?: number; exclusiveMaximum?: number; minItems?: number; maxItems?: number; items?: Schema; properties?: Record<string, Schema>; default?: unknown }
 export type Port = { direction: string; semantic: string; dim: number; unit: string; axis_names?: string[] }
-export type Component = { plugin_id: string; plugin_version: string; kind: string; ports: Record<string, Port>; joints?: { name: string; unit: string; lower?: number; upper?: number }[]; geometry?: { frames?: string[] }; defaults?: Record<string, unknown>; configuration_schema?: Schema; controller_types?: { inputs?: string[]; outputs?: string[] }; backend_variants?: Record<string, { available?: boolean }> }
+export type Component = { plugin_id: string; plugin_version: string; kind: string; resources?: {sharing?: string}; ports: Record<string, Port>; joints?: { name: string; unit: string; lower?: number; upper?: number }[]; geometry?: { frames?: string[] }; defaults?: Record<string, unknown>; configuration_schema?: Schema; controller_types?: { inputs?: string[]; outputs?: string[] }; backend_variants?: Record<string, { available?: boolean }> }
 export type Instance = { plugin: string; version: string; backend?: string; role?: string; parameters?: Record<string, unknown>; display_name?: string; [key: string]: unknown }
 export type Binding = { id: string; source: string; target: string; deadman?: string; controller: string; max_age_ms?: number; input_basis_id?: string; parameters: Record<string, unknown>; [key: string]: unknown }
 export type LogOptions = { enabled?:boolean; feedback_hz?:number; queue_size?:number; segment_mb?:number; max_run_mb?:number }
@@ -39,10 +39,18 @@ export function portLabel(ref: string) { const [id, port] = ref.split('.'); retu
 export const controllerCapabilities: Record<string, [string[], string[]]> = {
  'morla.pinch_filtered': [['hand_landmarks'], ['scalar','joint_targets']], 'morla.trigger_filtered': [['scalar'], ['scalar','joint_targets']], 'morla.pinch_scalar': [['hand_landmarks'], ['scalar','joint_targets']], 'morla.cartesian_delta_ik': [['pose6d'], ['joint_targets']], 'morla.gamepad_cartesian_jog': [['axes_buttons'], ['joint_targets']], 'morla.joint_jog': [['axes_buttons','joint_targets'], ['joint_targets']], 'morla.scalar_map': [['scalar'], ['scalar','joint_targets']], 'morla.identity': [['joint_targets','scalar','numeric'], ['joint_targets','scalar','numeric']], 'morla.xhand.retarget': [['hand_landmarks'], ['joint_targets']], 'morla.wuji.retarget': [['hand_landmarks'], ['joint_targets']],
 }
-export function compatible(catalog: Component[], source?: Port, target?: Port) {
+export function compatible(catalog: Component[], source?: Port, target?: Port, targetPlugin?: string) {
  if (!source || !target) return []
  const caps = { ...controllerCapabilities, ...Object.fromEntries(catalog.filter(c => c.kind==='controller').map(c => [c.plugin_id, [c.controller_types?.inputs || [], c.controller_types?.outputs || []] as [string[], string[]]])) }
- return Object.entries(caps).filter(([id,[ins,outs]]) => ins.includes(source.semantic) && outs.includes(target.semantic) && (!['morla.scalar_map','morla.pinch_scalar','morla.pinch_filtered','morla.trigger_filtered'].includes(id) || target.dim===1) && (id!=='morla.identity' || source.dim===target.dim && source.unit===target.unit)).map(([id])=>id)
+ return Object.entries(caps).filter(([id,[ins,outs]]) => ins.includes(source.semantic) && outs.includes(target.semantic) && (!['morla.scalar_map','morla.pinch_scalar','morla.pinch_filtered','morla.trigger_filtered'].includes(id) || target.dim===1) && (id!=='morla.identity' || source.dim===target.dim && source.unit===target.unit)).map(([id])=>id).filter(id => {
+  if (!targetPlugin) return true
+  if (id === 'morla.xhand.retarget') return targetPlugin === 'morla.xhand.hand'
+  if (id === 'morla.wuji.retarget') return targetPlugin === 'morla.wuji.hand'
+  if (id.startsWith('morla.cr5.')) return targetPlugin === 'morla.dobot.cr5'
+  if (['morla.cartesian_delta_ik', 'morla.gamepad_cartesian_jog'].includes(id))
+   return ['morla.nero.arm', 'morla.astral.arm'].includes(targetPlugin)
+  return true
+ })
 }
 export const identity = () => [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
 export function bindingDefaults(controller: string, source: Port, target: Component, quest = false): Record<string, unknown> {
@@ -79,7 +87,7 @@ export function transformToMatrix(t: number[]) {
 }
 export function matrixToTransform(m: number[][]) { return poseToTransform(transformToPose(m.flat())) }
 export const parameterLabels: Record<string,string> = {
- close_dist_m:'捏合闭合距离 / m',open_dist_m:'捏合张开距离 / m',auto_range:'自适应捏合范围',auto_range_forget_s:'捏合范围遗忘时间 / s',auto_range_min_span_m:'捏合最小跨度 / m',ema_alpha:'捏合滤波系数',trigger_invert:'反转扳机方向',trigger_deadzone:'扳机死区',trigger_gamma:'扳机响应曲线指数',trigger_ema_alpha:'扳机滤波系数',max_ratio_rate:'开合比例变化率 / s⁻¹',rate_hz:'控制频率 / Hz',host:'控制器 IP',port:'端口',port_name:'串口设备',device_path:'设备路径',serial_number:'序列号',device_id:'设备标识',can_channel:'CAN 接口',timeout_s:'通信超时 / s',enable_timeout_s:'使能超时 / s',command_timeout_s:'指令超时 / s',servo_t:'ServoJ 插补时间 / s',servo_lookahead_time:'ServoJ 前瞻平滑',servo_gain:'ServoJ 跟随增益',max_step_rad:'关节步长上限 / rad',joint_lower:'关节下限 / rad',joint_upper:'关节上限 / rad',urdf_joint_signs:'关节方向',urdf_joint_offsets:'关节零点偏置 / rad',initial_positions:'仿真初始关节位置 / rad',initial_position:'初始位置',kinematics_verified:'已核对运动学约定',board_scope_verified:'已核对控制板范围',unselected_joints_policy:'未选中关节处理',side:'手臂 / 手部选择',input_topic:'输入话题',input_basis_id:'输入坐标约定',image_topic:'图像话题',compressed:'压缩图像',width:'图像宽度 / px',height:'图像高度 / px',fps:'图像帧率 / Hz',process_mode:'输入接收进程',protocol:'通信协议',udp_port:'UDP 端口',tcp_port:'TCP 端口',deadzone:'摇杆死区',device_name:'设备名称',camera_backend:'相机接口',baudrate:'波特率',baud_rate:'波特率',address:'设备地址',hand_id:'手部地址',input_rotation:'输入坐标变换',solver_tip_from_tool:'工具中心点 TCP',position_scale:'位移倍率',smoothing_alpha:'输入滤波系数',max_joint_step:'关节步长上限 / rad',max_joint_velocity:'关节速度上限 / rad/s',linear_speed:'平移速度 / m/s',angular_speed:'转动速度 / rad/s',ik_mode:'逆运动学求解',position_lead_m:'位置目标领先上限 / m',rotation_lead_rad:'姿态目标领先上限 / rad',damping_min:'最小阻尼',damping_max:'最大阻尼',singularity_threshold:'奇异值阈值',differential_step_rad:'微分步长上限 / rad',speed:'关节点动速度 / rad/s',input_range:'输入范围',output_range:'输出范围',pinch_range_m:'捏合距离范围 / m',calibration_verified:'已核对输入方向与 TCP',input_basis:'手部坐标变换',max_age_ms:'输入有效期 / ms',max_sample_age_ms:'反馈有效期 / ms',retarget_backend:'手势重定向算法',preprocess_mode:'手部预处理',index_bend_sign:'食指弯曲方向',enable_thumb_fix:'拇指补偿',source_namespace:'输入命名空间',deadman_button:'使能按键',rotation_button:'旋转按键',action_buttons:'功能按键',axis_signs:'摇杆方向',resource_key:'设备资源标识',secret_ref:'凭据引用',serial:'设备序列号',bus:'通信总线',session_id:'共享驱动标识',resources:'占用资源',calibration:'标定记录',verified:'已核对设备身份',stop_verified:'已完成停止测试',
+ close_dist_m:'捏合闭合距离 / m',open_dist_m:'捏合张开距离 / m',auto_range:'自适应捏合范围',auto_range_forget_s:'捏合范围遗忘时间 / s',auto_range_min_span_m:'捏合最小跨度 / m',ema_alpha:'捏合滤波系数',trigger_invert:'反转扳机方向',trigger_deadzone:'扳机死区',trigger_gamma:'扳机响应曲线指数',trigger_ema_alpha:'扳机滤波系数',max_ratio_rate:'开合比例变化率 / s⁻¹',rate_hz:'控制频率 / Hz',host:'控制器 IP',port:'端口',port_name:'串口设备',device_path:'设备路径',serial_number:'序列号',device_id:'设备标识',can_interface:'CAN 驱动接口',firmware_version:'固件协议版本',native_j7_first:'原生 J7 优先排序',workpos_waypoints_deg:'驱动工作位途径点 / °',publish_rate:'状态发布频率 / Hz',filter_cutoff_freq:'反馈滤波截止频率 / Hz',control_board_ip:'控制板 IP',board_cmd_port:'控制板指令端口',local_ip:'本机 IP',local_port:'本机接收端口',can_channel:'CAN 通道',timeout_s:'通信超时 / s',enable_timeout_s:'使能超时 / s',command_timeout_s:'指令超时 / s',servo_t:'ServoJ 插补时间 / s',servo_lookahead_time:'ServoJ 前瞻平滑',servo_gain:'ServoJ 跟随增益',max_step_rad:'关节步长上限 / rad',joint_lower:'关节下限 / rad',joint_upper:'关节上限 / rad',urdf_joint_signs:'关节方向',urdf_joint_offsets:'关节零点偏置 / rad',initial_positions:'仿真初始关节位置 / rad',initial_position:'驱动初始关节位置 / rad',kinematics_verified:'已核对运动学约定',board_scope_verified:'已核对控制板范围',unselected_joints_policy:'未选中关节处理',side:'控制侧别',input_topic:'输入话题',input_basis_id:'输入坐标约定',image_topic:'图像话题',compressed:'压缩图像',width:'图像宽度 / px',height:'图像高度 / px',fps:'图像帧率 / Hz',process_mode:'输入接收进程',protocol:'通信协议',udp_port:'UDP 端口',tcp_port:'TCP 端口',deadzone:'摇杆死区',device_name:'设备名称',camera_backend:'相机接口',baudrate:'波特率',baud_rate:'波特率',address:'设备地址',hand_id:'手部地址',input_rotation:'输入坐标变换',solver_tip_from_tool:'工具中心点 TCP',position_scale:'位移倍率',smoothing_alpha:'输入滤波系数',max_joint_step:'关节步长上限 / rad',max_joint_velocity:'关节速度上限 / rad/s',linear_speed:'平移速度 / m/s',angular_speed:'转动速度 / rad/s',ik_mode:'逆运动学求解',position_lead_m:'位置目标领先上限 / m',rotation_lead_rad:'姿态目标领先上限 / rad',damping_min:'最小阻尼',damping_max:'最大阻尼',singularity_threshold:'奇异值阈值',differential_step_rad:'微分步长上限 / rad',speed:'关节点动速度 / rad/s',input_range:'输入范围',output_range:'输出范围',pinch_range_m:'捏合距离范围 / m',calibration_verified:'已核对输入方向与 TCP',input_basis:'手部坐标变换',max_age_ms:'输入有效期 / ms',max_sample_age_ms:'反馈有效期 / ms',retarget_backend:'手势重定向算法',preprocess_mode:'手部预处理',index_bend_sign:'食指弯曲方向',enable_thumb_fix:'拇指补偿',source_namespace:'输入命名空间',deadman_button:'使能按键',rotation_button:'旋转按键',action_buttons:'功能按键',axis_signs:'摇杆方向',resource_key:'设备资源标识',secret_ref:'凭据引用',serial:'设备序列号',bus:'通信总线',session_id:'共享驱动标识',resources:'占用资源',calibration:'标定记录',verified:'已核对设备身份',stop_verified:'已完成停止测试',
 }
 export const enumLabels: Record<string,string> = { left:'左侧',right:'右侧',both:'双侧',auto:'自动管理',managed:'由 MORLA 启动',external:'使用已有进程',differential:'连续微分跟随',strict:'严格位姿求解',udp:'UDP',tcp_wired:'TCP 有线',tcp_wireless:'TCP 无线',disabled:'禁用',held:'保持位置',official:'官方算法',dexpilot:'DexPilot',ros_image:'ROS 图像',uvc:'USB / UVC' }
 export function parameterSchema(key: string): Schema {
@@ -100,4 +108,61 @@ export function parseWorkcellDocument(raw:unknown): {assembly:Assembly;deploymen
  if(!strings(a.capture.state)||!strings(a.capture.action)||!object(a.capture.images)||Object.values(a.capture.images).some(v=>typeof v!=='string')||a.capture.auxiliary!==undefined&&!strings(a.capture.auxiliary)||Object.values(a.control_groups).some(g=>!object(g)||!strings(g.members)))throw new Error('数据记录或控制组格式不正确。')
  if(raw.deployment!==undefined&&!object(raw.deployment))throw new Error('硬件部署配置必须是对象。')
  return {assembly:normalise(a as Assembly),deployment:(raw.deployment || {}) as Deployment}
+}
+
+const builtinDeviceFields: Record<string, string[]> = {
+ 'morla.fake.arm': ['rate_hz','initial_positions'],
+ 'morla.ros2_control.mock': ['rate_hz','initial_positions'],
+ 'morla.fake.sensor': ['rate_hz'],
+ 'morla.fake.input': ['rate_hz'],
+ 'morla.nero.arm': ['side','rate_hz','max_sample_age_ms','can_channel','can_interface','firmware_version','native_j7_first','initial_position','workpos_waypoints_deg','initial_positions'],
+ 'morla.astral.arm': ['side','rate_hz','max_sample_age_ms','control_board_ip','local_ip','local_port','board_cmd_port','board_scope_verified','unselected_joints_policy','initial_positions'],
+ 'morla.astral.gripper': ['side','rate_hz','max_sample_age_ms','control_board_ip','local_ip','local_port','board_cmd_port','board_scope_verified','unselected_joints_policy','initial_positions'],
+ 'morla.xhand.hand': ['side','rate_hz','max_sample_age_ms','port_name','hand_id','initial_positions','preprocess_mode','index_bend_sign','enable_thumb_fix'],
+ 'morla.wuji.hand': ['side','rate_hz','max_sample_age_ms','serial_number','publish_rate','filter_cutoff_freq','initial_positions','retarget_backend'],
+ 'morla.input.quest': ['side','process_mode','protocol','udp_port','tcp_port','input_topic','source_namespace','pinch_range_m'],
+ 'morla.input.gamepad': ['process_mode','input_topic','device_name','deadzone'],
+ 'morla.input.xbox': ['process_mode','input_topic','device_name','deadzone'],
+ 'morla.input.glove': ['side','process_mode','input_topic','source_namespace'],
+ 'morla.input.mobile': ['process_mode','input_topic'],
+}
+const cameraFields = ['width','height','fps','camera_backend','image_topic','compressed','device_path']
+const hardwareFields = new Set([
+ 'can_channel','can_interface','firmware_version','native_j7_first','initial_position','workpos_waypoints_deg',
+ 'control_board_ip','local_ip','local_port','board_cmd_port','board_scope_verified','unselected_joints_policy',
+ 'serial_number','publish_rate','filter_cutoff_freq','port_name','hand_id',
+ 'udp_port','tcp_port','input_topic','source_namespace','host','port','device_path','baudrate','baud_rate','address',
+])
+export function visibleDeviceFields(
+ component: Component, backend: string,
+ parameters?: Record<string, unknown>, deployment?: Record<string, unknown>,
+ connection = false,
+): Record<string, Schema> {
+ const plugin=component.plugin_id
+ const settings={...component.defaults,...parameters,...deployment}
+ const camera=plugin.startsWith('morla.camera')||plugin==='morla.fake.camera'
+ const allowed=camera?cameraFields:builtinDeviceFields[plugin]
+ return Object.fromEntries(Object.entries(component.configuration_schema?.properties||{}).filter(([key])=>{
+  if(allowed&&!allowed.includes(key))return false
+  if(key==='device_id')return false
+  if(['morla.astral.head','morla.astral.waist'].includes(plugin)&&!['rate_hz','max_sample_age_ms','initial_positions','control_board_ip','local_ip','local_port','board_cmd_port'].includes(key))return false
+  if(key==='initial_positions')return backend!=='real'&&!connection&&component.kind==='actuator'
+  if(hardwareFields.has(key)) {
+   if(backend!=='real'||!connection)return false
+   if(plugin==='morla.input.quest') {
+    const tcp=String(settings.protocol||'udp').startsWith('tcp')
+    if(key==='udp_port')return !tcp
+    if(key==='tcp_port')return tcp
+   }
+   if(camera&&key==='device_path')return settings.camera_backend==='uvc'||plugin==='morla.camera.uvc'
+   return true
+  }
+  if(camera) {
+   const uvc=settings.camera_backend==='uvc'||plugin==='morla.camera.uvc'
+   if(['image_topic','compressed'].includes(key))return backend==='real'&&!uvc&&connection
+   if(key==='camera_backend')return backend==='real'&&!connection
+  }
+  if(backend==='real'&&key in (deployment||{}))return connection
+  return !connection
+ }))
 }

@@ -99,6 +99,33 @@ def default_catalog():
         if variants:
             descriptor['joint_variants']=variants
             descriptor['joints']=deepcopy(variants.get('left',variants.get('default',next(iter(variants.values())))))
+    # Parameters accepted by the native bridge and its ROS drivers.
+    # Keep legacy schemas readable; the UI field list describes each device.
+    native_fields = {
+        'morla.nero.arm': {
+            'can_interface': {'type': 'string', 'default': 'socketcan'},
+            'firmware_version': {'type': 'string', 'default': 'default'},
+            'native_j7_first': {'type': 'boolean', 'default': False},
+            'initial_position': {'type': 'array', 'items': {'type': 'number'}, 'minItems': 7, 'maxItems': 7},
+            'workpos_waypoints_deg': {'type': 'array', 'items': {'type': 'number'}},
+        },
+        'morla.wuji.hand': {
+            'publish_rate': {'type': 'number', 'exclusiveMinimum': 0},
+            'filter_cutoff_freq': {'type': 'number', 'exclusiveMinimum': 0},
+        },
+    }
+    for descriptor in descriptors:
+        plugin = descriptor['plugin_id']
+        fields = descriptor['configuration_schema']['properties']
+        fields.update(native_fields.get(plugin, {}))
+        if plugin.startswith('morla.astral.'):
+            fields.update({
+                'board_cmd_port': {'type': 'integer', 'minimum': 1, 'maximum': 65535},
+                'local_ip': {'type': 'string'},
+            })
+        if descriptor['kind'] == 'actuator' and descriptor['joints']:
+            count = len(descriptor['joints'])
+            fields['initial_positions'].update(minItems=count, maxItems=count)
     from .manifest_loader import discover_descriptors
     descriptors.extend(discover_descriptors())
     return Catalog(descriptors)
