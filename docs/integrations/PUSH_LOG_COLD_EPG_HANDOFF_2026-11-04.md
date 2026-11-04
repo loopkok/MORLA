@@ -38,3 +38,15 @@ To github.com:loopkok/MORLA.git
 ```
 
 推送后本地 `HEAD` 与 `origin/fix/cr5-teleop-smoothness-and-web-errors` 均为 `2329e0fc57f005039fe047a6f6d732e52a4e8fcb`，工作区干净（本回执按仓库惯例作为后续文档提交推送，其自身 SHA 以 Git 历史为准）。未使用 force push，未改动 remote 配置。远端 CI 未检查。
+
+## 后续：合入 main（2026-11-04 19:1x CST）
+
+操作员指示「后续都直接推送到main分支」。据此把 `main` 从 `29e4ca6` **fast-forward** 到 `e8ec17a`（3 个提交，无 merge commit、无冲突），并推送：
+
+```text
+To github.com:loopkok/MORLA.git
+   29e4ca6..e8ec17a  main -> main
+```
+
+第一次推送被 GitHub 拒绝（`remote rejected main -> main (Internal Server Error)`），同一时刻 `ssh -T git@github.com` 报 `Permission denied (publickey)`，而 [githubstatus.com](https://www.githubstatus.com) 显示 **Minor Service Outage**、Git Operations 为 `degraded_performance`。属远端故障，不是密钥或权限问题（`ssh -v` 显示 `Server accepts key`，签名阶段失败）；重试第二次成功。此后 `main`、`origin/main` 与功能分支均为 `e8ec17a`，工作区干净。
+
