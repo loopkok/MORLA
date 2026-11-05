@@ -14,10 +14,16 @@
 ## 验证记录
 
 开发轮已完成：FR3 34 项；相关 core/runtime/teleop/CR5/FR3 回归 252 passed / 1 skipped；公共 Web 10 项；前端 17 项和 TypeScript/Vite 构建；Python wheel 安装、ament 静态发现及两个配置的 Runtime 生命周期；实际 localhost HTTP 冒烟。
-本次提交前另行复验 FR3 专项，并执行 `git diff --check`。验证计数有包含关系，不能相加。
+本次提交前另行复验 FR3 专项 **34 passed**，并通过 `git diff --check`。验证计数有包含关系，不能相加。
 
 当前未接机械臂，用户将自行进行后续真机测试。Mac 无 ROS 2/colcon，ROS 构建/IDL/DDS、真实 SDK 网络、实体 FR3/Quest、物理停止/断网、长稳、碰撞及模型效果均未验收。浏览器目视检查此前因锁屏和初始化超时受阻。详细依据、命令及限制见 [接入与验收记录](fr3.md)。
 
 ## 发布记录
 
-功能提交和推送后追加实际 SHA 与远端核验结果。本日志首次随功能提交保存，当前段落不预先宣称推送成功。
+- 本地功能提交：`6aeb88ae5c922a4961d43f569e320ac0fa1f9ca3`。
+- 命令行 HTTPS push 因没有登录凭据失败；改用已连接的 GitHub 接口（loopkok，有 push 权限）发布。
+- 远端功能提交：[6fa0507](https://github.com/loopkok/MORLA/commit/6fa050776f27d7dbb6cdac46142a0f16b5855b5e)。
+- 本地与远端功能树均为 `5d3b4adf057ffa2ae6f844a1303c206d0141ca38`；逐层创建树时均核对 Git SHA 一致，包含删除的旧 dist 文件和完整 SDK 原始字节。
+- `main` 通过非强制、带 expected_sha 的引用更新，从基线快进至远端功能提交；API 返回成功，再读取远端 commit 确认树与父提交。
+- GitHub API 根据连接身份生成 commit，因此远端与初始本地 commit SHA 不同，文件树相同。命令行后续 fetch 又遇到本机 DNS 失败；本地对象与分支将按经 API 验证的远端 commit 同步，保留原始本地功能提交为备份分支。
+- 本次回执作为功能提交的后续日志提交发布，最终 SHA 在回复中提供，避免日志自引用。未声称新增任何实机验收。
