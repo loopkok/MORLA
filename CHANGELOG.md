@@ -1,5 +1,14 @@
 # Changelog（MORLA）
 
+## 2026-11-05 — FAIRINO FR3 独立驱动与组合 Web
+
+- 实施、验证与发布记录见 [FR3 发布日志](docs/integrations/FR3_PUBLISH_LOG_2026-11-05.md)。
+
+- 新增 `morla_fr3_driver`：原样固定用户提供的 SDK V2.2.8 源码与许可证/摘要；独占子进程隔离无限重试，CNDE 完整帧采样时间、六轴 rad/限位/限速、显式使能与反馈确认、暂停保持和停止清理。
+- 按本地手册标准 FR3 DH 实现独立 FK/Jacobian/数值 IK，注册公共组件/运动学接口、独立 ROS 与可选 Web launch；新增 Web 标签、FR3/Quest fake 预设和控制器匹配。
+- 验证：FR3 34 项、相关回归 252 passed / 1 skipped、Web 10 项、前端 17 项及构建通过；wheel/ament 发现和实际 HTTP 冒烟通过。修正已有 Web 测试与现行显式 deadman 行为不符的旧断言。
+- 边界：Mac 无 ROS，未进行 colcon/DDS 或实体 FR3/Quest 运动与停止验收；浏览器目视检查因锁屏/初始化超时受阻。完整操作、测试与现场清单见 [FR3 接入记录](docs/integrations/fr3.md)。
+
 ## 2026-11-04
 
 ### Web 工作站设备参数与遥操配置

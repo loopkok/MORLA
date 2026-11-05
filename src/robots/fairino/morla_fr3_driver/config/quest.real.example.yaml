@@ -1,0 +1,23 @@
+# Use with quest.fake.yaml; fill device identity/IP and calibrate the binding.
+deployment_version: 1
+deployment_id: fr3_quest_bench
+instances:
+  arm:
+    backend: real
+    device_id: REPLACE_FR3_SERIAL
+    resource_key: fairino:REPLACE_FR3_SERIAL
+    parameters:
+      host: REPLACE_CONTROLLER_IP
+      kinematics_verified: false
+    verified: false
+    stop_verified: false
+  quest:
+    backend: real
+    device_id: REPLACE_QUEST_SERIAL
+    parameters:
+      process_mode: managed
+      protocol: tcp_wired
+      tcp_port: 8000
+      side: right
+    verified: false
+calibrations: {}

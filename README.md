@@ -48,6 +48,9 @@ For new robots, hands, input devices, cameras, and sensors, start with the
 [device integration guide](docs/device_integration_guide.md). It documents the
 post-refactor interfaces, coordinate/time/data contracts, required implementation
 work, and acceptance checklist against the actual code.
+The [FAIRINO FR3 integration](docs/integrations/fr3.md) provides an independent
+SDK-backed ROS 2 driver, bounded SDK process, local FR3 kinematics and a common
+Web fake preset. Software tests pass; ROS host and physical FR3 acceptance remain pending.
 [CR5](docs/integrations/cr5.md) and
 [Aero Hand Open](docs/integrations/loophand.md) are independent ROS 2 driver
 packages and composable plugins. Their [combined example](examples/cr5_loophand/README.md)

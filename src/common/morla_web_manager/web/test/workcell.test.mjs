@@ -7,6 +7,14 @@ const javascript=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKin
 const model=await import('data:text/javascript;base64,'+Buffer.from(javascript).toString('base64'))
 const arm={plugin_id:'morla.dobot.cr5',joints:Array.from({length:6},(_,i)=>({name:'joint'+(i+1),lower:-2,upper:2}))}
 
+test('FR3 offers its installed common IK and joint jog, not CR5 controllers',()=>{
+ const target={semantic:'joint_targets',dim:6,unit:'rad'}
+ const catalog=[{kind:'controller',plugin_id:'morla.cr5.cartesian_delta',controller_types:{inputs:['pose6d'],outputs:['joint_targets']}}]
+ assert.deepEqual(model.compatible(catalog,{semantic:'pose6d',dim:7,unit:'m_rad'},target,'morla.fairino.fr3'),['morla.cartesian_delta_ik'])
+ assert.ok(model.compatible(catalog,{semantic:'axes_buttons',dim:6},target,'morla.fairino.fr3').includes('morla.joint_jog'))
+ assert.equal(model.label('morla.fairino.fr3'),'FAIRINO FR3')
+})
+
 test('Cartesian jog defaults generate a named map, never joint-jog parameters',()=>{
  const defaults=model.bindingDefaults('morla.cr5.cartesian_jog',{axis_names:['x','y','z','roll','pitch','yaw']},arm)
  assert.deepEqual(defaults.axes_map,{x:'x',y:'y',z:'z',roll:'roll',pitch:'pitch',yaw:'yaw'})

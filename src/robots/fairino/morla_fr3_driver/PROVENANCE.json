@@ -1,0 +1,14 @@
+{
+  "source": "user-supplied Desktop/FR机械臂资料/fairino-python-sdk-master/linux/fairino/Robot.py",
+  "sha256": "604b48c75c93897b309688085ed4e6506efef0814b9cb643c21558d8be9c7c56",
+  "modified": false,
+  "license": "Apache-2.0",
+  "manual": "FAIRINO Collaborative Robot User Manual-v4.0.1.pdf",
+  "manual_sha256": "7cdeafb7e28f6c49f90bff8421f94ef1c06b6135abdc4438319fd6add0e1133c",
+  "limits": "table 2.1-1 / PDF page 121 (printed 35), FR3 soft limits",
+  "kinematics": "table 2.4-1 / PDF page 126 (printed 40), standard FR3 only; excludes WMS/WML/C/MT",
+  "official_docs": "https://manual.fairino.support/latest/SDKManual/python_intro.html",
+  "integration_date": "2026-11-05",
+  "hardware_validation": "NOT_RUN",
+  "sdk_declared_version": "SDK:V2.2.8 / Robot:V4.0.1 (source constant, not measured hardware)"
+}

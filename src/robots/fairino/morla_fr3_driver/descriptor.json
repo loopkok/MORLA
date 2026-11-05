@@ -1,0 +1,262 @@
+{
+  "descriptor_version": 1,
+  "api_version": "1.0",
+  "plugin_id": "morla.fairino.fr3",
+  "plugin_version": "1.0.0",
+  "kind": "actuator",
+  "ports": {
+    "position": {
+      "direction": "output",
+      "semantic": "joint_state",
+      "dim": 6,
+      "unit": "rad",
+      "codec": "numeric",
+      "dtype": "float64"
+    },
+    "position_target": {
+      "direction": "input",
+      "semantic": "joint_targets",
+      "dim": 6,
+      "unit": "rad",
+      "codec": "numeric",
+      "dtype": "float64"
+    }
+  },
+  "joints": [
+    {
+      "name": "joint1",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": -3.0543261909900767,
+      "upper": 3.0543261909900767,
+      "limits": [
+        -3.0543261909900767,
+        3.0543261909900767
+      ],
+      "limit_source": "FAIRINO_manual_4.0.1_table_2.1-1_soft_limits"
+    },
+    {
+      "name": "joint2",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": -4.625122517784973,
+      "upper": 1.4835298641951802,
+      "limits": [
+        -4.625122517784973,
+        1.4835298641951802
+      ],
+      "limit_source": "FAIRINO_manual_4.0.1_table_2.1-1_soft_limits"
+    },
+    {
+      "name": "joint3",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": -2.6179938779914944,
+      "upper": 2.6179938779914944,
+      "limits": [
+        -2.6179938779914944,
+        2.6179938779914944
+      ],
+      "limit_source": "FAIRINO_manual_4.0.1_table_2.1-1_soft_limits"
+    },
+    {
+      "name": "joint4",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": -4.625122517784973,
+      "upper": 1.4835298641951802,
+      "limits": [
+        -4.625122517784973,
+        1.4835298641951802
+      ],
+      "limit_source": "FAIRINO_manual_4.0.1_table_2.1-1_soft_limits"
+    },
+    {
+      "name": "joint5",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": -3.0543261909900767,
+      "upper": 3.0543261909900767,
+      "limits": [
+        -3.0543261909900767,
+        3.0543261909900767
+      ],
+      "limit_source": "FAIRINO_manual_4.0.1_table_2.1-1_soft_limits"
+    },
+    {
+      "name": "joint6",
+      "unit": "rad",
+      "type": "revolute",
+      "lower": -3.0543261909900767,
+      "upper": 3.0543261909900767,
+      "limits": [
+        -3.0543261909900767,
+        3.0543261909900767
+      ],
+      "limit_source": "FAIRINO_manual_4.0.1_table_2.1-1_soft_limits"
+    }
+  ],
+  "command_modes": [
+    "position"
+  ],
+  "backend_variants": {
+    "fake": {
+      "available": true,
+      "validation_level": "synthetic_protocol"
+    },
+    "real": {
+      "available": true,
+      "requires": [
+        "python-mbedtls",
+        "FR3 controller compatible with supplied CNDE SDK"
+      ],
+      "validation_level": "NOT_RUN_hardware"
+    },
+    "sim": {
+      "available": false,
+      "validation_level": "no_collision_or_dynamics_model"
+    }
+  },
+  "resources": {
+    "session_family": "morla.fairino.fr3",
+    "sharing": "exclusive",
+    "stop_policy": "disable"
+  },
+  "operations": {
+    "prepare": {
+      "moves": false
+    },
+    "enable": {
+      "moves": false
+    },
+    "stop": {
+      "moves": false
+    }
+  },
+  "geometry": {
+    "frames": [
+      "base",
+      "flange",
+      "mount"
+    ],
+    "calibration_required": true,
+    "collision_verified": false,
+    "model_id": "fairino_fr3_standard_dh_manual_4.0.1",
+    "solver_base_frame": "base",
+    "solver_tip_frame": "flange",
+    "model_sha256": "31501da67f8faf5d6e00ee8f938520093d89b2d8fe5aff5778ced5084e691e18"
+  },
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "host": {
+        "type": "string",
+        "description": "FR3 controller IP (explicit real deployment only)"
+      },
+      "rate_hz": {
+        "type": "number",
+        "minimum": 50,
+        "maximum": 125,
+        "description": "Servo loop rate; cmdT = 1/rate_hz"
+      },
+      "rpc_timeout_s": {
+        "type": "number",
+        "minimum": 0.05,
+        "maximum": 1
+      },
+      "startup_timeout_s": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 30
+      },
+      "operation_timeout_s": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 15
+      },
+      "feedback_timeout_s": {
+        "type": "number",
+        "minimum": 0.02,
+        "maximum": 0.5
+      },
+      "joint_lower": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 6,
+        "maxItems": 6
+      },
+      "joint_upper": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 6,
+        "maxItems": 6
+      },
+      "initial_positions": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 6,
+        "maxItems": 6
+      },
+      "max_velocity_rad_s": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 1
+      },
+      "max_command_lead_rad": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 0.3
+      },
+      "kinematics_verified": {
+        "type": "boolean",
+        "description": "Record FK/zero/direction verification before Cartesian control"
+      }
+    }
+  },
+  "defaults": {
+    "rate_hz": 125,
+    "rpc_timeout_s": 0.25,
+    "startup_timeout_s": 15,
+    "operation_timeout_s": 10,
+    "feedback_timeout_s": 0.2,
+    "joint_lower": [
+      -3.0543261909900767,
+      -4.625122517784973,
+      -2.6179938779914944,
+      -4.625122517784973,
+      -3.0543261909900767,
+      -3.0543261909900767
+    ],
+    "joint_upper": [
+      3.0543261909900767,
+      1.4835298641951802,
+      2.6179938779914944,
+      1.4835298641951802,
+      3.0543261909900767,
+      3.0543261909900767
+    ],
+    "max_velocity_rad_s": 0.3,
+    "max_command_lead_rad": 0.1,
+    "kinematics_verified": false,
+    "initial_positions": [
+      0,
+      -1.5707963267948966,
+      1.5707963267948966,
+      -1.5707963267948966,
+      -1.5707963267948966,
+      0
+    ]
+  },
+  "source": {
+    "package": "morla_fr3_driver",
+    "version": "0.1.0"
+  },
+  "validation_artifacts": []
+}

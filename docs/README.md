@@ -4,6 +4,8 @@
 
 新增机器人、输入设备、相机、传感器或脚踏操作源，先阅读 [设备移植与接入指南](device_integration_guide.md)：包含重构后实际接口、坐标/关节/时间对齐、分设备接入步骤、配置样例、验收和交付模板。
 
+[FAIRINO FR3 接入与验收](integrations/fr3.md)：独立 SDK/ROS 2 驱动、本地六轴运动学、Web 预设与离线测试；目标 ROS 主机及实体机械臂验收待执行。
+
 现有独立接入示例：[CR5 机械臂](integrations/cr5.md)、[LoopHand 灵巧手](integrations/loophand.md)；两者的 [组合配置](../examples/cr5_loophand/README.md) 由公共 runtime 装配，不依赖联合设备驱动。
 
 可组合架构实现已于 2026-10-28 提交，范围见 [重构提交记录](architecture_refactor/CHANGE_LOG_2026-10-28.md)，剩余验收见 [progress](architecture_refactor/progress.md)。设计与执行依据：[完整计划](COMPOSABLE_ARCHITECTURE_PLAN.md)、[agent 分阶段任务](architecture_refactor/EXECUTION.md)、[验收与对抗性审查](architecture_refactor/VALIDATION.md)。旧排障和硬件验收证据继续保留，不能据此推定新链路已完成实机验收。

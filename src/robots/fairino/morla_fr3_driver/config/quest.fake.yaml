@@ -1,0 +1,39 @@
+assembly_version: 1
+assembly_id: fr3_quest_fake
+revision: 1
+instances:
+  arm:
+    plugin: morla.fairino.fr3
+    version: 1.0.0
+    backend: fake
+  quest:
+    plugin: morla.input.quest
+    version: 1.0.0
+    backend: fake
+    parameters:
+      side: right
+bindings:
+- id: right_vr
+  source: quest.right_pose
+  target: arm.position_target
+  controller: morla.cartesian_delta_ik
+  deadman: quest.right_hold
+  max_age_ms: 250
+  input_basis_id: unity_left_handed_v1
+  parameters:
+    position_scale: 0.25
+    # Example only: operator faces base -X; right +Y, up +Z.
+    # Must be calibrated for the actual installation before real VR.
+    input_rotation: [[0, 0, -1], [1, 0, 0], [0, 1, 0]]
+    solver_tip_from_tool: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+    max_joint_step: 0.03
+    max_joint_velocity: 0.2
+    calibration_verified: false
+capture:
+  state: [arm.position]
+  action: [arm.position_target]
+  images: {}
+  auxiliary: [quest.right_pose, quest.right_hold]
+  action_source: command
+  dataset_fps: 30
+  hold_frames: 0

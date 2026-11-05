@@ -122,7 +122,7 @@ export function ComposableTab(){
  useEffect(()=>{
   request<{components:Component[]}>('/components').then(x=>setCatalog(x.components)).catch(e=>{setError(true);setMessage(e.message)})
   request<typeof saved>('/assemblies').then(setSaved).catch(()=>{})
-  for(const id of ['cr5-sim','nero-sim','astral-sim'])void request<Assembly>('/templates/'+id).then(a=>setTemplateCache(cache=>({...cache,[id]:normalise(a)}))).catch(()=>{})
+  for(const id of ['cr5-sim','nero-sim','astral-sim','fr3-fake'])void request<Assembly>('/templates/'+id).then(a=>setTemplateCache(cache=>({...cache,[id]:normalise(a)}))).catch(()=>{})
   void request<Session|null>('/active-session').then(async current=>{if(!current||current.status==='STOPPED'||!current.assembly_id||!current.revision)return;const item=await request<{assembly:Assembly;deployment?:Deployment;resolved:Resolved}>(`/assemblies/${current.assembly_id}/revisions/${current.revision}`);applySaved(item);setSession(current);setStage('run')}).catch(e=>{setError(true);setMessage(e.message)})
  },[])
  useEffect(()=>{if(!session||session.status==='STOPPED')return;const timer=window.setInterval(()=>{request<Session>(`/sessions/${session.session_id}/state`).then(setSession).catch((e:Error&{status?:number})=>{if(e.status===404){setSession(null);setMessage('运行已结束，请重新启动。')}else{setError(true);setMessage(e.message)}})},500);return()=>clearInterval(timer)},[session?.session_id,session?.status])
@@ -167,6 +167,10 @@ export function ComposableTab(){
   const sp=endpoints.find(e=>e.ref===source)?.port,ti=assembly.instances[target.split('.')[0]],td=ti&&descriptor(ti);if(!sp||!td)return{}
   const params=bindingDefaults(id,sp,td,assembly.instances[source.split('.')[0]]?.plugin==='morla.input.quest')
   if(id==='morla.cartesian_delta_ik'){
+   if(ti.plugin==='morla.fairino.fr3'){
+    const preset=templateCache['fr3-fake']?.bindings.find(b=>b.controller===id)
+    if(preset)Object.assign(params,structuredClone(preset.parameters))
+   }
    const robot=ti.plugin==='morla.nero.arm'?'nero':ti.plugin==='morla.astral.arm'?'astral':null
    const side=String(ti.parameters?.side||'left');const preset=robot&&templateCache[robot+'-sim']?.bindings.find(b=>b.source===`quest.${side}_pose`)
    if(preset)Object.assign(params,structuredClone(preset.parameters))
@@ -223,7 +227,7 @@ export function ComposableTab(){
  const simPresent=instances.some(([id,i])=>(device(id).backend||i.backend)==='sim')
  return <div className="workcell">
   <header className="wc-header"><div><div className="wc-eyebrow">MORLA / WORKCELL</div><h2>机器人工作站</h2><p>配置设备与坐标关系，建立遥操作映射，然后检查并运行。</p></div><div className="wc-header-status"><span className={'wc-status '+(active?'is-live':'')}>{session?.operator?.transition?.status==='RUNNING'?'控制权切换中':session?states[session.status]||session.status:'配置中'}</span><span>{savedRevision?'已保存 v'+savedRevision:'尚未保存'}</span></div></header>
-  <div className="wc-config-bar"><label>配置名称<input aria-label="配置名称" disabled={locked} value={assembly.assembly_id} onChange={e=>{setSavedRevision(0);setSavedHash('');changed({...assembly,assembly_id:e.target.value,revision:1})}} /></label><label>已保存的工作站<select aria-label="打开已保存配置" disabled={locked} value="" onChange={e=>void run(async()=>{const item=await request<{assembly:Assembly;deployment?:Deployment;resolved:Resolved}>(`/assemblies/${e.target.value}/revisions/${saved.find(x=>x.assembly_id===e.target.value)!.revision}`);applySaved(item);setSession(null);setMessage('已打开保存的配置。')})}><option value="">选择配置…</option>{saved.map(s=><option key={s.assembly_id} value={s.assembly_id}>{s.assembly_id} · v{s.revision}</option>)}</select></label><div className="wc-template"><label>仿真预设<select aria-label="仿真机器人模板" disabled={locked} value={template} onChange={e=>setTemplate(e.target.value)}><option value="cr5-sim">CR5 / Quest</option><option value="nero-sim">Nero 双臂 / Quest</option><option value="astral-sim">Astral 双臂 / Quest</option></select></label><button disabled={locked} onClick={()=>void run(loadTemplate)}>载入预设</button></div></div>
+  <div className="wc-config-bar"><label>配置名称<input aria-label="配置名称" disabled={locked} value={assembly.assembly_id} onChange={e=>{setSavedRevision(0);setSavedHash('');changed({...assembly,assembly_id:e.target.value,revision:1})}} /></label><label>已保存的工作站<select aria-label="打开已保存配置" disabled={locked} value="" onChange={e=>void run(async()=>{const item=await request<{assembly:Assembly;deployment?:Deployment;resolved:Resolved}>(`/assemblies/${e.target.value}/revisions/${saved.find(x=>x.assembly_id===e.target.value)!.revision}`);applySaved(item);setSession(null);setMessage('已打开保存的配置。')})}><option value="">选择配置…</option>{saved.map(s=><option key={s.assembly_id} value={s.assembly_id}>{s.assembly_id} · v{s.revision}</option>)}</select></label><div className="wc-template"><label>设备预设<select aria-label="仿真机器人模板" disabled={locked} value={template} onChange={e=>setTemplate(e.target.value)}><option value="cr5-sim">CR5 / Quest</option><option value="fr3-fake">FAIRINO FR3 / Quest（测试数据）</option><option value="nero-sim">Nero 双臂 / Quest</option><option value="astral-sim">Astral 双臂 / Quest</option></select></label><button disabled={locked} onClick={()=>void run(loadTemplate)}>载入预设</button></div></div>
   <nav className="wc-stage-nav" aria-label="工作站配置流程">{stages.map(s=><button key={s.id} className={stage===s.id?'is-current':''} aria-current={stage===s.id?'step':undefined} onClick={()=>{setStage(s.id);setMessage('')}}>{s.title}</button>)}</nav>
   {message&&<div role="status" className={'wc-message '+(error?'is-error':'')}>{message}</div>}
   {active&&stage!=='run'&&<div className="wc-message">当前配置正在运行，可查看设置。停止运行后才能修改设备与控制参数。</div>}

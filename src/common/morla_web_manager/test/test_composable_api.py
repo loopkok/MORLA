@@ -117,9 +117,10 @@ def test_mobile_input_and_recording(tmp_path):
                 challenge=ws.receive_json()
                 ws.send_json({**challenge,"sequence":index,"hold_to_control":down,"scalar":.7})
                 result=ws.receive_json()['receipt']
-                # Deadman gating was removed in the rollback: every frame is
-                # forwarded while the session is ACTIVE.
-                assert result['accepted'],result
+                # This assembly explicitly binds phone.hold_to_control. The
+                # shared engine gates released frames; an absent deadman is
+                # the separate continuous-follow case.
+                assert result['accepted'] is down, result
         assert svc.session.lease is None
         stopped=client.post(f'/api/v2/sessions/{sid}/recordings/stop',json={})
         assert stopped.status_code==200,stopped.text

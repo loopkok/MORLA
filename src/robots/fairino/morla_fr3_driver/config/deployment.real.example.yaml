@@ -1,0 +1,16 @@
+deployment_version: 1
+deployment_id: fr3_bench
+instances:
+  arm:
+    backend: real
+    device_id: REPLACE_FR3_SERIAL
+    resource_key: fairino:REPLACE_FR3_SERIAL
+    parameters:
+      host: REPLACE_CONTROLLER_IP
+      # Manual soft limits are defaults; tighten to this installation in radians.
+      max_velocity_rad_s: 0.3
+      max_command_lead_rad: 0.1
+      kinematics_verified: false
+    verified: false
+    stop_verified: false
+calibrations: {}
