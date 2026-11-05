@@ -1,0 +1,137 @@
+{
+  "operation": {
+    "request_id": "fr3-sim-cleanup",
+    "action": "stop",
+    "status": "SUCCEEDED",
+    "result": {
+      "errors": []
+    }
+  },
+  "session": {
+    "session_id": "16eb025b259b4856a292a8533dc73116",
+    "status": "STOPPED",
+    "state": "STOPPED",
+    "epoch": 1,
+    "authority": null,
+    "components": {},
+    "diagnostic_log": {
+      "enabled": true,
+      "state": "closed",
+      "directory": "/tmp/fr3-sim-acceptance/web-store/logs/20261105T164610Z_fr3_quest_sim_16eb025b259b4856a292a8533dc73116",
+      "files": [
+        "trace-00000.jsonl",
+        "trace-00001.jsonl",
+        "trace-00002.jsonl"
+      ],
+      "written": {
+        "run_started": 1,
+        "event": 5,
+        "feedback": 52929,
+        "run_ended": 1
+      },
+      "dropped": {},
+      "queued": 0,
+      "queued_bytes_estimate": 0,
+      "queue_byte_limit": 16777216,
+      "bytes_written": 38675393,
+      "error": null,
+      "feedback_hz": 50
+    },
+    "events": [
+      {
+        "event": "ready_disarmed",
+        "session_id": "16eb025b259b4856a292a8533dc73116",
+        "monotonic_ns": 48014502059876
+      },
+      {
+        "event": "simulation_options",
+        "session_id": "16eb025b259b4856a292a8533dc73116",
+        "monotonic_ns": 48085732202560,
+        "mode": "physics",
+        "display": "web",
+        "viewer": {
+          "status": "closed"
+        },
+        "render_error": null
+      },
+      {
+        "event": "operation_started",
+        "session_id": "16eb025b259b4856a292a8533dc73116",
+        "monotonic_ns": 48472637391682,
+        "request_id": "fr3-sim-cleanup",
+        "action": "stop"
+      },
+      {
+        "event": "group_stopped",
+        "session_id": "16eb025b259b4856a292a8533dc73116",
+        "monotonic_ns": 48472637787833,
+        "reason": "operator_stop",
+        "errors": []
+      },
+      {
+        "event": "operation_finished",
+        "session_id": "16eb025b259b4856a292a8533dc73116",
+        "monotonic_ns": 48472650815371,
+        "operation": {
+          "request_id": "fr3-sim-cleanup",
+          "action": "stop",
+          "status": "SUCCEEDED",
+          "result": {
+            "errors": []
+          }
+        }
+      }
+    ],
+    "operations": [
+      {
+        "request_id": "fr3-sim-cleanup",
+        "action": "stop",
+        "status": "SUCCEEDED",
+        "result": {
+          "errors": []
+        }
+      }
+    ],
+    "assembly_id": "fr3_quest_sim",
+    "revision": 1,
+    "simulation": {
+      "mode": "physics",
+      "display": "web",
+      "viewer": {
+        "status": "closed"
+      },
+      "render_error": null
+    },
+    "inputs": {
+      "quest": {
+        "connected": false,
+        "fresh": false,
+        "epoch": "9fc3f03a0a735c5d4a23c4a3801517a8",
+        "mode": {
+          "left": null,
+          "right": null
+        }
+      }
+    },
+    "recording": false,
+    "policy": {
+      "running": false,
+      "error": null
+    },
+    "operator": {
+      "activity": "paused",
+      "paused": true,
+      "return_to": null,
+      "interrupted": null,
+      "transition": null,
+      "error": null,
+      "hold_active": false,
+      "work_position": null,
+      "playback": null
+    },
+    "controllers": {},
+    "controller_close_errors": [],
+    "input_errors": {},
+    "input_processes": []
+  }
+}

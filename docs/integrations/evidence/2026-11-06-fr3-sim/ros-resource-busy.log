@@ -1,0 +1,25 @@
+[INFO] [launch]: All log files can be found below /home/loopkok/.ros/log/2026-11-06-00-52-16-285633-loopkok-Nitro-AN515-45-72358
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [fr3_driver-1]: process started with pid [72386]
+[fr3_driver-1] Traceback (most recent call last):
+[fr3_driver-1]   File "/home/loopkok/MORLA/build/morla_runtime/morla_runtime/resource_manager.py", line 28, in acquire
+[fr3_driver-1]     fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+[fr3_driver-1] BlockingIOError: [Errno 11] Resource temporarily unavailable
+[fr3_driver-1]
+[fr3_driver-1] During handling of the above exception, another exception occurred:
+[fr3_driver-1]
+[fr3_driver-1] Traceback (most recent call last):
+[fr3_driver-1]   File "/home/loopkok/MORLA/install/morla_fr3_driver/lib/morla_fr3_driver/fr3_driver", line 33, in <module>
+[fr3_driver-1]     sys.exit(load_entry_point('morla-fr3-driver', 'console_scripts', 'fr3_driver')())
+[fr3_driver-1]   File "/home/loopkok/MORLA/build/morla_fr3_driver/morla_fr3_driver/node.py", line 6, in main
+[fr3_driver-1]     return run(args, node_name='fr3_driver', required_plugin='morla.fairino.fr3',
+[fr3_driver-1]   File "/home/loopkok/MORLA/build/morla_runtime/morla_runtime/ros_bridge.py", line 136, in main
+[fr3_driver-1]     node = RuntimeNode()
+[fr3_driver-1]   File "/home/loopkok/MORLA/build/morla_runtime/morla_runtime/ros_bridge.py", line 53, in __init__
+[fr3_driver-1]     self.runtime.start()
+[fr3_driver-1]   File "/home/loopkok/MORLA/build/morla_runtime/morla_runtime/session.py", line 244, in start
+[fr3_driver-1]     self.resources.acquire(keys)
+[fr3_driver-1]   File "/home/loopkok/MORLA/build/morla_runtime/morla_runtime/resource_manager.py", line 31, in acquire
+[fr3_driver-1]     raise ResourceBusy('RESOURCE_BUSY: ' + resource)
+[fr3_driver-1] morla_runtime.resource_manager.ResourceBusy: RESOURCE_BUSY: fake:arm
+[ERROR] [fr3_driver-1]: process has died [pid 72386, exit code 1, cmd '/home/loopkok/MORLA/install/morla_fr3_driver/lib/morla_fr3_driver/fr3_driver --ros-args -r __node:=fr3_driver --params-file /tmp/launch_params_j0zzejia'].

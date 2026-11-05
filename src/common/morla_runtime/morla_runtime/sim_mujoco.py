@@ -61,6 +61,7 @@ class MujocoDeviceSession:
         self.model = mujoco.MjModel.from_xml_string(self.artifact['xml'])
         self.data = mujoco.MjData(self.model)
         self.indices = {}
+        self.command_limits = {}
         self.targets = {}
         for row in actuator_rows:
             key = row['instance_id']
@@ -78,6 +79,7 @@ class MujocoDeviceSession:
             qpos = [int(self.model.jnt_qposadr[index]) for index in joint_ids]
             qvel = [int(self.model.jnt_dofadr[index]) for index in joint_ids]
             self.indices[key] = {'qpos': qpos, 'qvel': qvel, 'ctrl': controls}
+            self.command_limits[key] = self.model.jnt_range[joint_ids].copy()
             initial = row.get('parameters', {}).get('initial_positions')
             if initial is not None:
                 if len(initial) != len(names) or not np.isfinite(initial).all():
@@ -85,6 +87,9 @@ class MujocoDeviceSession:
                 for value, joint in zip(initial, row['joints']):
                     if not joint['lower'] <= value <= joint['upper']:
                         raise ValueError('SIM_INITIAL_POSITION_OUTSIDE_LIMITS')
+                bounds=self.command_limits[key]
+                if np.any(initial<bounds[:,0]) or np.any(initial>bounds[:,1]):
+                    raise ValueError('SIM_INITIAL_POSITION_OUTSIDE_LIMITS')
                 self.data.qpos[qpos] = initial
             self.data.ctrl[controls] = self.data.qpos[qpos]
             self.targets[key] = self.data.qpos[qpos].copy()
@@ -326,7 +331,12 @@ class MujocoDeviceSession:
         with self.command_lock:
             if key not in self.active:
                 raise RuntimeError('SIM_DISARMED')
-            self.pending[key] = list(command['values'])
+            values=self.np.asarray(command['values'],dtype=float)
+            bounds=self.command_limits[key]
+            if (values.shape!=(len(bounds),) or not self.np.isfinite(values).all()
+                    or self.np.any(values<bounds[:,0]) or self.np.any(values>bounds[:,1])):
+                raise ValueError('SIM_TARGET_OUTSIDE_JOINT_CONTRACT')
+            self.pending[key] = values.tolist()
         return {'accepted': True, 'status': 'queued_latest', 'execution_ack': False}
 
     def stop(self, key):

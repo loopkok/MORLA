@@ -251,8 +251,8 @@ def _create(context, *, jog=False):
     validate_parameters(parameters,jog=jog)
     if instance['plugin_id'] != 'morla.fairino.fr3':
         raise ValueError('FR3 controller requires FR3 target')
-    if instance['backend'] not in ('fake','real'):
-        raise ValueError('FR3 VR requires fake or real backend')
+    if instance['backend'] not in ('fake','real','sim'):
+        raise ValueError('FR3 VR requires fake, real or sim backend')
     hardware=instance.get('parameters',{})
     mode=parameters.get('ik_mode','differential')
     solver_type=IKSolver

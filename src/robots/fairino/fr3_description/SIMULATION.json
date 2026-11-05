@@ -1,0 +1,22 @@
+{
+  "model": "fairino3_v6",
+  "urdf_sha256": "d0b1836a8f52867e4c88f21b350a1c3293422194f6b5231462dbf098a5676ef6",
+  "mjcf_sha256": "e77186f713365bbc4f2aefd92ed2f7a0a20d2afbd6bd6299cff055e38f6ac1ee",
+  "generator_sha256": "7551dcc177b95d0ebcd06f1fc2b6113281e77f77f714c158477a8443d2bc0791",
+  "strategy_reference": "MORLA CR5 make_cr5_mjcf.py at 06939d1",
+  "timestep_s": 0.002,
+  "servo": {
+    "kp": 1200,
+    "kv": 120,
+    "damping": 5,
+    "armature": 0.05,
+    "force_range": [
+      -300,
+      300
+    ]
+  },
+  "validation_level": "reference_position_servo_dynamics_collision_unverified",
+  "collision_enabled": false,
+  "hardware_parameter_identification": "NOT_RUN",
+  "license": "Derived model assets retain upstream unspecified license; see NOTICE"
+}

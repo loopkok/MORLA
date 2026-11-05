@@ -1,5 +1,14 @@
 # Changelog（MORLA）
 
+## 2026-11-06 — FR3 独立仿真与公共 MuJoCo
+
+- 新增 `fr3_mujoco_sim` 独立 ROS 包/launch/CLI，及驱动内 `fr3_sim.launch.py` 兼容入口；两者复用同一公共 Runtime。
+- 从 fairino3_v6 IK URDF 可复现生成 MJCF，保留法兰、显示网格和惯量；支持运动学/参考位置伺服动力学、Web/local/both、场景相机与六维数据链。
+- 注册 FR3 sim 与专属 IK controller 兼容性，新增 Web 仿真预设和恢复会话时的正确预设显示。部署限位映射至模型/执行器，公共模拟器在入队前拒绝非有限/维度错误/越界目标。
+- 修复录制片段完整性失败时页面仍无条件提示已保存的问题；相机+合成 Quest 的实际物理链路录制为 complete（60 状态/120 动作/60 帧图像）。
+- 验证：36 包编译、83 项相关回归、主机 pure 366、fake 28、前端 20、Mac sim 层 21 项通过；实际 ROS sim DDS、EGL 渲染、本地窗口和浏览器检查通过。
+- 新增 FK、双臂命名、物理反馈/停止、限位、模式切换与 HTTP→IK→仿真→录制测试；详细证据与边界见 [FR3 仿真记录](docs/integrations/FR3_SIMULATION.md)。碰撞与实机动力学标定未验收。
+
 ## 2026-11-05 — FAIRINO FR3 独立驱动与组合 Web
 
 ### FR3 fairino3_v6 URDF 与 CR5 同策略 IK

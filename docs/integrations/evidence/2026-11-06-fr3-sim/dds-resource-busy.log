@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/home/loopkok/MORLA/docs/testing/fake_ros_gateway_smoke.py", line 224, in <module>
+    main()
+  File "/home/loopkok/MORLA/docs/testing/fake_ros_gateway_smoke.py", line 122, in main
+    actual = call(parameters, request).values[0].string_value
+  File "/home/loopkok/MORLA/docs/testing/fake_ros_gateway_smoke.py", line 88, in call
+    wait(future.done, client.srv_name)
+  File "/home/loopkok/MORLA/docs/testing/fake_ros_gateway_smoke.py", line 81, in wait
+    raise TimeoutError(label + ': ' + json.dumps(state, ensure_ascii=False))
+TimeoutError: /fr3_driver/get_parameters: {}

@@ -1,0 +1,6 @@
+[INFO] [launch]: All log files can be found below /home/loopkok/.ros/log/2026-11-06-00-55-14-884185-loopkok-Nitro-AN515-45-72705
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [fr3_driver-1]: process started with pid [72733]
+[WARNING] [launch]: user interrupted with ctrl-c (SIGINT)
+[INFO] [fr3_driver-1]: sending signal 'SIGINT' to process[fr3_driver-1]
+[INFO] [fr3_driver-1]: process has finished cleanly [pid 72733]

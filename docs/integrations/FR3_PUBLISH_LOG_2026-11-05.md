@@ -36,3 +36,10 @@
 本机/目标 ROS 主机 FR3 专项各 49 passed；主机 pure 355 passed、fake 28 passed；前端 19 passed 与构建通过；35 包 colcon、安装模型发现、实际 fake DDS 通过。浏览器完成模式切换、配置检查/保存、未使能启动和无新鲜输入拒绝；浏览器停止确认自动化受阻后通过服务 API 停止，最终状态 STOPPED。未连接实体 FR3/Quest，没有物理仿真验收。
 
 原始日志、正常退出及首次重复 SIGINT 的失败记录、截图和迁移方法见 [FR3 URDF/IK 迁移记录](FR3_URDF_IK_MIGRATION.md)。
+
+
+## 2026-11-06：独立仿真与公共 MuJoCo
+
+新增 fr3_mujoco_sim 独立包与驱动内兼容入口，fr3_description 的可复现 MJCF 接入同一公共场景，FR3 sim/IK、Web 模式/预设/相机和数据链完成适配。36 包构建、83 项相关回归、pure 366、fake 28、前端 20、Mac sim 层 21 项通过；实际 ROS sim DDS、EGL、Linux 本地窗口与浏览器验证完成。
+
+无输入片段按缺必需流标 failed，修复页面无条件已保存提示；实际合成 Quest + renderer 的完整片段为 complete，60 状态/120 动作/60 帧图像，未加载 SDK。碰撞、实机标定与 sim2real 效果未验收。详情与原始过程日志见 [FR3 仿真记录](FR3_SIMULATION.md)。

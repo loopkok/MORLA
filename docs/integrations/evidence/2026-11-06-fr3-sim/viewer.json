@@ -1,0 +1,12 @@
+{
+  "mode": "kinematic",
+  "display": "both",
+  "viewer": {
+    "status": "running",
+    "error": null
+  },
+  "render_error": null,
+  "closed_after_web": "closed",
+  "same_model": true,
+  "vendor_sdk_loaded": false
+}

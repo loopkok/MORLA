@@ -1,0 +1,58 @@
+<mujoco model="fairino3_v6">
+  <compiler angle="radian" autolimits="true" meshdir="../meshes/fairino3_v6" />
+  <option timestep="0.002" integrator="implicitfast" />
+  <asset>
+    <mesh name="base_link_visual_0" file="base_link.STL" />
+    <mesh name="shoulder_link_visual_0" file="shoulder_link.STL" />
+    <mesh name="upperarm_link_visual_0" file="upperarm_link.STL" />
+    <mesh name="forearm_link_visual_0" file="forearm_link.STL" />
+    <mesh name="wrist1_link_visual_0" file="wrist1_link.STL" />
+    <mesh name="wrist2_link_visual_0" file="wrist2_link.STL" />
+    <mesh name="wrist3_link_visual_0" file="wrist3_link.STL" />
+  </asset>
+  <worldbody>
+    <body name="base_link">
+      <inertial mass="0.78393" fullinertia="0.0013854 0.0013849 0.001977 1.1455E-05 -1.0642E-05 -9.7435E-06" pos="-0.00049027 -0.00045095 0.032527" />
+      <geom type="mesh" mesh="base_link_visual_0" contype="0" conaffinity="0" rgba="0.89804 0.91765 0.92941 1" pos="0 0 0" quat="1.0 0.0 0.0 0.0" />
+      <body name="shoulder_link" pos="0 0 0" quat="1.0 0.0 0.0 0.0">
+        <inertial mass="2.24" fullinertia="0.00303904 0.00223536 0.00296223 -0.00000346 -0.00001029 0.00008620" pos="-0.00005 -0.01592 0.00226" />
+        <joint name="j1" type="hinge" axis="0 0 1" range="-3.0543 3.0543" damping="5" armature="0.05" />
+        <geom type="mesh" mesh="shoulder_link_visual_0" contype="0" conaffinity="0" rgba="0.89804 0.91765 0.92941 1" pos="0 0 0" quat="1.0 0.0 0.0 0.0" />
+        <body name="upperarm_link" pos="0 0 0.14" quat="0.7071054825112363 0.7071080798594735 0.0 0.0">
+          <inertial mass="4.94" fullinertia="0.0068126 0.09321437 0.09150689 0.00000606 -0.00003661 0.00000024" pos="0.13939 0.0 0.09954" />
+          <joint name="j2" type="hinge" axis="0 0 1" range="-4.6251 1.4835" damping="5" armature="0.05" />
+          <geom type="mesh" mesh="upperarm_link_visual_0" contype="0" conaffinity="0" rgba="0.89804 0.91765 0.92941 1" pos="0 0 0" quat="1.0 0.0 0.0 0.0" />
+          <body name="forearm_link" pos="-0.28 0 0" quat="1.0 0.0 0.0 0.0">
+            <inertial mass="2.29" fullinertia="0.00263873 0.02074603 0.02039086 0.00002077 -0.00014132 -0.00000186" pos="0.05899 0.00008 0.01299" />
+            <joint name="j3" type="hinge" axis="0 0 1" range="-2.6179938779914944 2.6179938779914944" damping="5" armature="0.05" />
+            <geom type="mesh" mesh="forearm_link_visual_0" contype="0" conaffinity="0" rgba="0.89804 0.91765 0.92941 1" pos="0 0 0" quat="1.0 0.0 0.0 0.0" />
+            <body name="wrist1_link" pos="-0.24001 0 0" quat="1.0 0.0 0.0 0.0">
+              <inertial mass="1.56" fullinertia="0.00162646 0.00158068 0.00125531 -0.00000285 -0.00000348 0.00006122" pos="0.00005 -0.00233 0.01467" />
+              <joint name="j4" type="hinge" axis="0 0 1" range="-4.6251 1.4835" damping="5" armature="0.05" />
+              <geom type="mesh" mesh="wrist1_link_visual_0" contype="0" conaffinity="0" rgba="0.89804 0.91765 0.92941 1" pos="0 0 0" quat="1.0 0.0 0.0 0.0" />
+              <body name="wrist2_link" pos="0 0 0.102" quat="0.7071054825112363 0.7071080798594735 0.0 0.0">
+                <inertial mass="1.56" fullinertia="0.00162646 0.00158068 0.00125531 -0.00000285 0.00000348 -0.00006122" pos="-0.00005 0.00233 0.01467" />
+                <joint name="j5" type="hinge" axis="0 0 1" range="-3.0543 3.0543" damping="5" armature="0.05" />
+                <geom type="mesh" mesh="wrist2_link_visual_0" contype="0" conaffinity="0" rgba="0.89804 0.91765 0.92941 1" pos="0 0 0" quat="1.0 0.0 0.0 0.0" />
+                <body name="wrist3_link" pos="0 0 0.102" quat="0.7071054825112363 -0.7071080798594735 0.0 0.0">
+                  <inertial mass="0.36" fullinertia="0.00023024 0.00023033 0.00035930 0.00000023 -0.00000058 -0.00000116" pos="-0.00055 -0.00111 -0.02005" />
+                  <joint name="j6" type="hinge" axis="0 0 1" range="-3.0543 3.0543" damping="5" armature="0.05" />
+                  <geom type="mesh" mesh="wrist3_link_visual_0" contype="0" conaffinity="0" rgba="0.89804 0.91765 0.92941 1" pos="0 0 0" quat="1.0 0.0 0.0 0.0" />
+                  <body name="flange" pos="0 0 0.100" quat="1.0 0.0 0.0 0.0" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <position name="j1_servo" joint="j1" kp="1200" kv="120" ctrlrange="-3.0543 3.0543" forcerange="-300 300" />
+    <position name="j2_servo" joint="j2" kp="1200" kv="120" ctrlrange="-4.6251 1.4835" forcerange="-300 300" />
+    <position name="j3_servo" joint="j3" kp="1200" kv="120" ctrlrange="-2.6179938779914944 2.6179938779914944" forcerange="-300 300" />
+    <position name="j4_servo" joint="j4" kp="1200" kv="120" ctrlrange="-4.6251 1.4835" forcerange="-300 300" />
+    <position name="j5_servo" joint="j5" kp="1200" kv="120" ctrlrange="-3.0543 3.0543" forcerange="-300 300" />
+    <position name="j6_servo" joint="j6" kp="1200" kv="120" ctrlrange="-3.0543 3.0543" forcerange="-300 300" />
+  </actuator>
+</mujoco>

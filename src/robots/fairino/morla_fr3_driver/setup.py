@@ -12,7 +12,7 @@ setup(
         ('share/morla_fr3_driver/launch', glob('launch/*.launch.py')),
     ],
     install_requires=['setuptools', 'numpy', 'scipy'],
-    extras_require={'ik':['pin>=2.6,<5'], 'real': ['python-mbedtls>=2.9,<3']},
+    extras_require={'sim':['mujoco>=3.2,<4','Pillow'], 'ik':['pin>=2.6,<5'], 'real': ['python-mbedtls>=2.9,<3']},
     license='Apache-2.0', maintainer='MORLA maintainers', maintainer_email='maintainers@morla.dev',
     description='FAIRINO FR3 SDK-backed ROS 2 and composable MORLA driver',
     entry_points={

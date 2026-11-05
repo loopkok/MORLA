@@ -1,0 +1,20 @@
+assembly_version: 1
+assembly_id: fr3_sim_only
+revision: 1
+instances:
+  arm:
+    plugin: morla.fairino.fr3
+    version: 1.0.0
+    backend: sim
+capture:
+  state:
+  - arm.position
+  action:
+  - arm.position_target
+  images: {}
+  action_source: command
+  hold_frames: 0
+metadata:
+  simulation:
+    mode: kinematic
+    display: web

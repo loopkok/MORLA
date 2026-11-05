@@ -130,3 +130,10 @@ test('FR3 dedicated URDF controllers are robot-specific with differential and le
   assert.equal(p.ik_mode,'differential');assert.equal(p.command_lead_rad,.08);assert.equal(p.max_joint_velocity,.3)
  }
 })
+
+
+test('recording completion follows validation status even when failure detail is empty',()=>{
+ assert.equal(model.recordingSaveMessage({status:'complete',failure:undefined}),'数据记录已保存。')
+ assert.match(model.recordingSaveMessage({status:'failed',failure:undefined}),/未通过完整性检查/)
+ assert.match(model.recordingSaveMessage({status:'complete',failure:'queue overflow'}),/未通过完整性检查/)
+})

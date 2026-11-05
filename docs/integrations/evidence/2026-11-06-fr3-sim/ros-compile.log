@@ -1,0 +1,673 @@
+{
+  "assembly_hash": "5d1d5db0fd6b4ec12832bfc7406673b28c7f50e11265bd3a351ab401b9958317",
+  "assembly_id": "fr3_sim_only",
+  "assembly_revision": 1,
+  "bindings": [],
+  "capture_schema": {
+    "action_blocks": [
+      {
+        "action_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "block_id": "arm.position_target",
+        "command_stream": "arm__position_target",
+        "dim": 6,
+        "feature_names": [
+          "arm.position_target.joint1",
+          "arm.position_target.joint2",
+          "arm.position_target.joint3",
+          "arm.position_target.joint4",
+          "arm.position_target.joint5",
+          "arm.position_target.joint6"
+        ],
+        "limits": [],
+        "semantics": "absolute_position",
+        "source_state_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "stream_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "unit": "rad",
+        "writable": true,
+        "writer_id": "arm"
+      }
+    ],
+    "action_source": "command",
+    "cameras": [],
+    "dataset_fps": 30,
+    "hold_frames": 0,
+    "max_gap_ms": 100.0,
+    "metadata": {
+      "assembly_id": "fr3_sim_only",
+      "assembly_revision": 1,
+      "label_source": "dispatched",
+      "stream_sources": {
+        "arm__position": {
+          "instance_id": "arm",
+          "port_id": "position"
+        },
+        "arm__position_target": {
+          "instance_id": "arm",
+          "port_id": "position_target"
+        }
+      }
+    },
+    "profile_id": "fr3_sim_only",
+    "profile_version": 1,
+    "robot_id": "composable",
+    "schema_version": 3,
+    "sensor_specs": [],
+    "state_blocks": [
+      {
+        "block_id": "arm.position",
+        "dim": 6,
+        "feature_names": [
+          "arm.position.joint1",
+          "arm.position.joint2",
+          "arm.position.joint3",
+          "arm.position.joint4",
+          "arm.position.joint5",
+          "arm.position.joint6"
+        ],
+        "limits": [],
+        "physical_joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6"
+        ],
+        "state_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "stream_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "stream_key": "arm__position",
+        "unit": "rad"
+      }
+    ],
+    "streams": [
+      {
+        "dtype": "float64",
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "sensor_data",
+        "required": true,
+        "shape": [
+          6
+        ],
+        "source_kind": "state",
+        "stream_key": "arm__position",
+        "timestamp_mode": "arrival",
+        "topic": "/fr3_sim_only/arm/position",
+        "unit": "rad"
+      },
+      {
+        "dtype": "float64",
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6"
+        ],
+        "message_type": "sensor_msgs/msg/JointState",
+        "qos": "sensor_data",
+        "required": true,
+        "shape": [
+          6
+        ],
+        "source_kind": "command",
+        "stream_key": "arm__position_target",
+        "timestamp_mode": "arrival",
+        "topic": "/fr3_sim_only/arm/position_target",
+        "unit": "rad"
+      }
+    ]
+  },
+  "compiler_version": "1.0.0",
+  "control_groups": [
+    {
+      "fault_policy": "stop_group",
+      "group_id": "arm",
+      "members": [
+        "arm"
+      ]
+    }
+  ],
+  "deployment_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  "device_sessions": [
+    {
+      "addresses": [],
+      "backend": "sim",
+      "device_id": null,
+      "instances": [
+        "arm"
+      ],
+      "parameters": {},
+      "plugin_id": "morla.fairino.fr3",
+      "resource_key": "fake:arm",
+      "resources": [
+        "fake:arm"
+      ],
+      "session_family": "morla.fairino.fr3",
+      "session_id": "arm",
+      "stop_policy": "disable"
+    }
+  ],
+  "diagnostics": [
+    {
+      "error_code": "BACKEND_DEPENDENCIES_UNCHECKED",
+      "instances": [
+        "arm"
+      ],
+      "message": "Implementation registered; runtime preflight must verify mujoco, fr3_description, robot_description",
+      "path": "/instances/arm",
+      "severity": "info"
+    }
+  ],
+  "feature_contract": {
+    "action_dim": 6,
+    "action_features": [
+      {
+        "feature_id": "arm.position_target.joint1",
+        "instance_id": "arm",
+        "local_name": "joint1",
+        "name": "arm.position_target.joint1",
+        "port_id": "position_target",
+        "semantic": "absolute_position",
+        "unit": "rad"
+      },
+      {
+        "feature_id": "arm.position_target.joint2",
+        "instance_id": "arm",
+        "local_name": "joint2",
+        "name": "arm.position_target.joint2",
+        "port_id": "position_target",
+        "semantic": "absolute_position",
+        "unit": "rad"
+      },
+      {
+        "feature_id": "arm.position_target.joint3",
+        "instance_id": "arm",
+        "local_name": "joint3",
+        "name": "arm.position_target.joint3",
+        "port_id": "position_target",
+        "semantic": "absolute_position",
+        "unit": "rad"
+      },
+      {
+        "feature_id": "arm.position_target.joint4",
+        "instance_id": "arm",
+        "local_name": "joint4",
+        "name": "arm.position_target.joint4",
+        "port_id": "position_target",
+        "semantic": "absolute_position",
+        "unit": "rad"
+      },
+      {
+        "feature_id": "arm.position_target.joint5",
+        "instance_id": "arm",
+        "local_name": "joint5",
+        "name": "arm.position_target.joint5",
+        "port_id": "position_target",
+        "semantic": "absolute_position",
+        "unit": "rad"
+      },
+      {
+        "feature_id": "arm.position_target.joint6",
+        "instance_id": "arm",
+        "local_name": "joint6",
+        "name": "arm.position_target.joint6",
+        "port_id": "position_target",
+        "semantic": "absolute_position",
+        "unit": "rad"
+      }
+    ],
+    "cameras": {},
+    "state_dim": 6,
+    "state_features": [
+      {
+        "feature_id": "arm.position.joint1",
+        "instance_id": "arm",
+        "local_name": "joint1",
+        "name": "arm.position.joint1",
+        "port_id": "position",
+        "semantic": "joint_state",
+        "unit": "rad"
+      },
+      {
+        "feature_id": "arm.position.joint2",
+        "instance_id": "arm",
+        "local_name": "joint2",
+        "name": "arm.position.joint2",
+        "port_id": "position",
+        "semantic": "joint_state",
+        "unit": "rad"
+      },
+      {
+        "feature_id": "arm.position.joint3",
+        "instance_id": "arm",
+        "local_name": "joint3",
+        "name": "arm.position.joint3",
+        "port_id": "position",
+        "semantic": "joint_state",
+        "unit": "rad"
+      },
+      {
+        "feature_id": "arm.position.joint4",
+        "instance_id": "arm",
+        "local_name": "joint4",
+        "name": "arm.position.joint4",
+        "port_id": "position",
+        "semantic": "joint_state",
+        "unit": "rad"
+      },
+      {
+        "feature_id": "arm.position.joint5",
+        "instance_id": "arm",
+        "local_name": "joint5",
+        "name": "arm.position.joint5",
+        "port_id": "position",
+        "semantic": "joint_state",
+        "unit": "rad"
+      },
+      {
+        "feature_id": "arm.position.joint6",
+        "instance_id": "arm",
+        "local_name": "joint6",
+        "name": "arm.position.joint6",
+        "port_id": "position",
+        "semantic": "joint_state",
+        "unit": "rad"
+      }
+    ]
+  },
+  "feature_contract_hash": "52f0ed649d7f976e3cad11e473f6ab5ad5c8f576d5a713786e72db2105a66701",
+  "geometry_contract": {
+    "calibrations": {},
+    "instances": [
+      {
+        "geometry": {
+          "calibration_required": true,
+          "collision_verified": false,
+          "frames": [
+            "base",
+            "flange",
+            "mount"
+          ],
+          "model_id": "fairino3_v6",
+          "model_sha256": "d0b1836a8f52867e4c88f21b350a1c3293422194f6b5231462dbf098a5676ef6",
+          "solver_base_frame": "base_link",
+          "solver_tip_frame": "flange"
+        },
+        "instance_id": "arm",
+        "joints": [
+          {
+            "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF",
+            "limits": [
+              -3.0543,
+              3.0543
+            ],
+            "lower": -3.0543,
+            "mjcf_name": "j1",
+            "name": "joint1",
+            "type": "revolute",
+            "unit": "rad",
+            "upper": 3.0543
+          },
+          {
+            "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF",
+            "limits": [
+              -4.6251,
+              1.4835
+            ],
+            "lower": -4.6251,
+            "mjcf_name": "j2",
+            "name": "joint2",
+            "type": "revolute",
+            "unit": "rad",
+            "upper": 1.4835
+          },
+          {
+            "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF",
+            "limits": [
+              -2.6179938779914944,
+              2.6179938779914944
+            ],
+            "lower": -2.6179938779914944,
+            "mjcf_name": "j3",
+            "name": "joint3",
+            "type": "revolute",
+            "unit": "rad",
+            "upper": 2.6179938779914944
+          },
+          {
+            "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF",
+            "limits": [
+              -4.6251,
+              1.4835
+            ],
+            "lower": -4.6251,
+            "mjcf_name": "j4",
+            "name": "joint4",
+            "type": "revolute",
+            "unit": "rad",
+            "upper": 1.4835
+          },
+          {
+            "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF",
+            "limits": [
+              -3.0543,
+              3.0543
+            ],
+            "lower": -3.0543,
+            "mjcf_name": "j5",
+            "name": "joint5",
+            "type": "revolute",
+            "unit": "rad",
+            "upper": 3.0543
+          },
+          {
+            "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF",
+            "limits": [
+              -3.0543,
+              3.0543
+            ],
+            "lower": -3.0543,
+            "mjcf_name": "j6",
+            "name": "joint6",
+            "type": "revolute",
+            "unit": "rad",
+            "upper": 3.0543
+          }
+        ],
+        "plugin_id": "morla.fairino.fr3"
+      }
+    ],
+    "mounts": []
+  },
+  "geometry_hash": "0ea60737fe30b44ab918379bffaeea07c47de8210061be0f279d433db5ffb3a3",
+  "input_mapping_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "instances": [
+    {
+      "backend": "sim",
+      "backend_available": true,
+      "command_modes": [
+        "position"
+      ],
+      "geometry": {
+        "calibration_required": true,
+        "collision_verified": false,
+        "frames": [
+          "base",
+          "flange",
+          "mount"
+        ],
+        "model_id": "fairino3_v6",
+        "model_sha256": "d0b1836a8f52867e4c88f21b350a1c3293422194f6b5231462dbf098a5676ef6",
+        "solver_base_frame": "base_link",
+        "solver_tip_frame": "flange"
+      },
+      "instance_id": "arm",
+      "joints": [
+        {
+          "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF",
+          "limits": [
+            -3.0543,
+            3.0543
+          ],
+          "lower": -3.0543,
+          "mjcf_name": "j1",
+          "name": "joint1",
+          "type": "revolute",
+          "unit": "rad",
+          "upper": 3.0543
+        },
+        {
+          "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF",
+          "limits": [
+            -4.6251,
+            1.4835
+          ],
+          "lower": -4.6251,
+          "mjcf_name": "j2",
+          "name": "joint2",
+          "type": "revolute",
+          "unit": "rad",
+          "upper": 1.4835
+        },
+        {
+          "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF",
+          "limits": [
+            -2.6179938779914944,
+            2.6179938779914944
+          ],
+          "lower": -2.6179938779914944,
+          "mjcf_name": "j3",
+          "name": "joint3",
+          "type": "revolute",
+          "unit": "rad",
+          "upper": 2.6179938779914944
+        },
+        {
+          "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF",
+          "limits": [
+            -4.6251,
+            1.4835
+          ],
+          "lower": -4.6251,
+          "mjcf_name": "j4",
+          "name": "joint4",
+          "type": "revolute",
+          "unit": "rad",
+          "upper": 1.4835
+        },
+        {
+          "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF",
+          "limits": [
+            -3.0543,
+            3.0543
+          ],
+          "lower": -3.0543,
+          "mjcf_name": "j5",
+          "name": "joint5",
+          "type": "revolute",
+          "unit": "rad",
+          "upper": 3.0543
+        },
+        {
+          "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF",
+          "limits": [
+            -3.0543,
+            3.0543
+          ],
+          "lower": -3.0543,
+          "mjcf_name": "j6",
+          "name": "joint6",
+          "type": "revolute",
+          "unit": "rad",
+          "upper": 3.0543
+        }
+      ],
+      "kind": "actuator",
+      "namespace": "/fr3_sim_only/arm",
+      "operations": {
+        "enable": {
+          "moves": false
+        },
+        "prepare": {
+          "moves": false
+        },
+        "stop": {
+          "moves": false
+        }
+      },
+      "parameters": {
+        "feedback_timeout_s": 0.2,
+        "initial_positions": [
+          0,
+          -1.5707963267948966,
+          1.5707963267948966,
+          -1.5707963267948966,
+          -1.5707963267948966,
+          0
+        ],
+        "joint_lower": [
+          -3.0543,
+          -4.6251,
+          -2.6179938779914944,
+          -4.6251,
+          -3.0543,
+          -3.0543
+        ],
+        "joint_upper": [
+          3.0543,
+          1.4835,
+          2.6179938779914944,
+          1.4835,
+          3.0543,
+          3.0543
+        ],
+        "kinematics_verified": false,
+        "max_command_lead_rad": 0.1,
+        "max_velocity_rad_s": 0.3,
+        "operation_timeout_s": 10,
+        "rate_hz": 125,
+        "rpc_timeout_s": 0.25,
+        "startup_timeout_s": 15,
+        "urdf_joint_offsets": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "urdf_joint_signs": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "plugin_id": "morla.fairino.fr3",
+      "plugin_version": "1.0.0",
+      "ports": {
+        "position": {
+          "codec": "numeric",
+          "dim": 6,
+          "direction": "output",
+          "dtype": "float64",
+          "semantic": "joint_state",
+          "unit": "rad"
+        },
+        "position_target": {
+          "codec": "numeric",
+          "dim": 6,
+          "direction": "input",
+          "dtype": "float64",
+          "semantic": "joint_targets",
+          "unit": "rad"
+        }
+      },
+      "resources": [
+        "fake:arm"
+      ],
+      "role": null,
+      "session_id": "arm",
+      "stop_policy": "disable"
+    }
+  ],
+  "launch_plan": [],
+  "lockfile": {
+    "codecs": [
+      "numeric"
+    ],
+    "compiler_version": "1.0.0",
+    "controllers": [],
+    "plugins": [
+      [
+        "morla.fairino.fr3@1.0.0",
+        "a80cb05e1274c6790d6b5a7dc0d4807378ff12f58d918f7259461319d9cb09d0"
+      ]
+    ]
+  },
+  "mounts": [],
+  "resolved_hash": "08cfeaf10745deaa254536c2e731cd03effd23b36877c996dfc617c739eee13a",
+  "resolved_version": 1,
+  "revision": 1,
+  "source_assembly": {
+    "assembly_id": "fr3_sim_only",
+    "assembly_version": 1,
+    "capture": {
+      "action": [
+        "arm.position_target"
+      ],
+      "action_source": "command",
+      "hold_frames": 0,
+      "images": {},
+      "state": [
+        "arm.position"
+      ]
+    },
+    "instances": {
+      "arm": {
+        "backend": "sim",
+        "plugin": "morla.fairino.fr3",
+        "version": "1.0.0"
+      }
+    },
+    "metadata": {
+      "simulation": {
+        "display": "web",
+        "mode": "kinematic"
+      }
+    },
+    "revision": 1
+  },
+  "source_deployment": {},
+  "status": {
+    "backend_available": true,
+    "compile_valid": true,
+    "model_compatible": null
+  }
+}

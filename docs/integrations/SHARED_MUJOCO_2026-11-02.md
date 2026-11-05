@@ -1,6 +1,8 @@
-# 三种机械臂的公共 MuJoCo 后端与显示选择
+# 公共 MuJoCo 后端与显示选择（含 FR3）
 
 日期：2026-11-02。基线 `1e90a89`。保留 Nero/Astral 专用 ROS 仿真入口，新增机器人包内的公共后端 launch；CR5 增加独立 `cr5_mujoco_sim` 包。
+
+2026-11-06 补充：FR3 已提供 `fr3_mujoco_sim` 独立包与 `morla_fr3_driver fr3_sim.launch.py` 公共兼容入口，使用独立 `fr3_description` 资产、同一 Runtime 和 Web 模式/显示选择。FR3 的新增验收见 [FR3 仿真说明](FR3_SIMULATION.md)；本文原三种机器人测试数字仍为 11-02 历史结果。
 
 ## 启动
 
@@ -8,6 +10,7 @@
 
 ```bash
 ros2 launch cr5_mujoco_sim cr5_mujoco_sim.launch.py
+ros2 launch fr3_mujoco_sim fr3_mujoco_sim.launch.py
 ros2 launch xnero_mujoco_sim composable_sim.launch.py
 ros2 launch astral_mujoco_sim composable_sim.launch.py
 ```

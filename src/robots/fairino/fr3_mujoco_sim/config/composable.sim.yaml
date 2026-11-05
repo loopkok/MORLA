@@ -1,0 +1,104 @@
+# FR3 shared MuJoCo scene; grip deadman retained, reference physics is uncalibrated.
+assembly_version: 1
+assembly_id: fr3_quest_sim
+revision: 1
+instances:
+  arm:
+    plugin: morla.fairino.fr3
+    version: 1.0.0
+    backend: sim
+  quest:
+    plugin: morla.input.quest
+    version: 1.0.0
+    backend: fake
+    parameters:
+      side: right
+  scene_camera:
+    plugin: morla.camera
+    version: 1.0.0
+    backend: sim
+    parameters:
+      width: 640
+      height: 480
+      fps: 30
+bindings:
+- id: right_vr
+  source: quest.right_pose
+  target: arm.position_target
+  controller: morla.fr3.cartesian_delta
+  deadman: quest.right_hold
+  max_age_ms: 250
+  input_basis_id: unity_left_handed_v1
+  parameters:
+    ik_mode: differential
+    command_lead_rad: 0.08
+    smoothing_alpha: 0.35
+    position_scale: 0.25
+    input_rotation:
+    - - 0
+      - 0
+      - -1
+    - - 1
+      - 0
+      - 0
+    - - 0
+      - 1
+      - 0
+    solver_tip_from_tool:
+    - - 1
+      - 0
+      - 0
+      - 0
+    - - 0
+      - 1
+      - 0
+      - 0
+    - - 0
+      - 0
+      - 1
+      - 0
+    - - 0
+      - 0
+      - 0
+      - 1
+    max_joint_step: 0.03
+    max_joint_velocity: 0.2
+    calibration_verified: false
+capture:
+  state:
+  - arm.position
+  action:
+  - arm.position_target
+  images:
+    scene: scene_camera.rgb
+  auxiliary:
+  - quest.right_pose
+  - quest.right_hold
+  action_source: command
+  dataset_fps: 30
+  hold_frames: 0
+mounts:
+- child: arm.base
+  parent: world
+  transform:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 1
+- child: scene_camera.optical
+  parent: world
+  transform:
+  - 1.1
+  - 1.1
+  - 0.95
+  - 0.2049409248295684
+  - 0.49477116020882905
+  - 0.7802274601799676
+  - 0.32318079574245656
+metadata:
+  simulation:
+    mode: kinematic
+    display: web

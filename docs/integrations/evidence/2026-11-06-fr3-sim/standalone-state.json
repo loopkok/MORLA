@@ -1,0 +1,175 @@
+{
+  "session_id": "16eb025b259b4856a292a8533dc73116",
+  "status": "READY_DISARMED",
+  "state": "READY_DISARMED",
+  "epoch": 0,
+  "authority": null,
+  "components": {
+    "quest": {
+      "ready": true,
+      "sample_ns": 48032923865836,
+      "source": "input_listener",
+      "measured": false,
+      "synthetic": false,
+      "values": [],
+      "age_ns": 3777,
+      "fresh": true
+    },
+    "arm": {
+      "ready": true,
+      "sample_ns": 48032923195366,
+      "source": "simulation",
+      "measured": false,
+      "synthetic": true,
+      "values": [
+        0.0,
+        -1.5707963267948966,
+        1.5707963267948966,
+        -1.5707963267948966,
+        -1.5707963267948966,
+        0.0
+      ],
+      "simulation_time_s": 16.14800000000193,
+      "simulation_mode": "kinematic",
+      "simulation_level": "kinematic_collision_unverified",
+      "scene_id": 125270413131936,
+      "ports": {
+        "position": {
+          "values": [
+            0.0,
+            -1.5707963267948966,
+            1.5707963267948966,
+            -1.5707963267948966,
+            -1.5707963267948966,
+            0.0
+          ],
+          "sample_ns": 48032923195366,
+          "source": "simulation",
+          "valid": true,
+          "measured": false,
+          "synthetic": true,
+          "unit": "rad"
+        },
+        "velocity": {
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "sample_ns": 48032923195366,
+          "source": "simulation",
+          "valid": true,
+          "measured": false,
+          "synthetic": true,
+          "unit": "rad/s"
+        }
+      },
+      "age_ns": 716587,
+      "fresh": true
+    },
+    "scene_camera": {
+      "ready": true,
+      "sample_ns": 48032917261013,
+      "source": "simulation",
+      "synthetic": true,
+      "measured": false,
+      "scene_id": 125270413131936,
+      "simulation_time_s": 16.138000000001934,
+      "simulation_mode": "kinematic",
+      "simulation_level": "kinematic_collision_unverified",
+      "ports": {
+        "rgb": {
+          "encoding": "jpeg",
+          "width": 640,
+          "height": 480,
+          "sample_ns": 48032917261013,
+          "source_ns": 16138000000,
+          "source": "simulation",
+          "synthetic": true,
+          "measured": false,
+          "valid": true,
+          "scene_id": 125270413131936
+        }
+      },
+      "age_ns": 6671919,
+      "fresh": true
+    }
+  },
+  "diagnostic_log": {
+    "enabled": true,
+    "state": "recording",
+    "directory": "/tmp/fr3-sim-acceptance/web-store/logs/20261105T164610Z_fr3_quest_sim_16eb025b259b4856a292a8533dc73116",
+    "files": [
+      "trace-00000.jsonl"
+    ],
+    "written": {
+      "run_started": 1,
+      "event": 1,
+      "feedback": 2185
+    },
+    "dropped": {},
+    "queued": 0,
+    "queued_bytes_estimate": 0,
+    "queue_byte_limit": 16777216,
+    "bytes_written": 1451380,
+    "error": null,
+    "feedback_hz": 50
+  },
+  "events": [
+    {
+      "event": "ready_disarmed",
+      "session_id": "16eb025b259b4856a292a8533dc73116",
+      "monotonic_ns": 48014502059876
+    }
+  ],
+  "operations": [],
+  "assembly_id": "fr3_quest_sim",
+  "revision": 1,
+  "simulation": {
+    "mode": "kinematic",
+    "display": "web",
+    "viewer": {
+      "status": "closed"
+    },
+    "render_error": null
+  },
+  "inputs": {
+    "quest": {
+      "connected": true,
+      "fresh": false,
+      "epoch": "9fc3f03a0a735c5d4a23c4a3801517a8",
+      "mode": {
+        "left": null,
+        "right": null
+      }
+    }
+  },
+  "recording": false,
+  "policy": {
+    "running": false,
+    "error": null
+  },
+  "operator": {
+    "activity": "paused",
+    "paused": true,
+    "return_to": null,
+    "interrupted": null,
+    "transition": null,
+    "error": null,
+    "hold_active": false,
+    "work_position": null,
+    "playback": null
+  },
+  "controllers": {},
+  "controller_close_errors": [],
+  "input_errors": {},
+  "input_processes": [
+    {
+      "instance_id": "quest",
+      "mode": "in_process"
+    }
+  ]
+}

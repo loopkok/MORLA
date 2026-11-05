@@ -1,0 +1,20 @@
+usage: fr3_mujoco_sim_node [-h] --assembly ASSEMBLY [--deployment DEPLOYMENT]
+                           [--input-device INPUT_DEVICE]
+                           [--input-backend {fake,real}]
+                           [--sim-mode {physics,kinematic}]
+                           [--sim-display {web,local,both}] [--port PORT]
+                           [--log-dir LOG_DIR] [--store STORE]
+
+Shared composable session host; device launches supply configuration only.
+
+options:
+  -h, --help            show this help message and exit
+  --assembly ASSEMBLY
+  --deployment DEPLOYMENT
+  --input-device INPUT_DEVICE
+  --input-backend {fake,real}
+  --sim-mode {physics,kinematic}
+  --sim-display {web,local,both}
+  --port PORT
+  --log-dir LOG_DIR     Independent per-run diagnostics directory
+  --store STORE

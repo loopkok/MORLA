@@ -41,11 +41,21 @@ def _clone_assets(root,path,prefix):
     return assets
 
 def _source_component(plugin,side):
-    if plugin not in _ASSETS:raise ValueError('No validated physical asset for '+plugin)
-    path=_DESCRIPTION/_ASSETS[plugin].format(side=side)
+    if plugin == 'morla.fairino.fr3':
+        # Robot-owned assets remain in their independent description package.
+        from morla_core.resource_locator import package_share, ResourceLookupError
+        try:
+            share=package_share('fr3_description')
+        except ResourceLookupError:
+            share=_DESCRIPTION.parent/'robots/fairino/fr3_description'
+        path=share/'mjcf/fr3.xml'
+    else:
+        if plugin not in _ASSETS:raise ValueError('No validated physical asset for '+plugin)
+        path=_DESCRIPTION/_ASSETS[plugin].format(side=side)
     root=ET.parse(path).getroot()
-    if plugin=='morla.dobot.cr5':
-        body=deepcopy(root.find(".//body[@name='base_link']"));flange='Link6'
+    if plugin in ('morla.dobot.cr5','morla.fairino.fr3'):
+        body=deepcopy(root.find(".//body[@name='base_link']"))
+        flange='flange' if plugin=='morla.fairino.fr3' else 'Link6'
     elif plugin=='morla.nero.arm':
         body=deepcopy(root.find(".//body[@name='"+side+"_link1']"))
         for parent in body.iter():
@@ -87,6 +97,17 @@ def build_scene(resolved,output=None,timestep=0.002):
             wrappers[iid]=wrapper;frames[iid+'.optical']=wrapper;world.append(wrapper);continue
         if instance.get('kind')!='actuator':continue
         source,path,body,flange=_source_component(plugin,side)
+        if plugin=='morla.fairino.fr3':
+            parameters=instance.get('parameters',{})
+            if (parameters.get('urdf_joint_signs',[1]*6)!=[1]*6 or
+                    parameters.get('urdf_joint_offsets',[0]*6)!=[0]*6):
+                raise ValueError('FR3 simulation requires native URDF mapping (+1 signs, zero offsets)')
+            from morla_fr3_driver.contract import limits
+            lower,upper=limits(parameters)
+            for index,name in enumerate(('j1','j2','j3','j4','j5','j6')):
+                bounds=f'{lower[index]} {upper[index]}'
+                body.find(".//joint[@name='"+name+"']").set('range',bounds)
+                source.find("actuator/position[@joint='"+name+"']").set('ctrlrange',bounds)
         source_hashes[iid]=hashlib.sha256(path.read_bytes()).hexdigest()
         prefix=iid+'__';names={n.get('name') for n in source.iter() if n.get('name')}
         selected={n.get('name') for n in body.iter() if n.get('name')}

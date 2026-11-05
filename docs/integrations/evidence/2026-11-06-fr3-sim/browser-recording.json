@@ -1,0 +1,134 @@
+[
+  {
+    "episode_dir": "/tmp/fr3-sim-acceptance/web-store/recordings/16eb025b259b4856a292a8533dc73116/episode000000",
+    "recording_status": "failed",
+    "files": {
+      "robot_data.h5": {
+        "streams/arm__position/command_echo": [
+          474
+        ],
+        "streams/arm__position/measured": [
+          474
+        ],
+        "streams/arm__position/received_time_ns": [
+          474
+        ],
+        "streams/arm__position/source": [
+          474
+        ],
+        "streams/arm__position/source_time_ns": [
+          474
+        ],
+        "streams/arm__position/synthetic": [
+          474
+        ],
+        "streams/arm__position/timestamps": [
+          474
+        ],
+        "streams/arm__position/valid": [
+          474
+        ],
+        "streams/arm__position/values": [
+          474,
+          6
+        ],
+        "streams/arm__position_target/command_echo": [
+          0
+        ],
+        "streams/arm__position_target/measured": [
+          0
+        ],
+        "streams/arm__position_target/received_time_ns": [
+          0
+        ],
+        "streams/arm__position_target/source": [
+          0
+        ],
+        "streams/arm__position_target/source_time_ns": [
+          0
+        ],
+        "streams/arm__position_target/synthetic": [
+          0
+        ],
+        "streams/arm__position_target/timestamps": [
+          0
+        ],
+        "streams/arm__position_target/valid": [
+          0
+        ],
+        "streams/arm__position_target/values": [
+          0,
+          6
+        ],
+        "streams/quest__right_hold/command_echo": [
+          0
+        ],
+        "streams/quest__right_hold/measured": [
+          0
+        ],
+        "streams/quest__right_hold/received_time_ns": [
+          0
+        ],
+        "streams/quest__right_hold/source": [
+          0
+        ],
+        "streams/quest__right_hold/source_time_ns": [
+          0
+        ],
+        "streams/quest__right_hold/synthetic": [
+          0
+        ],
+        "streams/quest__right_hold/timestamps": [
+          0
+        ],
+        "streams/quest__right_hold/valid": [
+          0
+        ],
+        "streams/quest__right_hold/values": [
+          0,
+          1
+        ],
+        "streams/quest__right_pose/command_echo": [
+          0
+        ],
+        "streams/quest__right_pose/measured": [
+          0
+        ],
+        "streams/quest__right_pose/received_time_ns": [
+          0
+        ],
+        "streams/quest__right_pose/source": [
+          0
+        ],
+        "streams/quest__right_pose/source_time_ns": [
+          0
+        ],
+        "streams/quest__right_pose/synthetic": [
+          0
+        ],
+        "streams/quest__right_pose/timestamps": [
+          0
+        ],
+        "streams/quest__right_pose/valid": [
+          0
+        ],
+        "streams/quest__right_pose/values": [
+          0,
+          7
+        ]
+      },
+      "camera_data.h5": {
+        "scene/arrival_timestamps": [
+          470
+        ],
+        "scene/images": [
+          470
+        ],
+        "scene/timestamps": [
+          470
+        ]
+      }
+    },
+    "failure": "required streams are empty: arm__position_target, quest__right_hold, quest__right_pose"
+  }
+]

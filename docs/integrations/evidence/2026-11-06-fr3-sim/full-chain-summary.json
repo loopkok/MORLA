@@ -1,0 +1,16 @@
+{
+  "status": "complete",
+  "accepted_frames": 120,
+  "counts": {
+    "arm__position": 60,
+    "arm__position_target": 120,
+    "quest__right_hold": 60,
+    "quest__right_pose": 60
+  },
+  "camera_counts": {
+    "scene": 60
+  },
+  "source": "simulation_with_synthetic_Quest",
+  "episode_dir": "/tmp/fr3-sim-acceptance/full-chain/store/recordings/72f87a1950c74bd6bf0332fb26379296/episode000000",
+  "vendor_sdk_loaded": false
+}

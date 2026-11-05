@@ -1,0 +1,100 @@
+[0.864s] WARNING:colcon.colcon_core.package_selection:Some selected packages are already built in one or more underlay workspaces:
+	'astral_arm_teleop' is in: /home/loopkok/MORLA/install/astral_arm_teleop
+	'robot_description' is in: /home/loopkok/MORLA/install/robot_description
+	'morla_bringup' is in: /home/loopkok/MORLA/install/morla_bringup
+	'astral_gripper_teleop' is in: /home/loopkok/MORLA/install/astral_gripper_teleop
+	'wujihand_driver' is in: /home/loopkok/MORLA/install/wujihand_driver
+	'wujihand_retargeting' is in: /home/loopkok/MORLA/install/wujihand_retargeting
+	'wuji_glove' is in: /home/loopkok/MORLA/install/wuji_glove
+	'morla_runtime' is in: /home/loopkok/MORLA/install/morla_runtime
+	'morla_web_manager' is in: /home/loopkok/MORLA/install/morla_web_manager
+	'morla_teleop' is in: /home/loopkok/MORLA/install/morla_teleop
+	'morla_core' is in: /home/loopkok/MORLA/install/morla_core
+	'morla_native_bridge' is in: /home/loopkok/MORLA/install/morla_native_bridge
+	'morla_input' is in: /home/loopkok/MORLA/install/morla_input
+If a package in a merged underlay workspace is overridden and it installs headers, then all packages in the overlay must sort their include directories by workspace order. Failure to do so may result in build failures or undefined behavior at run time.
+If the overridden package is used by another package in any underlay, then the overriding package in the overlay must be API and ABI compatible or undefined behavior at run time may occur.
+
+If you understand the risks and want to override a package anyways, add the following to the command line:
+	--allow-overriding astral_arm_teleop astral_gripper_teleop morla_bringup morla_core morla_input morla_native_bridge morla_runtime morla_teleop morla_web_manager robot_description wuji_glove wujihand_driver wujihand_retargeting
+
+This may be promoted to an error in a future release of colcon-override-check.
+Starting >>> morla_core
+Starting >>> morla_interfaces
+Starting >>> robot_description
+Starting >>> xhand_control_interfaces
+Starting >>> nero_robot_control
+Starting >>> wujihand_msgs
+Starting >>> astral_robot_control
+Starting >>> wuji_glove
+Starting >>> morla_astral_robot
+Starting >>> morla_wuji_hand
+Starting >>> quest3_video_streamer
+Starting >>> fr3_description
+Finished <<< fr3_description [2.86s]
+Finished <<< robot_description [2.94s]
+Finished <<< wujihand_msgs [2.94s]
+Finished <<< morla_interfaces [2.99s]
+Starting >>> wujihand_driver
+Finished <<< xhand_control_interfaces [3.02s]
+Starting >>> xhand_control_ros2
+Finished <<< xhand_control_ros2 [0.16s]
+Finished <<< wujihand_driver [0.22s]
+Finished <<< morla_astral_robot [4.18s]
+Finished <<< morla_core [4.25s]
+Starting >>> morla_runtime
+Starting >>> wujihand_retargeting
+Starting >>> xhand_adapter
+Starting >>> xhand_retargeting
+Starting >>> morla_learning
+Finished <<< morla_wuji_hand [4.25s]
+Finished <<< wuji_glove [4.27s]
+Finished <<< quest3_video_streamer [6.12s]
+Finished <<< astral_robot_control [6.16s]
+--- stderr: nero_robot_control
+/usr/lib/python3/dist-packages/setuptools/command/easy_install.py:355: UserWarning: Unbuilt egg for morla-core [unknown version] (/home/loopkok/MORLA/build/morla_core)
+  self.local_index = Environment(self.shadow_path + sys.path)
+---
+Finished <<< nero_robot_control [6.18s]
+Starting >>> nero_arm_teleop
+Finished <<< xhand_adapter [3.22s]
+Finished <<< xhand_retargeting [3.26s]
+Starting >>> morla_xhand_hand
+Finished <<< morla_runtime [3.30s]
+Finished <<< wujihand_retargeting [3.30s]
+Finished <<< morla_learning [3.27s]
+Starting >>> morla_input
+Starting >>> morla_native_bridge
+Finished <<< nero_arm_teleop [1.75s]
+Starting >>> morla_nero_robot
+Finished <<< morla_native_bridge [2.28s]
+Starting >>> xnero_mujoco_sim
+Finished <<< morla_xhand_hand [2.71s]
+Finished <<< morla_input [2.69s]
+Finished <<< morla_nero_robot [1.61s]
+Starting >>> morla_teleop
+Starting >>> morla_operator_control
+Starting >>> astral_arm_teleop
+Starting >>> wujihand_control
+Finished <<< xnero_mujoco_sim [2.56s]
+Finished <<< astral_arm_teleop [2.65s]
+Finished <<< morla_operator_control [2.67s]
+Starting >>> morla_data_collect
+Finished <<< morla_teleop [2.69s]
+Starting >>> astral_gripper_teleop
+Starting >>> morla_fr3_driver
+Finished <<< wujihand_control [2.69s]
+Finished <<< morla_data_collect [2.24s]
+Finished <<< astral_gripper_teleop [2.25s]
+Starting >>> morla_bringup
+Finished <<< morla_fr3_driver [2.25s]
+Finished <<< morla_bringup [1.50s]
+Starting >>> morla_policy_inference
+Finished <<< morla_policy_inference [1.51s]
+Starting >>> morla_web_manager
+Finished <<< morla_web_manager [1.52s]
+Starting >>> fr3_mujoco_sim
+Finished <<< fr3_mujoco_sim [1.52s]
+
+Summary: 36 packages finished [22.0s]
+  1 package had stderr output: nero_robot_control

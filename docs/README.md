@@ -85,3 +85,5 @@
 - [单执行器 ROS fake 冒烟脚本](testing/fake_ros_gateway_smoke.py)：只覆盖单执行器 DDS 服务/命令/反馈，不代表多组件输入链路通过。
 
 - [FR3 fairino3_v6 独立描述包与 CR5 同策略 IK 迁移](integrations/FR3_URDF_IK_MIGRATION.md)
+
+- [FR3 独立仿真包与公共 MuJoCo 接入、Web 和验收](integrations/FR3_SIMULATION.md)

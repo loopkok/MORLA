@@ -372,6 +372,8 @@ MORLA 的笛卡尔遥操采用相对位移：首次有效输入将人手位姿�
 
 要求：canonical→MJCF 的 `mjcf_name` 一一对应；模型 actuator/sensor 的名称及控制单位正确；装配 mount 有实际变换；多设备进入同一场景而非各跑独立世界。惯量、碰撞、重力、接触和夹爪 mimic/tendon 关系分别验证。
 
+FR3 的实际例子采用独立 `fr3_description` 保存 URDF/STL/MJCF，公共 builder 只增加受信包解析和子树/frame 接线；`fr3_mujoco_sim` 独立包与驱动内兼容 launch 复用同一场景，不复制仿真循环。完整过程和测试见 [FR3 仿真移植实例](integrations/FR3_SIMULATION.md)。独立资产包不意味着可跳过 canonical→MJCF 映射、限位和 FK 一致性验收。
+
 现有部分 legacy mesh 关闭碰撞，自动生成的位置伺服也不代表真实设备动力学。仿真验证必须说明覆盖的是运动学、动力学还是碰撞，不能从“能动”推断所有层都成立。sim 相机缺图形环境时应报告不可用，不以 fake 图像替换。
 
 ## 6. VR、手套、手柄、手机与外骨骼

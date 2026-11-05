@@ -38,13 +38,22 @@ def client(tmp_path, monkeypatch):
         yield value
 
 
-def test_web_fr3_catalog_template_start_quest_ik_record_stop(client):
+@pytest.mark.parametrize('template,mode',[('fr3-fake',None),('fr3-sim','kinematic'),('fr3-sim','physics')])
+def test_web_fr3_catalog_template_start_quest_ik_record_stop(client,template,mode):
     components = client.get('/api/v2/components').json()['components']
     descriptor = next(d for d in components if d['plugin_id'] == 'morla.fairino.fr3')
-    assert not descriptor['backend_variants']['sim']['available']
-    response = client.get('/api/v2/templates/fr3-fake')
+    assert descriptor['backend_variants']['sim']['available']
+    assert 'collision_unverified' in descriptor['backend_variants']['sim']['validation_level']
+    response = client.get('/api/v2/templates/'+template)
     assert response.status_code == 200, response.text
     assembly = response.json()
+    if mode is not None:
+        pytest.importorskip('mujoco')
+        assert assembly['capture']['images']=={'scene':'scene_camera.rgb'}
+        # Image rendering is exercised on the ROS host with an actual EGL context.
+        assembly['instances'].pop('scene_camera');assembly['capture']['images']={}
+        assembly['mounts']=[m for m in assembly['mounts'] if not m['child'].startswith('scene_camera.')]
+        assembly['metadata']['simulation']['mode']=mode
     saved = client.post('/api/v2/assemblies', json={'assembly': assembly, 'expected_revision': 0})
     assert saved.status_code == 200, saved.text
     resolved = saved.json()['resolved']
@@ -56,7 +65,8 @@ def test_web_fr3_catalog_template_start_quest_ik_record_stop(client):
     sid = started.json()['session_id']
     svc = client.app.state.composable
     adapter = svc.session.adapters['arm']
-    assert type(adapter).__name__ == 'FR3FakeAdapter'
+    assert type(adapter).__name__ == ('MujocoAdapter' if mode else 'FR3FakeAdapter')
+    def joints():return adapter.read(svc.clock())['values'] if mode else adapter.values[:]
     assert started.json()['status'] == 'READY_DISARMED' and not adapter.active
     source = InputStream('quest')
     source.reconnect()
@@ -75,30 +85,38 @@ def test_web_fr3_catalog_template_start_quest_ik_record_stop(client):
         reply = client.post(f'/api/v2/sessions/{sid}/operations',
                             json={'operation': operation, 'request_id': operation})
         assert reply.status_code == 200, reply.text
+        deadline=time.monotonic()+2
+        while reply.json()['status']=='RUNNING' and time.monotonic()<deadline:
+            time.sleep(.01)
+            reply=client.get(f'/api/v2/sessions/{sid}/operations/{operation}')
         assert reply.json()['status'] == 'SUCCEEDED', reply.text
     send()
     # Async IK returns latest completed results; advance the real input clock.
-    before = adapter.values[:]
+    before = joints()
     recording = client.post(f'/api/v2/sessions/{sid}/recordings', json={'task': 'fr3_offline_acceptance'})
     assert recording.status_code == 200, recording.text
+    accepted=[]
     for k in range(1, 8):
         time.sleep(.025)
         result = send(k * .0005)
+        accepted.append(result['accepted'])
         if not result['accepted']:
             assert result['reason']=='release_or_reanchor_required',result
         svc.tick()
     deadline=time.monotonic()+1
-    while np.linalg.norm(np.asarray(adapter.values)-before)<1e-4 and time.monotonic()<deadline:
+    while np.linalg.norm(np.asarray(joints())-before)<1e-4 and time.monotonic()<deadline:
         time.sleep(.02);send(.006);svc.tick()
-    assert np.linalg.norm(np.asarray(adapter.values) - before) > 1e-4
-    held = adapter.values[:]
+    assert any(accepted)
+    assert np.linalg.norm(np.asarray(joints()) - before) > 1e-4
+    held = joints()
     assert not send(.02, hold=False)['accepted']
-    assert adapter.values == held
+    if mode!='physics':assert joints() == held
     stop_record = client.post(f'/api/v2/sessions/{sid}/recordings/stop', json={})
     assert stop_record.status_code == 200, stop_record.text
     episode = Path(recording.json()['episode_dir'])
     meta = json.loads((episode / 'meta.json').read_text())
     assert meta['schema']['schema_version'] == 3
+    assert meta['recording_status']=='complete',meta.get('failure')
     import h5py
     with h5py.File(episode / 'robot_data.h5') as h5:
         datasets = []
@@ -106,7 +124,9 @@ def test_web_fr3_catalog_template_start_quest_ik_record_stop(client):
         assert any(len(shape) == 2 and shape[0] > 0 and shape[1] == 6 for _, shape in datasets), datasets
     response = client.post(f'/api/v2/sessions/{sid}/operations', json={'operation': 'stop', 'request_id': 'stop'})
     assert response.status_code == 200, response.text
-    assert not adapter.active and not adapter.configured
+    assert not adapter.active
+    if mode:assert adapter.session.closed and not adapter.session.thread.is_alive()
+    else:assert not adapter.configured
 
 
 def test_real_placeholder_rejected_without_opening_sdk(client):

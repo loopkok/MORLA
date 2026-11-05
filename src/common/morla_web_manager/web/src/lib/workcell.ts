@@ -176,3 +176,10 @@ export function presentIkReport(raw: Record<string, unknown>): Record<string, un
  return {...nested,...raw,angle_error_rad:raw.angle_error_rad??nested.angle_error_rad??nested.rotation_error_rad,
   success:raw.success??(raw.stage==='solved'?true:undefined)}
 }
+
+
+export function recordingSaveMessage(result: {status?: string; failure?: string}): string {
+ if(result.status==='failed'||result.failure) return '记录未通过完整性检查，请检查输入、动作和相机通道。'
+ if(result.status==='not_recording') return '当前没有正在录制的片段。'
+ return '数据记录已保存。'
+}

@@ -42,7 +42,7 @@ prepare 只检查反馈；显式 activate 才 `RobotEnable(1)`，确认新反馈
 支持六轴状态、准备/激活/暂停/停止、公共 Quest 位姿控制、关节点动映射、采集/回放的六维契约。
 Quest fake 只是输入测试源，必须注入输入才能跟随；真实 Quest 使用 `quest.real.example.yaml` 中的托管接收设置。
 机械臂可 fake、Quest 可 real，分别配置。模板按住 right_hold 才输出，输入过期由公共控制层处理。
-FR3 fake 是合成反馈，不是 MuJoCo；当前 `sim` 不可用，无碰撞和动力学验证。
+FR3 fake 是合成反馈；`sim` 使用公共 MuJoCo，提供运动学和参考位置伺服动力学模式。独立入口为 `ros2 launch fr3_mujoco_sim fr3_mujoco_sim.launch.py`，兼容入口为 `ros2 launch morla_fr3_driver fr3_sim.launch.py`。碰撞与实机动力学标定仍未验收，详见 [FR3 仿真说明](../../../../docs/integrations/FR3_SIMULATION.md)。
 
 真实部署时复制 `deployment.real.example.yaml`，填写序列号、唯一资源键和控制器 IPv4，
 再 compile 加 `--deployment /path/to/deployment.yaml`；Web 中对应为“真实设备”及连接设置。

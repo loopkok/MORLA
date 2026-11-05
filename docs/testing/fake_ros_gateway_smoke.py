@@ -2,7 +2,8 @@
 """Exercise installed ROS command/service transport against one fake actuator.
 
 Run only in an isolated ROS domain with a freshly launched fake single-device
-driver. No real backend is supported. This host-side check has not been run over
+driver. Opt-in also permits exact kinematic sim snapshots; physics and real
+backends are refused. This host-side check has not been run over
 DDS on the documentation authoring machine; --help needs no ROS installation.
 
 2026-10-30: retained as a single-actuator DDS transport probe. It does not test
@@ -19,12 +20,14 @@ import time
 import uuid
 
 
-def fake_snapshot(path):
+def fake_snapshot(path, allow_kinematic_sim=False):
     data = json.loads(Path(path).read_text())
     instances = data.get('instances', [])
+    kinematic=data.get('source_assembly',{}).get('metadata',{}).get('simulation',{}).get('mode')=='kinematic'
     if (len(instances) != 1 or instances[0].get('kind') != 'actuator'
-            or instances[0].get('backend') != 'fake'):
-        raise ValueError('Only an exact single-actuator fake snapshot is accepted')
+            or not (instances[0].get('backend')=='fake' or
+                    (allow_kinematic_sim and instances[0].get('backend')=='sim' and kinematic))):
+        raise ValueError('Only single-actuator fake or opted-in kinematic sim is accepted')
     return data
 
 
@@ -34,9 +37,10 @@ def main(argv=None):
     parser.add_argument('--node', required=True, help='e.g. /morla_runtime (generic system) or /cr5_driver (single device)')
     parser.add_argument('--component', required=True, help='e.g. arm, hand or gripper')
     parser.add_argument('--require-joint-state', action='store_true', help='Verify named JointState DDS output too')
+    parser.add_argument('--allow-kinematic-sim', action='store_true', help='Permit a strictly kinematic simulation snapshot; never physics/real')
     args = parser.parse_args(argv)
     path = Path(args.resolved).resolve(strict=True)
-    snapshot = fake_snapshot(path)
+    snapshot = fake_snapshot(path,args.allow_kinematic_sim)
     instance = snapshot['instances'][0]
     if instance['instance_id'] != args.component:
         raise ValueError('Component does not match snapshot')
@@ -123,6 +127,8 @@ def main(argv=None):
                 or any(not h.get('synthetic') or h.get('measured')
                        for h in state['components'].values())):
             raise ValueError('Fresh disarmed synthetic-only node required; real state is refused')
+        if instance['backend']=='sim' and state['components'][args.component].get('source')!='simulation':
+            raise ValueError('Opted-in sim probe requires actual simulation feedback')
         if args.require_joint_state:
             wait(lambda: bool(joint_samples), 'JointState DDS feedback')
             sample = joint_samples[-1]
@@ -202,9 +208,10 @@ def main(argv=None):
         send(message(10), 'submit while estop latched', 'RESET_REQUIRED')
         operation('reset')
         wait(lambda: state.get('status') == 'READY_DISARMED', 'reset')
-        send(message(11), 'submit after reset without activate', 'ADAPTER_DISARMED')
+        send(message(11), 'submit after reset without activate',
+             'SIM_DISARMED' if instance['backend']=='sim' else 'ADAPTER_DISARMED')
         permit = None
-        print('PASS installed fake ROS services, command/receipt transport, feedback, '
+        print('PASS installed synthetic ROS services, command/receipt transport, feedback, '
               'and the retained rejection cases (resource subset, estop latch, disarmed adapter)')
     finally:
         if permit is not None:

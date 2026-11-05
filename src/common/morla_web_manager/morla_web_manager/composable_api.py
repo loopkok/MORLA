@@ -48,6 +48,7 @@ def router(service):
         from morla_core.resource_locator import package_share, ResourceLookupError, morla_source_root
         from morla_core.composition import load_document
         templates = {
+            'fr3-sim': ('morla_fr3_driver', 'src/robots/fairino/morla_fr3_driver', 'quest.sim.yaml'),
             'fr3-fake': ('morla_fr3_driver', 'src/robots/fairino/morla_fr3_driver', 'quest.fake.yaml'),
             'cr5-sim': ('morla_cr5_driver', 'src/robots/dobot/morla_cr5_driver', 'quest.sim.yaml'),
             'nero-sim': ('xnero_mujoco_sim', 'src/robots/nero/xnero_mujoco_sim', 'composable.sim.yaml'),

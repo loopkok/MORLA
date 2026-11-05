@@ -51,7 +51,7 @@ work, and acceptance checklist against the actual code.
 For a step-by-step team example, use the [FR3 porting tutorial](docs/integrations/FR3_PORTING_TUTORIAL.md) and [new-robot worksheet](docs/integrations/ROBOT_PORTING_WORKSHEET.md).
 The [FAIRINO FR3 integration](docs/integrations/fr3.md) provides an independent
 SDK-backed ROS 2 driver, bounded SDK process, standalone fairino3_v6 URDF assets,
-CR5-style strict/differential IK and a Web fake preset. ROS Humble builds, fake DDS and browser workflows are validated; physical FR3 acceptance remains pending.
+CR5-style strict/differential IK, Web presets, and an independent MuJoCo simulation entry sharing the common runtime. ROS Humble builds, fake DDS and browser workflows are validated; physical FR3 acceptance remains pending.
 [CR5](docs/integrations/cr5.md) and
 [Aero Hand Open](docs/integrations/loophand.md) are independent ROS 2 driver
 packages and composable plugins. Their [combined example](examples/cr5_loophand/README.md)

@@ -1,0 +1,7 @@
+{"case": "named JointState DDS", "names": ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6"], "position_rad": [0.0, -1.5707963267948966, 1.5707963267948966, -1.5707963267948966, -1.5707963267948966, 0.0], "stamp_sec": 1793897715}
+{"case": "valid fake target", "accepted": true, "reason": "", "dispatched": ["arm"]}
+{"case": "duplicate component", "accepted": false, "reason": "COMMAND_RESOURCES", "dispatched": []}
+{"case": "unknown component", "accepted": false, "reason": "COMMAND_RESOURCES", "dispatched": []}
+{"case": "submit while estop latched", "accepted": false, "reason": "RESET_REQUIRED", "dispatched": []}
+{"case": "submit after reset without activate", "accepted": false, "reason": "SIM_DISARMED", "dispatched": []}
+PASS installed synthetic ROS services, command/receipt transport, feedback, and the retained rejection cases (resource subset, estop latch, disarmed adapter)

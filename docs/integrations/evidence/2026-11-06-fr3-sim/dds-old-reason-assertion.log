@@ -1,0 +1,13 @@
+{"case": "named JointState DDS", "names": ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6"], "position_rad": [0.0, -1.5707963267948966, 1.5707963267948966, -1.5707963267948966, -1.5707963267948966, 0.0], "stamp_sec": 1793897629}
+{"case": "valid fake target", "accepted": true, "reason": "", "dispatched": ["arm"]}
+{"case": "duplicate component", "accepted": false, "reason": "COMMAND_RESOURCES", "dispatched": []}
+{"case": "unknown component", "accepted": false, "reason": "COMMAND_RESOURCES", "dispatched": []}
+{"case": "submit while estop latched", "accepted": false, "reason": "RESET_REQUIRED", "dispatched": []}
+Traceback (most recent call last):
+  File "/home/loopkok/MORLA/docs/testing/fake_ros_gateway_smoke.py", line 224, in <module>
+    main()
+  File "/home/loopkok/MORLA/docs/testing/fake_ros_gateway_smoke.py", line 209, in main
+    send(message(11), 'submit after reset without activate', 'ADAPTER_DISARMED')
+  File "/home/loopkok/MORLA/docs/testing/fake_ros_gateway_smoke.py", line 183, in send
+    assert expected in result.reason, (label, result.reason, expected)
+AssertionError: ('submit after reset without activate', 'SIM_DISARMED', 'ADAPTER_DISARMED')

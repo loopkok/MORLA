@@ -4,7 +4,11 @@
 
 教学入口：[FR3 移植实战教程](FR3_PORTING_TUTORIAL.md)；成员可复制[移植工作单](ROBOT_PORTING_WORKSHEET.md)开展新设备接入。
 
-## 当前 URDF / IK 更新
+## 当前仿真更新
+
+已新增独立 `fr3_mujoco_sim` 入口和公共 MuJoCo 场景适配，支持运动学/参考动力学、Web/local/both、FR3 IK 和场景相机。用法与本轮证据见 [FR3 仿真说明](FR3_SIMULATION.md)。下面 DH 与 URDF 阶段的验收数字均保留历史口径。
+
+## URDF / IK 更新
 
 现已提取独立 `fr3_description`（仅 fairino3_v6），FR3 使用与 CR5 同策略的严格 URDF DLS、微分 IK 与异步 controller；新预设默认微分模式。此次模型/控制链变更的证据见 [URDF/IK 移植记录](FR3_URDF_IK_MIGRATION.md)。下面主机/浏览器统计属于此前 DH 版本，不能替代新版本验证。
 
@@ -52,7 +56,7 @@ fake 输入→控制→录制链路已实现。当前环境是 macOS，没有 RO
   表 2.4-1（PDF 第 126 页、印刷 40 页）的标准 DH 参数已提取。没有套用其他 FR3 子型号。
 - [官方 Python SDK 文档](https://manual.fairino.support/latest/SDKManual/python_intro.html)
   已对照；实现以固定的本地源码为准，不默认任意旧固件兼容。
-- `sim` 标记不可用：虽已迁入 URDF 的 mesh/惯量/碰撞声明，仍未完成动力学、碰撞和仿真后端验证，不以 fake 冒充 MuJoCo。
+- `sim` 现使用公共 MuJoCo 后端；保留 URDF 惯量与显示网格，但未启用机器人碰撞，参考位置伺服动力学未完成实机辨识。fake 与 sim 分别登记。
   本地 FK/IK 有数学自一致测试，但仍须用多组 SDK FK 和实体位形核对模型约定。
 
 ## 接口与行为

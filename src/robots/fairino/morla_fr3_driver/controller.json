@@ -21,6 +21,10 @@
     "real": {
       "available": true,
       "validation_level": "requires_URDF_hardware_alignment_acceptance"
+    },
+    "sim": {
+      "available": true,
+      "validation_level": "URDF_IK_in_shared_MuJoCo_scene"
     }
   },
   "source": {

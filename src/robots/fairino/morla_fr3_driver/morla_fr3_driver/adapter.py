@@ -174,4 +174,4 @@ def create_adapter(instance, context):
         return FR3FakeAdapter(instance)
     if instance['backend'] == 'real':
         return FR3Adapter(instance, context)
-    raise ValueError('FR3 supports fake and real; no validated physics backend')
+    raise ValueError('FR3 sim is owned by the shared Runtime; direct factory supports fake and real')

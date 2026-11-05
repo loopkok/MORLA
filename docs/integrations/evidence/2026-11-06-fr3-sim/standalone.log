@@ -1,0 +1,1136 @@
+[INFO] [launch]: All log files can be found below /home/loopkok/.ros/log/2026-11-06-00-46-08-812071-loopkok-Nitro-AN515-45-70654
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [ros2-1]: process started with pid [70655]
+[ros2-1] {"url": "http://127.0.0.1:18085", "session_id": "16eb025b259b4856a292a8533dc73116", "status": "READY_DISARMED", "activation": "explicit_only"}
+[ros2-1] INFO:     Started server process [70657]
+[ros2-1] INFO:     Waiting for application startup.
+[ros2-1] INFO:     Application startup complete.
+[ros2-1] INFO:     Uvicorn running on http://127.0.0.1:18085 (Press CTRL+C to quit)
+[ros2-1] INFO:     127.0.0.1:56822 - "GET /api/v2/active-session HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:56834 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/cameras/scene_camera/frame HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37320 - "GET / HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37320 - "GET /assets/index-DvfNVI_x.js HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37334 - "GET /assets/index-N_1VrTr9.css HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37338 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37320 - "GET /api/v2/components HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37334 - "GET /api/v2/assemblies HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37334 - "GET /api/v2/active-session HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/templates/cr5-sim HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37334 - "GET /api/v1/presets HTTP/1.1" 404 Not Found
+[ros2-1] INFO:     127.0.0.1:37378 - "GET /api/v2/templates/fr3-sim HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37334 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/assemblies/fr3_quest_sim/revisions/1 HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37320 - "GET /api/v2/templates/fr3-fake HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37320 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/cameras/scene_camera/stream HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37352 - "GET /api/v2/templates/nero-sim HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37366 - "GET /api/v2/templates/astral-sim HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/diagnostics/runs HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37382 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37396 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:49432 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:49440 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:49442 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:49444 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38556 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38570 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38586 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:36728 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "POST /api/v2/sessions/16eb025b259b4856a292a8533dc73116/simulation HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:36738 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:36750 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:34968 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:34980 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:41408 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:41424 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:41774 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:41786 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:41080 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:32834 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:32840 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:36084 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:47738 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:47742 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:50098 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:50104 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:58446 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:33478 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:33484 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:33062 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:33078 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:59674 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:59682 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:60104 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:48794 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:48796 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37914 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:47740 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:47752 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:41024 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:44846 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:44852 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:52806 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:34386 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:34400 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:49178 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:49182 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:60404 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:60408 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:35054 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:35056 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:54084 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:45892 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:45906 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:35202 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:59916 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:59918 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "POST /api/v2/sessions/16eb025b259b4856a292a8533dc73116/recordings HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:57508 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:45300 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:45302 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "POST /api/v2/sessions/16eb025b259b4856a292a8533dc73116/recordings/stop HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:57100 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:57114 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:43024 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:55166 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:55170 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET / HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /assets/index-pP8rnM0E.js HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38424 - "GET /assets/index-N_1VrTr9.css HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/components HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38424 - "GET /api/v2/assemblies HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/templates/astral-sim HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37340 - "GET /api/v2/active-session HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v1/presets HTTP/1.1" 404 Not Found
+[ros2-1] INFO:     127.0.0.1:38444 - "GET /api/v2/templates/nero-sim HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/assemblies/fr3_quest_sim/revisions/1 HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38440 - "GET /api/v2/templates/cr5-sim HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38424 - "GET /api/v2/templates/fr3-fake HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38444 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/cameras/scene_camera/stream HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38460 - "GET /api/v2/templates/fr3-sim HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/diagnostics/runs HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38474 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:52024 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:52034 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:43564 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:57048 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:57054 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37588 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37318 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37332 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37344 - "GET /api/v2/active-session HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37350 - "POST /api/v2/sessions/16eb025b259b4856a292a8533dc73116/operations HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:37352 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/sessions/16eb025b259b4856a292a8533dc73116/state HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:38454 - "GET /api/v2/diagnostics/runs HTTP/1.1" 200 OK
+[ros2-1] INFO:     127.0.0.1:47142 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:47144 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:43484 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:59980 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:59986 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:33358 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:33374 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:33708 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:40822 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:40838 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:40848 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:58384 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:58394 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:58396 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:49762 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:49768 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:49778 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:59428 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:59434 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:59446 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:59462 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:33200 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:33206 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37714 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:37716 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:55020 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:55032 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:46844 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:46858 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:48196 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:48200 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:43204 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:41874 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:41890 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:36942 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:47014 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:47030 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:42106 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:42116 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:59972 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:44644 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:44648 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:50060 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:50066 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:59114 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ros2-1] INFO:     127.0.0.1:59126 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[WARNING] [launch]: user interrupted with ctrl-c (SIGINT)
+[INFO] [ros2-1]: sending signal 'SIGINT' to process[ros2-1]
+[ros2-1] INFO:     127.0.0.1:58828 - "WebSocket /ws/telemetry" 403
+[ros2-1] INFO:     connection rejected (403 Forbidden)
+[ERROR] [ros2-1]: process[ros2-1] failed to terminate '5' seconds after receiving 'SIGINT', escalating to 'SIGTERM'
+[INFO] [ros2-1]: sending signal 'SIGTERM' to process[ros2-1]
+[ERROR] [ros2-1]: process has died [pid 70655, exit code -15, cmd '/opt/ros/humble/bin/ros2 run morla_web_manager morla-composable-session --assembly /home/loopkok/MORLA/install/fr3_mujoco_sim/share/fr3_mujoco_sim/config/composable.sim.yaml --deployment --input-backend fake --sim-mode kinematic --sim-display web --log-dir --port 18085 --store /tmp/fr3-sim-acceptance/web-store'].
