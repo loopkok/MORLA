@@ -33,6 +33,7 @@ def main(argv=None):
     parser.add_argument('--resolved', required=True)
     parser.add_argument('--node', required=True, help='e.g. /morla_runtime (generic system) or /cr5_driver (single device)')
     parser.add_argument('--component', required=True, help='e.g. arm, hand or gripper')
+    parser.add_argument('--require-joint-state', action='store_true', help='Verify named JointState DDS output too')
     args = parser.parse_args(argv)
     path = Path(args.resolved).resolve(strict=True)
     snapshot = fake_snapshot(path)
@@ -53,6 +54,10 @@ def main(argv=None):
     prefix = args.node.rstrip('/')
     state = {}
     receipts = []
+    joint_samples = []
+    if args.require_joint_state:
+        from sensor_msgs.msg import JointState
+        node.create_subscription(JointState, prefix + "/" + args.component + "/joint_states", joint_samples.append, 10)
     request_prefix = 'host-fake-' + uuid.uuid4().hex
     owner = 'host_fake_test'
     permit = None
@@ -118,6 +123,14 @@ def main(argv=None):
                 or any(not h.get('synthetic') or h.get('measured')
                        for h in state['components'].values())):
             raise ValueError('Fresh disarmed synthetic-only node required; real state is refused')
+        if args.require_joint_state:
+            wait(lambda: bool(joint_samples), 'JointState DDS feedback')
+            sample = joint_samples[-1]
+            assert list(sample.name) == [j['name'] for j in instance['joints']]
+            assert len(sample.position) == len(instance['joints']) and all(math.isfinite(q) for q in sample.position)
+            assert sample.header.stamp.sec > 0
+            print(json.dumps({'case': 'named JointState DDS', 'names': list(sample.name),
+                              'position_rad': list(sample.position), 'stamp_sec': sample.header.stamp.sec}), flush=True)
         operation('prepare')
         wait(lambda: state.get('status') == 'READY_DISARMED', 'prepare')
         operation('activate')

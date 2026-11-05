@@ -1,0 +1,16 @@
+[
+  {
+    "case": "driver",
+    "exit_code": 0,
+    "shutdown_s": 0.165,
+    "traceback": true,
+    "escalation": false
+  },
+  {
+    "case": "web",
+    "exit_code": 0,
+    "shutdown_s": 0.414,
+    "traceback": false,
+    "escalation": false
+  }
+]

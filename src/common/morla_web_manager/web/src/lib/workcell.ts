@@ -167,3 +167,10 @@ export function visibleDeviceFields(
   return !connection
  }))
 }
+
+// Public CartesianController nests device solver details; CR5 reports them flat.
+export function presentIkReport(raw: Record<string, unknown>): Record<string, unknown> {
+ const nested=raw.solver_report&&typeof raw.solver_report==='object'?raw.solver_report as Record<string,unknown>:{}
+ return {...nested,...raw,angle_error_rad:raw.angle_error_rad??nested.angle_error_rad??nested.rotation_error_rad,
+  success:raw.success??(raw.stage==='solved'?true:undefined)}
+}

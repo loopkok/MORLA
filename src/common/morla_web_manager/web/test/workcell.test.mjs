@@ -110,3 +110,11 @@ test('camera fields exclude arm and joint configuration in every backend', () =>
  }
  assert.ok('device_path' in model.visibleDeviceFields(camera,'real',{camera_backend:'uvc'},undefined,true))
 })
+
+test('public Cartesian IK diagnostics show nested solver residuals and preserve CR5 flat reports',()=>{
+ const common=model.presentIkReport({stage:'solved',solver_report:{position_error_m:.0001,rotation_error_rad:.002}})
+ assert.equal(common.success,true);assert.equal(common.position_error_m,.0001);assert.equal(common.angle_error_rad,.002)
+ const flat=model.presentIkReport({success:false,position_error_m:.01,angle_error_rad:.02})
+ assert.equal(flat.success,false);assert.equal(flat.position_error_m,.01);assert.equal(flat.angle_error_rad,.02)
+ assert.equal(model.presentIkReport({stage:'held'}).success,undefined)
+})

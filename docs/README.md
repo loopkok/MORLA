@@ -4,7 +4,7 @@
 
 新增机器人、输入设备、相机、传感器或脚踏操作源，先阅读 [设备移植与接入指南](device_integration_guide.md)：包含重构后实际接口、坐标/关节/时间对齐、分设备接入步骤、配置样例、验收和交付模板。
 
-[FAIRINO FR3 接入与验收](integrations/fr3.md)：独立 SDK/ROS 2 驱动、本地六轴运动学、Web 预设与离线测试；目标 ROS 主机及实体机械臂验收待执行。
+[FAIRINO FR3 接入与验收](integrations/fr3.md)：独立 SDK/ROS 2 驱动、本地六轴运动学、Web 预设与离线测试；ROS 主机编译、fake DDS 与浏览器验收已完成，实体机械臂验收待执行。
 
 现有独立接入示例：[CR5 机械臂](integrations/cr5.md)、[LoopHand 灵巧手](integrations/loophand.md)；两者的 [组合配置](../examples/cr5_loophand/README.md) 由公共 runtime 装配，不依赖联合设备驱动。
 

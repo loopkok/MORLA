@@ -1,0 +1,121 @@
+[
+  {
+    "episode": "/home/loopkok/morla-acceptance/fr3-20261105-223209/web-store/recordings/8fa24291b6374a3aaf1cb18d44ef7d95/episode000000",
+    "task": "fr3_ros_host_browser_acceptance",
+    "status": "complete",
+    "datasets": {
+      "streams/arm__position/command_echo": [
+        1183
+      ],
+      "streams/arm__position/measured": [
+        1183
+      ],
+      "streams/arm__position/received_time_ns": [
+        1183
+      ],
+      "streams/arm__position/source": [
+        1183
+      ],
+      "streams/arm__position/source_time_ns": [
+        1183
+      ],
+      "streams/arm__position/synthetic": [
+        1183
+      ],
+      "streams/arm__position/timestamps": [
+        1183
+      ],
+      "streams/arm__position/valid": [
+        1183
+      ],
+      "streams/arm__position/values": [
+        1183,
+        6
+      ],
+      "streams/arm__position_target/command_echo": [
+        2450
+      ],
+      "streams/arm__position_target/measured": [
+        2450
+      ],
+      "streams/arm__position_target/received_time_ns": [
+        2450
+      ],
+      "streams/arm__position_target/source": [
+        2450
+      ],
+      "streams/arm__position_target/source_time_ns": [
+        2450
+      ],
+      "streams/arm__position_target/synthetic": [
+        2450
+      ],
+      "streams/arm__position_target/timestamps": [
+        2450
+      ],
+      "streams/arm__position_target/valid": [
+        2450
+      ],
+      "streams/arm__position_target/values": [
+        2450,
+        6
+      ],
+      "streams/quest__right_hold/command_echo": [
+        1183
+      ],
+      "streams/quest__right_hold/measured": [
+        1183
+      ],
+      "streams/quest__right_hold/received_time_ns": [
+        1183
+      ],
+      "streams/quest__right_hold/source": [
+        1183
+      ],
+      "streams/quest__right_hold/source_time_ns": [
+        1183
+      ],
+      "streams/quest__right_hold/synthetic": [
+        1183
+      ],
+      "streams/quest__right_hold/timestamps": [
+        1183
+      ],
+      "streams/quest__right_hold/valid": [
+        1183
+      ],
+      "streams/quest__right_hold/values": [
+        1183,
+        1
+      ],
+      "streams/quest__right_pose/command_echo": [
+        1183
+      ],
+      "streams/quest__right_pose/measured": [
+        1183
+      ],
+      "streams/quest__right_pose/received_time_ns": [
+        1183
+      ],
+      "streams/quest__right_pose/source": [
+        1183
+      ],
+      "streams/quest__right_pose/source_time_ns": [
+        1183
+      ],
+      "streams/quest__right_pose/synthetic": [
+        1183
+      ],
+      "streams/quest__right_pose/timestamps": [
+        1183
+      ],
+      "streams/quest__right_pose/valid": [
+        1183
+      ],
+      "streams/quest__right_pose/values": [
+        1183,
+        7
+      ]
+    }
+  }
+]

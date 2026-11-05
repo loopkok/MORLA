@@ -1,0 +1,16 @@
+............................                                             [100%]
+=============================== warnings summary ===============================
+../.local/lib/python3.10/site-packages/fastapi/testclient.py:1
+  /home/loopkok/.local/lib/python3.10/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+src/common/morla_data_collect/test/test_composable_data.py::test_11state_8action_numeric_canary[next_state]
+  /home/loopkok/.local/lib/python3.10/site-packages/pandas/core/computation/expressions.py:21: UserWarning: Pandas requires version '2.8.4' or newer of 'numexpr' (version '2.8.1' currently installed).
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+
+src/common/morla_data_collect/test/test_composable_data.py::test_11state_8action_numeric_canary[next_state]
+  /home/loopkok/.local/lib/python3.10/site-packages/pandas/core/arrays/masked.py:61: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.2' currently installed).
+    from pandas.core import (
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+28 passed, 3 warnings in 5.28s

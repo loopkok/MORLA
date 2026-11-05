@@ -12,6 +12,8 @@ def main(args=None, *, node_name='morla_runtime', required_plugin=None,
          publish_joint_states=False):
     import rclpy
     from rclpy.node import Node
+    from rclpy.executors import ExternalShutdownException
+    from rclpy.impl.implementation_singleton import rclpy_implementation as _rclpy
     from std_msgs.msg import String
     from morla_interfaces.msg import CommandEnvelope, CommandReceipt, ComponentHealth
     from morla_interfaces.srv import RuntimeOperation, ControlAuthority
@@ -133,12 +135,19 @@ def main(args=None, *, node_name='morla_runtime', required_plugin=None,
     try:
         node = RuntimeNode()
         rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
+    except _rclpy.RCLError:
+        # Humble can invalidate the wait set while SIGINT shuts the context.
+        # Genuine ROS errors with a live context must still fail visibly.
+        if rclpy.ok():
+            raise
     finally:
         if node is not None:
             if node.host is not None:node.host.close()
             node.runtime.stop()
             node.destroy_node()
-        rclpy.shutdown()
+        rclpy.try_shutdown()
 
 
 def joint_state_main(args=None):

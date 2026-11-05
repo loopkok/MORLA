@@ -13,7 +13,7 @@ setup(
     ],
     install_requires=['setuptools', 'numpy', 'scipy'],
     extras_require={'real': ['python-mbedtls>=2.9,<3']},
-    license='Apache-2.0', maintainer='MORLA maintainers', maintainer_email='robot@localhost',
+    license='Apache-2.0', maintainer='MORLA maintainers', maintainer_email='maintainers@morla.dev',
     description='FAIRINO FR3 SDK-backed ROS 2 and composable MORLA driver',
     entry_points={
         'morla.adapters': [

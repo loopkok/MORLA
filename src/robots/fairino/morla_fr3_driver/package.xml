@@ -2,7 +2,7 @@
 <package format="3">
   <name>morla_fr3_driver</name><version>0.1.0</version>
   <description>FAIRINO FR3 SDK-backed ROS 2 / MORLA driver</description>
-  <maintainer email="robot@localhost">MORLA maintainers</maintainer>
+  <maintainer email="maintainers@morla.dev">MORLA maintainers</maintainer>
   <license>Apache-2.0</license>
   <exec_depend>morla_core</exec_depend><exec_depend>morla_runtime</exec_depend>
   <exec_depend>rclpy</exec_depend><exec_depend>sensor_msgs</exec_depend>

@@ -1,0 +1,4 @@
+Linux loopkok-Nitro-AN515-45 6.8.0-138-generic #138~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Fri Aug  7 13:43:15 UTC  x86_64 x86_64 x86_64 GNU/Linux
+Python 3.10.12
+default rmw_fastrtps_cpp
+ROS_DOMAIN_ID=126

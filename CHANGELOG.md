@@ -2,6 +2,14 @@
 
 ## 2026-11-05 — FAIRINO FR3 独立驱动与组合 Web
 
+### ROS Humble 主机与浏览器验收补充
+
+- 在用户指定 Ubuntu 22.04 / ROS 2 Humble 主机完成 34 个相关包编译、FR3 普通安装与脱离源码目录的发现检查；补齐 SDK 的 python-mbedtls 依赖。
+- 修复 package.xml 维护者邮箱导致 FR3 被识别为普通 Python 包的问题；Web launch 改用 ExecuteProcess，避免附加 --ros-args 和空 deployment 参数；公共 ROS 网关兼容 Humble 的信号退出，保留活跃上下文中的 ROS 异常。
+- 实测 fake DDS 命令/回执/服务、JointState 六轴顺序与时间戳、急停/复位拒绝路径、设备资源互斥；浏览器完成预设、检查、保存、激活、录制、暂停和停止。修正通用 CartesianController 的嵌套 IK 报告显示，并隐藏空报告。
+- 目标机 pure **338 passed**、fake **28 passed**；前端 **18 passed** 与构建通过。录制状态/动作分别为 **1183×6 / 2450×6**。详细证据、退出日志中的 Humble Future 析构提示及剩余实机边界见 [主机验收报告](docs/integrations/FR3_HOST_ACCEPTANCE_2026-11-05.md)。
+
+
 - 实施、验证与发布记录见 [FR3 发布日志](docs/integrations/FR3_PUBLISH_LOG_2026-11-05.md)。
 
 - 新增 `morla_fr3_driver`：原样固定用户提供的 SDK V2.2.8 源码与许可证/摘要；独占子进程隔离无限重试，CNDE 完整帧采样时间、六轴 rad/限位/限速、显式使能与反馈确认、暂停保持和停止清理。

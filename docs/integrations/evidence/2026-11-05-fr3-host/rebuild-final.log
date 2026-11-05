@@ -1,0 +1,18 @@
+[0.864s] WARNING:colcon.colcon_core.package_selection:Some selected packages are already built in one or more underlay workspaces:
+	'morla_web_manager' is in: /home/loopkok/MORLA/install/morla_web_manager
+	'morla_runtime' is in: /home/loopkok/MORLA/install/morla_runtime
+If a package in a merged underlay workspace is overridden and it installs headers, then all packages in the overlay must sort their include directories by workspace order. Failure to do so may result in build failures or undefined behavior at run time.
+If the overridden package is used by another package in any underlay, then the overriding package in the overlay must be API and ABI compatible or undefined behavior at run time may occur.
+
+If you understand the risks and want to override a package anyways, add the following to the command line:
+	--allow-overriding morla_runtime morla_web_manager
+
+This may be promoted to an error in a future release of colcon-override-check.
+Starting >>> morla_runtime
+Finished <<< morla_runtime [1.41s]
+Starting >>> morla_fr3_driver
+Starting >>> morla_web_manager
+Finished <<< morla_fr3_driver [1.85s]
+Finished <<< morla_web_manager [1.89s]
+
+Summary: 3 packages finished [4.07s]

@@ -1,0 +1,91 @@
+[0.850s] WARNING:colcon.colcon_core.package_selection:Some selected packages are already built in one or more underlay workspaces:
+	'wujihand_retargeting' is in: /home/loopkok/MORLA/install/wujihand_retargeting
+	'robot_description' is in: /home/loopkok/MORLA/install/robot_description
+	'morla_native_bridge' is in: /home/loopkok/MORLA/install/morla_native_bridge
+	'wujihand_driver' is in: /home/loopkok/MORLA/install/wujihand_driver
+	'morla_runtime' is in: /home/loopkok/MORLA/install/morla_runtime
+	'wuji_glove' is in: /home/loopkok/MORLA/install/wuji_glove
+	'morla_teleop' is in: /home/loopkok/MORLA/install/morla_teleop
+	'morla_core' is in: /home/loopkok/MORLA/install/morla_core
+	'astral_gripper_teleop' is in: /home/loopkok/MORLA/install/astral_gripper_teleop
+	'morla_input' is in: /home/loopkok/MORLA/install/morla_input
+	'morla_bringup' is in: /home/loopkok/MORLA/install/morla_bringup
+	'morla_web_manager' is in: /home/loopkok/MORLA/install/morla_web_manager
+	'astral_arm_teleop' is in: /home/loopkok/MORLA/install/astral_arm_teleop
+If a package in a merged underlay workspace is overridden and it installs headers, then all packages in the overlay must sort their include directories by workspace order. Failure to do so may result in build failures or undefined behavior at run time.
+If the overridden package is used by another package in any underlay, then the overriding package in the overlay must be API and ABI compatible or undefined behavior at run time may occur.
+
+If you understand the risks and want to override a package anyways, add the following to the command line:
+	--allow-overriding astral_arm_teleop astral_gripper_teleop morla_bringup morla_core morla_input morla_native_bridge morla_runtime morla_teleop morla_web_manager robot_description wuji_glove wujihand_driver wujihand_retargeting
+
+This may be promoted to an error in a future release of colcon-override-check.
+Starting >>> morla_core
+Starting >>> morla_interfaces
+Starting >>> robot_description
+Starting >>> xhand_control_interfaces
+Starting >>> nero_robot_control
+Starting >>> wujihand_msgs
+Starting >>> astral_robot_control
+Starting >>> wuji_glove
+Starting >>> morla_astral_robot
+Starting >>> morla_wuji_hand
+Starting >>> quest3_video_streamer
+Finished <<< robot_description [2.78s]
+Finished <<< wujihand_msgs [2.79s]
+Finished <<< xhand_control_interfaces [2.82s]
+Finished <<< morla_interfaces [2.85s]
+Starting >>> wujihand_driver
+Starting >>> xhand_control_ros2
+Finished <<< wujihand_driver [0.16s]
+Finished <<< xhand_control_ros2 [0.16s]
+Finished <<< astral_robot_control [4.05s]
+Finished <<< nero_robot_control [4.08s]
+Finished <<< quest3_video_streamer [4.05s]
+Finished <<< wuji_glove [4.09s]
+Finished <<< morla_wuji_hand [4.15s]
+Finished <<< morla_astral_robot [4.16s]
+Finished <<< morla_core [4.24s]
+Starting >>> morla_runtime
+Starting >>> nero_arm_teleop
+Starting >>> wujihand_retargeting
+Starting >>> xhand_adapter
+Starting >>> xhand_retargeting
+Starting >>> morla_learning
+Finished <<< xhand_adapter [3.53s]
+Finished <<< wujihand_retargeting [3.54s]
+Finished <<< xhand_retargeting [3.53s]
+Starting >>> morla_xhand_hand
+Finished <<< morla_runtime [3.58s]
+Starting >>> morla_input
+Starting >>> morla_native_bridge
+Starting >>> morla_fr3_driver
+Finished <<< morla_learning [3.57s]
+Finished <<< nero_arm_teleop [3.61s]
+Starting >>> morla_nero_robot
+Finished <<< morla_native_bridge [2.93s]
+Starting >>> xnero_mujoco_sim
+Finished <<< morla_nero_robot [2.92s]
+Finished <<< morla_xhand_hand [2.98s]
+Finished <<< morla_fr3_driver [2.96s]
+Finished <<< morla_input [3.32s]
+Starting >>> morla_operator_control
+Starting >>> morla_teleop
+Starting >>> astral_arm_teleop
+Starting >>> wujihand_control
+Finished <<< xnero_mujoco_sim [1.85s]
+Finished <<< morla_teleop [2.65s]
+Starting >>> astral_gripper_teleop
+Finished <<< morla_operator_control [2.67s]
+Starting >>> morla_data_collect
+Finished <<< astral_arm_teleop [2.67s]
+Finished <<< wujihand_control [2.67s]
+Finished <<< astral_gripper_teleop [1.84s]
+Starting >>> morla_bringup
+Finished <<< morla_data_collect [1.84s]
+Finished <<< morla_bringup [1.47s]
+Starting >>> morla_policy_inference
+Finished <<< morla_policy_inference [1.49s]
+Starting >>> morla_web_manager
+Finished <<< morla_web_manager [1.48s]
+
+Summary: 34 packages finished [20.9s]
