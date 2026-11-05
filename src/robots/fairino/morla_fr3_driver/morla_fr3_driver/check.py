@@ -24,6 +24,7 @@ def main(argv=None):
     transport = None
     report = {'host': args.host, 'mode': 'read_only', 'motion_test': 'NOT_RUN'}
     try:
+        kinematics = FR3Kinematics(parameters)
         transport = FR3Transport(parameters)
         samples = {}
         until = time.monotonic() + args.seconds
@@ -34,13 +35,13 @@ def main(argv=None):
         sample = list(samples.values())[-1]
         q = sample['values']
         pose = transport.forward_kinematics(q)
-        predicted = FR3Kinematics(parameters).fk(q)
+        predicted = kinematics.fk(q)
         position_error = float(np.linalg.norm(predicted[:3, 3] - np.array(pose[:3]) / 1000))
         rotation_error = float(Rotation.from_matrix(
             predicted[:3, :3].T @ Rotation.from_euler('xyz', pose[3:], degrees=True).as_matrix()).magnitude())
         report.update(status='PASS' if len(samples) > 1 and position_error < .002 and rotation_error < .02 else 'FAIL',
                       distinct_samples=len(samples), last_feedback=sample, sdk_fk_mm_deg=pose,
-                      dh_fk_m=predicted.tolist(), position_error_m=position_error, rotation_error_rad=rotation_error,
+                      urdf_fk_m=predicted.tolist(), model_sha256=kinematics.model_sha256, position_error_m=position_error, rotation_error_rad=rotation_error,
                       stamp_domain='host_monotonic_ns_on_complete_CNDE_frame')
     except Exception as exc:
         report.update(status='FAIL', error=f'{type(exc).__name__}: {exc}')

@@ -1,0 +1,51 @@
+[1.106s] WARNING:colcon.colcon_core.package_selection:Some selected packages are already built in one or more underlay workspaces:
+	'morla_web_manager' is in: /home/loopkok/MORLA/install/morla_web_manager
+If a package in a merged underlay workspace is overridden and it installs headers, then all packages in the overlay must sort their include directories by workspace order. Failure to do so may result in build failures or undefined behavior at run time.
+If the overridden package is used by another package in any underlay, then the overriding package in the overlay must be API and ABI compatible or undefined behavior at run time may occur.
+
+If you understand the risks and want to override a package anyways, add the following to the command line:
+	--allow-overriding morla_web_manager
+
+This may be promoted to an error in a future release of colcon-override-check.
+Starting >>> morla_fr3_driver
+Starting >>> morla_web_manager
+running develop
+running develop
+running egg_info
+writing morla_fr3_driver.egg-info/PKG-INFO
+writing dependency_links to morla_fr3_driver.egg-info/dependency_links.txt
+writing entry points to morla_fr3_driver.egg-info/entry_points.txt
+writing requirements to morla_fr3_driver.egg-info/requires.txt
+writing top-level names to morla_fr3_driver.egg-info/top_level.txt
+reading manifest file 'morla_fr3_driver.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+adding license file 'LICENSE-FAIRINO'
+writing manifest file 'morla_fr3_driver.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/loopkok/MORLA/install/morla_fr3_driver/lib/python3.10/site-packages/morla-fr3-driver.egg-link (link to .)
+Installing fr3_check script to /home/loopkok/MORLA/install/morla_fr3_driver/lib/morla_fr3_driver
+Installing fr3_driver script to /home/loopkok/MORLA/install/morla_fr3_driver/lib/morla_fr3_driver
+
+Installed /home/loopkok/MORLA/build/morla_fr3_driver
+running symlink_data
+Finished <<< morla_fr3_driver [1.91s]
+running egg_info
+writing morla_web_manager.egg-info/PKG-INFO
+writing dependency_links to morla_web_manager.egg-info/dependency_links.txt
+writing entry points to morla_web_manager.egg-info/entry_points.txt
+writing requirements to morla_web_manager.egg-info/requires.txt
+writing top-level names to morla_web_manager.egg-info/top_level.txt
+reading manifest file 'morla_web_manager.egg-info/SOURCES.txt'
+writing manifest file 'morla_web_manager.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/loopkok/MORLA/install/morla_web_manager/lib/python3.10/site-packages/morla-web-manager.egg-link (link to .)
+Installing morla-composable-session script to /home/loopkok/MORLA/install/morla_web_manager/lib/morla_web_manager
+Installing morla-composable-web script to /home/loopkok/MORLA/install/morla_web_manager/lib/morla_web_manager
+Installing morla_web_manager script to /home/loopkok/MORLA/install/morla_web_manager/lib/morla_web_manager
+
+Installed /home/loopkok/MORLA/build/morla_web_manager
+running symlink_data
+symbolically linking /home/loopkok/MORLA/build/morla_web_manager/web/dist/assets/index-oWVSetsJ.js -> /home/loopkok/MORLA/install/morla_web_manager/share/morla_web_manager/web/dist/assets
+Finished <<< morla_web_manager [1.88s]
+
+Summary: 2 packages finished [2.86s]

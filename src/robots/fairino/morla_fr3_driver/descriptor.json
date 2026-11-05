@@ -27,25 +27,25 @@
       "name": "joint1",
       "unit": "rad",
       "type": "revolute",
-      "lower": -3.0543261909900767,
-      "upper": 3.0543261909900767,
+      "lower": -3.0543,
+      "upper": 3.0543,
       "limits": [
-        -3.0543261909900767,
-        3.0543261909900767
+        -3.0543,
+        3.0543
       ],
-      "limit_source": "FAIRINO_manual_4.0.1_table_2.1-1_soft_limits"
+      "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF"
     },
     {
       "name": "joint2",
       "unit": "rad",
       "type": "revolute",
-      "lower": -4.625122517784973,
-      "upper": 1.4835298641951802,
+      "lower": -4.6251,
+      "upper": 1.4835,
       "limits": [
-        -4.625122517784973,
-        1.4835298641951802
+        -4.6251,
+        1.4835
       ],
-      "limit_source": "FAIRINO_manual_4.0.1_table_2.1-1_soft_limits"
+      "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF"
     },
     {
       "name": "joint3",
@@ -57,43 +57,43 @@
         -2.6179938779914944,
         2.6179938779914944
       ],
-      "limit_source": "FAIRINO_manual_4.0.1_table_2.1-1_soft_limits"
+      "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF"
     },
     {
       "name": "joint4",
       "unit": "rad",
       "type": "revolute",
-      "lower": -4.625122517784973,
-      "upper": 1.4835298641951802,
+      "lower": -4.6251,
+      "upper": 1.4835,
       "limits": [
-        -4.625122517784973,
-        1.4835298641951802
+        -4.6251,
+        1.4835
       ],
-      "limit_source": "FAIRINO_manual_4.0.1_table_2.1-1_soft_limits"
+      "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF"
     },
     {
       "name": "joint5",
       "unit": "rad",
       "type": "revolute",
-      "lower": -3.0543261909900767,
-      "upper": 3.0543261909900767,
+      "lower": -3.0543,
+      "upper": 3.0543,
       "limits": [
-        -3.0543261909900767,
-        3.0543261909900767
+        -3.0543,
+        3.0543
       ],
-      "limit_source": "FAIRINO_manual_4.0.1_table_2.1-1_soft_limits"
+      "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF"
     },
     {
       "name": "joint6",
       "unit": "rad",
       "type": "revolute",
-      "lower": -3.0543261909900767,
-      "upper": 3.0543261909900767,
+      "lower": -3.0543,
+      "upper": 3.0543,
       "limits": [
-        -3.0543261909900767,
-        3.0543261909900767
+        -3.0543,
+        3.0543
       ],
-      "limit_source": "FAIRINO_manual_4.0.1_table_2.1-1_soft_limits"
+      "limit_source": "intersection_FAIRINO_manual_4.0.1_and_fairino3_v6_URDF"
     }
   ],
   "command_modes": [
@@ -102,7 +102,10 @@
   "backend_variants": {
     "fake": {
       "available": true,
-      "validation_level": "synthetic_protocol"
+      "validation_level": "synthetic_protocol",
+      "requires": [
+        "pinocchio (Cartesian control only)"
+      ]
     },
     "real": {
       "available": true,
@@ -141,10 +144,10 @@
     ],
     "calibration_required": true,
     "collision_verified": false,
-    "model_id": "fairino_fr3_standard_dh_manual_4.0.1",
-    "solver_base_frame": "base",
+    "model_id": "fairino3_v6",
+    "solver_base_frame": "base_link",
     "solver_tip_frame": "flange",
-    "model_sha256": "31501da67f8faf5d6e00ee8f938520093d89b2d8fe5aff5778ced5084e691e18"
+    "model_sha256": "d0b1836a8f52867e4c88f21b350a1c3293422194f6b5231462dbf098a5676ef6"
   },
   "configuration_schema": {
     "type": "object",
@@ -217,6 +220,26 @@
       "kinematics_verified": {
         "type": "boolean",
         "description": "Record FK/zero/direction verification before Cartesian control"
+      },
+      "urdf_joint_signs": {
+        "type": "array",
+        "items": {
+          "type": "number",
+          "enum": [
+            -1,
+            1
+          ]
+        },
+        "minItems": 6,
+        "maxItems": 6
+      },
+      "urdf_joint_offsets": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 6,
+        "maxItems": 6
       }
     }
   },
@@ -227,20 +250,20 @@
     "operation_timeout_s": 10,
     "feedback_timeout_s": 0.2,
     "joint_lower": [
-      -3.0543261909900767,
-      -4.625122517784973,
+      -3.0543,
+      -4.6251,
       -2.6179938779914944,
-      -4.625122517784973,
-      -3.0543261909900767,
-      -3.0543261909900767
+      -4.6251,
+      -3.0543,
+      -3.0543
     ],
     "joint_upper": [
-      3.0543261909900767,
-      1.4835298641951802,
+      3.0543,
+      1.4835,
       2.6179938779914944,
-      1.4835298641951802,
-      3.0543261909900767,
-      3.0543261909900767
+      1.4835,
+      3.0543,
+      3.0543
     ],
     "max_velocity_rad_s": 0.3,
     "max_command_lead_rad": 0.1,
@@ -252,6 +275,22 @@
       -1.5707963267948966,
       -1.5707963267948966,
       0
+    ],
+    "urdf_joint_signs": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "urdf_joint_offsets": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
     ]
   },
   "source": {

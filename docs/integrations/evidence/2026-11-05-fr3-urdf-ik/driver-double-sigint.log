@@ -1,0 +1,22 @@
+[INFO] [launch]: All log files can be found below /home/loopkok/.ros/log/2026-11-05-23-55-30-625330-loopkok-Nitro-AN515-45-62734
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [fr3_driver-1]: process started with pid [62764]
+[WARNING] [launch]: user interrupted with ctrl-c (SIGINT)
+[INFO] [fr3_driver-1]: sending signal 'SIGINT' to process[fr3_driver-1]
+[fr3_driver-1] Traceback (most recent call last):
+[fr3_driver-1]   File "/home/loopkok/MORLA/install/morla_fr3_driver/lib/morla_fr3_driver/fr3_driver", line 33, in <module>
+[fr3_driver-1]     sys.exit(load_entry_point('morla-fr3-driver', 'console_scripts', 'fr3_driver')())
+[fr3_driver-1]   File "/home/loopkok/MORLA/build/morla_fr3_driver/morla_fr3_driver/node.py", line 6, in main
+[fr3_driver-1]     return run(args, node_name='fr3_driver', required_plugin='morla.fairino.fr3',
+[fr3_driver-1]   File "/home/loopkok/MORLA/build/morla_runtime/morla_runtime/ros_bridge.py", line 148, in main
+[fr3_driver-1]     node.runtime.stop()
+[fr3_driver-1]   File "/home/loopkok/MORLA/build/morla_runtime/morla_runtime/session.py", line 566, in stop
+[fr3_driver-1]     self.diagnostics.close({'status':self.status,'operation':result,'pending_operation':self._pending_operation,
+[fr3_driver-1]   File "/home/loopkok/MORLA/build/morla_runtime/morla_runtime/diagnostic_log.py", line 250, in close
+[fr3_driver-1]     self.thread.join(timeout=timeout)
+[fr3_driver-1]   File "/usr/lib/python3.10/threading.py", line 1100, in join
+[fr3_driver-1]     self._wait_for_tstate_lock(timeout=max(timeout, 0))
+[fr3_driver-1]   File "/usr/lib/python3.10/threading.py", line 1116, in _wait_for_tstate_lock
+[fr3_driver-1]     if lock.acquire(block, timeout):
+[fr3_driver-1] KeyboardInterrupt
+[ERROR] [fr3_driver-1]: process has died [pid 62764, exit code -2, cmd '/home/loopkok/MORLA/install/morla_fr3_driver/lib/morla_fr3_driver/fr3_driver --ros-args -r __node:=fr3_driver --params-file /tmp/launch_params_0e4hyg6a'].

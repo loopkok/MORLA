@@ -6,9 +6,18 @@
   "manual": "FAIRINO Collaborative Robot User Manual-v4.0.1.pdf",
   "manual_sha256": "7cdeafb7e28f6c49f90bff8421f94ef1c06b6135abdc4438319fd6add0e1133c",
   "limits": "table 2.1-1 / PDF page 121 (printed 35), FR3 soft limits",
-  "kinematics": "table 2.4-1 / PDF page 126 (printed 40), standard FR3 only; excludes WMS/WML/C/MT",
+  "kinematics": "fr3_description fairino3_v6 URDF + explicit flange; manual table 2.4-1 only as independent migration reference",
   "official_docs": "https://manual.fairino.support/latest/SDKManual/python_intro.html",
   "integration_date": "2026-11-05",
   "hardware_validation": "NOT_RUN",
-  "sdk_declared_version": "SDK:V2.2.8 / Robot:V4.0.1 (source constant, not measured hardware)"
+  "sdk_declared_version": "SDK:V2.2.8 / Robot:V4.0.1 (source constant, not measured hardware)",
+  "urdf_model_sha256": "d0b1836a8f52867e4c88f21b350a1c3293422194f6b5231462dbf098a5676ef6",
+  "ik_strategy_source": {
+    "commit": "063168d577a6186b2beff056139015f0e013d9fb",
+    "files": {
+      "src/robots/dobot/morla_cr5_driver/morla_cr5_driver/urdf_ik.py": "6eac003016811736d39fdcf6d6049244d479659d5f26fcbc115a36cad19bb1c1",
+      "src/robots/dobot/morla_cr5_driver/morla_cr5_driver/differential_ik.py": "23f9088a068fef8e1da02f282d882d7d06729b07dc4840fc109759ea1b713e98",
+      "src/robots/dobot/morla_cr5_driver/morla_cr5_driver/vr_controller.py": "48d0d16c3dbc24fcea00a99bcb11f23aa9ef5e0a211ffffa77cff631ddde4918"
+    }
+  }
 }

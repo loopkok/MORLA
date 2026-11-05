@@ -1,0 +1,45 @@
+{
+  "source_package": "fairino_description",
+  "source_variant": "fairino3_v6",
+  "source_path": "/Users/a1234/Desktop/FR机械臂资料/frcobot_ros2/fairino_description",
+  "source_commit": "eb6d7ce40071aeb1a0c06e40e95f3be46bd7594e",
+  "source_urdf_sha256": "ba9266ba6d32391b8c68020bea2533f6070dc3be654607abe7ed1b7f25e13021",
+  "target_urdf_sha256": "d0b1836a8f52867e4c88f21b350a1c3293422194f6b5231462dbf098a5676ef6",
+  "changes": [
+    "package mesh URI fairino_description -> fr3_description",
+    "Add fixed wrist3_link -> flange translation [0,0,0.100] m from standard FR3 manual 4.0.1 table 2.4-1 d6; verify physically before real use"
+  ],
+  "meshes": [
+    {
+      "path": "meshes/fairino3_v6/base_link.STL",
+      "sha256": "a4c94c0fcc939c6ea20bbc6e5548df78194fc6f7ba9c405fb8885b64f4587929"
+    },
+    {
+      "path": "meshes/fairino3_v6/forearm_link.STL",
+      "sha256": "384388e6f6bdee3749a1b732bef1143ab35d1dc1b5bab551829034e7438d3ee8"
+    },
+    {
+      "path": "meshes/fairino3_v6/shoulder_link.STL",
+      "sha256": "7dd0c503f694ce38f9e5950b925b081f8dbfecd828147788ef3a5586699573b1"
+    },
+    {
+      "path": "meshes/fairino3_v6/upperarm_link.STL",
+      "sha256": "cea67d53323aea9881b81f1eba55baaf12799c26c07e902da2cbec084cf6cb5b"
+    },
+    {
+      "path": "meshes/fairino3_v6/wrist1_link.STL",
+      "sha256": "5bb16ee905ead03d7c350c2baec64cb99744b7d7dc430a1d3b103201f189916d"
+    },
+    {
+      "path": "meshes/fairino3_v6/wrist2_link.STL",
+      "sha256": "4257eb654acf51bfe52f2477c512c40cccfd855fd3ed551c3826268e050bfb6d"
+    },
+    {
+      "path": "meshes/fairino3_v6/wrist3_link.STL",
+      "sha256": "b4c06dd49a457bffd4a6b73dd3dfa1803a61cda8462a3b287cc7f9c9978f13b1"
+    }
+  ],
+  "upstream_license": "Unspecified: source package.xml says TODO: License declaration; no LICENSE file found in supplied checkout",
+  "hardware_alignment": "NOT_RUN",
+  "dynamics_collision_validation": "NOT_RUN"
+}

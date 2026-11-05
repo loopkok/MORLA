@@ -221,7 +221,7 @@ def test_close_after_release_stops_and_far_target_is_rejected():
 
 def test_fk_matches_manual_zero_pose_and_jacobian_finite_difference():
     solver = FR3Kinematics()
-    np.testing.assert_allclose(solver.fk([0.] * 6)[:3, 3], [-.52, -.202, .038], atol=1e-12)
+    np.testing.assert_allclose(solver.fk([0.] * 6)[:3, 3], [-.52001, -.20199925066, .037999258013], atol=1e-10)
     q = np.array(INITIAL)
     jac = solver.jacobian(q)
     from scipy.spatial.transform import Rotation

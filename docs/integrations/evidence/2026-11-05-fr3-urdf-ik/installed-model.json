@@ -1,0 +1,8 @@
+{
+  "urdf": "/home/loopkok/MORLA/install/fr3_description/share/fr3_description/urdf/fairino3_v6.urdf",
+  "sha256": "d0b1836a8f52867e4c88f21b350a1c3293422194f6b5231462dbf098a5676ef6",
+  "controllers": [
+    "morla.fr3.cartesian_delta",
+    "morla.fr3.cartesian_jog"
+  ]
+}

@@ -27,3 +27,12 @@
 - `main` 通过非强制、带 expected_sha 的引用更新，从基线快进至远端功能提交；API 返回成功，再读取远端 commit 确认树与父提交。
 - GitHub API 根据连接身份生成 commit，因此远端与初始本地 commit SHA 不同，文件树相同。命令行后续 fetch 又遇到本机 DNS 失败；本地对象与分支将按经 API 验证的远端 commit 同步，保留原始本地功能提交为备份分支。
 - 本次回执作为功能提交的后续日志提交发布，最终 SHA 在回复中提供，避免日志自引用。未声称新增任何实机验收。
+
+
+## 2026-11-05 夜间至 11-06：URDF 与 CR5 同策略 IK 更新
+
+提取独立 fr3_description，仅 fairino3_v6 URDF 和七个 STL；移植严格/微分 Pinocchio DLS 与异步 controller，完成插件、Quest 模板、Web 模式/参数与 ROS 依赖适配。补充成员移植教程、工作单和 URDF/IK 迁移实例。模型来源、100 mm 法兰补充、原始精度、交集限位与上游未声明许可证均保留记录。
+
+本机/目标 ROS 主机 FR3 专项各 49 passed；主机 pure 355 passed、fake 28 passed；前端 19 passed 与构建通过；35 包 colcon、安装模型发现、实际 fake DDS 通过。浏览器完成模式切换、配置检查/保存、未使能启动和无新鲜输入拒绝；浏览器停止确认自动化受阻后通过服务 API 停止，最终状态 STOPPED。未连接实体 FR3/Quest，没有物理仿真验收。
+
+原始日志、正常退出及首次重复 SIGINT 的失败记录、截图和迁移方法见 [FR3 URDF/IK 迁移记录](FR3_URDF_IK_MIGRATION.md)。

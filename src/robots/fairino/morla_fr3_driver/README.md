@@ -13,6 +13,8 @@ Ubuntu 22.04 / ROS 2 Humble 主机，使用系统 Python（不能使用与 rclpy
 
 ```bash
 source /opt/ros/humble/setup.bash
+# Cartesian IK 需要 Pinocchio；ROS apt 安装（也可在兼容环境装 Python extra [ik]）。
+sudo apt install ros-humble-pinocchio
 # 真实驱动需要；SDK 即使不用 TLS 也会导入此依赖。
 python3 -m pip install 'python-mbedtls>=2.9,<3'
 colcon build --symlink-install --packages-up-to morla_fr3_driver morla_web_manager
@@ -70,8 +72,11 @@ FR3 fake 是合成反馈，不是 MuJoCo；当前 `sim` 不可用，无碰撞和
 
 ## 运动学与只读检查
 
-本地 FK/IK 来自手册 4.0.1 表 2.4-1 的标准 DH，末端为法兰，米/弧度。
-数值 IK 限制在实测种子邻域，失败保持；不连接控制器求解，不复用 CR5/Nero 参数。
+本地 FK/IK 使用独立 `fr3_description/urdf/fairino3_v6.urdf`，末端为 `flange`，米/弧度；运行时不再使用旧 DH 求解器。
+完整沿用 CR5 的 Pinocchio SE(3) DLS、微分目标吸收、自适应阻尼、指令积分种子和异步 worker 策略，使用 FR3 自身模型与限位。
+`morla.fr3.cartesian_delta` / `morla.fr3.cartesian_jog` 默认 `ik_mode: differential`，可切换 `strict`；旧通用绑定通过 kinematics entry point 使用严格 URDF IK。
+FR3 控制输出额外受 adapter 的速度/领先上限约束（默认 0.3 rad/s、0.1 rad，模板领先 0.08 rad）。
+模型法兰补充、原模型精度、映射/限位、旧配置迁移和验证见 [URDF/IK 移植记录](../../../../docs/integrations/FR3_URDF_IK_MIGRATION.md)。
 首次真机先运行只读检查，比较本地 FK 与 SDK GetForwardKin：
 
 ```bash

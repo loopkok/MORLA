@@ -4,6 +4,8 @@
 
 新增机器人、输入设备、相机、传感器或脚踏操作源，先阅读 [设备移植与接入指南](device_integration_guide.md)：包含重构后实际接口、坐标/关节/时间对齐、分设备接入步骤、配置样例、验收和交付模板。
 
+成员培训：[FR3 移植实战教程](integrations/FR3_PORTING_TUTORIAL.md) · [新机械臂移植工作单](integrations/ROBOT_PORTING_WORKSHEET.md)。教程逐步说明文件职责、注册、生命周期、遥操/逆解、Web、数据及 ROS/浏览器验收，并列出当前框架尚需改进的扩展点。
+
 [FAIRINO FR3 接入与验收](integrations/fr3.md)：独立 SDK/ROS 2 驱动、本地六轴运动学、Web 预设与离线测试；ROS 主机编译、fake DDS 与浏览器验收已完成，实体机械臂验收待执行。
 
 现有独立接入示例：[CR5 机械臂](integrations/cr5.md)、[LoopHand 灵巧手](integrations/loophand.md)；两者的 [组合配置](../examples/cr5_loophand/README.md) 由公共 runtime 装配，不依赖联合设备驱动。
@@ -81,3 +83,5 @@
 - [主机编译与硬件验收手册](testing/host_build_and_hardware_acceptance.md)：含统一路径 U01–U08、真实输入＋fake 机器人覆盖与托管进程测试。
 - [逐用例报告模板](testing/host_acceptance_report_template.md)：分别记录历史/本轮代码身份、跳过原因、stop 与宿主退出差异。
 - [单执行器 ROS fake 冒烟脚本](testing/fake_ros_gateway_smoke.py)：只覆盖单执行器 DDS 服务/命令/反馈，不代表多组件输入链路通过。
+
+- [FR3 fairino3_v6 独立描述包与 CR5 同策略 IK 迁移](integrations/FR3_URDF_IK_MIGRATION.md)

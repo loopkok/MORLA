@@ -4,6 +4,8 @@
 >
 > 本文规定接入工作及交付要求，不授予任何设备“已通过实机验收”的状态。后续开发应先核对本文与当时源码；存在差异时，以实际接口、测试和部署证据为依据，同时更新本文。文中的“必须”是接入要求，不表示当前程序已自动检查所有要求。
 
+实际教学实例：[从 FR3 实例学习新机械臂移植](integrations/FR3_PORTING_TUTORIAL.md)，配套[移植工作单](integrations/ROBOT_PORTING_WORKSHEET.md)。该实例覆盖 SDK 到 ROS/Web 的完整软件路径，并说明仍需手工处理的框架扩展点及未实现/未验收能力。
+
 ## 目录
 
 1. [架构与接入边界](#1-架构与接入边界)
@@ -212,7 +214,7 @@ src/robots/<vendor>/morla_<device>/       # 执行器；输入/传感器也可�
 
 独立厂商SDK与对应ROS 2包放在同一父目录，不放入 `tools`。例如输入设备使用 `src/common/vader5_sdk/` 与 `src/common/morla_vader5_input/`，执行器使用 `src/robots/<vendor>/<device>_sdk/` 与 `src/robots/<vendor>/morla_<device>_driver/`。SDK保留自身构建、版本、许可和来源；普通Python SDK通过pip安装，并放置COLCON_IGNORE供colcon跳过。ROS驱动使用已安装SDK的公开接口，不靠临时sys.path或相对目录加载。无再分发许可时仍由部署环境单独安装，不能为满足目录布局而擅自复制原厂二进制。
 
-现有布局尚未全部统一：CR5仅在驱动内vendor保留Dobot反馈报文布局，LoopHand在驱动内vendor保留所需SDK模块；Nero源码在 `third_party/pyAgxArm`，Astral依赖外部安装的 `astral_robot_sdk`，当前仓库不含该SDK。它们不能视为已符合上述同级目录约定；后续迁移应同时更新导入、安装脚本、来源记录和部署验证。
+现有布局尚未全部统一：CR5仅在驱动内vendor保留Dobot反馈报文布局，LoopHand在驱动内vendor保留所需SDK模块；Nero源码在 `third_party/pyAgxArm`，Astral依赖外部安装的 `astral_robot_sdk`，当前仓库不含该SDK。FR3 则在驱动 vendor 中固定了许可允许分发的完整原始 Python SDK，适配逻辑位于外部并通过子进程隔离；来源、摘要和布局取舍见 [FR3 教程](integrations/FR3_PORTING_TUTORIAL.md)。这些当前布局不能视为已符合上述同级目录约定；后续迁移应同时更新导入、安装脚本、来源记录和部署验证。
 
 ### 4.2 Descriptor 和发现
 
@@ -334,7 +336,7 @@ CLI 见 [conformance.py](../src/common/morla_core/morla_core/plugins/conformance
 6. 验证 IK：以实测状态为种子，包含不可达、限位、奇异附近、解跳变和计算超时；失败要停止本次输出并清除失效锚点。
 7. 接遥操输入，验证相对控制和重锚；再接录制/回放，最后接模型。
 
-现有 `solver_for()` 只内置 Nero/Astral。新机械臂可以提供自己的受信 controller 插件；若复用 `CartesianController`，solver 至少实现 `sync_state(q)`、`fk(q)`、`solve(T_target)`，并保证种子、FK、IK 的关节顺序/单位与 canonical 一致。详见 [kinematics.py](../src/common/morla_teleop/morla_teleop/kinematics.py)。
+当前 `solver_for()` 按已安装的 `morla.kinematics` entry point 选择 provider；FR3 即通过此方式复用公共控制器，并非只有 Nero/Astral 的内置分支。新机械臂也可提供自己的受信 controller 插件；若复用 `CartesianController`，solver 至少实现 `sync_state(q)`、`fk(q)`、`solve(T_target)`，并保证种子、FK、IK 的关节顺序/单位与 canonical 一致。详见 [kinematics.py](../src/common/morla_teleop/morla_teleop/kinematics.py)。
 
 MORLA 的笛卡尔遥操采用相对位移：首次有效输入将人手位姿与机器人实测 TCP 建锚；之后映射位移/旋转增量。松开、断连、frame/epoch 改变后重新建锚，不能把远端绝对世界位姿直接作为机器人目标。
 

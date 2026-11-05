@@ -16,11 +16,14 @@ bindings:
 - id: right_vr
   source: quest.right_pose
   target: arm.position_target
-  controller: morla.cartesian_delta_ik
+  controller: morla.fr3.cartesian_delta
   deadman: quest.right_hold
   max_age_ms: 250
   input_basis_id: unity_left_handed_v1
   parameters:
+    ik_mode: differential
+    command_lead_rad: 0.08
+    smoothing_alpha: 0.35
     position_scale: 0.25
     # Example only: operator faces base -X; right +Y, up +Z.
     # Must be calibrated for the actual installation before real VR.

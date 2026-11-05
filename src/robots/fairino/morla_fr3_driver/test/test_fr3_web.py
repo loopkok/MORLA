@@ -17,17 +17,22 @@ ROOT = Path(__file__).parents[1]
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     # Source-only tests also exercise the standard installed entry-point ABI.
-    original = list(metadata.entry_points(group='morla.adapters')) + list(metadata.entry_points(group='morla.kinematics'))
+    original = list(metadata.entry_points(group='morla.adapters')) + list(metadata.entry_points(group='morla.kinematics')) + list(metadata.entry_points(group='morla.controllers'))
     entries = metadata.EntryPoints([
-        *(entry for entry in original if 'morla.fairino.fr3' not in entry.name),
+        *(entry for entry in original if 'morla.fairino.fr3' not in entry.name and not entry.name.startswith('morla.fr3.')),
         metadata.EntryPoint(name='morla.fairino.fr3:fake', value='morla_fr3_driver.adapter:create_adapter', group='morla.adapters'),
         metadata.EntryPoint(name='morla.fairino.fr3', value='morla_fr3_driver.kinematics:create_kinematics', group='morla.kinematics'),
+        metadata.EntryPoint(name='morla.fr3.cartesian_delta',value='morla_fr3_driver.vr_controller:create_controller',group='morla.controllers'),
+        metadata.EntryPoint(name='morla.fr3.cartesian_jog',value='morla_fr3_driver.vr_controller:create_jog_controller',group='morla.controllers'),
     ])
     monkeypatch.setattr(metadata, 'entry_points', lambda **kwargs: entries.select(**kwargs))
     app = create_app(tmp_path / 'store', resource_root=tmp_path / 'locks', diagnostic_root=tmp_path / 'diagnostics')
     catalog = default_catalog()
     if not any(d['plugin_id'] == 'morla.fairino.fr3' for d in catalog.list()):
         catalog.register(json.loads((ROOT / 'descriptor.json').read_text()))
+    for name in ('controller.json','jog_controller.json'):
+        d=json.loads((ROOT/name).read_text())
+        if not any(x['plugin_id']==d['plugin_id'] for x in catalog.list()):catalog.register(d)
     app.state.composable.catalog = catalog
     with TestClient(app) as value:
         yield value
@@ -71,15 +76,20 @@ def test_web_fr3_catalog_template_start_quest_ik_record_stop(client):
                             json={'operation': operation, 'request_id': operation})
         assert reply.status_code == 200, reply.text
         assert reply.json()['status'] == 'SUCCEEDED', reply.text
-    assert send()['accepted']
+    send()
+    # Async IK returns latest completed results; advance the real input clock.
     before = adapter.values[:]
     recording = client.post(f'/api/v2/sessions/{sid}/recordings', json={'task': 'fr3_offline_acceptance'})
     assert recording.status_code == 200, recording.text
     for k in range(1, 8):
         time.sleep(.025)
         result = send(k * .0005)
-        assert result['accepted'], result
+        if not result['accepted']:
+            assert result['reason']=='release_or_reanchor_required',result
         svc.tick()
+    deadline=time.monotonic()+1
+    while np.linalg.norm(np.asarray(adapter.values)-before)<1e-4 and time.monotonic()<deadline:
+        time.sleep(.02);send(.006);svc.tick()
     assert np.linalg.norm(np.asarray(adapter.values) - before) > 1e-4
     held = adapter.values[:]
     assert not send(.02, hold=False)['accepted']

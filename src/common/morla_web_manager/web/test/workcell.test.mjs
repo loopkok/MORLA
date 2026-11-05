@@ -118,3 +118,15 @@ test('public Cartesian IK diagnostics show nested solver residuals and preserve 
  assert.equal(flat.success,false);assert.equal(flat.position_error_m,.01);assert.equal(flat.angle_error_rad,.02)
  assert.equal(model.presentIkReport({stage:'held'}).success,undefined)
 })
+
+
+test('FR3 dedicated URDF controllers are robot-specific with differential and lead defaults',()=>{
+ const catalog=['morla.fr3.cartesian_delta','morla.fr3.cartesian_jog'].map(plugin_id=>({kind:'controller',plugin_id,controller_types:{inputs:[plugin_id.endsWith('delta')?'pose6d':'axes_buttons'],outputs:['joint_targets']}}))
+ const target={semantic:'joint_targets',dim:6,unit:'rad'}
+ assert(model.compatible(catalog,{semantic:'pose6d',dim:7,unit:'m_rad'},target,'morla.fairino.fr3').includes('morla.fr3.cartesian_delta'))
+ assert(!model.compatible(catalog,{semantic:'pose6d',dim:7,unit:'m_rad'},target,'morla.dobot.cr5').includes('morla.fr3.cartesian_delta'))
+ for(const id of ['morla.fr3.cartesian_delta','morla.fr3.cartesian_jog']){
+  const p=model.bindingDefaults(id,{axis_names:['x','y','z','roll','pitch','yaw']},{...arm,plugin_id:'morla.fairino.fr3'},true)
+  assert.equal(p.ik_mode,'differential');assert.equal(p.command_lead_rad,.08);assert.equal(p.max_joint_velocity,.3)
+ }
+})

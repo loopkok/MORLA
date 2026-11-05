@@ -30,7 +30,7 @@ export function normalise(raw: Assembly): Assembly {
 export const labels: Record<string, string> = {
   'morla.input.vader5': 'Vader 5 手柄', 'morla.input.quest': 'Quest 3', 'morla.input.gamepad': '通用手柄', 'morla.input.xbox': 'Xbox 手柄', 'morla.input.glove': '数据手套', 'morla.input.mobile': '手机体感', 'morla.input.standard': 'ROS 输入', 'morla.fake.input': '测试输入',
   'morla.dobot.cr5': 'Dobot CR5', 'morla.fairino.fr3': 'FAIRINO FR3', 'morla.astral.arm': 'Astral 机械臂', 'morla.nero.arm': 'Nero 机械臂', 'morla.astral.waist': 'Astral 腰部', 'morla.astral.head': 'Astral 头部', 'morla.fake.arm': '测试机械臂', 'morla.ros2_control.mock': 'ros2_control 测试臂', 'morla.astral.gripper': 'Astral 夹爪', 'morla.jodell.epg50_060': 'Jodell EPG50', 'morla.wuji.hand': 'Wuji 灵巧手', 'morla.xhand.hand': 'XHand 灵巧手', 'morla.loophand.compact': 'LoopHand', 'morla.camera': '场景相机', 'morla.camera.ros_image': 'ROS 相机', 'morla.camera.uvc': 'USB 相机', 'morla.fake.camera': '测试相机', 'morla.fake.sensor': '测试传感器',
-  'morla.cr5.cartesian_delta': '末端位姿跟随 · CR5', 'morla.cr5.cartesian_jog': '末端速度控制 · CR5', 'morla.cartesian_delta_ik': '末端位姿跟随', 'morla.gamepad_cartesian_jog': '末端速度控制', 'morla.joint_jog': '关节点动', 'morla.identity': '直接传递', 'morla.scalar_map': '线性映射', 'morla.trigger_filtered': '扳机控制', 'morla.pinch_filtered': '捏合控制（滤波）', 'morla.pinch_scalar': '捏合控制', 'morla.xhand.retarget': 'XHand 手势重定向', 'morla.wuji.retarget': 'Wuji 手势重定向',
+  'morla.fr3.cartesian_delta': '末端位姿跟随 · FR3', 'morla.fr3.cartesian_jog': '末端速度控制 · FR3', 'morla.cr5.cartesian_delta': '末端位姿跟随 · CR5', 'morla.cr5.cartesian_jog': '末端速度控制 · CR5', 'morla.cartesian_delta_ik': '末端位姿跟随', 'morla.gamepad_cartesian_jog': '末端速度控制', 'morla.joint_jog': '关节点动', 'morla.identity': '直接传递', 'morla.scalar_map': '线性映射', 'morla.trigger_filtered': '扳机控制', 'morla.pinch_filtered': '捏合控制（滤波）', 'morla.pinch_scalar': '捏合控制', 'morla.xhand.retarget': 'XHand 手势重定向', 'morla.wuji.retarget': 'Wuji 手势重定向',
 }
 export const label = (key: string) => labels[key] || key
 export const backendNames: Record<string, string> = { fake: '测试数据', sim: 'MuJoCo 仿真', real: '真实设备' }
@@ -46,6 +46,7 @@ export function compatible(catalog: Component[], source?: Port, target?: Port, t
   if (!targetPlugin) return true
   if (id === 'morla.xhand.retarget') return targetPlugin === 'morla.xhand.hand'
   if (id === 'morla.wuji.retarget') return targetPlugin === 'morla.wuji.hand'
+  if (id.startsWith('morla.fr3.')) return targetPlugin === 'morla.fairino.fr3'
   if (id.startsWith('morla.cr5.')) return targetPlugin === 'morla.dobot.cr5'
   if (['morla.cartesian_delta_ik', 'morla.gamepad_cartesian_jog'].includes(id))
    return ['morla.nero.arm', 'morla.astral.arm', 'morla.fairino.fr3'].includes(targetPlugin)
@@ -60,7 +61,8 @@ export function bindingDefaults(controller: string, source: Port, target: Compon
    const p: Record<string, unknown> = { input_rotation: quest ? [[0,0,-1],[1,0,0],[0,1,0]] : [[1,0,0],[0,1,0],[0,0,1]], solver_tip_from_tool: identity() }
    if (controller.endsWith('jog')) Object.assign(p,{axes_map:Object.fromEntries(['x','y','z','roll','pitch','yaw'].map((name,i)=>[name, axes.includes(name)?name:axes[i] || null])),linear_speed:.02,angular_speed:.15})
    else p.position_scale=.8
-   if(controller.startsWith('morla.cr5.')) Object.assign(p,{ik_mode:'differential',max_joint_velocity:.3,smoothing_alpha:.35})
+   if(controller.startsWith('morla.cr5.')||controller.startsWith('morla.fr3.')) Object.assign(p,{ik_mode:'differential',max_joint_velocity:.3,smoothing_alpha:.35})
+   if(controller.startsWith('morla.fr3.')) p.command_lead_rad=.08
    return p
  }
  const output_range=[target.joints?.[0]?.lower ?? 0,target.joints?.[0]?.upper ?? 1]
@@ -87,7 +89,7 @@ export function transformToMatrix(t: number[]) {
 }
 export function matrixToTransform(m: number[][]) { return poseToTransform(transformToPose(m.flat())) }
 export const parameterLabels: Record<string,string> = {
- rpc_timeout_s:'SDK 调用超时 / s',startup_timeout_s:'SDK 连接超时 / s',operation_timeout_s:'使能与停止超时 / s',feedback_timeout_s:'反馈有效期 / s',max_velocity_rad_s:'驱动关节速度上限 / rad/s',max_command_lead_rad:'目标相对实测领先上限 / rad',
+ command_lead_rad:'指令相对实测领先上限 / rad',rpc_timeout_s:'SDK 调用超时 / s',startup_timeout_s:'SDK 连接超时 / s',operation_timeout_s:'使能与停止超时 / s',feedback_timeout_s:'反馈有效期 / s',max_velocity_rad_s:'驱动关节速度上限 / rad/s',max_command_lead_rad:'目标相对实测领先上限 / rad',
  close_dist_m:'捏合闭合距离 / m',open_dist_m:'捏合张开距离 / m',auto_range:'自适应捏合范围',auto_range_forget_s:'捏合范围遗忘时间 / s',auto_range_min_span_m:'捏合最小跨度 / m',ema_alpha:'捏合滤波系数',trigger_invert:'反转扳机方向',trigger_deadzone:'扳机死区',trigger_gamma:'扳机响应曲线指数',trigger_ema_alpha:'扳机滤波系数',max_ratio_rate:'开合比例变化率 / s⁻¹',rate_hz:'控制频率 / Hz',host:'控制器 IP',port:'端口',port_name:'串口设备',device_path:'设备路径',serial_number:'序列号',device_id:'设备标识',can_interface:'CAN 驱动接口',firmware_version:'固件协议版本',native_j7_first:'原生 J7 优先排序',workpos_waypoints_deg:'驱动工作位途径点 / °',publish_rate:'状态发布频率 / Hz',filter_cutoff_freq:'反馈滤波截止频率 / Hz',control_board_ip:'控制板 IP',board_cmd_port:'控制板指令端口',local_ip:'本机 IP',local_port:'本机接收端口',can_channel:'CAN 通道',timeout_s:'通信超时 / s',enable_timeout_s:'使能超时 / s',command_timeout_s:'指令超时 / s',servo_t:'ServoJ 插补时间 / s',servo_lookahead_time:'ServoJ 前瞻平滑',servo_gain:'ServoJ 跟随增益',max_step_rad:'关节步长上限 / rad',joint_lower:'关节下限 / rad',joint_upper:'关节上限 / rad',urdf_joint_signs:'关节方向',urdf_joint_offsets:'关节零点偏置 / rad',initial_positions:'仿真初始关节位置 / rad',initial_position:'驱动初始关节位置 / rad',kinematics_verified:'已核对运动学约定',board_scope_verified:'已核对控制板范围',unselected_joints_policy:'未选中关节处理',side:'控制侧别',input_topic:'输入话题',input_basis_id:'输入坐标约定',image_topic:'图像话题',compressed:'压缩图像',width:'图像宽度 / px',height:'图像高度 / px',fps:'图像帧率 / Hz',process_mode:'输入接收进程',protocol:'通信协议',udp_port:'UDP 端口',tcp_port:'TCP 端口',deadzone:'摇杆死区',device_name:'设备名称',camera_backend:'相机接口',baudrate:'波特率',baud_rate:'波特率',address:'设备地址',hand_id:'手部地址',input_rotation:'输入坐标变换',solver_tip_from_tool:'工具中心点 TCP',position_scale:'位移倍率',smoothing_alpha:'输入滤波系数',max_joint_step:'关节步长上限 / rad',max_joint_velocity:'关节速度上限 / rad/s',linear_speed:'平移速度 / m/s',angular_speed:'转动速度 / rad/s',ik_mode:'逆运动学求解',position_lead_m:'位置目标领先上限 / m',rotation_lead_rad:'姿态目标领先上限 / rad',damping_min:'最小阻尼',damping_max:'最大阻尼',singularity_threshold:'奇异值阈值',differential_step_rad:'微分步长上限 / rad',speed:'关节点动速度 / rad/s',input_range:'输入范围',output_range:'输出范围',pinch_range_m:'捏合距离范围 / m',calibration_verified:'已核对输入方向与 TCP',input_basis:'手部坐标变换',max_age_ms:'输入有效期 / ms',max_sample_age_ms:'反馈有效期 / ms',retarget_backend:'手势重定向算法',preprocess_mode:'手部预处理',index_bend_sign:'食指弯曲方向',enable_thumb_fix:'拇指补偿',source_namespace:'输入命名空间',deadman_button:'使能按键',rotation_button:'旋转按键',action_buttons:'功能按键',axis_signs:'摇杆方向',resource_key:'设备资源标识',secret_ref:'凭据引用',serial:'设备序列号',bus:'通信总线',session_id:'共享驱动标识',resources:'占用资源',calibration:'标定记录',verified:'已核对设备身份',stop_verified:'已完成停止测试',
 }
 export const enumLabels: Record<string,string> = { left:'左侧',right:'右侧',both:'双侧',auto:'自动管理',managed:'由 MORLA 启动',external:'使用已有进程',differential:'连续微分跟随',strict:'严格位姿求解',udp:'UDP',tcp_wired:'TCP 有线',tcp_wireless:'TCP 无线',disabled:'禁用',held:'保持位置',official:'官方算法',dexpilot:'DexPilot',ros_image:'ROS 图像',uvc:'USB / UVC' }

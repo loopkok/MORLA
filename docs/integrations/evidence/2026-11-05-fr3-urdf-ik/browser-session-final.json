@@ -1,0 +1,158 @@
+{
+  "session_id": "2ec24fd0b61a4503a2f97d2d093fae26",
+  "status": "STOPPED",
+  "state": "STOPPED",
+  "epoch": 1,
+  "authority": null,
+  "components": {},
+  "diagnostic_log": {
+    "enabled": true,
+    "state": "closed",
+    "directory": "/tmp/fr3-urdf-acceptance/web-store/logs/20261105T155902Z_fr3_quest_fake_2ec24fd0b61a4503a2f97d2d093fae26",
+    "files": [
+      "trace-00000.jsonl"
+    ],
+    "written": {
+      "run_started": 1,
+      "event": 6,
+      "feedback": 15354,
+      "operator_request": 1,
+      "operator_result": 1,
+      "run_ended": 1
+    },
+    "dropped": {},
+    "queued": 0,
+    "queued_bytes_estimate": 0,
+    "queue_byte_limit": 16777216,
+    "bytes_written": 7636974,
+    "error": null,
+    "feedback_hz": 50
+  },
+  "events": [
+    {
+      "event": "ready_disarmed",
+      "session_id": "2ec24fd0b61a4503a2f97d2d093fae26",
+      "monotonic_ns": 45185808678365
+    },
+    {
+      "event": "operation_started",
+      "session_id": "2ec24fd0b61a4503a2f97d2d093fae26",
+      "monotonic_ns": 45196824697612,
+      "request_id": "d7b093bb-78a3-42ad-a6ba-8db81134927d",
+      "action": "prepare",
+      "component_ids": [
+        "arm"
+      ]
+    },
+    {
+      "event": "operation_finished",
+      "session_id": "2ec24fd0b61a4503a2f97d2d093fae26",
+      "monotonic_ns": 45196824805498,
+      "operation": {
+        "request_id": "d7b093bb-78a3-42ad-a6ba-8db81134927d",
+        "action": "prepare",
+        "signature": [
+          "prepare",
+          [
+            "arm"
+          ]
+        ],
+        "status": "SUCCEEDED",
+        "result": {
+          "completed": [
+            "arm"
+          ],
+          "pending_confirmation": []
+        }
+      }
+    },
+    {
+      "event": "operation_started",
+      "session_id": "2ec24fd0b61a4503a2f97d2d093fae26",
+      "monotonic_ns": 45349549587054,
+      "request_id": "fr3-urdf-test-cleanup",
+      "action": "stop"
+    },
+    {
+      "event": "group_stopped",
+      "session_id": "2ec24fd0b61a4503a2f97d2d093fae26",
+      "monotonic_ns": 45349549967027,
+      "reason": "operator_stop",
+      "errors": []
+    },
+    {
+      "event": "operation_finished",
+      "session_id": "2ec24fd0b61a4503a2f97d2d093fae26",
+      "monotonic_ns": 45349550490381,
+      "operation": {
+        "request_id": "fr3-urdf-test-cleanup",
+        "action": "stop",
+        "status": "SUCCEEDED",
+        "result": {
+          "errors": []
+        }
+      }
+    }
+  ],
+  "operations": [
+    {
+      "request_id": "d7b093bb-78a3-42ad-a6ba-8db81134927d",
+      "action": "prepare",
+      "signature": [
+        "prepare",
+        [
+          "arm"
+        ]
+      ],
+      "status": "SUCCEEDED",
+      "result": {
+        "completed": [
+          "arm"
+        ],
+        "pending_confirmation": []
+      }
+    },
+    {
+      "request_id": "fr3-urdf-test-cleanup",
+      "action": "stop",
+      "status": "SUCCEEDED",
+      "result": {
+        "errors": []
+      }
+    }
+  ],
+  "assembly_id": "fr3_quest_fake",
+  "revision": 1,
+  "simulation": null,
+  "inputs": {
+    "quest": {
+      "connected": false,
+      "fresh": false,
+      "epoch": "e59bea02f84818090e9b79f7c3212dea",
+      "mode": {
+        "left": null,
+        "right": null
+      }
+    }
+  },
+  "recording": false,
+  "policy": {
+    "running": false,
+    "error": null
+  },
+  "operator": {
+    "activity": "paused",
+    "paused": true,
+    "return_to": null,
+    "interrupted": null,
+    "transition": null,
+    "error": "重锚缺少新鲜输入：right_vr",
+    "hold_active": false,
+    "work_position": null,
+    "playback": null
+  },
+  "controllers": {},
+  "controller_close_errors": [],
+  "input_errors": {},
+  "input_processes": []
+}

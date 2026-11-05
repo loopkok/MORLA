@@ -167,18 +167,20 @@ export function ComposableTab(){
   const sp=endpoints.find(e=>e.ref===source)?.port,ti=assembly.instances[target.split('.')[0]],td=ti&&descriptor(ti);if(!sp||!td)return{}
   const params=bindingDefaults(id,sp,td,assembly.instances[source.split('.')[0]]?.plugin==='morla.input.quest')
   if(id==='morla.cartesian_delta_ik'){
-   if(ti.plugin==='morla.fairino.fr3'){
-    const preset=templateCache['fr3-fake']?.bindings.find(b=>b.controller===id)
-    if(preset)Object.assign(params,structuredClone(preset.parameters))
-   }
+
    const robot=ti.plugin==='morla.nero.arm'?'nero':ti.plugin==='morla.astral.arm'?'astral':null
    const side=String(ti.parameters?.side||'left');const preset=robot&&templateCache[robot+'-sim']?.bindings.find(b=>b.source===`quest.${side}_pose`)
    if(preset)Object.assign(params,structuredClone(preset.parameters))
   }
+  if(ti.plugin==='morla.fairino.fr3'&&id.startsWith('morla.fr3.')){
+   const preset=templateCache['fr3-fake']?.bindings.find(b=>b.controller===id)
+   if(preset)Object.assign(params,structuredClone(preset.parameters))
+   params.command_lead_rad=.08
+  }
   return params
  }
  function preferred(source:string,target:string){const list=choices(source,target),targetPlugin=assembly.instances[target.split('.')[0]]?.plugin,semantic=endpoints.find(e=>e.ref===source)?.port.semantic
-  const wanted=targetPlugin==='morla.dobot.cr5'?(semantic==='pose6d'?'morla.cr5.cartesian_delta':semantic==='axes_buttons'?'morla.cr5.cartesian_jog':''):semantic==='pose6d'?'morla.cartesian_delta_ik':semantic==='axes_buttons'?'morla.joint_jog':''
+  const wanted=targetPlugin==='morla.fairino.fr3'?(semantic==='pose6d'?'morla.fr3.cartesian_delta':semantic==='axes_buttons'?'morla.fr3.cartesian_jog':''):targetPlugin==='morla.dobot.cr5'?(semantic==='pose6d'?'morla.cr5.cartesian_delta':semantic==='axes_buttons'?'morla.cr5.cartesian_jog':''):semantic==='pose6d'?'morla.cartesian_delta_ik':semantic==='axes_buttons'?'morla.joint_jog':''
   return list.includes(wanted)?wanted:list[0]||''
  }
  function buildBinding(source:string,target:string,id:string):Binding{
@@ -290,10 +292,10 @@ export function ComposableTab(){
       return primary?[primary]:[]
      })
      const setParams=(parameters:Record<string,unknown>)=>patchBinding(index,{parameters})
-     const cr5=binding.controller.startsWith('morla.cr5.')
-     const common=cartesian?['position_scale','linear_speed','angular_speed',...(cr5?['max_joint_velocity','smoothing_alpha']:[])].filter(key=>jog?!['position_scale','smoothing_alpha'].includes(key):!['linear_speed','angular_speed'].includes(key)):joint?['speed']:[]
+     const deviceIk=binding.controller.startsWith('morla.cr5.')||binding.controller.startsWith('morla.fr3.')
+     const common=cartesian?['position_scale','linear_speed','angular_speed',...(deviceIk?['max_joint_velocity','smoothing_alpha']:[])].filter(key=>jog?!['position_scale','smoothing_alpha'].includes(key):!['linear_speed','angular_speed'].includes(key)):joint?['speed']:[]
      const hidden=['input_rotation','input_basis','solver_tip_from_tool','axes_map',...common]
-     const advanced=cr5?['max_joint_step','position_lead_m','rotation_lead_rad','damping_min','damping_max','singularity_threshold','differential_step_rad']:[]
+     const advanced=deviceIk?['max_joint_step','position_lead_m','rotation_lead_rad','damping_min','damping_max','singularity_threshold','differential_step_rad']:[]
      return <article className="wc-device" key={binding.id}><div className="wc-device-heading"><h4>{label(binding.controller)} <code>{binding.id}</code></h4><button className="wc-text-button wc-destructive" onClick={()=>changed({...assembly,bindings:assembly.bindings.filter((_,i)=>i!==index)})}>移除映射</button></div><div className="wc-form-grid">
       <label>控制目标<select aria-label={binding.id+'控制目标'} value={binding.target} onChange={e=>updateBinding(index,'target',e.target.value)}>{targetOptions.map(e=>{
        const item=assembly.instances[e.instance]
@@ -325,7 +327,7 @@ export function ComposableTab(){
      {binding.deadman&&binding.deadman!==hold?.ref&&<p className="wc-note">已有门控绑定 · {binding.deadman}</p>}
      <details className="wc-details"><summary>输入时效与求解设置</summary><div className="wc-form-grid">
       <label>输入有效期 / ms<NumberInput label={binding.id+'输入有效期'} schema={{minimum:1}} value={binding.max_age_ms||250} onChange={max_age_ms=>patchBinding(index,{max_age_ms})} /></label>
-      {binding.controller.startsWith('morla.cr5.')&&<ValueField name="ik_mode" value={params.ik_mode||'differential'} schema={parameterSchema('ik_mode')} onChange={v=>setParams({...params,ik_mode:v})} />}
+      {deviceIk&&<ValueField name="ik_mode" value={params.ik_mode||'differential'} schema={parameterSchema('ik_mode')} onChange={v=>setParams({...params,ik_mode:v})} />}
      </div></details>
      {common.length>0&&<ObjectFields value={Object.fromEntries(Object.entries(params).filter(([key])=>common.includes(key)))} properties={Object.fromEntries(common.map(key=>[key,parameterSchema(key)]))} onChange={value=>{const next={...params};for(const key of common)delete next[key];setParams({...next,...value})}} />}
      {(jog||joint)&&<fieldset className="wc-pose"><legend>摇杆轴分配</legend><div className="wc-form-grid">{(joint?(d?.joints||[]).map(j=>j.name):['x','y','z','roll','pitch','yaw']).map((axis,i)=>{const map=params.axes_map as string[]|Record<string,string|null>|undefined;const current=joint?Array.isArray(map)?map[i]:null:!Array.isArray(map)?map?.[axis]:null;return <label key={axis}>{joint?`关节 ${i+1}`:({x:'沿 X 平移',y:'沿 Y 平移',z:'沿 Z 平移',roll:'绕 X 转动',pitch:'绕 Y 转动',yaw:'绕 Z 转动'}[axis])}<select aria-label={binding.id+' '+axis+'输入轴'} value={current||''} onChange={e=>{const next=joint?Array.from({length:d?.joints?.length||1},(_,j)=>Array.isArray(map)?map[j]??null:null):{...(!Array.isArray(map)?map:{})};if(Array.isArray(next))next[i]=e.target.value||null;else next[axis]=e.target.value||null;setParams({...params,axes_map:next})}}><option value="">不使用</option>{(source?.port.axis_names||[]).map(name=><option key={name}>{name}</option>)}</select></label>})}</div></fieldset>}

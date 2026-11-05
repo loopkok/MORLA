@@ -2,7 +2,13 @@
 
 日期：2026-11-05。本地实现基线：`70ee93fd45b3983992f0eb438c80cf060066dcdd`；目标机验收基线：`40a69cbe2c8fff765e8fdd1a425ef538a89955a0` 加本轮修复。
 
-## 当前结论
+教学入口：[FR3 移植实战教程](FR3_PORTING_TUTORIAL.md)；成员可复制[移植工作单](ROBOT_PORTING_WORKSHEET.md)开展新设备接入。
+
+## 当前 URDF / IK 更新
+
+现已提取独立 `fr3_description`（仅 fairino3_v6），FR3 使用与 CR5 同策略的严格 URDF DLS、微分 IK 与异步 controller；新预设默认微分模式。此次模型/控制链变更的证据见 [URDF/IK 移植记录](FR3_URDF_IK_MIGRATION.md)。下面主机/浏览器统计属于此前 DH 版本，不能替代新版本验证。
+
+## 此前驱动阶段结论
 
 已在 Ubuntu 22.04 / ROS 2 Humble 主机完成 FR3 相关 34 包编译、独立普通安装、真实 DDS fake 命令/回执/六轴 JointState/服务、资源互斥及浏览器交互验收。目标机 pure **338 passed**、fake **28 passed**，前端 **18 passed**；浏览器完成配置保存、激活、录制、暂停与停止，录制 HDF5 已核验。详见 [ROS 主机与浏览器验收报告](FR3_HOST_ACCEPTANCE_2026-11-05.md)。
 
@@ -29,7 +35,7 @@ fake 输入→控制→录制链路已实现。当前环境是 macOS，没有 RO
 - CR5 的公共 worker 可复用接口思想，但不能直接照搬：FR SDK 有无限重试及类级共享状态，
   FR3 使用独占 SDK 子进程和明确超时；故障清理覆盖软暂停后仍开启的伺服。
 - Nero 的实测反馈、重锚与坐标约定经验适用；七轴几何、J2 零位和镜像规则不适用 FR3。
-  FR3 只采用自身手册的六轴 DH 模型。Quest 基变换、TCP 偏置仍在公共绑定中明确配置。
+  FR3 采用自身 fairino3_v6 URDF 模型；手册 DH 仅作独立测试参考。Quest 基变换、TCP 偏置仍在公共绑定中明确配置。
 - 目录发现只读静态元数据，不能 import SDK 或连接设备；Python wheel/ament 注册实际安装验证通过。
 - 公共 Web 有机器人控制器白名单，新增 FR3 标签与通用 IK 匹配，否则只注册 Python 插件会导致页面
   无法选择位姿控制。实际发现并补齐了这个接线点。
@@ -46,13 +52,13 @@ fake 输入→控制→录制链路已实现。当前环境是 macOS，没有 RO
   表 2.4-1（PDF 第 126 页、印刷 40 页）的标准 DH 参数已提取。没有套用其他 FR3 子型号。
 - [官方 Python SDK 文档](https://manual.fairino.support/latest/SDKManual/python_intro.html)
   已对照；实现以固定的本地源码为准，不默认任意旧固件兼容。
-- `sim` 标记不可用：未提供/迁入 FR3 碰撞网格、惯量验证和 MJCF，不以 fake 冒充 MuJoCo。
+- `sim` 标记不可用：虽已迁入 URDF 的 mesh/惯量/碰撞声明，仍未完成动力学、碰撞和仿真后端验证，不以 fake 冒充 MuJoCo。
   本地 FK/IK 有数学自一致测试，但仍须用多组 SDK FK 和实体位形核对模型约定。
 
 ## 接口与行为
 
 Canonical 与 SDK 同序 J1..J6，位置统一 rad；SDK 只在传输边界转成 degree。
-标准 DH 的 a/d 单位从 mm 转 m；FK 为 base→flange，TCP 在绑定 `solver_tip_from_tool` 中表达。
+URDF 几何单位为 m；FK 为 base_link→flange，TCP 在绑定 `solver_tip_from_tool` 中表达。
 
 XML-RPC 20003；CNDE 20005，8 ms 状态周期；SDK 同时初始化 UDP 20007 接收线程，
 本实现运动命令采用 XML-RPC。未支持 TLS 配置、扩展轴、力控、夹爪、HOME 自动运动或 20004 老固件回退。

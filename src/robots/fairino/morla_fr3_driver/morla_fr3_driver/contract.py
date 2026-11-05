@@ -4,6 +4,8 @@ import ipaddress
 
 LOWER = tuple(map(math.radians, [-175, -265, -150, -265, -175, -175]))
 UPPER = tuple(map(math.radians, [175, 85, 150, 85, 175, 175]))
+URDF_LOWER = (-3.0543, -4.6251, -2.8274, -4.6251, -3.0543, -3.0543)
+URDF_UPPER = (3.0543, 1.4835, 2.8274, 1.4835, 3.0543, 3.0543)
 INITIAL = (0., -math.pi / 2, math.pi / 2, -math.pi / 2, -math.pi / 2, 0.)
 
 
@@ -20,6 +22,16 @@ def limits(parameters):
     if any(a < outer_a or b > outer_b or a >= b
            for a, b, outer_a, outer_b in zip(lo, hi, LOWER, UPPER)):
         raise ValueError('FR3 deployment limits must lie within manual soft limits')
+    signs = vector6(parameters.get('urdf_joint_signs', [1.] * 6))
+    offsets = vector6(parameters.get('urdf_joint_offsets', [0.] * 6))
+    if any(s not in (-1., 1.) for s in signs):
+        raise ValueError('FR3 URDF joint signs must be +1/-1')
+    a = [(v-o)/s for v,o,s in zip(URDF_LOWER,offsets,signs)]
+    b = [(v-o)/s for v,o,s in zip(URDF_UPPER,offsets,signs)]
+    lo = [max(x,min(u,v)) for x,u,v in zip(lo,a,b)]
+    hi = [min(x,max(u,v)) for x,u,v in zip(hi,a,b)]
+    if any(x>=y for x,y in zip(lo,hi)):
+        raise ValueError('FR3 URDF/deployment limits have no intersection')
     return lo, hi
 
 

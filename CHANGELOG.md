@@ -2,6 +2,20 @@
 
 ## 2026-11-05 — FAIRINO FR3 独立驱动与组合 Web
 
+### FR3 fairino3_v6 URDF 与 CR5 同策略 IK
+
+- 独立提取 `fr3_description`，仅一套 FR3 URDF 与七个原始 STL；记录来源摘要与未声明的上游模型许可证，补充有记录的 100 mm 法兰固定帧。
+- 移植 CR5 严格/微分 Pinocchio DLS 和异步遥操策略，使用 FR3 的模型、符号/零偏映射、手册与 URDF 交集限位、驱动速度/领先上限。
+- 注册 FR3 位姿/速度控制插件，更新 Web 兼容性、模式选择、默认参数与 Quest 模板，补充模型闭包、独立 FK、算法对照与端到端测试。
+- 验证：FR3 本机/ROS 主机各 49 passed，主机 pure 355 passed、fake 28 passed；前端 19 passed 与构建通过，35 包 colcon、安装模型发现与实际 fake DDS 通过；浏览器完成模式切换、保存/启动与无新鲜输入拒绝检查。
+- 迁移、旧配置重新冻结与本轮验证见 [FR3 URDF/IK 记录](docs/integrations/FR3_URDF_IK_MIGRATION.md)。实体运动及物理仿真未验收。
+
+### 成员移植教学文档
+
+- 新增 [FR3 移植实战教程](docs/integrations/FR3_PORTING_TUTORIAL.md) 与 [新机械臂移植工作单](docs/integrations/ROBOT_PORTING_WORKSHEET.md)，按实际源码说明设备包、SDK、契约、插件、ROS、运动学、输入绑定、Web 和数据的边界与验收。
+- 明确 fake/IK/遥操/物理仿真/实机是不同能力；记录 Web 白名单和模板登记等当前接入障碍，并将框架改进建议与已实现功能分开。
+- 修正总指南中 solver_for 仅内置 Nero/Astral 的过时说明，补充 FR3 vendor SDK 布局与推荐独立 SDK 布局之间的现实差异。
+
 ### ROS Humble 主机与浏览器验收补充
 
 - 在用户指定 Ubuntu 22.04 / ROS 2 Humble 主机完成 34 个相关包编译、FR3 普通安装与脱离源码目录的发现检查；补齐 SDK 的 python-mbedtls 依赖。

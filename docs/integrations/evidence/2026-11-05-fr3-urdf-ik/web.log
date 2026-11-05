@@ -1,0 +1,233 @@
+INFO:     Started server process [62803]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:18084 (Press CTRL+C to quit)
+INFO:     127.0.0.1:44422 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44422 - "GET /assets/index-1aZKjs1G.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44430 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:44422 - "GET /api/v2/components HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44446 - "GET /api/v2/assemblies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44450 - "GET /api/v2/templates/cr5-sim HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44462 - "GET /api/v2/templates/nero-sim HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44446 - "GET /api/v2/active-session HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44466 - "GET /api/v2/templates/astral-sim HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44422 - "GET /api/v1/presets HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:44474 - "GET /api/v2/templates/fr3-fake HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34594 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:34610 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:34618 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:37632 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:37638 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:37642 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:37652 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:46280 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:46288 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:46304 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:35488 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:35504 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:35512 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:56604 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:49762 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:49772 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:41776 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:46960 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:46972 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:36446 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:36460 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:34264 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:34272 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:55286 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:50226 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:38598 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:38606 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:46758 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:46768 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:59826 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59826 - "GET /assets/index-oWVSetsJ.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59826 - "GET /api/v2/components HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59830 - "GET /api/v2/assemblies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59826 - "GET /api/v2/active-session HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59834 - "GET /api/v2/templates/cr5-sim HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59830 - "GET /api/v1/presets HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59854 - "GET /api/v2/templates/astral-sim HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59846 - "GET /api/v2/templates/nero-sim HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59858 - "GET /api/v2/templates/fr3-fake HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59870 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:49578 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:49582 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:38444 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:42090 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:42092 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:42106 - "GET /api/v2/diagnostics/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57010 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:42106 - "POST /api/v2/assemblies/compile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "POST /api/v2/assemblies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "GET /api/v2/assemblies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57034 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:57020 - "POST /api/v2/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "GET /api/v2/diagnostics/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54894 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:57020 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "POST /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/operations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56078 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "POST /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/operations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56086 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "POST /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/operator/action HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33020 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47660 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47676 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53396 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47390 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39416 - "POST /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/operations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47422 - "GET /api/v2/sessions/2ec24fd0b61a4503a2f97d2d093fae26/state HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [62803]
