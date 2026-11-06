@@ -157,3 +157,19 @@ def test_binding_anchor_identity_survives_the_first_fresh_manual_frame():
     assert controller.reanchor(frame(1,1.),seed)['acknowledged']
     clock[0]+=20_000_000
     np.testing.assert_allclose(controller.step(frame(2,1.01),seed)[:3],[.11,.2,.3])
+
+
+def test_independent_position_mapping_preserves_orientation():
+    from scipy.spatial.transform import Rotation
+    rotation=np.array([[0,0,-1],[1,0,0],[0,1,0]])
+    parameters={'input_rotation':rotation.tolist(),
+                'input_position_rotation':[[0,0,1],[1,0,0],[0,1,0]],'position_scale':.25}
+    for axis,expected in [(0,[0,.025,0]),(1,[0,0,.025]),(2,[.025,0,0])]:
+        controller=CartesianController(Solver());measured=np.zeros(7)
+        controller.reanchor({'position':[0,0,0],'quaternion':[0,0,0,1]},measured,parameters)
+        position=np.eye(3)[axis]*.1
+        delta=Rotation.from_rotvec([.05,0,0])
+        controller({'position':position.tolist(),'quaternion':delta.as_quat().tolist()},measured,.02,parameters)
+        target=np.asarray(controller.diagnostics()['target_tcp'])
+        np.testing.assert_allclose(target[:3,3],expected,atol=1e-12)
+        np.testing.assert_allclose(target[:3,:3],rotation@delta.as_matrix()@rotation.T,atol=1e-12)

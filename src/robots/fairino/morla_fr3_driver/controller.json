@@ -83,6 +83,23 @@
     "smoothing_alpha": 0.35,
     "command_lead_rad": 0.08,
     "max_joint_step": 0.03,
-    "position_scale": 0.25
+    "position_scale": 0.25,
+    "input_position_rotation": [
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0
+      ]
+    ]
   }
 }

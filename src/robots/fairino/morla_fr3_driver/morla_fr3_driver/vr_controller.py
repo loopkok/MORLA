@@ -13,7 +13,7 @@ from morla_core.coordinates import validate_basis_change, validate_transform
 
 
 def validate_parameters(parameters, *, jog=False):
-    allowed={'position_scale','input_rotation','solver_tip_from_tool','max_joint_step',
+    allowed={'input_position_rotation','position_scale','input_rotation','solver_tip_from_tool','max_joint_step',
              'max_joint_velocity','command_lead_rad','calibration_verified','smoothing_alpha','ik_mode',
              'position_lead_m','rotation_lead_rad','damping_min','damping_max',
              'singularity_threshold','differential_step_rad'}
@@ -39,6 +39,7 @@ def validate_parameters(parameters, *, jog=False):
         for key,maximum in [('linear_speed',.25),('angular_speed',1)]:
             if key in parameters and (type(parameters[key]) not in (int,float) or not np.isfinite(parameters[key]) or not 0<parameters[key]<=maximum):
                 raise ValueError('Invalid Cartesian '+key)
+    if 'input_position_rotation' in parameters:validate_basis_change(parameters['input_position_rotation'])
     if 'input_rotation' in parameters:validate_basis_change(parameters['input_rotation'])
     if 'solver_tip_from_tool' in parameters:validate_transform(parameters['solver_tip_from_tool'])
 

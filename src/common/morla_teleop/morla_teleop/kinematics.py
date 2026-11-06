@@ -107,6 +107,10 @@ class CartesianController:
                 np.asarray(parameters.get('input_rotation',np.eye(3)),dtype=float).reshape(3,3))
         except ValueError as exc:
             raise ControllerError('input rotation must be an orthonormal basis change: '+str(exc)) from exc
+        try:
+            position_rotation=validate_basis_change(np.asarray(parameters.get('input_position_rotation',rotation),dtype=float).reshape(3,3))
+        except ValueError as exc:
+            raise ControllerError('invalid input position mapping: '+str(exc)) from exc
         measured=np.asarray(measured,dtype=float)
         start=measured if seed is None else np.asarray(seed,dtype=float)
         if start.shape!=measured.shape or not np.isfinite(start).all():
@@ -168,7 +172,7 @@ class CartesianController:
                 return start.tolist()
             scale=float(parameters.get('position_scale',1))
             target=self.anchor_robot.copy()
-            target[:3,3]+=rotation@(position-self.anchor_input[:3,3])*scale
+            target[:3,3]+=position_rotation@(position-self.anchor_input[:3,3])*scale
             delta=input_pose[:3,:3]@self.anchor_input[:3,:3].T
             target[:3,:3]=rotation@delta@rotation.T@self.anchor_robot[:3,:3]
         # Tool offsets must already be resolved and versioned by the compiler.

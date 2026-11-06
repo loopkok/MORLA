@@ -79,3 +79,9 @@ MUJOCO_GL=egl python3 docs/testing/fr3_sim_camera_acceptance.py \
 每次使用新的输出目录以保留先前证据。该验证使用实际已安装插件和 TestClient 调用同一 Web/Runtime 服务，输入是明确标记的合成 Quest，不是实体 Quest 的验收。
 
 [证据目录](evidence/2026-11-06-fr3-sim/) 保留构建、相关/pure/fake、ROS/DDS（含预期资源拒绝与首次 probe 断言）、viewer、相机完整链路、空输入片段摘要、最终 STOPPED 状态和浏览器截图。入库文本日志仅去除行尾空格，原始主机日志保留。原始 HDF5 位于主机 `/tmp/fr3-sim-acceptance/` 下对应 episode 目录；入库的是摘要与日志。Web 测试会话、ROS driver 和临时本地窗口均已停止；目标主机继续保留编译安装结果。
+
+## Quest 前向平移改为 FR3 +X（2026-11-06）
+
+FR3 随包 fake/sim 模板的平移映射更新为 Quest +X→FR3 +Y、+Y→+Z、+Z→+X；位移倍率仍为 0.25。新增绑定参数 `input_position_rotation: [[0,0,1],[1,0,0],[0,1,0]]`，仅作用于位置增量。原 `input_rotation` 继续负责姿态增量的基变换，避免仅翻转前向平移时意外改变旋转跟随方向。
+
+该操作映射与坐标系手性转换分开：前者允许正交的行列式 +1/-1 矩阵；原 Quest Unity 姿态基变换的 det=-1 校验保留。未声明新参数的历史装配沿用原有平移行为。已有保存配置需在绑定参数中增加该矩阵并保存新 revision，或重新加载 FR3 预设；不会静默覆盖用户标定。

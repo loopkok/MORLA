@@ -1,5 +1,12 @@
 # Changelog（MORLA）
 
+## 2026-11-06 — FR3 Quest forward translation
+
+- FR3 Quest forward translation now follows base +X; right/up remain +Y/+Z, with position scale 0.25.
+- Separate input_position_rotation from the orientation basis; old bindings without the new parameter retain their saved mapping. Templates, Web defaults and migration documentation updated.
+- Regression verifies all three translation axes and unchanged orientation increments.
+
+
 ## 2026-11-06 — 插件声明驱动 Web 与共享仿真
 
 - Web 模板、设备显示/表单、控制器兼容性及品牌默认参数迁到 descriptor，现有机器人使用同一发现路径；保留原模板 URL。
