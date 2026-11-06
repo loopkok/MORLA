@@ -116,10 +116,11 @@
     "real": {
       "available": true,
       "requires": [
-        "python-mbedtls",
-        "FR3 controller compatible with supplied CNDE SDK"
+        "FR3 controller V3.8.5 / SDK V2.1.5",
+        "XML-RPC TCP 20003",
+        "realtime state TCP 20004"
       ],
-      "validation_level": "NOT_RUN_hardware"
+      "validation_level": "NOT_RUN_hardware_SDK_2.1.5_Robot_3.8.5"
     },
     "sim": {
       "available": true,

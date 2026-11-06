@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>morla_fr3_driver</name><version>0.1.0</version>
-  <description>FAIRINO FR3 SDK-backed ROS 2 / MORLA driver</description>
+  <description>FAIRINO FR3 SDK V2.1.5 / Robot V3.8.5 ROS 2 and MORLA driver</description>
   <maintainer email="maintainers@morla.dev">MORLA maintainers</maintainer>
   <license>Apache-2.0</license>
   <exec_depend>morla_core</exec_depend><exec_depend>morla_runtime</exec_depend>

@@ -42,7 +42,7 @@ def main(argv=None):
         report.update(status='PASS' if len(samples) > 1 and position_error < .002 and rotation_error < .02 else 'FAIL',
                       distinct_samples=len(samples), last_feedback=sample, sdk_fk_mm_deg=pose,
                       urdf_fk_m=predicted.tolist(), model_sha256=kinematics.model_sha256, position_error_m=position_error, rotation_error_rad=rotation_error,
-                      stamp_domain='host_monotonic_ns_on_complete_CNDE_frame')
+                      stamp_domain='host_monotonic_ns_on_validated_TCP_20004_frame')
     except Exception as exc:
         report.update(status='FAIL', error=f'{type(exc).__name__}: {exc}')
     finally:

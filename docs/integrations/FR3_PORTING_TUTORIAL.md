@@ -69,7 +69,7 @@ RuntimeSession           ControlHost / Web 宿主
 
 - 标准法奥 FR3 是六轴；不使用 Franka FR3 或其他 FR3 子型号的参数。
 - SDK J1..J6 使用度，框架使用 rad。
-- 提供的 SDK 自报 V2.2.8 / Robot V4.0.1，使用 XML-RPC 20003 和 CNDE 20005，并启动 UDP 接收线程。
+- 初次接入曾使用 V2.2.8 / Robot V4.0.1；当前按现场版本改用 V2.1.5 / Robot V3.8.5，使用 XML-RPC 20003 与实时反馈 20004，见 [迁移记录](FR3_SDK_2_1_5_MIGRATION.md)。
 - SDK 存在类级共享状态、后台线程、断网循环重试；其所谓 timeout 装饰器不等于有界超时。
 - 有些 getter 读取的是缓存；返回成功码不能证明拿到了新反馈。
 - 启动、使能、进入伺服、保持、停止、失能分别需要说明。
@@ -151,7 +151,7 @@ morla.fairino.fr3 = morla_fr3_driver.kinematics:create_kinematics
 
 本实例没有把 SDK 直接塞进 ROS 回调或 Web 请求线程：
 
-- [sdk_backend.py](../../src/robots/fairino/morla_fr3_driver/morla_fr3_driver/sdk_backend.py)：调用 SDK，确认返回码、使能状态、伺服状态和完整 CNDE 帧。
+- [sdk_backend.py](../../src/robots/fairino/morla_fr3_driver/morla_fr3_driver/sdk_backend.py)：调用 SDK，确认返回码、使能状态、伺服状态和完整 20004 反馈帧。
 - [transport.py](../../src/robots/fairino/morla_fr3_driver/morla_fr3_driver/transport.py)：每个设备一个 spawn 子进程；启动、普通调用和生命周期操作分别有超时。超时终止进程，不自动重连和重放迟到目标。
 - 原始 SDK 解码器外增加观察子类：仅完整帧解码成功后复制状态；重复帧不更新时间，帧号回绕允许，解码异常锁存。
 

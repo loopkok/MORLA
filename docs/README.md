@@ -1,5 +1,7 @@
 当前组件与绑定统一重构见 [实施计划](architecture_refactor/UNIFIED_COMPOSITION_PLAN.md) 和 [组合示例](../examples/unified_composition/README.md)。
 
+FR3 当前 SDK 已在本地切换为 V2.1.5 / Robot V3.8.5（20003 + 20004），详见 [SDK 迁移说明](integrations/FR3_SDK_2_1_5_MIGRATION.md)。本轮尚未同步主机。
+
 # 排查经验索引（Troubleshooting & Investigation）
 
 2026-11-06：[插件声明驱动的 Web/仿真接入](integrations/PLUGIN_DRIVEN_PORTING.md)，包含现有机器人的迁移方式、新设备配置和验收要求。

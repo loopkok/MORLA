@@ -1,5 +1,7 @@
 # MORLA 设备移植与接入指南
 
+FR3 当前 SDK 已在本地切换为 V2.1.5 / Robot V3.8.5（20003 + 20004），详见 [SDK 迁移说明](integrations/FR3_SDK_2_1_5_MIGRATION.md)。本轮尚未同步主机。
+
 2026-11-06 更新：Web 预设、表单、控制器兼容性/默认值和共享仿真资源改为 descriptor 驱动，参见 [接入声明规范](integrations/PLUGIN_DRIVEN_PORTING.md)。新机器人无需修改前后端品牌列表；实际工厂、模型和现场标定仍须验收。
 
 > 当前接线基线：2026-10-30 统一组件工作区（起点 c1896c6）。最新变更与验收见 [实现记录](architecture_refactor/UNIFIED_IMPLEMENTATION.md)。本文面向机械臂、夹爪、灵巧手、VR、手套、手柄、手机、外骨骼、相机和传感器接入。

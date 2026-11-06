@@ -1,5 +1,7 @@
 # FAIRINO FR3 接入与验收记录
 
+2026-11-06 当前通信基线已改为 **SDK V2.1.5 / Robot V3.8.5，20003 + 20004**，仅完成本地修改与离线验证，未同步 ROS 主机。旧 V2.2.8/CNDE 主机记录保留历史含义，详见 [SDK 迁移记录](FR3_SDK_2_1_5_MIGRATION.md)。
+
 日期：2026-11-05。本地实现基线：`70ee93fd45b3983992f0eb438c80cf060066dcdd`；目标机验收基线：`40a69cbe2c8fff765e8fdd1a425ef538a89955a0` 加本轮修复。
 
 教学入口：[FR3 移植实战教程](FR3_PORTING_TUTORIAL.md)；成员可复制[移植工作单](ROBOT_PORTING_WORKSHEET.md)开展新设备接入。
@@ -49,8 +51,8 @@ fake 输入→控制→录制链路已实现。当前环境是 macOS，没有 RO
 ## 设备、SDK 与模型来源
 
 - 包：[morla_fr3_driver](../../src/robots/fairino/morla_fr3_driver/README.md)。组件 `morla.fairino.fr3@1.0.0`。
-- 用户本地 `FR机械臂资料/fairino-python-sdk-master/linux/fairino/Robot.py` 原样随包安装。
-  SDK 的 `GetSDKVersion()` 自报 **SDK V2.2.8 / Robot V4.0.1**；这是源码声明，不是已读取的实机版本。
+- 用户本地 `FR机械臂资料/fairino-python-sdk-v2.1.5_robot3.8.5/linux/fairino/Robot.py` 原样随包安装。
+  SDK 的 `GetSDKVersion()` 自报 **SDK V2.1.5 / Robot V3.8.5**；这是源码声明，不是已读取的实机版本。
   源码 SHA-256、手册 SHA-256、Apache-2.0 许可证见包内 `PROVENANCE.json`。
 - 本地手册 v4.0.1 表 2.1-1（PDF 第 121 页、印刷 35 页）的 FR3 软限位已目视核对；
   表 2.4-1（PDF 第 126 页、印刷 40 页）的标准 DH 参数已提取。没有套用其他 FR3 子型号。
@@ -64,10 +66,10 @@ fake 输入→控制→录制链路已实现。当前环境是 macOS，没有 RO
 Canonical 与 SDK 同序 J1..J6，位置统一 rad；SDK 只在传输边界转成 degree。
 URDF 几何单位为 m；FK 为 base_link→flange，TCP 在绑定 `solver_tip_from_tool` 中表达。
 
-XML-RPC 20003；CNDE 20005，8 ms 状态周期；SDK 同时初始化 UDP 20007 接收线程，
-本实现运动命令采用 XML-RPC。未支持 TLS 配置、扩展轴、力控、夹爪、HOME 自动运动或 20004 老固件回退。
+当前 SDK V2.1.5 使用 XML-RPC 20003 + TCP 实时状态 20004；运动命令采用 XML-RPC。
+不再依赖 CNDE/TLS/UDP 接收线程，不保留自动跨版本回退。未支持扩展轴、力控、夹爪或 HOME 自动运动。
 
-完整 CNDE 帧通过 SDK 解码后原子复制；`sample_ns` 来自主机接收完成时的 `monotonic_ns`，
+20004 状态按固定 SDK ctypes 布局检查完整长度、帧头与校验和后原子复制；`sample_ns` 来自主机接收完成时的 `monotonic_ns`，
 不是机器人硬件时间。重复帧不更新时间，8 位帧号回绕允许；短帧、NaN/Inf、解码异常和通信失效被标故障。
 这不等于跨机时钟同步，也不证明传输层没有网络缓冲延迟。
 
@@ -105,7 +107,7 @@ ros2 launch morla_fr3_driver fr3_web.launch.py
 
 建议依次留证：
 
-1. **目标机安装**：Ubuntu 22.04 / ROS Humble 系统 Python 构建，安装 `python-mbedtls>=2.9,<3`，
+1. **目标机安装**：Ubuntu 22.04 / ROS Humble 系统 Python 构建，V2.1.5 SDK 无额外 TLS 依赖，
    验证目录、adapter 和 kinematics entry points。不要将 Mac Python 测试结果当作 colcon 成功。
 2. **ROS fake**：编译 `assembly.fake.yaml`，运行 `fr3_driver.launch.py`，查 JointState 六轴顺序/rad、
    私有服务、启动 disarmed、激活/回执/停止与资源释放。
@@ -137,6 +139,8 @@ npm run test:workcell
 ```
 
 本机使用已有 `/tmp/morla-cr5-vr-tests/bin/python` 和随应用提供的 Node；这些路径不是部署要求。
+
+以下是初次 V2.2.8 接入的历史结果，当前 V2.1.5 测试以迁移记录为准。
 
 - **PASS：34 项 FR3 专项**。六维编译、插件 ABI、Runtime 生命周期、目标名称/单位/有限值/范围、
   限速、暂停保持、停止、故障锁存、软暂停期间断流、SDK 阻塞进程超时、真实 SDK 的 CNDE 解码、

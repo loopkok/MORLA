@@ -1,5 +1,7 @@
 # FR3 实施与发布日志 — 2026-11-05
 
+> 历史记录：本文件的 CNDE/TLS/主机测试针对当时的 V2.2.8 SDK。当前本地已改为 V2.1.5 / Robot V3.8.5，本轮未同步主机；见 [SDK 迁移记录](FR3_SDK_2_1_5_MIGRATION.md)。
+
 本轮按用户要求提交并推送本地 FR3 新增内容。仓库为 `https://github.com/loopkok/MORLA`，目标为当前 `main` 分支。
 提交前基线为 `70ee93fd45b3983992f0eb438c80cf060066dcdd`；fetch 后本地与 `origin/main` 无领先或落后。
 

@@ -1,5 +1,11 @@
 # Changelog（MORLA）
 
+## 2026-11-06 — FR3 SDK V2.1.5 / Robot V3.8.5（本地）
+
+- 替换随包厂商 SDK 为用户提供的 Linux V2.1.5 原始源码，更新来源摘要及依赖声明。
+- 将 CNDE 20005 反馈改为 TCP 20004 固定结构状态，校验帧头/长度/校验和，支持分包粘包，拒绝坏帧/重复刷新；禁用自动重连与 XML-RPC 隐式重试，保持进程隔离和显式停止。
+- ROS 驱动与 Web 共用新 Adapter 后端；移除 python-mbedtls 依赖，更新只读报告、回归和 [迁移说明](docs/integrations/FR3_SDK_2_1_5_MIGRATION.md)。本轮不连接或修改 ROS 主机，不进行真机验收。
+
 ## 2026-11-06 — FR3 Quest forward translation
 
 - FR3 Quest forward translation now follows base +X; right/up remain +Y/+Z, with position scale 0.25.

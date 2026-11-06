@@ -2,11 +2,9 @@ import copy
 import json
 import math
 from pathlib import Path
-import struct
-import sys
 import threading
 import time
-from types import ModuleType, SimpleNamespace
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -16,7 +14,7 @@ from morla_runtime import RuntimeSession
 from morla_fr3_driver.adapter import FR3Adapter, FR3FakeAdapter
 from morla_fr3_driver.contract import INITIAL, LOWER, UPPER, validate_parameters, validate_target
 from morla_fr3_driver.kinematics import FR3Kinematics
-from morla_fr3_driver.sdk_backend import SDKBackend, ack, checked_cnde_class
+from morla_fr3_driver.sdk_backend import SDKBackend, ack
 from morla_fr3_driver.transport import FR3Transport
 
 ROOT = Path(__file__).parents[1]
@@ -265,38 +263,67 @@ def test_sdk_hang_is_bounded_process_terminated_no_late_reuse():
     transport.close()
 
 
-def vendor_module(monkeypatch):
-    # Only the optional TLS import is stubbed. Use the actual pinned SDK parser;
-    # these tests make no socket connections and do not claim TLS validation.
-    if 'morla_fr3_driver.vendor.Robot' not in sys.modules:
-        tls = ModuleType('mbedtls.tls')
-        for name in ('WantReadError', 'WantWriteError', 'ClientContext', 'DTLSConfiguration', 'TrustStore'):
-            setattr(tls, name, type(name, (Exception,), {}))
-        monkeypatch.setitem(sys.modules, 'mbedtls', ModuleType('mbedtls'))
-        monkeypatch.setitem(sys.modules, 'mbedtls.tls', tls)
+def vendor_module(monkeypatch=None):
     from morla_fr3_driver.vendor import Robot
     return Robot
 
 
-def test_actual_vendor_cnde_decoder_freshness_units_wrap_and_short_packet(monkeypatch):
-    module = vendor_module(monkeypatch)
-    client = checked_cnde_class(module)(module.RobotStatePkg(), [0])
-    client._config_states = [getattr(module.RobotState, key) for key in (
-        'FrameCnt', 'JointCurPos', 'RbtEnableState', 'MainCode', 'SubCode', 'EmergencyStop',
-        'SafetyStop0State', 'SafetyStop1State', 'CollisionState', 'RobotMode')]
-    def packet(count):
-        return struct.pack('<B6diii5B', count, 0, 90, -90, 180, -180, 45, 1, 0, 0, 0, 0, 0, 0, 0)
-    client._parse_cnde_state_data(packet(255))
-    assert client.morla_error is None
-    sample = client.morla_sample
-    assert sample['values'] == pytest.approx([0, math.pi/2, -math.pi/2, math.pi, -math.pi, math.pi/4])
-    client._parse_cnde_state_data(packet(255))
-    assert client.morla_sample['sample_ns'] == sample['sample_ns']
-    client._parse_cnde_state_data(packet(0))
-    assert client.morla_sample['sequence'] == 2
-    client._parse_cnde_state_data(packet(1)[:-1])
-    assert 'length' in client.morla_error
-    assert client.morla_sample['sequence'] == 2
+def state_packet(count=1, **fields):
+    import ctypes
+    module=vendor_module()
+    state=module.RobotStatePkg()
+    state.frame_head=0x5a5a
+    state.frame_cnt=count if count<128 else count-256
+    state.data_len=ctypes.sizeof(state)-7
+    state.jt_cur_pos[:]=[0,90,-90,180,-180,45]
+    for name,value in fields.items():setattr(state,name,value)
+    raw=bytes(state)
+    return raw[:-2]+(sum(raw[:-2]) & 0xffff).to_bytes(2,'little')
+
+
+def test_actual_vendor_20004_layout_freshness_units_wrap_fragmentation():
+    from morla_fr3_driver.realtime_state import StateFrames
+    client=StateFrames(vendor_module())
+    packet=state_packet(255,rbtEnableState=1)
+    for byte in packet[:-1]:client.feed(bytes([byte]))
+    assert client.read() is None
+    client.feed(packet[-1:])
+    sample=client.read()
+    assert sample['values']==pytest.approx([0,math.pi/2,-math.pi/2,math.pi,-math.pi,math.pi/4])
+    assert sample['enabled']==1 and sample['frame_count']==255
+    client.feed(packet)
+    assert client.read()['sample_ns']==sample['sample_ns']
+    client.feed(state_packet(0)+state_packet(1))
+    assert client.read()['sequence']==3
+
+
+@pytest.mark.parametrize('kind',['checksum','length','header','nan'])
+def test_20004_corruption_latches_without_refresh(kind):
+    from morla_fr3_driver.realtime_state import StateFrames
+    client=StateFrames(vendor_module());client.feed(state_packet())
+    stamp=client.read()['sample_ns']
+    raw=bytearray(state_packet(2))
+    if kind=='checksum':raw[20]^=1
+    elif kind=='length':raw[3]^=1
+    elif kind=='header':raw[0]=0
+    else:
+        module=vendor_module();state=module.RobotStatePkg.from_buffer_copy(raw)
+        state.jt_cur_pos[0]=float('nan');raw=bytearray(bytes(state))
+        raw[-2:]=(sum(raw[:-2]) & 0xffff).to_bytes(2,'little')
+    client.feed(raw)
+    with pytest.raises(ConnectionError):client.read()
+    client.feed(state_packet(3))
+    assert client.sample['sample_ns']==stamp
+
+
+def test_xmlrpc_oserror_is_not_retried(monkeypatch):
+    from morla_fr3_driver.realtime_state import _SingleAttemptProxy
+    calls=[]
+    class Proxy:
+        def ServoJ(self,*args):calls.append(args);raise OSError('network failure')
+    proxy=object.__new__(_SingleAttemptProxy);proxy.fast=proxy.slow=Proxy()
+    with pytest.raises(RuntimeError,match='not retried'):proxy.ServoJ([0]*6)
+    assert len(calls)==1
 
 
 class SDKDouble:

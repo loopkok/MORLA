@@ -4,6 +4,7 @@
 不是 Franka FR3，也不包含 FR3-WMS/WML/C/MT 的几何参数。
 
 复用 MORLA 的组合编译、Runtime、ROS 网关、Web、输入绑定、数采与控制权流程。
+当前固定 SDK **V2.1.5 / Robot V3.8.5**，使用 20003 XML-RPC + 20004 实时反馈。升级说明见 [SDK 迁移记录](../../../../docs/integrations/FR3_SDK_2_1_5_MIGRATION.md)。
 厂商 SDK 以原样源码随包安装，摘要及许可证见 `PROVENANCE.json` / `LICENSE-FAIRINO`。
 不需要 CR5、Nero、手部 SDK，也不导入桌面路径。fake/目录发现不加载厂商 SDK。
 
@@ -15,8 +16,7 @@ Ubuntu 22.04 / ROS 2 Humble 主机，使用系统 Python（不能使用与 rclpy
 source /opt/ros/humble/setup.bash
 # Cartesian IK 需要 Pinocchio；ROS apt 安装（也可在兼容环境装 Python extra [ik]）。
 sudo apt install ros-humble-pinocchio
-# 真实驱动需要；SDK 即使不用 TLS 也会导入此依赖。
-python3 -m pip install 'python-mbedtls>=2.9,<3'
+# V2.1.5 SDK 仅使用 Python 标准库，无 python-mbedtls 依赖。
 colcon build --symlink-install --packages-up-to morla_fr3_driver morla_web_manager
 source install/setup.bash
 python3 -m morla_core.composition.cli compile \
@@ -51,12 +51,14 @@ FR3 fake 是合成反馈；`sim` 使用公共 MuJoCo，提供运动学和参考�
 
 ## SDK、时间与停止语义
 
-- 固定使用所提供 SDK 的 XML-RPC 20003、CNDE 20005；SDK 构造还启动 UDP 20007 接收线程。
-  此版本新增 CNDE/TLS 协商；旧 20004 固件不能自动回退，本实现未启用 TLS。
+- 固定使用所提供 V2.1.5 / Robot V3.8.5 SDK 的 XML-RPC 20003 和 TCP 实时反馈 20004。
+  不使用 CNDE 20005、UDP 20007 或 TLS 协商，不保留 V2.2.8 自动回退。
+- MORLA 子类替代旧 SDK 的反馈循环、重连和关闭，不改写 vendored SDK；XML-RPC 每次请求只尝试一次，避免旧 SDK 与标准库隐式重试。
 - 每个设备独占一个 spawn 子进程，避免 SDK 类级全局状态污染其他机械臂；进程内只有一个 SDK 命令调用者。
   `rpc_timeout_s`、`startup_timeout_s`、`operation_timeout_s` 分别约束普通调用、构造和使能/停止。
   超时终止 SDK 进程并报告故障，不自动重连、不重放迟到目标。**进程退出不等于物理停止**。
-- CNDE 完整帧复制后才记录主机 `monotonic_ns`。短帧、解码异常、NaN、重复帧、过期反馈均不能刷新有效性；
+- 20004 帧按原 SDK 的 RobotStatePkg 固定结构解码，检查 0x5A5A 帧头、声明长度和 uint16 校验和，处理 TCP 分包/粘包。
+  仅验证完整帧后才记录主机 `monotonic_ns`。短帧、解码异常、NaN、重复帧、过期反馈均不能刷新有效性；
   静止关节值相同但新帧计数仍有效。状态保留错误码、使能、急停、保护停止、碰撞和帧序号。
 - canonical `joint1..joint6`，位置 rad；SDK J1..J6 度，`q_sdk = q_rad * 180/pi`，无额外符号或零点偏移。
   实机零位/方向尚待确认。手册 FR3 软限位（度）为 `[-175,-265,-150,-265,-175,-175]` 到 `[175,85,150,85,175,175]`。

@@ -1,5 +1,7 @@
 # FR3 ROS 2 主机与浏览器验收 — 2026-11-05
 
+> 历史记录：本文件的 CNDE/TLS/主机测试针对当时的 V2.2.8 SDK。当前本地已改为 V2.1.5 / Robot V3.8.5，本轮未同步主机；见 [SDK 迁移记录](FR3_SDK_2_1_5_MIGRATION.md)。
+
 本轮使用用户指定的 Ubuntu 22.04.5 x86_64 / ROS 2 Humble 主机，项目 `/home/loopkok/MORLA`。起始代码为 `40a69cbe2c8fff765e8fdd1a425ef538a89955a0`，工作区最初干净；验收期间修复了下述部署问题。使用 `/usr/bin/python3`，退出 conda 后构建和测试。
 
 已完成 FR3 相关 ROS 编译、安装、fake DDS、SDK Linux 导入、不可达本机地址负例，以及浏览器实际交互。实体机械臂和实体 Quest 未使用；没有向实体设备发送连接、使能或运动命令。未实施新的动力学仿真、碰撞模型或真实数据训练。

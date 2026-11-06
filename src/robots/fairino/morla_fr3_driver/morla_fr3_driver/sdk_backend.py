@@ -1,12 +1,10 @@
 """Pinned FAIRINO SDK boundary. This module runs only in the owned subprocess.
 
-The vendor decoder is retained. A small subclass observes complete CNDE frames
-and copies state atomically; reading SDK.robot_state_pkg alone has no freshness
+The pinned vendor ctypes layout is retained. A checked TCP 20004 receiver
+copies complete validated frames atomically; reading SDK.robot_state_pkg alone has no freshness
 contract and its getters sometimes return cached values with success code 0.
 """
-import copy
 import math
-import threading
 import time
 
 from .contract import vector6
@@ -15,58 +13,6 @@ from .contract import vector6
 def ack(name, result):
     if type(result) is not int or result != 0:
         raise RuntimeError(f'FAIRINO {name} rejected: {result!r}')
-
-
-def checked_cnde_class(module):
-    class CheckedCNDE(module.FRCNDEClient):
-        def __init__(self, *args, **kwargs):
-            self.morla_lock = threading.Lock()
-            self.morla_sample = None
-            self.morla_error = None
-            self.morla_sequence = 0
-            self.morla_frame = None
-            super().__init__(*args, **kwargs)
-
-        def _parse_and_set_field(self, *args, **kwargs):
-            try:
-                return super()._parse_and_set_field(*args, **kwargs)
-            except Exception as exc:
-                self.morla_error = f'CNDE field decode failed: {exc}'
-                raise
-
-        def _parse_cnde_state_data(self, data):
-            with self.morla_lock:
-                if self.morla_error:
-                    return  # malformed state is latched until a new session
-                try:
-                    size = sum(module.get_cnde_type_size(self._all_states[s][3])
-                               for s in self._config_states)
-                    if len(data) != size:
-                        raise ValueError(f'CNDE payload length {len(data)}, expected {size}')
-                    super()._parse_cnde_state_data(data)
-                    if self.morla_error:
-                        return
-                    state = self._robot_state_pkg
-                    if self.morla_frame == state.frame_cnt:
-                        return  # repeated frame never refreshes sample_ns
-                    values = vector6(list(state.jt_cur_pos))
-                    self.morla_sequence += 1
-                    self.morla_frame = state.frame_cnt
-                    self.morla_sample = {
-                        'values': [math.radians(v) for v in values],
-                        'sample_ns': time.monotonic_ns(),
-                        'frame_count': int(state.frame_cnt), 'sequence': self.morla_sequence,
-                        'enabled': int(state.rbtEnableState),
-                        'main_code': int(state.main_code), 'sub_code': int(state.sub_code),
-                        'emergency_stop': int(state.EmergencyStop),
-                        'safety_stop0': int(state.safety_stop0_state),
-                        'safety_stop1': int(state.safety_stop1_state),
-                        'collision': int(state.collisionState),
-                        'robot_mode': int(state.robot_mode),
-                    }
-                except Exception as exc:
-                    self.morla_error = str(exc)
-    return CheckedCNDE
 
 
 def require_safe(sample):
@@ -83,36 +29,25 @@ class SDKBackend:
         self.sdk = None
         self.owned_enable = False
         self.servo_started = False
-        Robot.FRCNDEClient = checked_cnde_class(Robot)
-        Robot.DEFAULT_CNDE_STATES = [getattr(Robot.RobotState, name) for name in (
-            'FrameCnt', 'JointCurPos', 'RbtEnableState', 'MainCode', 'SubCode',
-            'EmergencyStop', 'SafetyStop0State', 'SafetyStop1State', 'CollisionState', 'RobotMode')]
-        Robot.DEFAULT_CNDE_PERIOD = 8
-        Robot.RPC._reconnect_enable = False
+        from .realtime_state import checked_rpc_class
+        rpc = checked_rpc_class(Robot, parameters)
         try:
-            self.sdk = Robot.RPC(parameters['host'])
-            if not self.sdk.is_connect:
-                raise ConnectionError('FAIRINO SDK connection failed (XML-RPC 20003 / CNDE 20005)')
-            ack('SetReConnectParam', self.sdk.SetReConnectParam(False, 0, 1000))
+            self.sdk = rpc(parameters['host'])
+            if not self.sdk.is_conect:
+                raise ConnectionError('FAIRINO SDK connection failed (SDK V2.1.5: XML-RPC 20003 / realtime 20004)')
             self._wait(lambda sample: True)
         except Exception:
             self.close()
             raise
 
     def read(self):
-        client = self.sdk._cnde_client
-        if client is None:
-            raise ConnectionError('FR3 CNDE is disconnected')
-        with client.morla_lock:
-            if client.morla_error:
-                raise RuntimeError(client.morla_error)
-            sample = copy.deepcopy(client.morla_sample)
+        sample = self.sdk.morla_frames.read()
         if sample is None:
-            raise RuntimeError('FR3 has no complete CNDE feedback frame')
+            raise RuntimeError('FR3 has no complete TCP 20004 feedback frame')
         age = (time.monotonic_ns() - sample['sample_ns']) / 1e9
         if not 0 <= age <= self.parameters['feedback_timeout_s']:
             raise TimeoutError(f'FR3 feedback stale ({age:.3f}s); no automatic reconnect')
-        if not self.sdk.SDK_state or self.sdk._com_err_flag[0] != 0:
+        if not self.sdk.SDK_state or not self.sdk.sock_cli_state_state:
             raise ConnectionError('FR3 SDK reports communication failure')
         return sample
 
