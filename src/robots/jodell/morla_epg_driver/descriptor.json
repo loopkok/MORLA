@@ -227,5 +227,18 @@
   "source": {
     "package": "morla_epg_driver",
     "version": "0.1.0"
+  },
+  "web": {
+    "label": "Jodell EPG50",
+    "connection_fields": [
+      "baudrate",
+      "port"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
   }
 }

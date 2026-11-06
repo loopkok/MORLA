@@ -1,5 +1,7 @@
 # MORLA 设备移植与接入指南
 
+2026-11-06 更新：Web 预设、表单、控制器兼容性/默认值和共享仿真资源改为 descriptor 驱动，参见 [接入声明规范](integrations/PLUGIN_DRIVEN_PORTING.md)。新机器人无需修改前后端品牌列表；实际工厂、模型和现场标定仍须验收。
+
 > 当前接线基线：2026-10-30 统一组件工作区（起点 c1896c6）。最新变更与验收见 [实现记录](architecture_refactor/UNIFIED_IMPLEMENTATION.md)。本文面向机械臂、夹爪、灵巧手、VR、手套、手柄、手机、外骨骼、相机和传感器接入。
 >
 > 本文规定接入工作及交付要求，不授予任何设备“已通过实机验收”的状态。后续开发应先核对本文与当时源码；存在差异时，以实际接口、测试和部署证据为依据，同时更新本文。文中的“必须”是接入要求，不表示当前程序已自动检查所有要求。
@@ -368,11 +370,11 @@ MORLA 的笛卡尔遥操采用相对位移：首次有效输入将人手位姿�
 
 ### 5.4 仿真接入
 
-新机器人仅放入 URDF/MJCF 不会自动加入组合仿真。当前 [composable_scene.py](../src/robot_description/scripts/composable_scene.py) 的受信资产表和组件子树抽取逻辑需扩展，或提供经过隔离验证的仿真后端。
+新机器人仅放入 URDF/MJCF 不会自动加入组合仿真。需要在 descriptor 的 `geometry.simulation` 声明包资源、根子树和末端，并提供关节 `mjcf_name`。通用 [composable_scene.py](../src/robot_description/scripts/composable_scene.py) 读取这些声明，无需新增品牌分支；复杂传动可另提供经过隔离验证的仿真后端。完整配置见 [插件声明驱动规范](integrations/PLUGIN_DRIVEN_PORTING.md)。
 
 要求：canonical→MJCF 的 `mjcf_name` 一一对应；模型 actuator/sensor 的名称及控制单位正确；装配 mount 有实际变换；多设备进入同一场景而非各跑独立世界。惯量、碰撞、重力、接触和夹爪 mimic/tendon 关系分别验证。
 
-FR3 的实际例子采用独立 `fr3_description` 保存 URDF/STL/MJCF，公共 builder 只增加受信包解析和子树/frame 接线；`fr3_mujoco_sim` 独立包与驱动内兼容 launch 复用同一场景，不复制仿真循环。完整过程和测试见 [FR3 仿真移植实例](integrations/FR3_SIMULATION.md)。独立资产包不意味着可跳过 canonical→MJCF 映射、限位和 FK 一致性验收。
+FR3 的实际例子采用独立 `fr3_description` 保存 URDF/STL/MJCF，公共 builder 从 descriptor 读取受信包资源和子树/frame 声明；`fr3_mujoco_sim` 独立包与驱动内兼容 launch 复用同一场景，不复制仿真循环。完整过程和测试见 [FR3 仿真移植实例](integrations/FR3_SIMULATION.md)。独立资产包不意味着可跳过 canonical→MJCF 映射、限位和 FK 一致性验收。
 
 现有部分 legacy mesh 关闭碰撞，自动生成的位置伺服也不代表真实设备动力学。仿真验证必须说明覆盖的是运动学、动力学还是碰撞，不能从“能动”推断所有层都成立。sim 相机缺图形环境时应报告不可用，不以 fake 图像替换。
 

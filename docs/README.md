@@ -2,6 +2,8 @@
 
 # 排查经验索引（Troubleshooting & Investigation）
 
+2026-11-06：[插件声明驱动的 Web/仿真接入](integrations/PLUGIN_DRIVEN_PORTING.md)，包含现有机器人的迁移方式、新设备配置和验收要求。
+
 新增机器人、输入设备、相机、传感器或脚踏操作源，先阅读 [设备移植与接入指南](device_integration_guide.md)：包含重构后实际接口、坐标/关节/时间对齐、分设备接入步骤、配置样例、验收和交付模板。
 
 成员培训：[FR3 移植实战教程](integrations/FR3_PORTING_TUTORIAL.md) · [新机械臂移植工作单](integrations/ROBOT_PORTING_WORKSHEET.md)。教程逐步说明文件职责、注册、生命周期、遥操/逆解、Web、数据及 ROS/浏览器验收，并列出当前框架尚需改进的扩展点。

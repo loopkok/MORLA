@@ -1,6 +1,8 @@
 export type Schema = { type?: string; title?: string; description?: string; enum?: (string | number | boolean)[]; minimum?: number; maximum?: number; exclusiveMinimum?: number; exclusiveMaximum?: number; minItems?: number; maxItems?: number; items?: Schema; properties?: Record<string, Schema>; default?: unknown }
 export type Port = { direction: string; semantic: string; dim: number; unit: string; axis_names?: string[] }
-export type Component = { plugin_id: string; plugin_version: string; kind: string; resources?: {sharing?: string}; ports: Record<string, Port>; joints?: { name: string; unit: string; lower?: number; upper?: number }[]; geometry?: { frames?: string[] }; defaults?: Record<string, unknown>; configuration_schema?: Schema; controller_types?: { inputs?: string[]; outputs?: string[] }; backend_variants?: Record<string, { available?: boolean }> }
+export type WebMetadata = { control_family?:string; label?: string; fields?: string[]; connection_fields?: string[]; field_backends?: Record<string,string[]>; field_conditions?: Record<string,Record<string,unknown[]>>; preferred_controllers?: Record<string,string>; binding_presets?: {controller:string;source_plugin:string;parameters?:Record<string,unknown>;defaults:Record<string,unknown>}[]; ik_modes?:string[] }
+export type Template = {id:string;title:string;assembly_id:string}
+export type Component = { plugin_id: string; plugin_version: string; kind: string; resources?: {sharing?: string}; ports: Record<string, Port>; joints?: { name: string; unit: string; lower?: number; upper?: number }[]; geometry?: { frames?: string[]; controller_capabilities?:string[] }; defaults?: Record<string, unknown>; configuration_schema?: Schema; web?: WebMetadata; controller_types?: { inputs?: string[]; outputs?: string[]; target_plugins?:string[]; target_capability?:string; target_dim?:number; equal_dimensions_units?:boolean }; backend_variants?: Record<string, { available?: boolean }> }
 export type Instance = { plugin: string; version: string; backend?: string; role?: string; parameters?: Record<string, unknown>; display_name?: string; [key: string]: unknown }
 export type Binding = { id: string; source: string; target: string; deadman?: string; controller: string; max_age_ms?: number; input_basis_id?: string; parameters: Record<string, unknown>; [key: string]: unknown }
 export type LogOptions = { enabled?:boolean; feedback_hz?:number; queue_size?:number; segment_mb?:number; max_run_mb?:number }
@@ -27,42 +29,42 @@ export function normalise(raw: Assembly): Assembly {
   }
   return value
 }
-export const labels: Record<string, string> = {
-  'morla.input.vader5': 'Vader 5 手柄', 'morla.input.quest': 'Quest 3', 'morla.input.gamepad': '通用手柄', 'morla.input.xbox': 'Xbox 手柄', 'morla.input.glove': '数据手套', 'morla.input.mobile': '手机体感', 'morla.input.standard': 'ROS 输入', 'morla.fake.input': '测试输入',
-  'morla.dobot.cr5': 'Dobot CR5', 'morla.fairino.fr3': 'FAIRINO FR3', 'morla.astral.arm': 'Astral 机械臂', 'morla.nero.arm': 'Nero 机械臂', 'morla.astral.waist': 'Astral 腰部', 'morla.astral.head': 'Astral 头部', 'morla.fake.arm': '测试机械臂', 'morla.ros2_control.mock': 'ros2_control 测试臂', 'morla.astral.gripper': 'Astral 夹爪', 'morla.jodell.epg50_060': 'Jodell EPG50', 'morla.wuji.hand': 'Wuji 灵巧手', 'morla.xhand.hand': 'XHand 灵巧手', 'morla.loophand.compact': 'LoopHand', 'morla.camera': '场景相机', 'morla.camera.ros_image': 'ROS 相机', 'morla.camera.uvc': 'USB 相机', 'morla.fake.camera': '测试相机', 'morla.fake.sensor': '测试传感器',
-  'morla.fr3.cartesian_delta': '末端位姿跟随 · FR3', 'morla.fr3.cartesian_jog': '末端速度控制 · FR3', 'morla.cr5.cartesian_delta': '末端位姿跟随 · CR5', 'morla.cr5.cartesian_jog': '末端速度控制 · CR5', 'morla.cartesian_delta_ik': '末端位姿跟随', 'morla.gamepad_cartesian_jog': '末端速度控制', 'morla.joint_jog': '关节点动', 'morla.identity': '直接传递', 'morla.scalar_map': '线性映射', 'morla.trigger_filtered': '扳机控制', 'morla.pinch_filtered': '捏合控制（滤波）', 'morla.pinch_scalar': '捏合控制', 'morla.xhand.retarget': 'XHand 手势重定向', 'morla.wuji.retarget': 'Wuji 手势重定向',
-}
-export const label = (key: string) => labels[key] || key
+export const label = (key: string, catalog: Component[] = []) => catalog.find(c=>c.plugin_id===key)?.web?.label || key
 export const backendNames: Record<string, string> = { fake: '测试数据', sim: 'MuJoCo 仿真', real: '真实设备' }
 export const portNames: Record<string, string> = { position: '关节位置', velocity: '关节速度', position_target: '位置指令', joint_target: '关节指令', right_pose: '右手位姿', left_pose: '左手位姿', right_buttons: '右手柄按键', left_buttons: '左手柄按键', right_hold: '右手控制键', left_hold: '左手控制键', axes: '摇杆轴', scalar: '扳机输入', closure: '夹爪开合', rgb: '彩色图像', hold_to_control: '使能按键', landmarks: '手部关键点', right_landmarks: '右手关键点', left_landmarks: '左手关键点' }
 export function portLabel(ref: string) { const [id, port] = ref.split('.'); return `${id} · ${portNames[port] || port}` }
-export const controllerCapabilities: Record<string, [string[], string[]]> = {
- 'morla.pinch_filtered': [['hand_landmarks'], ['scalar','joint_targets']], 'morla.trigger_filtered': [['scalar'], ['scalar','joint_targets']], 'morla.pinch_scalar': [['hand_landmarks'], ['scalar','joint_targets']], 'morla.cartesian_delta_ik': [['pose6d'], ['joint_targets']], 'morla.gamepad_cartesian_jog': [['axes_buttons'], ['joint_targets']], 'morla.joint_jog': [['axes_buttons','joint_targets'], ['joint_targets']], 'morla.scalar_map': [['scalar'], ['scalar','joint_targets']], 'morla.identity': [['joint_targets','scalar','numeric'], ['joint_targets','scalar','numeric']], 'morla.xhand.retarget': [['hand_landmarks'], ['joint_targets']], 'morla.wuji.retarget': [['hand_landmarks'], ['joint_targets']],
-}
-export function compatible(catalog: Component[], source?: Port, target?: Port, targetPlugin?: string) {
+export function compatible(catalog: Component[], source?: Port, target?: Port, targetPlugin?: string, backend?: string) {
  if (!source || !target) return []
- const caps = { ...controllerCapabilities, ...Object.fromEntries(catalog.filter(c => c.kind==='controller').map(c => [c.plugin_id, [c.controller_types?.inputs || [], c.controller_types?.outputs || []] as [string[], string[]]])) }
- return Object.entries(caps).filter(([id,[ins,outs]]) => ins.includes(source.semantic) && outs.includes(target.semantic) && (!['morla.scalar_map','morla.pinch_scalar','morla.pinch_filtered','morla.trigger_filtered'].includes(id) || target.dim===1) && (id!=='morla.identity' || source.dim===target.dim && source.unit===target.unit)).map(([id])=>id).filter(id => {
-  if (!targetPlugin) return true
-  if (id === 'morla.xhand.retarget') return targetPlugin === 'morla.xhand.hand'
-  if (id === 'morla.wuji.retarget') return targetPlugin === 'morla.wuji.hand'
-  if (id.startsWith('morla.fr3.')) return targetPlugin === 'morla.fairino.fr3'
-  if (id.startsWith('morla.cr5.')) return targetPlugin === 'morla.dobot.cr5'
-  if (['morla.cartesian_delta_ik', 'morla.gamepad_cartesian_jog'].includes(id))
-   return ['morla.nero.arm', 'morla.astral.arm', 'morla.fairino.fr3'].includes(targetPlugin)
-  return true
- })
+ return catalog.filter(c=>{
+  const t=c.controller_types
+  return c.kind==='controller' && t?.inputs?.includes(source.semantic) && t.outputs?.includes(target.semantic)
+   && (!t.target_plugins || !!targetPlugin && t.target_plugins.includes(targetPlugin))
+   && (!t.target_capability || catalog.find(d=>d.plugin_id===targetPlugin)?.geometry?.controller_capabilities?.includes(t.target_capability))
+   && (t.target_dim===undefined || t.target_dim===target.dim)
+   && (!t.equal_dimensions_units || source.dim===target.dim && source.unit===target.unit)
+   && (!backend || c.backend_variants?.[backend]?.available===true)
+ }).map(c=>c.plugin_id)
+}
+export function preferredController(choices:string[], target:Component, semantic:string) {
+ const preferred=target.web?.preferred_controllers?.[semantic]
+ return preferred && choices.includes(preferred)?preferred:choices[0]||''
+}
+export function pluginBindingDefaults(catalog:Component[], controller:string, source:Port, target:Component, sourcePlugin:string, parameters:Record<string,unknown>={}) {
+ const c=catalog.find(c=>c.plugin_id===controller)
+ const result={...bindingDefaults(controller,source,target,sourcePlugin==='morla.input.quest',c?.web?.control_family),...structuredClone(c?.defaults||{})}
+ for(const preset of target.web?.binding_presets||[]) {
+  if(preset.controller===controller&&preset.source_plugin===sourcePlugin&&Object.entries(preset.parameters||{}).every(([k,v])=>(parameters[k]??target.defaults?.[k]??(k==='side'?'left':undefined))===v))Object.assign(result,structuredClone(preset.defaults))
+ }
+ return result
 }
 export const identity = () => [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
-export function bindingDefaults(controller: string, source: Port, target: Component, quest = false): Record<string, unknown> {
+export function bindingDefaults(controller: string, source: Port, target: Component, quest = false, family?:string): Record<string, unknown> {
  const axes=source.axis_names || []
- if (controller==='morla.joint_jog') return { axes_map: Array.from({length:target.joints?.length || 1},(_,i)=>axes[i] || null), speed:.25 }
- if (controller.includes('cartesian')) {
+ if (family==='joint_jog'||controller==='morla.joint_jog') return { axes_map: Array.from({length:target.joints?.length || 1},(_,i)=>axes[i] || null), speed:.25 }
+ if (family?.startsWith('cartesian')||controller.includes('cartesian')) {
    const p: Record<string, unknown> = { input_rotation: quest ? [[0,0,-1],[1,0,0],[0,1,0]] : [[1,0,0],[0,1,0],[0,0,1]], solver_tip_from_tool: identity() }
-   if (controller.endsWith('jog')) Object.assign(p,{axes_map:Object.fromEntries(['x','y','z','roll','pitch','yaw'].map((name,i)=>[name, axes.includes(name)?name:axes[i] || null])),linear_speed:.02,angular_speed:.15})
+   if (family==='cartesian_jog'||controller.endsWith('jog')) Object.assign(p,{axes_map:Object.fromEntries(['x','y','z','roll','pitch','yaw'].map((name,i)=>[name, axes.includes(name)?name:axes[i] || null])),linear_speed:.02,angular_speed:.15})
    else p.position_scale=.8
-   if(controller.startsWith('morla.cr5.')||controller.startsWith('morla.fr3.')) Object.assign(p,{ik_mode:'differential',max_joint_velocity:.3,smoothing_alpha:.35})
-   if(controller.startsWith('morla.fr3.')) p.command_lead_rad=.08
    return p
  }
  const output_range=[target.joints?.[0]?.lower ?? 0,target.joints?.[0]?.upper ?? 1]
@@ -113,58 +115,14 @@ export function parseWorkcellDocument(raw:unknown): {assembly:Assembly;deploymen
  return {assembly:normalise(a as Assembly),deployment:(raw.deployment || {}) as Deployment}
 }
 
-const builtinDeviceFields: Record<string, string[]> = {
- 'morla.fake.arm': ['rate_hz','initial_positions'],
- 'morla.ros2_control.mock': ['rate_hz','initial_positions'],
- 'morla.fake.sensor': ['rate_hz'],
- 'morla.fake.input': ['rate_hz'],
- 'morla.nero.arm': ['side','rate_hz','max_sample_age_ms','can_channel','can_interface','firmware_version','native_j7_first','initial_position','workpos_waypoints_deg','initial_positions'],
- 'morla.astral.arm': ['side','rate_hz','max_sample_age_ms','control_board_ip','local_ip','local_port','board_cmd_port','board_scope_verified','unselected_joints_policy','initial_positions'],
- 'morla.astral.gripper': ['side','rate_hz','max_sample_age_ms','control_board_ip','local_ip','local_port','board_cmd_port','board_scope_verified','unselected_joints_policy','initial_positions'],
- 'morla.xhand.hand': ['side','rate_hz','max_sample_age_ms','port_name','hand_id','initial_positions','preprocess_mode','index_bend_sign','enable_thumb_fix'],
- 'morla.wuji.hand': ['side','rate_hz','max_sample_age_ms','serial_number','publish_rate','filter_cutoff_freq','initial_positions','retarget_backend'],
- 'morla.input.quest': ['side','process_mode','protocol','udp_port','tcp_port','input_topic','source_namespace','pinch_range_m'],
- 'morla.input.gamepad': ['process_mode','input_topic','device_name','deadzone'],
- 'morla.input.xbox': ['process_mode','input_topic','device_name','deadzone'],
- 'morla.input.glove': ['side','process_mode','input_topic','source_namespace'],
- 'morla.input.mobile': ['process_mode','input_topic'],
-}
-const cameraFields = ['width','height','fps','camera_backend','image_topic','compressed','device_path']
-const hardwareFields = new Set([
- 'can_channel','can_interface','firmware_version','native_j7_first','initial_position','workpos_waypoints_deg',
- 'control_board_ip','local_ip','local_port','board_cmd_port','board_scope_verified','unselected_joints_policy',
- 'serial_number','publish_rate','filter_cutoff_freq','port_name','hand_id',
- 'udp_port','tcp_port','input_topic','source_namespace','host','port','device_path','baudrate','baud_rate','address',
-])
-export function visibleDeviceFields(
- component: Component, backend: string,
- parameters?: Record<string, unknown>, deployment?: Record<string, unknown>,
- connection = false,
-): Record<string, Schema> {
- const plugin=component.plugin_id
- const settings={...component.defaults,...parameters,...deployment}
- const camera=plugin.startsWith('morla.camera')||plugin==='morla.fake.camera'
- const allowed=camera?cameraFields:builtinDeviceFields[plugin]
+export function visibleDeviceFields(component:Component, backend:string, parameters?:Record<string,unknown>, deployment?:Record<string,unknown>, connection=false):Record<string,Schema> {
+ const settings={...component.defaults,...parameters,...deployment},ui=component.web||{}
  return Object.fromEntries(Object.entries(component.configuration_schema?.properties||{}).filter(([key])=>{
-  if(allowed&&!allowed.includes(key))return false
-  if(key==='device_id')return false
-  if(['morla.astral.head','morla.astral.waist'].includes(plugin)&&!['rate_hz','max_sample_age_ms','initial_positions','control_board_ip','local_ip','local_port','board_cmd_port'].includes(key))return false
-  if(key==='initial_positions')return backend!=='real'&&!connection&&component.kind==='actuator'
-  if(hardwareFields.has(key)) {
-   if(backend!=='real'||!connection)return false
-   if(plugin==='morla.input.quest') {
-    const tcp=String(settings.protocol||'udp').startsWith('tcp')
-    if(key==='udp_port')return !tcp
-    if(key==='tcp_port')return tcp
-   }
-   if(camera&&key==='device_path')return settings.camera_backend==='uvc'||plugin==='morla.camera.uvc'
-   return true
-  }
-  if(camera) {
-   const uvc=settings.camera_backend==='uvc'||plugin==='morla.camera.uvc'
-   if(['image_topic','compressed'].includes(key))return backend==='real'&&!uvc&&connection
-   if(key==='camera_backend')return backend==='real'&&!connection
-  }
+  if(key==='device_id'||ui.fields&&!ui.fields.includes(key))return false
+  if(ui.field_backends?.[key]&&!ui.field_backends[key].includes(backend))return false
+  if(Object.entries(ui.field_conditions?.[key]||{}).some(([name,values])=>!values.includes(settings[name]??component.configuration_schema?.properties?.[name]?.default)))return false
+  const hardware=ui.connection_fields?.includes(key)
+  if(hardware)return backend==='real'&&connection
   if(backend==='real'&&key in (deployment||{}))return connection
   return !connection
  }))

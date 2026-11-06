@@ -95,7 +95,7 @@ class MujocoDeviceSession:
             self.targets[key] = self.data.qpos[qpos].copy()
         self.cameras = [row for row in self.runtime.instances.values()
                         if row.get('backend') == 'sim' and row.get('kind') == 'sensor'
-                        and row['plugin_id'].startswith('morla.camera')]
+                        and (row.get('kind')=='sensor' and row.get('ports',{}).get('rgb',{}).get('semantic')=='image')]
         self.camera_ids = {row['instance_id']: mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_CAMERA, row['instance_id'] + '__rgb') for row in self.cameras}
         if any(value < 0 for value in self.camera_ids.values()):
             raise ValueError('SIM_CAMERA_MAPPING_MISSING')
@@ -390,7 +390,7 @@ class MujocoAdapter:
 def make_sim_adapters(runtime):
     selected = [row for row in runtime.instances.values() if row.get('backend') == 'sim']
     if not selected: return {}
-    if any(row.get('kind') != 'actuator' and not row['plugin_id'].startswith('morla.camera') for row in selected):
+    if any(row.get('kind') != 'actuator' and not (row.get('kind')=='sensor' and row.get('ports',{}).get('rgb',{}).get('semantic')=='image') for row in selected):
         raise ValueError('SIM_SENSOR_PROVIDER_UNAVAILABLE')
     session = MujocoDeviceSession(runtime)
     return {row['instance_id']: MujocoAdapter(row, session) for row in selected}

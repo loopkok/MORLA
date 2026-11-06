@@ -1,0 +1,101 @@
+[0.873s] WARNING:colcon.colcon_core.package_selection:Some selected packages are already built in one or more underlay workspaces:
+	'astral_arm_teleop' is in: /home/loopkok/MORLA/install/astral_arm_teleop
+	'morla_native_bridge' is in: /home/loopkok/MORLA/install/morla_native_bridge
+	'morla_input' is in: /home/loopkok/MORLA/install/morla_input
+	'wujihand_driver' is in: /home/loopkok/MORLA/install/wujihand_driver
+	'astral_gripper_teleop' is in: /home/loopkok/MORLA/install/astral_gripper_teleop
+	'wujihand_retargeting' is in: /home/loopkok/MORLA/install/wujihand_retargeting
+	'robot_description' is in: /home/loopkok/MORLA/install/robot_description
+	'morla_web_manager' is in: /home/loopkok/MORLA/install/morla_web_manager
+	'wuji_glove' is in: /home/loopkok/MORLA/install/wuji_glove
+	'morla_core' is in: /home/loopkok/MORLA/install/morla_core
+	'morla_runtime' is in: /home/loopkok/MORLA/install/morla_runtime
+	'morla_bringup' is in: /home/loopkok/MORLA/install/morla_bringup
+	'morla_cr5_driver' is in: /home/loopkok/MORLA/install/morla_cr5_driver
+If a package in a merged underlay workspace is overridden and it installs headers, then all packages in the overlay must sort their include directories by workspace order. Failure to do so may result in build failures or undefined behavior at run time.
+If the overridden package is used by another package in any underlay, then the overriding package in the overlay must be API and ABI compatible or undefined behavior at run time may occur.
+
+If you understand the risks and want to override a package anyways, add the following to the command line:
+	--allow-overriding astral_arm_teleop astral_gripper_teleop morla_bringup morla_core morla_cr5_driver morla_input morla_native_bridge morla_runtime morla_web_manager robot_description wuji_glove wujihand_driver wujihand_retargeting
+
+This may be promoted to an error in a future release of colcon-override-check.
+Starting >>> morla_core
+Starting >>> morla_interfaces
+Starting >>> robot_description
+Starting >>> xhand_control_interfaces
+Starting >>> nero_robot_control
+Starting >>> wujihand_msgs
+Starting >>> astral_robot_control
+Starting >>> wuji_glove
+Starting >>> morla_astral_robot
+Starting >>> morla_wuji_hand
+Starting >>> quest3_video_streamer
+Starting >>> fr3_description
+Finished <<< fr3_description [2.73s]
+Finished <<< robot_description [2.79s]
+Finished <<< wujihand_msgs [2.80s]
+Finished <<< morla_interfaces [2.84s]
+Finished <<< xhand_control_interfaces [2.85s]
+Starting >>> wujihand_driver
+Starting >>> xhand_control_ros2
+Finished <<< xhand_control_ros2 [0.13s]
+Finished <<< wujihand_driver [0.17s]
+Finished <<< wuji_glove [3.98s]
+Finished <<< morla_wuji_hand [3.98s]
+Finished <<< quest3_video_streamer [4.02s]
+Finished <<< nero_robot_control [4.07s]
+Finished <<< astral_robot_control [4.08s]
+Finished <<< morla_core [4.13s]
+Starting >>> morla_runtime
+Starting >>> nero_arm_teleop
+Starting >>> wujihand_retargeting
+Starting >>> xhand_adapter
+Starting >>> xhand_retargeting
+Starting >>> morla_learning
+Finished <<< morla_astral_robot [4.14s]
+Finished <<< xhand_adapter [3.51s]
+Finished <<< morla_runtime [3.54s]
+Starting >>> morla_input
+Starting >>> morla_native_bridge
+Starting >>> morla_epg_driver
+Starting >>> morla_loophand_driver
+Finished <<< nero_arm_teleop [3.57s]
+Finished <<< morla_learning [3.55s]
+Finished <<< xhand_retargeting [3.56s]
+Finished <<< wujihand_retargeting [3.58s]
+Starting >>> morla_nero_robot
+Starting >>> morla_xhand_hand
+Finished <<< morla_loophand_driver [3.31s]
+Finished <<< morla_epg_driver [3.32s]
+Finished <<< morla_nero_robot [3.29s]
+Finished <<< morla_input [3.35s]
+Finished <<< morla_xhand_hand [3.29s]
+Starting >>> morla_teleop
+Starting >>> morla_operator_control
+Starting >>> astral_arm_teleop
+Starting >>> wujihand_control
+Finished <<< morla_native_bridge [3.38s]
+Starting >>> xnero_mujoco_sim
+Finished <<< wujihand_control [2.97s]
+Finished <<< morla_teleop [3.00s]
+Starting >>> astral_gripper_teleop
+Starting >>> morla_fr3_driver
+Finished <<< morla_operator_control [3.01s]
+Finished <<< xnero_mujoco_sim [2.99s]
+Starting >>> morla_data_collect
+Finished <<< astral_arm_teleop [3.03s]
+Finished <<< morla_fr3_driver [2.26s]
+Finished <<< morla_data_collect [2.24s]
+Finished <<< astral_gripper_teleop [2.28s]
+Starting >>> morla_bringup
+Finished <<< morla_bringup [1.48s]
+Starting >>> morla_policy_inference
+Finished <<< morla_policy_inference [1.51s]
+Starting >>> morla_web_manager
+Finished <<< morla_web_manager [1.51s]
+Starting >>> fr3_mujoco_sim
+Starting >>> morla_cr5_driver
+Finished <<< fr3_mujoco_sim [1.93s]
+Finished <<< morla_cr5_driver [1.99s]
+
+Summary: 39 packages finished [23.6s]

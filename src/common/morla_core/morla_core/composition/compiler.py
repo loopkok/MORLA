@@ -13,18 +13,6 @@ from morla_core.contracts.features import SchemaV3, ActionBlockV3
 from morla_core.schema import StreamSpec, StateBlockSpec
 
 _ID = re.compile(r'^[a-z][a-z0-9_-]*$')
-_CONTROLLERS={
-    'morla.pinch_filtered':({'hand_landmarks'},{'scalar','joint_targets'}),
-    'morla.trigger_filtered':({'scalar'},{'scalar','joint_targets'}),
-    'morla.pinch_scalar':({'hand_landmarks'},{'scalar','joint_targets'}),
-    'morla.cartesian_delta_ik':({'pose6d'},{'joint_targets'}),
-    'morla.gamepad_cartesian_jog':({'axes_buttons'},{'joint_targets'}),
-    'morla.joint_jog':({'axes_buttons','joint_targets'},{'joint_targets'}),
-    'morla.scalar_map':({'scalar'},{'scalar','joint_targets'}),
-    'morla.xhand.retarget':({'hand_landmarks'},{'joint_targets'}),
-    'morla.wuji.retarget':({'hand_landmarks'},{'joint_targets'}),
-    'morla.identity':({'joint_targets','scalar','numeric'},{'joint_targets','scalar','numeric'}),
-}
 
 def _id(value,path):
     if not isinstance(value,str) or not _ID.fullmatch(value): raise CompilationError('expected stable lower-case identifier',path)
@@ -173,12 +161,22 @@ def compile_system(assembly, deployment=None, registry=None):
                                            code='INPUT_BASIS_ROTATION')
             binding['input_basis_id']=basis
         if target['kind']!='actuator': raise CompilationError('binding target must be actuator',bid)
-        controller=binding['controller']; accepted=_CONTROLLERS.get(controller)
-        if accepted is None:
-            desc=catalog.get(controller)
-            if desc['kind']!='controller': raise CompilationError('binding controller is not controller plugin',bid)
-            descriptors.append(desc)
-            types=desc.get('controller_types',{}); accepted=(set(types.get('inputs',[])),set(types.get('outputs',[])))
+        controller=binding['controller']
+        desc=catalog.get(controller)
+        if desc['kind']!='controller': raise CompilationError('binding controller is not controller plugin',bid)
+        descriptors.append(desc)
+        types=desc.get('controller_types',{})
+        accepted=(set(types.get('inputs',[])),set(types.get('outputs',[])))
+        if types.get('target_plugins') is not None and target['plugin_id'] not in types['target_plugins']:
+            raise CompilationError('controller does not support target plugin',bid,code='PORT_MISMATCH')
+        if types.get('target_capability') and types['target_capability'] not in target.get('geometry',{}).get('controller_capabilities',[]):
+            raise CompilationError('controller requires target capability',bid,code='PORT_MISMATCH')
+        if types.get('target_dim') is not None and tport['dim']!=types['target_dim']:
+            raise CompilationError('controller target dimension mismatch',bid,code='PORT_MISMATCH')
+        if types.get('equal_dimensions_units') and (sport['dim']!=tport['dim'] or sport['unit']!=tport['unit']):
+            raise CompilationError('controller requires equal dimensions and units',bid,code='PORT_MISMATCH')
+        if not desc['backend_variants'].get(target['backend'],{}).get('available',False):
+            raise CompilationError('controller backend unavailable',bid,code='BACKEND_UNAVAILABLE')
         if sport['semantic'] not in accepted[0] or tport['semantic'] not in accepted[1]: raise CompilationError('incompatible input/controller/target capability',bid,code='PORT_MISMATCH')
         if controller=='morla.scalar_map' and (sport['dim']!=1 or tport['dim']!=1 or len(target['joints'])!=1):
             raise CompilationError('scalar mapping requires one scalar input and one target joint',bid,code='PORT_MISMATCH')

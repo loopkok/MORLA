@@ -5,18 +5,27 @@ import ts from 'typescript'
 const source=await readFile(new URL('../src/lib/workcell.ts',import.meta.url),'utf8')
 const javascript=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ES2022,target:ts.ScriptTarget.ES2020}}).outputText
 const model=await import('data:text/javascript;base64,'+Buffer.from(javascript).toString('base64'))
+const root=new URL('../../../../',import.meta.url)
+const json=async path=>JSON.parse(await readFile(new URL(path,root),'utf8'))
+const controllers=[...await json('common/morla_core/morla_core/plugins/data/controllers.json'),...['morla.fairino.fr3','morla.nero.arm','morla.astral.arm'].map(plugin_id=>({plugin_id,geometry:{controller_capabilities:['cartesian_ik']}}))]
+const metadata=await json('common/morla_core/morla_core/plugins/data/web_metadata.json')
+const cr5=await json('robots/dobot/morla_cr5_driver/controller.json')
+const fr3=await json('robots/fairino/morla_fr3_driver/controller.json')
+const cr5Jog=await json('robots/dobot/morla_cr5_driver/jog_controller.json')
+const allControllers=[...controllers,cr5,fr3,cr5Jog]
+const withWeb=c=>({...c,web:metadata[c.plugin_id]})
 const arm={plugin_id:'morla.dobot.cr5',joints:Array.from({length:6},(_,i)=>({name:'joint'+(i+1),lower:-2,upper:2}))}
 
 test('FR3 offers its installed common IK and joint jog, not CR5 controllers',()=>{
  const target={semantic:'joint_targets',dim:6,unit:'rad'}
- const catalog=[{kind:'controller',plugin_id:'morla.cr5.cartesian_delta',controller_types:{inputs:['pose6d'],outputs:['joint_targets']}}]
+ const catalog=[...controllers,cr5]
  assert.deepEqual(model.compatible(catalog,{semantic:'pose6d',dim:7,unit:'m_rad'},target,'morla.fairino.fr3'),['morla.cartesian_delta_ik'])
  assert.ok(model.compatible(catalog,{semantic:'axes_buttons',dim:6},target,'morla.fairino.fr3').includes('morla.joint_jog'))
- assert.equal(model.label('morla.fairino.fr3'),'FAIRINO FR3')
+ assert.equal(model.label('morla.fairino.fr3',[{plugin_id:'morla.fairino.fr3',web:{label:'FAIRINO FR3'}}]),'FAIRINO FR3')
 })
 
 test('Cartesian jog defaults generate a named map, never joint-jog parameters',()=>{
- const defaults=model.bindingDefaults('morla.cr5.cartesian_jog',{axis_names:['x','y','z','roll','pitch','yaw']},arm)
+ const defaults=model.pluginBindingDefaults(allControllers,'morla.cr5.cartesian_jog',{axis_names:['x','y','z','roll','pitch','yaw']},arm,'')
  assert.deepEqual(defaults.axes_map,{x:'x',y:'y',z:'z',roll:'roll',pitch:'pitch',yaw:'yaw'})
  assert.equal(defaults.ik_mode,'differential');assert.equal(defaults.max_joint_velocity,.3)
  assert(!('speed' in defaults));assert.equal(defaults.linear_speed,.02)
@@ -45,9 +54,9 @@ test('new configurations are explicitly kinematic, imported defaults are preserv
 })
 test('controller suggestions respect dimensions and scalar target restrictions',()=>{
  const scalar={semantic:'scalar',dim:1,unit:'ratio'},joint={semantic:'joint_targets',dim:6,unit:'rad'}
- assert(!model.compatible([],scalar,joint).includes('morla.scalar_map'))
- assert(!model.compatible([],scalar,joint).includes('morla.identity'))
- assert(model.compatible([],{semantic:'axes_buttons',dim:6,unit:'ratio'},joint).includes('morla.joint_jog'))
+ assert(!model.compatible(controllers,scalar,joint).includes('morla.scalar_map'))
+ assert(!model.compatible(controllers,scalar,joint).includes('morla.identity'))
+ assert(model.compatible(controllers,{semantic:'axes_buttons',dim:6,unit:'ratio'},joint).includes('morla.joint_jog'))
 })
 
 test('pinch and trigger defaults match their actual controller parameters',()=>{
@@ -79,11 +88,11 @@ test('Quest hides actuator parameters and exposes only the selected protocol por
   'side', 'protocol', 'pinch_range_m', 'initial_position', 'initial_positions',
   'rate_hz', 'max_sample_age_ms', 'can_channel', 'board_scope_verified', 'udp_port', 'tcp_port',
  ].map(key => [key, {}]))
- const quest = {plugin_id:'morla.input.quest', kind:'input', configuration_schema:{properties}}
+ const quest = withWeb({plugin_id:'morla.input.quest', kind:'input', configuration_schema:{properties}})
  assert.deepEqual(Object.keys(model.visibleDeviceFields(quest, 'fake')), ['side', 'protocol', 'pinch_range_m'])
  assert.deepEqual(Object.keys(model.visibleDeviceFields(quest, 'real', {protocol:'tcp_wired'}, undefined, true)), ['tcp_port'])
  assert.deepEqual(Object.keys(model.visibleDeviceFields(quest, 'real', {protocol:'udp'}, undefined, true)), ['udp_port'])
- const nero = {...quest, plugin_id:'morla.nero.arm', kind:'actuator'}
+ const nero = withWeb({...quest, plugin_id:'morla.nero.arm', kind:'actuator'})
  assert.ok('initial_position' in model.visibleDeviceFields(nero, 'real', undefined, undefined, true))
  assert.ok('can_channel' in model.visibleDeviceFields(nero, 'real', undefined, undefined, true))
 })
@@ -92,7 +101,7 @@ test('controllers respect robot identity as well as port semantics', () => {
  const pose={semantic:'pose6d',dim:7,unit:'m_rad'}
  const landmarks={semantic:'hand_landmarks',dim:63}
  const joints={semantic:'joint_targets',dim:6,unit:'rad'}
- const catalog=[{kind:'controller',plugin_id:'morla.cr5.cartesian_delta',controller_types:{inputs:['pose6d'],outputs:['joint_targets']}}]
+ const catalog=[...controllers,cr5]
  assert.deepEqual(model.compatible(catalog,pose,joints,'morla.dobot.cr5'),['morla.cr5.cartesian_delta'])
  assert.equal(model.compatible(catalog,landmarks,joints,'morla.dobot.cr5').length,0)
  assert.ok(model.compatible(catalog,pose,{...joints,dim:7},'morla.nero.arm').includes('morla.cartesian_delta_ik'))
@@ -101,7 +110,7 @@ test('controllers respect robot identity as well as port semantics', () => {
 
 test('camera fields exclude arm and joint configuration in every backend', () => {
  const properties=Object.fromEntries(['side','rate_hz','initial_position','initial_positions','width','height','fps','camera_backend','image_topic','compressed','device_path'].map(key=>[key,{}]))
- const camera={plugin_id:'morla.camera',kind:'sensor',configuration_schema:{properties}}
+ const camera=withWeb({plugin_id:'morla.camera',kind:'sensor',configuration_schema:{properties}})
  for(const backend of ['fake','sim','real']) {
   for(const connection of [true,false]) {
    const fields=model.visibleDeviceFields(camera,backend,undefined,undefined,connection)
@@ -121,13 +130,13 @@ test('public Cartesian IK diagnostics show nested solver residuals and preserve 
 
 
 test('FR3 dedicated URDF controllers are robot-specific with differential and lead defaults',()=>{
- const catalog=['morla.fr3.cartesian_delta','morla.fr3.cartesian_jog'].map(plugin_id=>({kind:'controller',plugin_id,controller_types:{inputs:[plugin_id.endsWith('delta')?'pose6d':'axes_buttons'],outputs:['joint_targets']}}))
+ const catalog=[fr3,{...fr3,plugin_id:'morla.fr3.cartesian_jog',controller_types:{...fr3.controller_types,inputs:['axes_buttons']}}]
  const target={semantic:'joint_targets',dim:6,unit:'rad'}
  assert(model.compatible(catalog,{semantic:'pose6d',dim:7,unit:'m_rad'},target,'morla.fairino.fr3').includes('morla.fr3.cartesian_delta'))
  assert(!model.compatible(catalog,{semantic:'pose6d',dim:7,unit:'m_rad'},target,'morla.dobot.cr5').includes('morla.fr3.cartesian_delta'))
  for(const id of ['morla.fr3.cartesian_delta','morla.fr3.cartesian_jog']){
-  const p=model.bindingDefaults(id,{axis_names:['x','y','z','roll','pitch','yaw']},{...arm,plugin_id:'morla.fairino.fr3'},true)
-  assert.equal(p.ik_mode,'differential');assert.equal(p.command_lead_rad,.08);assert.equal(p.max_joint_velocity,.3)
+  const p=model.pluginBindingDefaults(catalog,id,{axis_names:['x','y','z','roll','pitch','yaw']},{...arm,plugin_id:'morla.fairino.fr3'},'morla.input.quest')
+  assert.equal(p.ik_mode,'differential');assert.equal(p.command_lead_rad,.08);assert.equal(p.max_joint_velocity,.2)
  }
 })
 
@@ -136,4 +145,18 @@ test('recording completion follows validation status even when failure detail is
  assert.equal(model.recordingSaveMessage({status:'complete',failure:undefined}),'数据记录已保存。')
  assert.match(model.recordingSaveMessage({status:'failed',failure:undefined}),/未通过完整性检查/)
  assert.match(model.recordingSaveMessage({status:'complete',failure:'queue overflow'}),/未通过完整性检查/)
+})
+
+test('unknown robot and controller metadata drives UI without brand changes',()=>{
+ const robot={plugin_id:'example.arm',kind:'actuator',joints:[{name:'j1'}],web:{label:'Example arm',preferred_controllers:{pose6d:'example.follow'},connection_fields:['endpoint'],field_backends:{endpoint:['real']}},configuration_schema:{properties:{endpoint:{type:'string',title:'Endpoint'},gain:{type:'number'}}}}
+ const controller={plugin_id:'example.follow',kind:'controller',defaults:{gain:.123},controller_types:{inputs:['pose6d'],outputs:['joint_targets'],target_plugins:['example.arm']},backend_variants:{fake:{available:true},sim:{available:false}}}
+ const catalog=[robot,controller],source={semantic:'pose6d',dim:7,unit:'m_rad'},target={semantic:'joint_targets',dim:1,unit:'rad'}
+ assert.equal(model.label(robot.plugin_id,catalog),'Example arm')
+ const choices=model.compatible(catalog,source,target,robot.plugin_id,'fake')
+ assert.deepEqual(choices,['example.follow'])
+ assert.deepEqual(model.compatible(catalog,source,target,robot.plugin_id,'sim'),[])
+ assert.equal(model.preferredController(choices,robot,'pose6d'),'example.follow')
+ assert.equal(model.pluginBindingDefaults(catalog,'example.follow',source,robot,'custom.input').gain,.123)
+ assert.deepEqual(Object.keys(model.visibleDeviceFields(robot,'real',{}, {},true)),['endpoint'])
+ assert.deepEqual(Object.keys(model.visibleDeviceFields(robot,'fake')),['gain'])
 })

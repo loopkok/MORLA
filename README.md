@@ -1,5 +1,7 @@
 # MORLA robot platform
 
+Robot-owned Web presets, controller capabilities, forms and shared simulation assets now use [declarative plugin metadata](docs/integrations/PLUGIN_DRIVEN_PORTING.md). Existing configurations need a newly compiled revision after this descriptor upgrade.
+
 ## Current composable path — 2026-10-30 working tree
 
 The shared input → BindingEngine/ControlHost → actuator adapter path is implemented for configurable input, arm/dual-arm and end-effector composition. Native Nero/Astral/XHand/Wuji ROS bridges now install as `morla_native_bridge` plugins; device IK uses registered providers. Input processes use `auto` / `managed` / `external`, with per-side ports and shared process/session ownership. Legacy Profile/piano workflows remain separate compatibility paths.

@@ -1,0 +1,82 @@
+INFO:     Started server process [125014]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:18086 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60912 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60912 - "GET /assets/index-C007fcU5.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60918 - "GET /assets/index-N_1VrTr9.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60926 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:60912 - "GET /api/v2/components HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60918 - "GET /api/v2/assemblies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60940 - "GET /api/v2/active-session HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60952 - "GET /api/v1/presets HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60960 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60932 - "GET /api/v2/templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60970 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:34468 - "GET /api/v2/templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34484 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:34488 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:34490 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:36914 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:36924 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:36936 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:36940 - "GET /api/v2/templates/fr3-fake HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43528 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:36940 - "GET /api/v2/diagnostics/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43532 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:36940 - "POST /api/v2/assemblies/compile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36940 - "POST /api/v2/assemblies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36940 - "GET /api/v2/assemblies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43544 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:44434 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:44444 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:44452 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:54412 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:54418 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:50582 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:50594 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:33046 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:33058 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33058 - "GET /assets/index-BE9RHqh_.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33058 - "GET /api/v2/components HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33104 - "GET /api/v2/active-session HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33108 - "GET /api/v1/presets HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:33074 - "GET /api/v2/assemblies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33090 - "GET /api/v2/templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33090 - "GET /api/v2/assemblies/fr3_quest_fake/revisions/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33090 - "GET /api/v2/diagnostics/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33090 - "POST /api/v2/assemblies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33090 - "GET /api/v2/assemblies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39464 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:39470 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:43152 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:43168 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:37644 - "WebSocket /ws/telemetry" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [125014]

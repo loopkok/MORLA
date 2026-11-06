@@ -193,5 +193,17 @@
   "source": {
     "package": "morla_vader5_input",
     "version": "0.1.0"
+  },
+  "web": {
+    "label": "Vader 5 手柄",
+    "connection_fields": [
+      "input_topic"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
   }
 }

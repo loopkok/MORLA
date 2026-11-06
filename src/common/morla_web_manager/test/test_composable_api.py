@@ -139,6 +139,13 @@ def test_tampered_hash_and_store_path_rejected(tmp_path):
 def test_cr5_template_and_camera_preview_contract(tmp_path):
     from types import SimpleNamespace
     with TestClient(create_app(tmp_path, resource_root=tmp_path/'locks')) as client:
+        from pathlib import Path
+        package=Path(__file__).resolve().parents[3]/'robots/dobot/morla_cr5_driver'
+        for filename in ('descriptor.json','controller.json','jog_controller.json'):
+            descriptor=json.loads((package/filename).read_text())
+            if not any(d['plugin_id']==descriptor['plugin_id'] for d in client.app.state.composable.catalog.list()):
+                client.app.state.composable.catalog.register(descriptor)
+
         template = client.get('/api/v2/templates/cr5-sim')
         assert template.status_code == 200
         assert template.json()['instances']['arm']['backend'] == 'sim'
@@ -148,7 +155,7 @@ def test_cr5_template_and_camera_preview_contract(tmp_path):
         assert current['assembly_id'] == 'test_cell' and current['revision'] == 1
         assert client.get(f'/api/v2/sessions/{sid}/cameras/grip/frame').status_code == 404
         svc = client.app.state.composable
-        svc.session.instances['camera'] = {'plugin_id':'morla.camera'}
+        svc.session.instances['camera'] = {'plugin_id':'example.camera','kind':'sensor','ports':{'rgb':{'semantic':'image'}}}
         svc.session.adapters['camera'] = SimpleNamespace(read=lambda now: {'ports':{}})
         assert client.get(f'/api/v2/sessions/{sid}/cameras/camera/frame').status_code == 503
         svc.session.adapters['camera'].read = lambda now: {'ports':{'rgb':{'valid':True,'data':b'jpeg-bytes','encoding':'jpeg'}}}
@@ -172,6 +179,13 @@ def test_cr5_template_and_camera_preview_contract(tmp_path):
 def test_shared_simulation_templates_and_live_settings(tmp_path, monkeypatch):
     pytest.importorskip('mujoco')
     with TestClient(create_app(tmp_path,resource_root=tmp_path/'locks')) as client:
+        from pathlib import Path
+        package=Path(__file__).resolve().parents[3]/'robots/dobot/morla_cr5_driver'
+        for filename in ('descriptor.json','controller.json','jog_controller.json'):
+            descriptor=json.loads((package/filename).read_text())
+            if not any(d['plugin_id']==descriptor['plugin_id'] for d in client.app.state.composable.catalog.list()):
+                client.app.state.composable.catalog.register(descriptor)
+
         for robot in ('cr5','nero','astral'):
             response=client.get(f'/api/v2/templates/{robot}-sim')
             assert response.status_code==200

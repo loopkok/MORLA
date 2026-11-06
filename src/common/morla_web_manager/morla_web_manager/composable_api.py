@@ -43,24 +43,15 @@ def router(service):
     @api.get("/components")
     def components(): return service.catalog.to_dict()
 
+    @api.get('/templates')
+    def device_templates():
+        from .templates import list_templates
+        return call(list_templates, service.catalog)
+
     @api.get('/templates/{template_id}')
     def device_template(template_id: str):
-        from morla_core.resource_locator import package_share, ResourceLookupError, morla_source_root
-        from morla_core.composition import load_document
-        templates = {
-            'fr3-sim': ('morla_fr3_driver', 'src/robots/fairino/morla_fr3_driver', 'quest.sim.yaml'),
-            'fr3-fake': ('morla_fr3_driver', 'src/robots/fairino/morla_fr3_driver', 'quest.fake.yaml'),
-            'cr5-sim': ('morla_cr5_driver', 'src/robots/dobot/morla_cr5_driver', 'quest.sim.yaml'),
-            'nero-sim': ('xnero_mujoco_sim', 'src/robots/nero/xnero_mujoco_sim', 'composable.sim.yaml'),
-            'astral-sim': ('astral_mujoco_sim', 'src/robots/astral/astral_mujoco_sim', 'composable.sim.yaml')}
-        if template_id not in templates:
-            raise HTTPException(404, 'unknown device template')
-        package, source, filename = templates[template_id]
-        try:
-            share = package_share(package)
-        except ResourceLookupError:
-            share = morla_source_root() / source
-        return call(load_document, share / 'config' / filename)
+        from .templates import load_template
+        return call(load_template, service.catalog, template_id)
 
     @api.post('/sessions/{session_id}/simulation')
     def simulation_options(session_id: str, raw: dict):
@@ -83,7 +74,7 @@ def router(service):
         session = call(service.require, session_id)
         adapter = session.adapters.get(camera_id)
         instance = session.instances.get(camera_id, {})
-        if adapter is None or not instance.get('plugin_id', '').startswith('morla.camera'):
+        if adapter is None or instance.get('ports',{}).get('rgb',{}).get('semantic') != 'image':
             raise HTTPException(404, 'camera not found')
         sample = adapter.read(session.clock())
         port = sample.get('ports', {}).get('rgb', {})
@@ -99,7 +90,7 @@ def router(service):
         session = call(service.require, session_id)
         adapter = session.adapters.get(camera_id)
         instance = session.instances.get(camera_id, {})
-        if adapter is None or not instance.get('plugin_id', '').startswith('morla.camera'):
+        if adapter is None or instance.get('ports',{}).get('rgb',{}).get('semantic') != 'image':
             raise HTTPException(404, 'camera not found')
         if not hasattr(adapter, 'view'):
             raise HTTPException(400, 'camera view is not adjustable')
@@ -120,7 +111,7 @@ def router(service):
         session = call(service.require, session_id)
         adapter = session.adapters.get(camera_id)
         instance = session.instances.get(camera_id, {})
-        if adapter is None or not instance.get('plugin_id', '').startswith('morla.camera'):
+        if adapter is None or instance.get('ports',{}).get('rgb',{}).get('semantic') != 'image':
             raise HTTPException(404, 'camera not found')
 
         async def frames():

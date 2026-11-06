@@ -189,5 +189,17 @@
     "package": "morla_loophand_driver",
     "version": "0.1.0"
   },
-  "validation_artifacts": []
+  "validation_artifacts": [],
+  "web": {
+    "label": "LoopHand",
+    "connection_fields": [
+      "port"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  }
 }

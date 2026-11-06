@@ -97,5 +97,17 @@
   "source": {
     "package": "morla_input",
     "version": "0.0.0"
+  },
+  "web": {
+    "label": "ROS 输入",
+    "connection_fields": [
+      "input_topic"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
   }
 }

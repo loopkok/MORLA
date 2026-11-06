@@ -1,5 +1,13 @@
 # Changelog（MORLA）
 
+## 2026-11-06 — 插件声明驱动 Web 与共享仿真
+
+- Web 模板、设备显示/表单、控制器兼容性及品牌默认参数迁到 descriptor，现有机器人使用同一发现路径；保留原模板 URL。
+- 公共控制器进入 catalog，编译器与前端共用能力声明，后端检查目标插件/能力、维数、单位及后端，防止绕过 UI。
+- 共享 MuJoCo 从 `geometry.simulation` 读取自有包资产/子树，去除 CR5/FR3/Nero/Astral/XHand/Wuji 品牌选择分支；保留 FR3 映射与限位检查。相机预览改按 image 端口能力识别。
+- 新增陌生插件接入、错误控制器匹配、路径和重复模板测试。更新 FR3 教程、移植指南/工作单及 [插件接入规范](docs/integrations/PLUGIN_DRIVEN_PORTING.md)，执行记录见 [验证日志](docs/integrations/PLUGIN_PORTING_VALIDATION_2026-11-06.md)。
+- 旧配置须重新编译保存新 revision，禁止修改历史快照与数据哈希。未做真机测试。
+
 ## 2026-11-06 — FR3 独立仿真与公共 MuJoCo
 
 - 新增 `fr3_mujoco_sim` 独立 ROS 包/launch/CLI，及驱动内 `fr3_sim.launch.py` 兼容入口；两者复用同一公共 Runtime。

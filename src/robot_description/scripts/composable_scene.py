@@ -13,8 +13,6 @@ import re
 import xml.etree.ElementTree as ET
 
 _DESCRIPTION=Path(__file__).resolve().parents[1]
-# Only trusted installed assets: an assembly cannot provide an arbitrary filename.
-_ASSETS={'morla.dobot.cr5':'mjcf/cr5/cr5.xml','morla.nero.arm':'mjcf/xnero/xnero_dual.xml','morla.xhand.hand':'mjcf/xnero/xnero_dual.xml','morla.astral.arm':'mjcf/astral/astral_dual_clean.xml','morla.wuji.hand':'mjcf/wuji/{side}.xml'}
 _REFERENCES={'joint','joint1','joint2','body','body1','body2','site','site1','site2','geom','geom1','geom2','mesh','material','texture','tendon','tendon1','tendon2','actuator','target','objname','refname','class','childclass','camera'}
 
 def _prefix_tree(node,prefix,names):
@@ -40,43 +38,51 @@ def _clone_assets(root,path,prefix):
         _prefix_tree(clone,prefix,names);assets.append(clone)
     return assets
 
-def _source_component(plugin,side):
-    if plugin == 'morla.fairino.fr3':
-        # Robot-owned assets remain in their independent description package.
-        from morla_core.resource_locator import package_share, ResourceLookupError
-        try:
-            share=package_share('fr3_description')
-        except ResourceLookupError:
-            share=_DESCRIPTION.parent/'robots/fairino/fr3_description'
-        path=share/'mjcf/fr3.xml'
-    else:
-        if plugin not in _ASSETS:raise ValueError('No validated physical asset for '+plugin)
-        path=_DESCRIPTION/_ASSETS[plugin].format(side=side)
+def _source_component(instance,side):
+    from morla_core.resource_locator import resolve_plugin_resource
+    spec=instance.get('geometry',{}).get('simulation')
+    if not spec:raise ValueError('No validated physical asset for '+instance['plugin_id'])
+    if side not in ('left','right'):raise ValueError('Invalid simulation side')
+    path=resolve_plugin_resource(spec['package'],spec['path'].format(side=side))
     root=ET.parse(path).getroot()
-    if plugin in ('morla.dobot.cr5','morla.fairino.fr3'):
-        body=deepcopy(root.find(".//body[@name='base_link']"))
-        flange='flange' if plugin=='morla.fairino.fr3' else 'Link6'
-    elif plugin=='morla.nero.arm':
-        body=deepcopy(root.find(".//body[@name='"+side+"_link1']"))
+    name=spec.get('root_body')
+    original=root.find(".//body[@name='"+name.format(side=side)+"']") if name else root.find('worldbody/body')
+    if original is None:raise ValueError('Source component subtree missing')
+    body=deepcopy(original)
+    if spec.get('extract_children'):
+        body=ET.Element('body',{'name':spec['wrapper_name'].format(side=side)})
+        for child in original:
+            if child.tag=='body' and spec['body_contains'] in child.get('name',''):body.append(deepcopy(child))
+            elif child.tag=='geom' and any(token in child.get('mesh','') for token in spec['geom_mesh_contains']):body.append(deepcopy(child))
+    if spec.get('exclude_body_contains'):
         for parent in body.iter():
             for child in list(parent):
-                if child.tag=='body' and '_hand_' in child.get('name',''):parent.remove(child)
-        flange=side+'_link7'
-    elif plugin=='morla.astral.arm':
-        body=deepcopy(root.find(".//body[@name='"+side+"_base_link']"));flange=side+'_link7'
-    elif plugin=='morla.wuji.hand':
-        body=deepcopy(root.find('worldbody/body'));flange=side+'_palm_link'
-    else:
-        # XHand is embedded in link7 in the established source model. Retain only
-        # its own fixed geometry and finger subtrees, preserving original poses.
-        original=root.find(".//body[@name='"+side+"_link7']")
-        body=ET.Element('body',{'name':side+'_hand_mount'})
-        for child in original:
-            if child.tag=='body' and '_hand_' in child.get('name',''):body.append(deepcopy(child))
-            elif child.tag=='geom' and ('hand' in child.get('mesh','') or 'connector' in child.get('mesh','')):body.append(deepcopy(child))
-        flange=side+'_hand_mount'
-    if body is None:raise ValueError('Source component subtree missing')
-    return root,path,body,flange
+                if child.tag=='body' and spec['exclude_body_contains'] in child.get('name',''):parent.remove(child)
+    return root,path,body,spec['flange_body'].format(side=side)
+
+
+def _deployment_ranges(instance,source,body):
+    import math
+    spec=instance.get('geometry',{}).get('simulation',{})
+    parameters=instance.get('parameters',{});joints=instance['joints'];count=len(joints)
+    if spec.get('native_mapping_only') and (parameters.get('urdf_joint_signs',[1]*count)!=[1]*count or parameters.get('urdf_joint_offsets',[0]*count)!=[0]*count):
+        raise ValueError('simulation requires native URDF mapping (+1 signs, zero offsets)')
+    if not spec.get('deployment_limits'):return
+    lower=parameters.get('joint_lower',[j['lower'] for j in joints])
+    upper=parameters.get('joint_upper',[j['upper'] for j in joints])
+    if len(lower)!=count or len(upper)!=count:raise ValueError('simulation deployment limit dimension mismatch')
+    for index,joint in enumerate(joints):
+        lo,hi=lower[index],upper[index]
+        if not all(type(x) in (int,float) and math.isfinite(x) for x in (lo,hi)) or lo<joint['lower'] or hi>joint['upper'] or lo>=hi:
+            raise ValueError('simulation deployment limits must lie within contract limits')
+        node=body.find(".//joint[@name='"+joint['mjcf_name']+"']")
+        if node is None:raise ValueError('simulation joint missing')
+        native=list(map(float,node.get('range').split()))
+        lo,hi=max(lo,native[0]),min(hi,native[1])
+        if lo>=hi:raise ValueError('simulation limits have no intersection')
+        bounds=f'{lo} {hi}';node.set('range',bounds)
+        actuator=source.find("actuator/position[@joint='"+joint['mjcf_name']+"']")
+        if actuator is not None:actuator.set('ctrlrange',bounds)
 
 def build_scene(resolved,output=None,timestep=0.002):
     import math
@@ -92,22 +98,12 @@ def build_scene(resolved,output=None,timestep=0.002):
     for instance in resolved['instances']:
         iid=instance['instance_id'];plugin=instance['plugin_id'];side=instance.get('parameters',{}).get('side','left')
         if not re.fullmatch('[a-z][a-z0-9_-]*',iid):raise ValueError('Invalid instance name')
-        if plugin.startswith('morla.camera'):
+        if instance.get('kind')=='sensor' and instance.get('ports',{}).get('rgb',{}).get('semantic')=='image':
             wrapper=ET.Element('body',{'name':iid+'__mount'});ET.SubElement(wrapper,'camera',{'name':iid+'__rgb','pos':'0 0 0','quat':'1 0 0 0'})
             wrappers[iid]=wrapper;frames[iid+'.optical']=wrapper;world.append(wrapper);continue
         if instance.get('kind')!='actuator':continue
-        source,path,body,flange=_source_component(plugin,side)
-        if plugin=='morla.fairino.fr3':
-            parameters=instance.get('parameters',{})
-            if (parameters.get('urdf_joint_signs',[1]*6)!=[1]*6 or
-                    parameters.get('urdf_joint_offsets',[0]*6)!=[0]*6):
-                raise ValueError('FR3 simulation requires native URDF mapping (+1 signs, zero offsets)')
-            from morla_fr3_driver.contract import limits
-            lower,upper=limits(parameters)
-            for index,name in enumerate(('j1','j2','j3','j4','j5','j6')):
-                bounds=f'{lower[index]} {upper[index]}'
-                body.find(".//joint[@name='"+name+"']").set('range',bounds)
-                source.find("actuator/position[@joint='"+name+"']").set('ctrlrange',bounds)
+        source,path,body,flange=_source_component(instance,side)
+        _deployment_ranges(instance,source,body)
         source_hashes[iid]=hashlib.sha256(path.read_bytes()).hexdigest()
         prefix=iid+'__';names={n.get('name') for n in source.iter() if n.get('name')}
         selected={n.get('name') for n in body.iter() if n.get('name')}

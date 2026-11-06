@@ -11,6 +11,9 @@
     ],
     "outputs": [
       "joint_targets"
+    ],
+    "target_plugins": [
+      "morla.dobot.cr5"
     ]
   },
   "backend_variants": {
@@ -30,5 +33,53 @@
   "source": {
     "package": "morla_cr5_driver",
     "version": "0.1.0"
+  },
+  "web": {
+    "label": "末端位姿跟随 · CR5",
+    "connection_fields": [
+      "address",
+      "baud_rate",
+      "baudrate",
+      "board_cmd_port",
+      "board_scope_verified",
+      "can_channel",
+      "can_interface",
+      "control_board_ip",
+      "device_path",
+      "filter_cutoff_freq",
+      "firmware_version",
+      "hand_id",
+      "host",
+      "initial_position",
+      "input_topic",
+      "local_ip",
+      "local_port",
+      "native_j7_first",
+      "port",
+      "port_name",
+      "publish_rate",
+      "serial_number",
+      "source_namespace",
+      "tcp_port",
+      "udp_port",
+      "unselected_joints_policy",
+      "workpos_waypoints_deg"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    },
+    "ik_modes": [
+      "differential",
+      "strict"
+    ],
+    "control_family": "cartesian_pose"
+  },
+  "defaults": {
+    "ik_mode": "differential",
+    "max_joint_velocity": 0.3,
+    "smoothing_alpha": 0.35
   }
 }

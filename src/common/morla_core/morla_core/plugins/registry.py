@@ -9,8 +9,10 @@ class Catalog:
         self._descriptors={}
         for descriptor in descriptors: self.register(descriptor)
     def register(self, descriptor):
-        fields(descriptor,{"descriptor_version","plugin_id","plugin_version","api_version","kind","ports","joints","features","backend_variants","resources","operations","geometry","configuration_schema","defaults","validation_artifacts","source","command_modes","controller_types","joint_variants"},("descriptor_version","plugin_id","plugin_version","kind","ports","backend_variants"))
+        fields(descriptor,{"descriptor_version","plugin_id","plugin_version","api_version","kind","ports","joints","features","backend_variants","resources","operations","geometry","configuration_schema","defaults","validation_artifacts","source","command_modes","controller_types","joint_variants","web"},("descriptor_version","plugin_id","plugin_version","kind","ports","backend_variants"))
         finite_json(descriptor)
+        from .web_metadata import validate_web_metadata
+        validate_web_metadata(descriptor.get("web", {}))
         import re
         if not isinstance(descriptor['plugin_id'],str) or not re.fullmatch(r'[a-z][a-z0-9_]*(?:[.-][a-z0-9_]+)*',descriptor['plugin_id']):raise CompilationError('invalid plugin stable identifier')
         if not isinstance(descriptor['plugin_version'],str) or not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+',descriptor['plugin_version']):raise CompilationError('plugin version must be exact major.minor.patch')
@@ -127,5 +129,11 @@ def default_catalog():
             count = len(descriptor['joints'])
             fields['initial_positions'].update(minItems=count, maxItems=count)
     from .manifest_loader import discover_descriptors
+    web_metadata=json.loads((Path(__file__).parent/"data"/"web_metadata.json").read_text())
+    for descriptor in descriptors:
+        descriptor["web"]=deepcopy(web_metadata.get(descriptor["plugin_id"],{}))
+        if descriptor["plugin_id"]=="morla.input.quest":descriptor["defaults"].setdefault("protocol","udp")
+        if descriptor["plugin_id"].startswith("morla.camera"):descriptor["defaults"].setdefault("camera_backend","ros_image")
+    descriptors.extend(json.loads((Path(__file__).parent/"data"/"controllers.json").read_text()))
     descriptors.extend(discover_descriptors())
     return Catalog(descriptors)

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { BasisFields, NumberInput, ObjectFields, PoseFields, ValueField } from './WorkcellFields'
-import { recordingSaveMessage, backendNames, bindingDefaults, compatible, initial, label, normalise, presentIkReport, parseWorkcellDocument, parameterSchema, portLabel, visibleDeviceFields } from '../lib/workcell'
-import type { Assembly, Binding, Component, Deployment, Device, Instance, Port, SimOptions } from '../lib/workcell'
+import { recordingSaveMessage, backendNames, pluginBindingDefaults, preferredController, compatible, initial, label as componentLabel, normalise, presentIkReport, parseWorkcellDocument, parameterSchema, portLabel, visibleDeviceFields } from '../lib/workcell'
+import type { Assembly, Binding, Component, Deployment, Device, Instance, Port, Template, SimOptions } from '../lib/workcell'
 import './workcell.css'
 import { OperatorKeyboard } from './OperatorKeyboard'
 
@@ -101,10 +101,12 @@ export function ComposableTab(){
  const [resolved,setResolved]=useState<Resolved|null>(null),[preflight,setPreflight]=useState<unknown>(null),[session,setSession]=useState<Session|null>(null)
  const [savedRevision,setSavedRevision]=useState(0),[savedHash,setSavedHash]=useState(''),[saved,setSaved]=useState<{assembly_id:string;revision:number}[]>([])
  const [stage,setStage]=useState('devices'),[message,setMessage]=useState(''),[error,setError]=useState(false),[busy,setBusy]=useState(false)
- const [template,setTemplate]=useState('cr5-sim'),[pairLink,setPairLink]=useState(''),[task,setTask]=useState('demonstration')
- const [picks,setPicks]=useState<Record<string,string>>({input:'morla.input.quest',actuator:'morla.dobot.cr5',sensor:'morla.camera'})
+ const [template,setTemplate]=useState(''),[pairLink,setPairLink]=useState(''),[task,setTask]=useState('demonstration')
+ const [picks,setPicks]=useState<Record<string,string>>({})
  const [importText,setImportText]=useState('')
  const [logRuns,setLogRuns]=useState<LogRun[]>([]),[selectedRun,setSelectedRun]=useState(''),[logTail,setLogTail]=useState<{records:{kind:string;wall_time_ns:number;component_id?:string;binding_id?:string;data:unknown}[];partial:boolean}|null>(null)
+ const label=(key:string)=>componentLabel(key,catalog)
+ const [templates,setTemplates]=useState<Template[]>([])
  const [templateCache,setTemplateCache]=useState<Record<string,Assembly>>({})
  const active=!!session&&session.status!=='STOPPED', locked=active||busy
  const descriptor=(item:Instance)=>catalog.find(d=>d.plugin_id===item.plugin)
@@ -118,13 +120,14 @@ export function ComposableTab(){
  const changed=(next:Assembly)=>{if(active)return;setAssembly(next);setResolved(null);setPreflight(null);setPairLink('')}
  const changeDeployment=(next:Deployment)=>{if(active)return;setDeployment(next);setResolved(null);setPreflight(null)}
  const run=async(fn:()=>Promise<void>)=>{setBusy(true);setError(false);try{await fn()}catch(e){setError(true);setMessage((e as Error).message)}finally{setBusy(false)}}
- const applySaved=(item:{assembly:Assembly;deployment?:Deployment;resolved:Resolved})=>{const next=normalise(item.assembly),migrated=JSON.stringify(next.instances)!==JSON.stringify(item.assembly.instances);setAssembly(next);setDeployment(item.deployment||{});setResolved(migrated?null:item.resolved);setSavedRevision(item.assembly.revision);setSavedHash(migrated?'':item.resolved.assembly_hash);const fr3=Object.values(next.instances).find(i=>i.plugin==='morla.fairino.fr3');if(fr3)setTemplate(fr3.backend==='sim'?'fr3-sim':'fr3-fake');if(migrated)setMessage('已更新为统一手柄按键，请保存新版本后启动。')}
+ const applySaved=(item:{assembly:Assembly;deployment?:Deployment;resolved:Resolved})=>{const next=normalise(item.assembly),migrated=JSON.stringify(next.instances)!==JSON.stringify(item.assembly.instances);setAssembly(next);setDeployment(item.deployment||{});setResolved(migrated?null:item.resolved);setSavedRevision(item.assembly.revision);setSavedHash(migrated?'':item.resolved.assembly_hash);setTemplate(templates.find(t=>t.assembly_id===next.assembly_id)?.id||'');if(migrated)setMessage('已更新为统一手柄按键，请保存新版本后启动。')}
  useEffect(()=>{
   request<{components:Component[]}>('/components').then(x=>setCatalog(x.components)).catch(e=>{setError(true);setMessage(e.message)})
   request<typeof saved>('/assemblies').then(setSaved).catch(()=>{})
-  for(const id of ['cr5-sim','nero-sim','astral-sim','fr3-sim','fr3-fake'])void request<Assembly>('/templates/'+id).then(a=>setTemplateCache(cache=>({...cache,[id]:normalise(a)}))).catch(()=>{})
+  request<Template[]>('/templates').then(items=>{setTemplates(items);setTemplate(current=>current||items[0]?.id||'')}).catch(e=>{setError(true);setMessage(e.message)})
   void request<Session|null>('/active-session').then(async current=>{if(!current||current.status==='STOPPED'||!current.assembly_id||!current.revision)return;const item=await request<{assembly:Assembly;deployment?:Deployment;resolved:Resolved}>(`/assemblies/${current.assembly_id}/revisions/${current.revision}`);applySaved(item);setSession(current);setStage('run')}).catch(e=>{setError(true);setMessage(e.message)})
  },[])
+ useEffect(()=>{setTemplate(templates.find(t=>t.assembly_id===assembly.assembly_id)?.id||'')},[templates,assembly.assembly_id])
  useEffect(()=>{if(!session||session.status==='STOPPED')return;const timer=window.setInterval(()=>{request<Session>(`/sessions/${session.session_id}/state`).then(setSession).catch((e:Error&{status?:number})=>{if(e.status===404){setSession(null);setMessage('运行已结束，请重新启动。')}else{setError(true);setMessage(e.message)}})},500);return()=>clearInterval(timer)},[session?.session_id,session?.status])
  const setInstance=(id:string,item:Instance)=>changed({...assembly,instances:{...assembly.instances,[id]:item}})
  function add(kind:string){
@@ -135,7 +138,7 @@ export function ComposableTab(){
   if(d.kind==='actuator'){next.capture.state.push(id+'.position');const target=d.ports.closure?'closure':d.ports.position_target?'position_target':Object.entries(d.ports).find(([,p])=>p.direction==='input')?.[0];if(target)next.capture.action.push(id+'.'+target)}
   if(d.ports.rgb){next.capture.images[id]=id+'.rgb';next.instances[id].parameters={width:640,height:480,fps:30}}
   const rootFrame=d.kind==='sensor'&&d.ports.rgb?'optical':d.geometry?.frames?.includes('base')?'base':d.geometry?.frames?.includes('mount')?'mount':d.geometry?.frames?.includes('optical')?'optical':null
-  if(rootFrame&&d.kind!=='input') next.mounts.push({child:id+'.'+rootFrame,parent:'world',transform:rootFrame==='optical'?(templateCache['cr5-sim']?.mounts.find(m=>m.child.endsWith('.optical'))?.transform?.slice()||[1.5,1.5,1.4,0,0,0,1]):[0,0,0,0,0,0,1]})
+  if(rootFrame&&d.kind!=='input') next.mounts.push({child:id+'.'+rootFrame,parent:'world',transform:rootFrame==='optical'?[1.5,1.5,1.4,0,0,0,1]:[0,0,0,0,0,0,1]})
   changed(next)
  }
  function remove(id:string){if(!window.confirm(`移除设备 ${id}？相关控制映射和安装关系会一并删除。`))return
@@ -162,26 +165,13 @@ export function ComposableTab(){
   const names:Record<string,string>={pose:'侧位姿（手柄 / 裸手）',axes:'摇杆',scalar:'扳机 / 捏合开合量',hold:' Grip / 捏合',landmarks:'手关键点',buttons:'手柄按键'}
   return names[kind]?endpoint.instance+' · '+(side==='left'?'左':'右')+names[kind]:portLabel(endpoint.ref)+'（兼容）'
  }
- const choices=(source:string,target:string)=>compatible(catalog,endpoints.find(e=>e.ref===source)?.port,endpoints.find(e=>e.ref===target)?.port,assembly.instances[target.split('.')[0]]?.plugin)
+ const choices=(source:string,target:string)=>compatible(catalog,endpoints.find(e=>e.ref===source)?.port,endpoints.find(e=>e.ref===target)?.port,assembly.instances[target.split('.')[0]]?.plugin,device(target.split('.')[0]).backend||assembly.instances[target.split('.')[0]]?.backend||'fake')
  function defaults(id:string,source:string,target:string){
   const sp=endpoints.find(e=>e.ref===source)?.port,ti=assembly.instances[target.split('.')[0]],td=ti&&descriptor(ti);if(!sp||!td)return{}
-  const params=bindingDefaults(id,sp,td,assembly.instances[source.split('.')[0]]?.plugin==='morla.input.quest')
-  if(id==='morla.cartesian_delta_ik'){
-
-   const robot=ti.plugin==='morla.nero.arm'?'nero':ti.plugin==='morla.astral.arm'?'astral':null
-   const side=String(ti.parameters?.side||'left');const preset=robot&&templateCache[robot+'-sim']?.bindings.find(b=>b.source===`quest.${side}_pose`)
-   if(preset)Object.assign(params,structuredClone(preset.parameters))
-  }
-  if(ti.plugin==='morla.fairino.fr3'&&id.startsWith('morla.fr3.')){
-   const preset=templateCache['fr3-fake']?.bindings.find(b=>b.controller===id)
-   if(preset)Object.assign(params,structuredClone(preset.parameters))
-   params.command_lead_rad=.08
-  }
-  return params
+  return pluginBindingDefaults(catalog,id,sp,td,assembly.instances[source.split('.')[0]]?.plugin||'',ti.parameters)
  }
- function preferred(source:string,target:string){const list=choices(source,target),targetPlugin=assembly.instances[target.split('.')[0]]?.plugin,semantic=endpoints.find(e=>e.ref===source)?.port.semantic
-  const wanted=targetPlugin==='morla.fairino.fr3'?(semantic==='pose6d'?'morla.fr3.cartesian_delta':semantic==='axes_buttons'?'morla.fr3.cartesian_jog':''):targetPlugin==='morla.dobot.cr5'?(semantic==='pose6d'?'morla.cr5.cartesian_delta':semantic==='axes_buttons'?'morla.cr5.cartesian_jog':''):semantic==='pose6d'?'morla.cartesian_delta_ik':semantic==='axes_buttons'?'morla.joint_jog':''
-  return list.includes(wanted)?wanted:list[0]||''
+ function preferred(source:string,target:string){const list=choices(source,target),td=descriptor(assembly.instances[target.split('.')[0]]),semantic=endpoints.find(e=>e.ref===source)?.port.semantic
+  return td?preferredController(list,td,semantic||''):list[0]||''
  }
  function buildBinding(source:string,target:string,id:string):Binding{
   const controller=preferred(source,target),sourcePort=endpoints.find(e=>e.ref===source)?.port,quest=assembly.instances[source.split('.')[0]]?.plugin==='morla.input.quest'
@@ -214,7 +204,7 @@ export function ComposableTab(){
  const patchDevice=(id:string,patch:Partial<Device>)=>changeDeployment({...deployment,deployment_version:1,deployment_id:deployment.deployment_id||assembly.assembly_id+'_hardware',instances:{...deployment.instances,[id]:{...device(id),...patch}}})
  function backend(id:string,value:string){const dep=structuredClone(deployment);if(dep.instances?.[id]){delete dep.instances[id].backend;if(value!=='real')delete dep.instances[id]}changeDeployment(dep);setInstance(id,{...assembly.instances[id],backend:value})}
  const nextStage=()=>setStage(stages[Math.min(stages.findIndex(s=>s.id===stage)+1,stages.length-1)].id)
- async function loadTemplate(){const a=templateCache[template]||normalise(await request<Assembly>('/templates/'+template));const revision=saved.find(x=>x.assembly_id===a.assembly_id)?.revision||0;changed({...structuredClone(a),revision:revision+1});setDeployment({});setSavedRevision(revision);setSavedHash('');setMessage('已载入机器人与输入标定，可继续检查设备设置。')}
+ async function loadTemplate(){if(!template)return;const a=templateCache[template]||normalise(await request<Assembly>('/templates/'+template));setTemplateCache(cache=>({...cache,[template]:a}));const revision=saved.find(x=>x.assembly_id===a.assembly_id)?.revision||0;changed({...structuredClone(a),revision:revision+1});setDeployment({});setSavedRevision(revision);setSavedHash('');setMessage('已载入机器人与输入标定，可继续检查设备设置。')}
  async function check(){const result=await request<Resolved>('/assemblies/compile',{assembly,deployment});setResolved(result);setMessage('配置检查通过。请保存配置后启动。');return result}
  async function save(){const result=resolved||await check();const next={...assembly,revision:savedRevision+1};const item=await request<{assembly:Assembly;deployment:Deployment;resolved:Resolved}>('/assemblies',{assembly:next,deployment,expected_revision:savedRevision});applySaved(item);setSaved(await request<typeof saved>('/assemblies'));setMessage(`配置已保存，版本 ${next.revision}。`);return result}
  const operate=(operation:string)=>void run(async()=>{if(operation==='activate'&&instances.some(([id,item])=>descriptor(item)?.kind==='actuator'&&(device(id).backend||item.backend)==='real')&&!window.confirm('允许真实机器人响应当前控制输入？请先核对输入方向、工具坐标系与周围环境。'))return;if(['estop','stop'].includes(operation)&&!window.confirm(operation==='estop'?'急停当前机器人？':'停止当前运行并释放设备连接？'))return;const reply=await request<{status?:string;error?:string}>(`/sessions/${session!.session_id}/${operation==='activate'?'operator/action':'operations'}`,operation==='activate'?{action:'teleop_start',request_id:crypto.randomUUID()}:{operation,request_id:crypto.randomUUID()});setSession(await request<Session>(`/sessions/${session!.session_id}/state`));setMessage(reply.error||'操作已提交，运行状态将自动更新。')})
@@ -229,7 +219,7 @@ export function ComposableTab(){
  const simPresent=instances.some(([id,i])=>(device(id).backend||i.backend)==='sim')
  return <div className="workcell">
   <header className="wc-header"><div><div className="wc-eyebrow">MORLA / WORKCELL</div><h2>机器人工作站</h2><p>配置设备与坐标关系，建立遥操作映射，然后检查并运行。</p></div><div className="wc-header-status"><span className={'wc-status '+(active?'is-live':'')}>{session?.operator?.transition?.status==='RUNNING'?'控制权切换中':session?states[session.status]||session.status:'配置中'}</span><span>{savedRevision?'已保存 v'+savedRevision:'尚未保存'}</span></div></header>
-  <div className="wc-config-bar"><label>配置名称<input aria-label="配置名称" disabled={locked} value={assembly.assembly_id} onChange={e=>{setSavedRevision(0);setSavedHash('');changed({...assembly,assembly_id:e.target.value,revision:1})}} /></label><label>已保存的工作站<select aria-label="打开已保存配置" disabled={locked} value="" onChange={e=>void run(async()=>{const item=await request<{assembly:Assembly;deployment?:Deployment;resolved:Resolved}>(`/assemblies/${e.target.value}/revisions/${saved.find(x=>x.assembly_id===e.target.value)!.revision}`);applySaved(item);setSession(null);setMessage('已打开保存的配置。')})}><option value="">选择配置…</option>{saved.map(s=><option key={s.assembly_id} value={s.assembly_id}>{s.assembly_id} · v{s.revision}</option>)}</select></label><div className="wc-template"><label>设备预设<select aria-label="仿真机器人模板" disabled={locked} value={template} onChange={e=>setTemplate(e.target.value)}><option value="cr5-sim">CR5 / Quest</option><option value="fr3-sim">FAIRINO FR3 / Quest（MuJoCo 仿真）</option><option value="fr3-fake">FAIRINO FR3 / Quest（测试数据）</option><option value="nero-sim">Nero 双臂 / Quest</option><option value="astral-sim">Astral 双臂 / Quest</option></select></label><button disabled={locked} onClick={()=>void run(loadTemplate)}>载入预设</button></div></div>
+  <div className="wc-config-bar"><label>配置名称<input aria-label="配置名称" disabled={locked} value={assembly.assembly_id} onChange={e=>{setSavedRevision(0);setSavedHash('');changed({...assembly,assembly_id:e.target.value,revision:1})}} /></label><label>已保存的工作站<select aria-label="打开已保存配置" disabled={locked} value="" onChange={e=>void run(async()=>{const item=await request<{assembly:Assembly;deployment?:Deployment;resolved:Resolved}>(`/assemblies/${e.target.value}/revisions/${saved.find(x=>x.assembly_id===e.target.value)!.revision}`);applySaved(item);setSession(null);setMessage('已打开保存的配置。')})}><option value="">选择配置…</option>{saved.map(s=><option key={s.assembly_id} value={s.assembly_id}>{s.assembly_id} · v{s.revision}</option>)}</select></label><div className="wc-template"><label>设备预设<select aria-label="仿真机器人模板" disabled={locked} value={template} onChange={e=>setTemplate(e.target.value)}><option value="">选择预设…</option>{templates.map(t=><option key={t.id} value={t.id}>{t.title}</option>)}</select></label><button disabled={locked||!template} onClick={()=>void run(loadTemplate)}>载入预设</button></div></div>
   <nav className="wc-stage-nav" aria-label="工作站配置流程">{stages.map(s=><button key={s.id} className={stage===s.id?'is-current':''} aria-current={stage===s.id?'step':undefined} onClick={()=>{setStage(s.id);setMessage('')}}>{s.title}</button>)}</nav>
   {message&&<div role="status" className={'wc-message '+(error?'is-error':'')}>{message}</div>}
   {active&&stage!=='run'&&<div className="wc-message">当前配置正在运行，可查看设置。停止运行后才能修改设备与控制参数。</div>}
@@ -258,7 +248,7 @@ export function ComposableTab(){
       <div className="wc-inline"><Check text="已核对设备身份" value={!!device(id).verified} onChange={verified=>patchDevice(id,{verified})} /><Check text="已完成停止测试" value={!!device(id).stop_verified} onChange={stop_verified=>patchDevice(id,{stop_verified})} /></div>
       {(d.resources?.sharing==='session'||!!device(id).session_id)&&<label>共享驱动标识<input value={String(device(id).session_id||'')} onChange={e=>patchDevice(id,{session_id:e.target.value||undefined})} /></label>}
      </fieldset>}
-     {mode!=='real'&&<p className="wc-note">当前为{backendNames[mode]}。切换为真实设备后可配置{d.plugin_id==='morla.nero.arm'?' CAN 通道、固件协议与驱动初始关节位置':'硬件连接与驱动参数'}。</p>}
+     {mode!=='real'&&<p className="wc-note">当前为{backendNames[mode]}。切换为真实设备后可配置硬件连接与驱动参数。</p>}
     </article>})}
     {!count[kind]&&<p className="wc-empty">尚未添加{kind==='input'?'输入设备':kind==='actuator'?'机器人或末端':'相机'}。</p>}
    </Section>)}
@@ -281,7 +271,7 @@ export function ComposableTab(){
 
   {stage==='control'&&<fieldset disabled={locked} className="wc-unframed">
    <Section title="控制映射" note="为执行器配置控制模式、遥操输入和跟随门控。切换输入或控制模式后，请核对坐标标定。">
-    {assembly.bindings.map((binding,index)=>{const source=endpoints.find(e=>e.ref===binding.source),target=assembly.instances[binding.target.split('.')[0]],d=target&&descriptor(target),cartesian=binding.controller.includes('cartesian'),jog=binding.controller.endsWith('jog'),joint=binding.controller==='morla.joint_jog',params=binding.parameters
+    {assembly.bindings.map((binding,index)=>{const source=endpoints.find(e=>e.ref===binding.source),target=assembly.instances[binding.target.split('.')[0]],d=target&&descriptor(target),controllerDescriptor=catalog.find(c=>c.plugin_id===binding.controller),family=controllerDescriptor?.web?.control_family,cartesian=family?.startsWith('cartesian'),jog=family==='cartesian_jog',joint=family==='joint_jog',params=binding.parameters
      const available=sources.filter(e=>questVisible(e)&&!holdPort(e)&&!portName(e).endsWith('_buttons')&&choices(e.ref,binding.target).length>0)
      const hold=source&&standardHold(source)
      const targetOptions=actuators.flatMap(([id])=>{
@@ -292,7 +282,7 @@ export function ComposableTab(){
       return primary?[primary]:[]
      })
      const setParams=(parameters:Record<string,unknown>)=>patchBinding(index,{parameters})
-     const deviceIk=binding.controller.startsWith('morla.cr5.')||binding.controller.startsWith('morla.fr3.')
+     const deviceIk=!!catalog.find(c=>c.plugin_id===binding.controller)?.web?.ik_modes?.length
      const common=cartesian?['position_scale','linear_speed','angular_speed',...(deviceIk?['max_joint_velocity','smoothing_alpha']:[])].filter(key=>jog?!['position_scale','smoothing_alpha'].includes(key):!['linear_speed','angular_speed'].includes(key)):joint?['speed']:[]
      const hidden=['input_rotation','input_basis','solver_tip_from_tool','axes_map',...common]
      const advanced=deviceIk?['max_joint_step','position_lead_m','rotation_lead_rad','damping_min','damping_max','singularity_threshold','differential_step_rad']:[]
@@ -334,7 +324,7 @@ export function ComposableTab(){
      {(cartesian||Boolean(params.input_basis))&&<BasisFields label={cartesian?'输入方向与基座坐标系':'手部输入坐标系'} value={(params.input_rotation||params.input_basis) as number[][]|undefined} onChange={v=>setParams({...params,[cartesian?'input_rotation':'input_basis']:v})} />}
      {cartesian&&<PoseFields label="工具中心点 TCP 相对求解末端" matrix value={params.solver_tip_from_tool as number[][]|undefined} onChange={v=>setParams({...params,solver_tip_from_tool:v})} />}
      {cartesian&&<Check text="已核对实际输入方向与工具坐标系" value={!!params.calibration_verified} onChange={v=>setParams({...params,calibration_verified:v})} />}
-     <details className="wc-details" open={!cartesian&&!joint}><summary>{cartesian?'求解与跟随参数':'控制参数'}</summary><ObjectFields value={Object.fromEntries(Object.entries(params).filter(([key])=>!hidden.includes(key)&&key!=='calibration_verified'&&key!=='ik_mode'))} properties={Object.fromEntries([...advanced,...Object.keys(params).filter(key=>['input_range','output_range','pinch_range_m'].includes(key))].map(key=>[key,parameterSchema(key)]))} onChange={value=>{const keep=Object.fromEntries(Object.entries(params).filter(([key])=>hidden.includes(key)||key==='calibration_verified'||key==='ik_mode'));setParams({...keep,...value})}} allowNew={!cartesian&&!joint} /></details>
+     <details className="wc-details" open={!cartesian&&!joint}><summary>{cartesian?'求解与跟随参数':'控制参数'}</summary><ObjectFields value={Object.fromEntries(Object.entries(params).filter(([key])=>!hidden.includes(key)&&key!=='calibration_verified'&&key!=='ik_mode'))} properties={{...controllerDescriptor?.configuration_schema?.properties,...Object.fromEntries([...advanced,...Object.keys(params).filter(key=>['input_range','output_range','pinch_range_m'].includes(key))].map(key=>[key,parameterSchema(key)]))}} onChange={value=>{const keep=Object.fromEntries(Object.entries(params).filter(([key])=>hidden.includes(key)||key==='calibration_verified'||key==='ik_mode'));setParams({...keep,...value})}} allowNew={!cartesian&&!joint} /></details>
      </article>})}
     <button disabled={!sources.length||!targets.length} onClick={addBinding}>添加控制映射</button>
     {inputs.some(([,item])=>item.plugin==='morla.input.quest')&&<details className="wc-details"><summary>Quest 工作站快捷键</summary><p className="wc-note">右 Grip 按下开始遥操或接管。右 A 开始录制或交还控制，右 B 结束并保存，右摇杆按下丢弃当前录制，左 X 回工作位。也可在运行页点击「开始遥操」或按 S。</p></details>}
@@ -430,7 +420,7 @@ export function ComposableTab(){
     {pairLink&&<p><a href={pairLink} target="_blank" rel="noreferrer">打开手机控制页面</a><br/><small>{pairLink}</small></p>}
     {Object.entries(session.controllers||{}).flatMap(([id,reports])=>Object.entries(reports).filter(([,r])=>Object.keys(r).length>0).map(([plugin,raw])=>{const r=presentIkReport(raw) as IkReport;return <div className="wc-ik-report" key={id+plugin}><div><strong>{id} · {r.solver?.includes('differential')?'连续微分跟随':'严格位姿求解'}</strong><span>{r.error||reasons[r.reason||'']||(r.success?'已达到求解精度':'等待目标')}</span></div><dl><div><dt>位置误差</dt><dd>{metric(r.raw_position_error_m??r.position_error_m,1000)} <small>mm</small></dd></div><div><dt>姿态误差</dt><dd>{metric(r.raw_angle_error_rad??r.angle_error_rad,180/Math.PI)} <small>°</small></dd></div><div><dt>奇异性指标</dt><dd>{metric(r.singularity_proximity,100,0)} <small>%</small></dd></div><div><dt>已吸收位移</dt><dd>{metric(r.absorbed_position_m,1000,1)} <small>mm</small></dd></div></dl><p className="wc-note">误差由候选关节正运动学计算，不是实机测量精度。报告更新距今 {metric(r.age_ms,1,0)} ms。</p></div>}))}
     <div className="wc-inline">{session.operator?.paused&&['policy','playback'].includes(session.operator.activity)&&<button disabled={busy||session.operator.transition?.status==='RUNNING'} onClick={()=>void run(async()=>{await request(`/sessions/${session.session_id}/operator/action`,{action:'resume',request_id:crypto.randomUUID()});setSession(await request<Session>(`/sessions/${session.session_id}/state`))})}>继续策略／回放</button>}<button disabled={busy||session.operator?.transition?.status==='RUNNING'||!session.operator?.return_to} onClick={()=>void run(async()=>{await request(`/sessions/${session.session_id}/operator/action`,{action:'record_or_release',request_id:crypto.randomUUID()});setSession(await request<Session>(`/sessions/${session.session_id}/state`))})}>交还策略／回放</button><button disabled={busy||session.operator?.transition?.status==='RUNNING'||!!session.recording||!active} onClick={()=>void run(async()=>{await request(`/sessions/${session.session_id}/operator/action`,{action:'workpos',request_id:crypto.randomUUID()});setSession(await request<Session>(`/sessions/${session.session_id}/state`))})}>直接回工作位</button><button className="wc-danger" disabled={busy||session.operator?.transition?.status==='RUNNING'||!session.recording} onClick={()=>void run(async()=>{await request(`/sessions/${session.session_id}/operator/action`,{action:'record_discard',request_id:crypto.randomUUID()});setSession(await request<Session>(`/sessions/${session.session_id}/state`));setMessage('本段已丢弃。')})}>丢弃本段</button></div>
-    {active&&sim.display!=='local'&&<div className="wc-preview-grid">{instances.filter(([,i])=>i.plugin.startsWith('morla.camera')&&i.backend==='sim').map(([id])=><SimPreview key={id} sessionId={session.session_id} cameraId={id} />)}</div>}
+    {active&&sim.display!=='local'&&<div className="wc-preview-grid">{instances.filter(([id,i])=>descriptor(i)?.ports.rgb?.semantic==='image'&&(device(id).backend||i.backend)==='sim').map(([id])=><SimPreview key={id} sessionId={session.session_id} cameraId={id} />)}</div>}
     <div className="wc-record-row"><label>记录任务<input aria-label="记录任务" disabled={!!session.recording} value={task} onChange={e=>setTask(e.target.value)} /></label><button disabled={busy||session.operator?.transition?.status==='RUNNING'||!active||!!session.recording} onClick={()=>void run(async()=>{await request(`/sessions/${session.session_id}/recordings`,{task});setSession(await request<Session>(`/sessions/${session.session_id}/state`));setMessage('数据记录已开始。')})}>开始记录</button><button disabled={busy||session.operator?.transition?.status==='RUNNING'||!session.recording} onClick={()=>void run(async()=>{const result=await request<{status?:string;failure?:string}>(`/sessions/${session.session_id}/recordings/stop`,{});setSession(await request<Session>(`/sessions/${session.session_id}/state`));setError(result.status==='failed'||!!result.failure);setMessage(recordingSaveMessage(result))})}>结束并保存</button><span className="wc-note">{session.recording?'正在记录':'未记录'}</span></div>
     <details className="wc-details"><summary>驱动与控制器诊断</summary><pre>{JSON.stringify(session,null,2)}</pre></details>
    </Section>}

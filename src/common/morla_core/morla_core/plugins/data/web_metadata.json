@@ -1,0 +1,1121 @@
+{
+  "morla.input.quest": {
+    "label": "Quest 3",
+    "fields": [
+      "side",
+      "process_mode",
+      "protocol",
+      "udp_port",
+      "tcp_port",
+      "input_topic",
+      "source_namespace",
+      "pinch_range_m"
+    ],
+    "connection_fields": [
+      "input_topic",
+      "source_namespace",
+      "tcp_port",
+      "udp_port"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    },
+    "field_conditions": {
+      "udp_port": {
+        "protocol": [
+          "udp"
+        ]
+      },
+      "tcp_port": {
+        "protocol": [
+          "tcp_wired",
+          "tcp_wireless"
+        ]
+      }
+    }
+  },
+  "morla.input.gamepad": {
+    "label": "通用手柄",
+    "fields": [
+      "process_mode",
+      "input_topic",
+      "device_name",
+      "deadzone"
+    ],
+    "connection_fields": [
+      "input_topic"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.input.xbox": {
+    "label": "Xbox 手柄",
+    "fields": [
+      "process_mode",
+      "input_topic",
+      "device_name",
+      "deadzone"
+    ],
+    "connection_fields": [
+      "input_topic"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.input.glove": {
+    "label": "数据手套",
+    "fields": [
+      "side",
+      "process_mode",
+      "input_topic",
+      "source_namespace"
+    ],
+    "connection_fields": [
+      "input_topic",
+      "source_namespace"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.input.mobile": {
+    "label": "手机体感",
+    "fields": [
+      "process_mode",
+      "input_topic"
+    ],
+    "connection_fields": [
+      "input_topic"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.fake.input": {
+    "label": "测试输入",
+    "fields": [
+      "rate_hz"
+    ],
+    "connection_fields": [],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.astral.arm": {
+    "label": "Astral 机械臂",
+    "fields": [
+      "side",
+      "rate_hz",
+      "max_sample_age_ms",
+      "control_board_ip",
+      "local_ip",
+      "local_port",
+      "board_cmd_port",
+      "board_scope_verified",
+      "unselected_joints_policy",
+      "initial_positions"
+    ],
+    "connection_fields": [
+      "board_cmd_port",
+      "board_scope_verified",
+      "control_board_ip",
+      "local_ip",
+      "local_port",
+      "unselected_joints_policy"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    },
+    "templates": [
+      {
+        "id": "astral-sim",
+        "title": "Astral 双臂 / Quest",
+        "package": "astral_mujoco_sim",
+        "path": "config/composable.sim.yaml"
+      }
+    ],
+    "preferred_controllers": {
+      "pose6d": "morla.cartesian_delta_ik",
+      "axes_buttons": "morla.gamepad_cartesian_jog"
+    },
+    "binding_presets": [
+      {
+        "controller": "morla.cartesian_delta_ik",
+        "source_plugin": "morla.input.quest",
+        "parameters": {
+          "side": "left"
+        },
+        "defaults": {
+          "input_rotation": [
+            [
+              -1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ]
+          ],
+          "solver_tip_from_tool": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_scale": 0.8,
+          "max_joint_step": 0.15
+        }
+      },
+      {
+        "controller": "morla.cartesian_delta_ik",
+        "source_plugin": "morla.input.quest",
+        "parameters": {
+          "side": "right"
+        },
+        "defaults": {
+          "input_rotation": [
+            [
+              -1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ]
+          ],
+          "solver_tip_from_tool": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_scale": 0.8,
+          "max_joint_step": 0.15
+        }
+      }
+    ]
+  },
+  "morla.nero.arm": {
+    "label": "Nero 机械臂",
+    "fields": [
+      "side",
+      "rate_hz",
+      "max_sample_age_ms",
+      "can_channel",
+      "can_interface",
+      "firmware_version",
+      "native_j7_first",
+      "initial_position",
+      "workpos_waypoints_deg",
+      "initial_positions"
+    ],
+    "connection_fields": [
+      "can_channel",
+      "can_interface",
+      "firmware_version",
+      "initial_position",
+      "native_j7_first",
+      "workpos_waypoints_deg"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    },
+    "templates": [
+      {
+        "id": "nero-sim",
+        "title": "Nero 双臂 / Quest",
+        "package": "xnero_mujoco_sim",
+        "path": "config/composable.sim.yaml"
+      }
+    ],
+    "preferred_controllers": {
+      "pose6d": "morla.cartesian_delta_ik",
+      "axes_buttons": "morla.gamepad_cartesian_jog"
+    },
+    "binding_presets": [
+      {
+        "controller": "morla.cartesian_delta_ik",
+        "source_plugin": "morla.input.quest",
+        "parameters": {
+          "side": "left"
+        },
+        "defaults": {
+          "input_rotation": [
+            [
+              0.0,
+              0.9999999999997462,
+              1.0334564207559213e-13
+            ],
+            [
+              -3.673205103346574e-06,
+              -1.0334564184841973e-13,
+              0.9999999999929999
+            ],
+            [
+              -0.9999999999932537,
+              3.7960974040263107e-19,
+              -3.6732051033456418e-06
+            ]
+          ],
+          "solver_tip_from_tool": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_scale": 0.8,
+          "max_joint_step": 0.15
+        }
+      },
+      {
+        "controller": "morla.cartesian_delta_ik",
+        "source_plugin": "morla.input.quest",
+        "parameters": {
+          "side": "right"
+        },
+        "defaults": {
+          "input_rotation": [
+            [
+              0.0,
+              0.9999999999997462,
+              1.0334564207559213e-13
+            ],
+            [
+              -3.673205103346574e-06,
+              1.0334564184841973e-13,
+              -0.9999999999929999
+            ],
+            [
+              0.9999999999932537,
+              3.7960974040263107e-19,
+              -3.6732051033456418e-06
+            ]
+          ],
+          "solver_tip_from_tool": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_scale": 0.8,
+          "max_joint_step": 0.15
+        }
+      }
+    ]
+  },
+  "morla.astral.waist": {
+    "label": "Astral 腰部",
+    "fields": [
+      "rate_hz",
+      "max_sample_age_ms",
+      "initial_positions",
+      "control_board_ip",
+      "local_ip",
+      "local_port",
+      "board_cmd_port"
+    ],
+    "connection_fields": [
+      "board_cmd_port",
+      "control_board_ip",
+      "local_ip",
+      "local_port"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.astral.head": {
+    "label": "Astral 头部",
+    "fields": [
+      "rate_hz",
+      "max_sample_age_ms",
+      "initial_positions",
+      "control_board_ip",
+      "local_ip",
+      "local_port",
+      "board_cmd_port"
+    ],
+    "connection_fields": [
+      "board_cmd_port",
+      "control_board_ip",
+      "local_ip",
+      "local_port"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.fake.arm": {
+    "label": "测试机械臂",
+    "fields": [
+      "rate_hz",
+      "initial_positions"
+    ],
+    "connection_fields": [],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.ros2_control.mock": {
+    "label": "ros2_control 测试臂",
+    "fields": [
+      "rate_hz",
+      "initial_positions"
+    ],
+    "connection_fields": [],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.astral.gripper": {
+    "label": "Astral 夹爪",
+    "fields": [
+      "side",
+      "rate_hz",
+      "max_sample_age_ms",
+      "control_board_ip",
+      "local_ip",
+      "local_port",
+      "board_cmd_port",
+      "board_scope_verified",
+      "unselected_joints_policy",
+      "initial_positions"
+    ],
+    "connection_fields": [
+      "board_cmd_port",
+      "board_scope_verified",
+      "control_board_ip",
+      "local_ip",
+      "local_port",
+      "unselected_joints_policy"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.wuji.hand": {
+    "label": "Wuji 灵巧手",
+    "fields": [
+      "side",
+      "rate_hz",
+      "max_sample_age_ms",
+      "serial_number",
+      "publish_rate",
+      "filter_cutoff_freq",
+      "initial_positions",
+      "retarget_backend"
+    ],
+    "connection_fields": [
+      "filter_cutoff_freq",
+      "publish_rate",
+      "serial_number"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.xhand.hand": {
+    "label": "XHand 灵巧手",
+    "fields": [
+      "side",
+      "rate_hz",
+      "max_sample_age_ms",
+      "port_name",
+      "hand_id",
+      "initial_positions",
+      "preprocess_mode",
+      "index_bend_sign",
+      "enable_thumb_fix"
+    ],
+    "connection_fields": [
+      "hand_id",
+      "port_name"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.camera": {
+    "label": "场景相机",
+    "fields": [
+      "width",
+      "height",
+      "fps",
+      "camera_backend",
+      "image_topic",
+      "compressed",
+      "device_path"
+    ],
+    "connection_fields": [
+      "device_path"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ],
+      "camera_backend": [
+        "real"
+      ],
+      "device_path": [
+        "real"
+      ],
+      "image_topic": [
+        "real"
+      ],
+      "compressed": [
+        "real"
+      ]
+    },
+    "field_conditions": {
+      "device_path": {
+        "camera_backend": [
+          "uvc"
+        ]
+      },
+      "image_topic": {
+        "camera_backend": [
+          "ros_image"
+        ]
+      },
+      "compressed": {
+        "camera_backend": [
+          "ros_image"
+        ]
+      }
+    }
+  },
+  "morla.camera.ros_image": {
+    "label": "ROS 相机",
+    "fields": [
+      "width",
+      "height",
+      "fps",
+      "camera_backend",
+      "image_topic",
+      "compressed",
+      "device_path"
+    ],
+    "connection_fields": [
+      "device_path"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ],
+      "camera_backend": [
+        "real"
+      ],
+      "device_path": [
+        "real"
+      ],
+      "image_topic": [
+        "real"
+      ],
+      "compressed": [
+        "real"
+      ]
+    }
+  },
+  "morla.camera.uvc": {
+    "label": "USB 相机",
+    "fields": [
+      "width",
+      "height",
+      "fps",
+      "camera_backend",
+      "image_topic",
+      "compressed",
+      "device_path"
+    ],
+    "connection_fields": [
+      "device_path"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ],
+      "camera_backend": [
+        "real"
+      ],
+      "device_path": [
+        "real"
+      ],
+      "image_topic": [
+        "real"
+      ],
+      "compressed": [
+        "real"
+      ]
+    }
+  },
+  "morla.fake.camera": {
+    "label": "测试相机",
+    "fields": [
+      "width",
+      "height",
+      "fps",
+      "camera_backend",
+      "image_topic",
+      "compressed",
+      "device_path"
+    ],
+    "connection_fields": [
+      "device_path"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ],
+      "camera_backend": [
+        "real"
+      ],
+      "device_path": [
+        "real"
+      ],
+      "image_topic": [
+        "real"
+      ],
+      "compressed": [
+        "real"
+      ]
+    }
+  },
+  "morla.fake.sensor": {
+    "label": "测试传感器",
+    "fields": [
+      "rate_hz"
+    ],
+    "connection_fields": [],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.cartesian_delta_ik": {
+    "label": "末端位姿跟随",
+    "connection_fields": [
+      "address",
+      "baud_rate",
+      "baudrate",
+      "board_cmd_port",
+      "board_scope_verified",
+      "can_channel",
+      "can_interface",
+      "control_board_ip",
+      "device_path",
+      "filter_cutoff_freq",
+      "firmware_version",
+      "hand_id",
+      "host",
+      "initial_position",
+      "input_topic",
+      "local_ip",
+      "local_port",
+      "native_j7_first",
+      "port",
+      "port_name",
+      "publish_rate",
+      "serial_number",
+      "source_namespace",
+      "tcp_port",
+      "udp_port",
+      "unselected_joints_policy",
+      "workpos_waypoints_deg"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.gamepad_cartesian_jog": {
+    "label": "末端速度控制",
+    "connection_fields": [
+      "address",
+      "baud_rate",
+      "baudrate",
+      "board_cmd_port",
+      "board_scope_verified",
+      "can_channel",
+      "can_interface",
+      "control_board_ip",
+      "device_path",
+      "filter_cutoff_freq",
+      "firmware_version",
+      "hand_id",
+      "host",
+      "initial_position",
+      "input_topic",
+      "local_ip",
+      "local_port",
+      "native_j7_first",
+      "port",
+      "port_name",
+      "publish_rate",
+      "serial_number",
+      "source_namespace",
+      "tcp_port",
+      "udp_port",
+      "unselected_joints_policy",
+      "workpos_waypoints_deg"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.joint_jog": {
+    "label": "关节点动",
+    "connection_fields": [
+      "address",
+      "baud_rate",
+      "baudrate",
+      "board_cmd_port",
+      "board_scope_verified",
+      "can_channel",
+      "can_interface",
+      "control_board_ip",
+      "device_path",
+      "filter_cutoff_freq",
+      "firmware_version",
+      "hand_id",
+      "host",
+      "initial_position",
+      "input_topic",
+      "local_ip",
+      "local_port",
+      "native_j7_first",
+      "port",
+      "port_name",
+      "publish_rate",
+      "serial_number",
+      "source_namespace",
+      "tcp_port",
+      "udp_port",
+      "unselected_joints_policy",
+      "workpos_waypoints_deg"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.identity": {
+    "label": "直接传递",
+    "connection_fields": [
+      "address",
+      "baud_rate",
+      "baudrate",
+      "board_cmd_port",
+      "board_scope_verified",
+      "can_channel",
+      "can_interface",
+      "control_board_ip",
+      "device_path",
+      "filter_cutoff_freq",
+      "firmware_version",
+      "hand_id",
+      "host",
+      "initial_position",
+      "input_topic",
+      "local_ip",
+      "local_port",
+      "native_j7_first",
+      "port",
+      "port_name",
+      "publish_rate",
+      "serial_number",
+      "source_namespace",
+      "tcp_port",
+      "udp_port",
+      "unselected_joints_policy",
+      "workpos_waypoints_deg"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.scalar_map": {
+    "label": "线性映射",
+    "connection_fields": [
+      "address",
+      "baud_rate",
+      "baudrate",
+      "board_cmd_port",
+      "board_scope_verified",
+      "can_channel",
+      "can_interface",
+      "control_board_ip",
+      "device_path",
+      "filter_cutoff_freq",
+      "firmware_version",
+      "hand_id",
+      "host",
+      "initial_position",
+      "input_topic",
+      "local_ip",
+      "local_port",
+      "native_j7_first",
+      "port",
+      "port_name",
+      "publish_rate",
+      "serial_number",
+      "source_namespace",
+      "tcp_port",
+      "udp_port",
+      "unselected_joints_policy",
+      "workpos_waypoints_deg"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.trigger_filtered": {
+    "label": "扳机控制",
+    "connection_fields": [
+      "address",
+      "baud_rate",
+      "baudrate",
+      "board_cmd_port",
+      "board_scope_verified",
+      "can_channel",
+      "can_interface",
+      "control_board_ip",
+      "device_path",
+      "filter_cutoff_freq",
+      "firmware_version",
+      "hand_id",
+      "host",
+      "initial_position",
+      "input_topic",
+      "local_ip",
+      "local_port",
+      "native_j7_first",
+      "port",
+      "port_name",
+      "publish_rate",
+      "serial_number",
+      "source_namespace",
+      "tcp_port",
+      "udp_port",
+      "unselected_joints_policy",
+      "workpos_waypoints_deg"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.pinch_filtered": {
+    "label": "捏合控制（滤波）",
+    "connection_fields": [
+      "address",
+      "baud_rate",
+      "baudrate",
+      "board_cmd_port",
+      "board_scope_verified",
+      "can_channel",
+      "can_interface",
+      "control_board_ip",
+      "device_path",
+      "filter_cutoff_freq",
+      "firmware_version",
+      "hand_id",
+      "host",
+      "initial_position",
+      "input_topic",
+      "local_ip",
+      "local_port",
+      "native_j7_first",
+      "port",
+      "port_name",
+      "publish_rate",
+      "serial_number",
+      "source_namespace",
+      "tcp_port",
+      "udp_port",
+      "unselected_joints_policy",
+      "workpos_waypoints_deg"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.pinch_scalar": {
+    "label": "捏合控制",
+    "connection_fields": [
+      "address",
+      "baud_rate",
+      "baudrate",
+      "board_cmd_port",
+      "board_scope_verified",
+      "can_channel",
+      "can_interface",
+      "control_board_ip",
+      "device_path",
+      "filter_cutoff_freq",
+      "firmware_version",
+      "hand_id",
+      "host",
+      "initial_position",
+      "input_topic",
+      "local_ip",
+      "local_port",
+      "native_j7_first",
+      "port",
+      "port_name",
+      "publish_rate",
+      "serial_number",
+      "source_namespace",
+      "tcp_port",
+      "udp_port",
+      "unselected_joints_policy",
+      "workpos_waypoints_deg"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.xhand.retarget": {
+    "label": "XHand 手势重定向",
+    "connection_fields": [
+      "address",
+      "baud_rate",
+      "baudrate",
+      "board_cmd_port",
+      "board_scope_verified",
+      "can_channel",
+      "can_interface",
+      "control_board_ip",
+      "device_path",
+      "filter_cutoff_freq",
+      "firmware_version",
+      "hand_id",
+      "host",
+      "initial_position",
+      "input_topic",
+      "local_ip",
+      "local_port",
+      "native_j7_first",
+      "port",
+      "port_name",
+      "publish_rate",
+      "serial_number",
+      "source_namespace",
+      "tcp_port",
+      "udp_port",
+      "unselected_joints_policy",
+      "workpos_waypoints_deg"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  },
+  "morla.wuji.retarget": {
+    "label": "Wuji 手势重定向",
+    "connection_fields": [
+      "address",
+      "baud_rate",
+      "baudrate",
+      "board_cmd_port",
+      "board_scope_verified",
+      "can_channel",
+      "can_interface",
+      "control_board_ip",
+      "device_path",
+      "filter_cutoff_freq",
+      "firmware_version",
+      "hand_id",
+      "host",
+      "initial_position",
+      "input_topic",
+      "local_ip",
+      "local_port",
+      "native_j7_first",
+      "port",
+      "port_name",
+      "publish_rate",
+      "serial_number",
+      "source_namespace",
+      "tcp_port",
+      "udp_port",
+      "unselected_joints_policy",
+      "workpos_waypoints_deg"
+    ],
+    "field_backends": {
+      "initial_positions": [
+        "fake",
+        "sim"
+      ]
+    }
+  }
+}

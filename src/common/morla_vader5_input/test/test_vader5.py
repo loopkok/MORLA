@@ -188,7 +188,7 @@ def test_service_record_buttons_gateway_and_policy_exclusion(tmp_path):
 def test_scalar_map_rejects_multi_joint_target():
     a=load_document(PACKAGE/'config/cr5.fake.yaml')
     a['bindings'][0].update(source='pad.scalar',controller='morla.scalar_map',parameters={})
-    with pytest.raises(ValueError,match='one target joint'):compile_system(a,registry=catalog())
+    with pytest.raises(ValueError,match='target dimension mismatch'):compile_system(a,registry=catalog())
 
 
 def test_policy_and_replay_use_same_output_contract(tmp_path):

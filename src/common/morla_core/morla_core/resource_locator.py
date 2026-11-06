@@ -139,3 +139,24 @@ def resolve_robot_asset(model_id: str) -> Path:
         if not target.is_relative_to(source_share) or not target.is_file():
             raise ResourceLookupError(f"source asset is missing or escapes package: {relative!r}")
         return target
+
+
+def resolve_plugin_resource(package_name: str, relative_path: str) -> Path:
+    """Installed resource first; source package lookup only if not installed.
+
+    Used for static descriptor assets/templates. Never accepts assembly-selected
+    module names, never masks a broken installed resource with a source copy.
+    """
+    import re
+    import xml.etree.ElementTree as ET
+    if not re.fullmatch(r'[a-z][a-z0-9_]*', package_name):
+        raise ResourceLookupError('invalid plugin resource package')
+    try:
+        package_share(package_name)
+    except ResourceLookupError:
+        matches = [p.parent for p in (morla_source_root()/'src').rglob('package.xml')
+                   if p.parent.name == package_name and ET.parse(p).findtext('name') == package_name]
+        if len(matches) != 1:
+            raise ResourceLookupError('plugin resource package not found: '+package_name)
+        return resolve_source_resource(matches[0], relative_path)
+    return resolve_package_resource(package_name, relative_path)
