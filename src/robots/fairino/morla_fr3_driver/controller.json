@@ -86,14 +86,14 @@
     "position_scale": 0.25,
     "input_position_rotation": [
       [
-        0,
-        0,
-        1
-      ],
-      [
-        1,
+        -1,
         0,
         0
+      ],
+      [
+        0,
+        0,
+        -1
       ],
       [
         0,

@@ -1,11 +1,10 @@
 # Changelog（MORLA）
 
-## 2026-11-06 — FR3 Quest forward translation
+## 2026-11-06 — FR3 Quest 平移映射
 
-- FR3 Quest forward translation now follows base +X; right/up remain +Y/+Z, with position scale 0.25.
-- Separate input_position_rotation from the orientation basis; old bindings without the new parameter retain their saved mapping. Templates, Web defaults and migration documentation updated.
-- Regression verifies all three translation axes and unchanged orientation increments.
-
+- FR3 Quest 平移映射为右→base −X、上→+Z、前→−Y，即 `input_position_rotation: [[-1,0,0],[0,0,-1],[0,1,0]]`（det −1 基变换）；位移倍率仍为 0.25。取代同日早先提交的 +X/+Y/+Z 版本（真机验收前按操作要求更正），姿态 `input_rotation` 未变。
+- 平移矩阵 `input_position_rotation` 与姿态基 `input_rotation` 分离；未声明新参数的历史绑定保留原有平移映射。模板、控制器默认参数（`controller.json`）与迁移文档同步更新。
+- 回归覆盖 det +1 与 det −1 两种平移矩阵，并确认姿态增量不受影响。
 
 ## 2026-11-06 — 插件声明驱动 Web 与共享仿真
 
