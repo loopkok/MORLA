@@ -3,7 +3,7 @@
 ## 2026-11-06 — FR3 Quest 姿态映射改用与平移相同的基变换
 
 - 现场验收：平移（前后左右上下）正确、yaw 正确，但腕部 pitch/roll 互换——手俯仰时工具在自转。
-- 根因：姿态基 `input_rotation` 写成 `[[0,0,-1],[1,0,0],[0,1,0]]`（沿用了别家的轴像表），与已验证的平移基 `P=[[-1,0,0],[0,0,-1],[0,1,0]]` 不一致；`ΔR_base=P·ΔR_quest·Pᵀ` 时手部 +X（右）俯仰只映射到 base −Z、+Y、+X 三个轴中的正确组合，旧矩阵把 +X 俯仰映射成 base −Y（前方）轴的自转，+Y/+Z 又分别错位。
+- 根因：姿态基 `input_rotation` 写成 `[[0,0,-1],[1,0,0],[0,1,0]]`（沿用了别家的轴像表），其轴像 +X→+Y、+Y→+Z、+Z→−X，不满足约定的 +X→−X、+Y→+Z、+Z→−Y，也不等于已验证的平移基 `P=[[-1,0,0],[0,0,-1],[0,1,0]]`；`ΔR_base=P·ΔR_quest·Pᵀ` 时手部 +X（右）俯仰被送成 base −Y（前后轴）的自转，+Y/+Z 又分别错位。
 - 修改：`quest.fake.yaml`、`quest.sim.yaml`、`fr3_mujoco_sim/config/composable.sim.yaml` 的 `input_rotation` 改为 `P`；`descriptor.json` 新增 Quest 绑定预设，使 Web 新建绑定默认也拿到 `P`（只对 `morla.input.quest` 源生效，不影响手柄 jog）。
 - 回归：新增 `test_quest_orientation_shares_the_validated_translation_basis`，断言模板/预设矩阵一致，并逐轴验证 `dR_base = P·dR_quest·Pᵀ` 的转向（+X→+X、+Y→−Z、+Z→+Y）；旧矩阵会失败。
 - 已保存绑定不会被改写：需在 Web 里把该绑定的 `input_rotation` 改成 `P`（或重新加载 FR3 预设）并保存新 revision。真机方向待现场按三步复核。

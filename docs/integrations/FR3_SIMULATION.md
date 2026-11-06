@@ -87,21 +87,23 @@ MUJOCO_GL=egl python3 docs/testing/fr3_sim_camera_acceptance.py \
 FR3 随包 fake/sim 模板、`descriptor.json` 的 Quest 绑定预设与 `controller.json` 默认参数采用
 **同一个基变换矩阵** `P = [[-1,0,0],[0,0,-1],[0,1,0]]`（det −1）：
 
-| Quest（Unity 左手系） | 平移产物（`P·Δp`） | 姿态产物（工具绕 base 的转向轴） |
+| Quest（Unity 左手系） | 轴像（`P·a`，位移与转轴同表） | 实测转向（转角带符号） |
 | --- | --- | --- |
 | +X 右 | −X | +X |
 | +Y 上 | +Z | −Z |
 | +Z 前 | −Y | +Y |
 
-- 平移：`Δp_base = P·Δp_quest·0.25`。
-- 姿态：`ΔR_base = P·ΔR_quest·Pᵀ`（相似变换，结果仍是 proper rotation）。旋转是物理量，必须用
-  与平移相同的基变换搬运；用别的矩阵会让手部的 pitch 变成工具的 roll。
+- 平移：`Δp_base = P·Δp_quest·0.25`，轴像就是 `P·a`（+X→−X、+Y→+Z、+Z→−Y）。
+- 姿态：`ΔR_base = P·ΔR_quest·Pᵀ`。手部绕 `a` 转 θ 时，工具**绕同一条轴 `P·a`** 转；因为 `P` 是
+  左手系→右手系的反射（det −1），相似变换会额外翻转转角符号：
+  `P·R(a,θ)·Pᵀ = R(−P·a, θ) = R(P·a, −θ)`。所以“轴”完全遵守 +X→−X、+Y→+Z、+Z→−Y 的约定，
+  只是正向角变成绕该轴的反向角，右列就是把两者合起来的实测结果。
 - `position_scale` 为 0.25；`solver_tip_from_tool` 为单位矩阵（TCP = `flange`）。
 
-2026-11-06 上午的版本把姿态矩阵写成 `[[0,0,-1],[1,0,0],[0,1,0]]`（当时按“轴像”列表填的），
-真机验收发现平移正确、yaw 正确，但 pitch/roll 互换：那个矩阵把 Quest +X（右）的手腕俯仰
-转成了 base −Y（前方）轴的转动，也就是工具的自转。现统一为与平移相同的 `P`；yaw 仍不变
-（两个矩阵对 +Y 的映射一致），pitch/roll 恢复。
+2026-11-06 上午的版本把姿态矩阵写成 `[[0,0,-1],[1,0,0],[0,1,0]]`，其轴像是 +X→+Y、+Y→+Z、
++Z→−X，并不满足约定的 +X→−X、+Y→+Z、+Z→−Y。真机验收因此表现为平移正确、yaw 正确，但
+pitch/roll 互换：Quest +X（右）的手腕俯仰被送成 base −Y（前后轴）的转动，也就是工具的自转。
+现统一为与平移相同的 `P`；yaw 仍不变（两个矩阵对 +Y 的轴像一致），pitch/roll 恢复。
 
 删掉 `input_position_rotation` 会让平移回退到 `input_rotation` 的轴序（前 → +X），而不是报错；
 两者必须显式写成同一个矩阵。已有保存配置需在绑定参数里把 `input_rotation` 改成 `P` 并保存
