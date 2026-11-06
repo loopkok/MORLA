@@ -268,17 +268,31 @@ def vendor_module(monkeypatch=None):
     return Robot
 
 
-def state_packet(count=1, **fields):
+def state_packet(count=1, trailer=b'', **fields):
     import ctypes
     module=vendor_module()
     state=module.RobotStatePkg()
     state.frame_head=0x5a5a
     state.frame_cnt=count if count<128 else count-256
-    state.data_len=ctypes.sizeof(state)-7
+    state.data_len=ctypes.sizeof(state)-7+len(trailer)
     state.jt_cur_pos[:]=[0,90,-90,180,-180,45]
     for name,value in fields.items():setattr(state,name,value)
-    raw=bytes(state)
-    return raw[:-2]+(sum(raw[:-2]) & 0xffff).to_bytes(2,'little')
+    raw=bytes(state)[:-2]+trailer
+    return raw+(sum(raw) & 0xffff).to_bytes(2,'little')
+
+
+def test_firmware_with_two_trailer_bytes_decodes_from_the_same_offsets():
+    # FR3-V1-001 V3.8.25-QX: 960-byte frame, checksum over the whole frame.
+    from morla_fr3_driver.realtime_state import StateFrames
+    client=StateFrames(vendor_module())
+    client.feed(state_packet(7,trailer=b'\x00\x00',rbtEnableState=1,collisionState=1))
+    sample=client.read()
+    assert sample['values']==pytest.approx([0,math.pi/2,-math.pi/2,math.pi,-math.pi,math.pi/4])
+    assert sample['enabled']==1 and sample['collision']==1
+    assert sample['frame_count']==7 and sample['frame_extra_bytes']==2
+    for trailer in (b'\x00',b'\x00\x00\x00'):
+        bad=StateFrames(vendor_module());bad.feed(state_packet(1,trailer=trailer))
+        with pytest.raises(ConnectionError,match='layout mismatch'):bad.read()
 
 
 def test_actual_vendor_20004_layout_freshness_units_wrap_fragmentation():

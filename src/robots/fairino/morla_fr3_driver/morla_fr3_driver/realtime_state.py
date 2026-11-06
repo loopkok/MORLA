@@ -13,11 +13,20 @@ import xmlrpc.client
 
 from .contract import vector6
 
+# FR3-V1-001 running V3.8.25-QX sends 953 body bytes, two more than the packed
+# RobotStatePkg (951). The extra bytes sit in the trailing all-zero region: every
+# field this driver consumes (positions, code, mode, enable, e-stop, safety and
+# collision flags) decodes from unchanged offsets, and the frame checksum covers
+# the whole 960 bytes. Accept that one extra length instead of failing the
+# session; anything else is still a layout mismatch.
+EXTRA_FRAME_BYTES = 2
+
 
 class StateFrames:
     def __init__(self, module):
         self.module = module
         self.size = ctypes.sizeof(module.RobotStatePkg)
+        self.lengths = (self.size, self.size + EXTRA_FRAME_BYTES)
         self.buffer = bytearray()
         self.lock = threading.Lock()
         self.sample = None
@@ -42,15 +51,15 @@ class StateFrames:
                     if self.buffer[:2] != b'\x5a\x5a':
                         raise ValueError('FR3 20004 frame header mismatch')
                     total = int.from_bytes(self.buffer[3:5], 'little') + 7
-                    if total != self.size:
-                        raise ValueError(f'FR3 20004 frame length {total}, expected {self.size}; SDK/firmware layout mismatch')
+                    if total not in self.lengths:
+                        raise ValueError(f'FR3 20004 frame length {total}, expected {self.lengths[0]} or {self.lengths[1]}; SDK/firmware layout mismatch')
                     if len(self.buffer) < total:
                         return
                     raw = bytes(self.buffer[:total])
                     del self.buffer[:total]
                     if sum(raw[:-2]) & 0xffff != int.from_bytes(raw[-2:], 'little'):
                         raise ValueError('FR3 20004 frame checksum mismatch')
-                    state = self.module.RobotStatePkg.from_buffer_copy(raw)
+                    state = self.module.RobotStatePkg.from_buffer_copy(raw[:self.size])
                     values = vector6(list(state.jt_cur_pos))
                     count = int(state.frame_cnt) & 0xff
                     if count == self.frame_count:
@@ -62,6 +71,7 @@ class StateFrames:
                         'values': [math.radians(v) for v in values],
                         'sample_ns': time.monotonic_ns(),
                         'frame_count': count, 'sequence': self.sequence,
+                        'frame_extra_bytes': total - self.size,
                         'enabled': int(state.rbtEnableState),
                         'main_code': int(state.main_code), 'sub_code': int(state.sub_code),
                         'emergency_stop': int(state.EmergencyStop),

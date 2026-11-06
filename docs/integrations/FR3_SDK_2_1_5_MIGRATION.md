@@ -50,3 +50,36 @@ SDK 原文件不改写；只有上述接收/连接/关闭/请求边界由 MORLA 
 ## 后续 Git 同步
 
 本地 SDK 提交 `9a4f501` 与远程坐标更新 `58465f0` 已合并，过程见 [同步日志](FR3_SYNC_LOG_2026-11-06.md)。本文件前述“本地”描述 SDK 迁移当轮范围；Git 推送不等于 ROS 主机已部署新 SDK。
+
+## 实机帧长 960（2026-11-06 现场）
+
+工作站启动后读取 20004 反馈时直接失败：
+
+```
+FR3 SDK: ConnectionError: FR3 20004 frame length 960, expected 958; SDK/firmware layout mismatch
+```
+
+现场控制器为 `FR3-V1-001(V6.0)`，`GetSoftwareVersion` 返回 `v3.8.5` / `V3.8.25-QX`。实测帧：帧头 `5A5A`、`data_len = 953`、总长 960，对整帧做 uint16 累加校验和一致（例：`0x8FA5`）。即固件比 SDK 的 packed `RobotStatePkg`（958 = 5 头 + 951 体 + 2 校验）多 2 个数据字节，本驱动原先按“总长必须等于 `ctypes.sizeof`”直接锁存故障。
+
+### 为什么可以按原偏移解码
+
+用同时读取的 XML-RPC 只读接口逐字段比对（机器人静止）：
+
+| 字段 | 结构体偏移 | 帧解码 | XML-RPC |
+| --- | --- | --- | --- |
+| `jt_cur_pos` | 16 | -82.665, -85.005, -95.068, -83.609, 92.488, -9.769 | `GetActualJointPosDegree` 同值（1e-6） |
+| `tl_cur_pos` | 64 | -54.984, -337.779, 330.557, -173.35, 1.367, -162.680 | `GetActualTCPPose` 同值 |
+| `flange_cur_pos` | 112 | -54.984, -337.780, 330.558, -173.350, 1.367, -162.680 | `GetActualToolFlangePose` 同值 |
+| `main_code` / `sub_code` | 7 / 11 | 0 / 0 | `GetRobotErrorCode` 0/0 |
+
+再往后的 `actual_qd`、`jt_cur_tor`、`jt_tgt_tor`、`year..millisecond` 也都落在合理值上（时间解出 2015-01-02 01:16:52.338，目标力矩与当前力矩同形）。整帧最后 10 个字节是 8 个 0 加 2 字节校验和，多出的 2 字节落在这一段全零尾部，本驱动读取的每个字段（关节位置、帧号、模式、使能、急停、安全停止、碰撞、主/子故障码）都在此之前，偏移不变。
+
+### 修法
+
+`StateFrames` 接受**两种**总长：`sizeof(RobotStatePkg)`（958，SDK 自带模拟器）与 +2（960，现场固件）。校验和仍对**整帧**计算，结构体只从帧首解码前 958 字节，样本里记录 `frame_extra_bytes`。其它长度（957、961 等）继续锁存 `layout mismatch`，不把未知帧当有效样本。
+
+新增回归：`test_firmware_with_two_trailer_bytes_decodes_from_the_same_offsets` 构造 960 字节帧并断言数值/使能/碰撞/帧号不变，同时断言 959 与 961 被拒。用现场捕获的 3 帧回放，`sequence=3`、`enabled=1`、关节角与 XML-RPC 逐位一致。
+
+### 边界
+
+这是“尾部追加 2 字节”的实测结论，不是厂商结构体文档。若以后固件在**中间**插入字段，同样的 960 帧会通过长度检查但后半段字段错位；因此换固件后仍必须先跑 `fr3_check` 只读检查，确认反馈值合理再使能，不能把“能连上”当成通过。
