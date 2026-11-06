@@ -25,10 +25,10 @@ bindings:
     command_lead_rad: 0.08
     smoothing_alpha: 0.35
     position_scale: 0.25
-    # Translation: Quest right -> +Y, up -> +Z, forward -> +X.
+    # Translation: Quest right -> -X, up -> +Z, forward -> -Y (det -1 basis change).
     # Keep the separate orientation basis unchanged.
     # Must be calibrated for the actual installation before real VR.
-    input_position_rotation: [[0, 0, 1], [1, 0, 0], [0, 1, 0]]
+    input_position_rotation: [[-1, 0, 0], [0, 0, -1], [0, 1, 0]]
     input_rotation: [[0, 0, -1], [1, 0, 0], [0, 1, 0]]
     solver_tip_from_tool: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
     max_joint_step: 0.03

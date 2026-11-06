@@ -1,0 +1,29 @@
+✔ S starts once per press, B saves, old keys have no action (1.306083ms)
+✔ single A and N execute only on release (0.095291ms)
+✔ A+N in either order only moves to work position, both release orders work (0.129208ms)
+✔ focus loss cancels pending actions and held state (0.088041ms)
+✔ FR3 offers its installed common IK and joint jog, not CR5 controllers (0.959667ms)
+✔ Cartesian jog defaults generate a named map, never joint-jog parameters (0.45425ms)
+✔ joint jog has one assignment per joint, leaving unavailable axes unassigned (0.114167ms)
+✔ Quest pose mapping has an orthonormal left-handed basis (0.135458ms)
+✔ XYZ and RPY forms round-trip to normalized quaternion and TCP matrix (0.3005ms)
+✔ new configurations are explicitly kinematic, imported defaults are preserved (0.174375ms)
+✔ controller suggestions respect dimensions and scalar target restrictions (0.097583ms)
+✔ pinch and trigger defaults match their actual controller parameters (0.090208ms)
+✔ file import rejects malformed values before rendering, preserves extra fields (0.3295ms)
+✔ shipped Vader maps migrate to M3/A/B/R3/X, custom maps remain unchanged (0.213917ms)
+✔ Quest hides actuator parameters and exposes only the selected protocol port (0.2375ms)
+✔ controllers respect robot identity as well as port semantics (0.0935ms)
+✔ camera fields exclude arm and joint configuration in every backend (0.140375ms)
+✔ public Cartesian IK diagnostics show nested solver residuals and preserve CR5 flat reports (0.1035ms)
+✔ FR3 dedicated URDF controllers are robot-specific with differential and lead defaults (0.128583ms)
+✔ recording completion follows validation status even when failure detail is empty (0.113584ms)
+✔ unknown robot and controller metadata drives UI without brand changes (0.131083ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 363.865416

@@ -82,8 +82,20 @@ MUJOCO_GL=egl python3 docs/testing/fr3_sim_camera_acceptance.py \
 
 [证据目录](evidence/2026-11-06-fr3-sim/) 保留构建、相关/pure/fake、ROS/DDS（含预期资源拒绝与首次 probe 断言）、viewer、相机完整链路、空输入片段摘要、最终 STOPPED 状态和浏览器截图。入库文本日志仅去除行尾空格，原始主机日志保留。原始 HDF5 位于主机 `/tmp/fr3-sim-acceptance/` 下对应 episode 目录；入库的是摘要与日志。Web 测试会话、ROS driver 和临时本地窗口均已停止；目标主机继续保留编译安装结果。
 
-## Quest 前向平移改为 FR3 +X（2026-11-06）
+## Quest → FR3 平移与姿态映射（2026-11-06）
 
-FR3 随包 fake/sim 模板的平移映射更新为 Quest +X→FR3 +Y、+Y→+Z、+Z→+X；位移倍率仍为 0.25。新增绑定参数 `input_position_rotation: [[0,0,1],[1,0,0],[0,1,0]]`，仅作用于位置增量。原 `input_rotation` 继续负责姿态增量的基变换，避免仅翻转前向平移时意外改变旋转跟随方向。
+FR3 随包 fake/sim 模板与 `controller.json` 默认参数采用：
 
-该操作映射与坐标系手性转换分开：前者允许正交的行列式 +1/-1 矩阵；原 Quest Unity 姿态基变换的 det=-1 校验保留。未声明新参数的历史装配沿用原有平移行为。已有保存配置需在绑定参数中增加该矩阵并保存新 revision，或重新加载 FR3 预设；不会静默覆盖用户标定。
+| Quest（Unity 左手系） | 平移 `input_position_rotation` | 姿态 `input_rotation` |
+| --- | --- | --- |
+| +X 右 | −X | +Y |
+| +Y 上 | +Z | +Z |
+| +Z 前 | −Y | −X |
+
+- 平移矩阵 `[[-1,0,0],[0,0,-1],[0,1,0]]`（det −1）：Unity 左手系到 FR3 base 的基变换，只作用于位置增量 `Δp_base = R_p·Δp_quest·0.25`。
+- 姿态矩阵 `[[0,0,-1],[1,0,0],[0,1,0]]`（det −1）：只作用于姿态增量，按 `ΔR_base = U·ΔR_quest·Uᵀ` 做相似变换，结果仍为 proper rotation。
+- `position_scale` 仍为 0.25；`solver_tip_from_tool` 为单位矩阵（TCP = `flange`）。
+
+同日上午的版本曾把平移改为 +X/+Y/+Z，操作员在真机验收前要求改成上表，以本表为准。两个矩阵互不替代：删掉 `input_position_rotation` 会让平移回退到 `input_rotation` 的轴序（前 → −X），而不是报错。
+
+该操作映射与坐标系手性转换分开：控制器用 `validate_basis_change` 接受正交且行列式为 ±1 的矩阵，故平移矩阵现在可以是 det −1。未声明新参数的历史装配沿用原有平移行为。已有保存配置需在绑定参数中写入该矩阵并保存新 revision，或重新加载 FR3 预设；不会静默覆盖用户标定。真机方向仍未验收，上机按 [CR5 三步核对](cr5_vr.md) 的等效流程验证（手抬起→+Z、手前推→−Y、俯视顺时针→同向自转）。

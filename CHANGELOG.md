@@ -1,17 +1,22 @@
 # Changelog（MORLA）
 
+## 2026-11-06 — 合并远程坐标更新与本地 SDK 适配
+
+- 合入远程 `58465f0` 的 Quest 右→−X、上→+Z、前→−Y 映射及双行列式回归，同时保留本地 `9a4f501` 的 SDK V2.1.5 / Robot V3.8.5、20004 反馈适配。
+- 合并 changelog 两侧记录，修正 SDK 迁移说明中的旧 +X 映射；保留两侧历史提交，不强制覆盖远程。
+- 合并过程、验证与发布范围见 [同步日志](docs/integrations/FR3_SYNC_LOG_2026-11-06.md)。仅同步 Git 仓库，本轮不部署或修改 ROS 主机运行环境。
+
 ## 2026-11-06 — FR3 SDK V2.1.5 / Robot V3.8.5（本地）
 
 - 替换随包厂商 SDK 为用户提供的 Linux V2.1.5 原始源码，更新来源摘要及依赖声明。
 - 将 CNDE 20005 反馈改为 TCP 20004 固定结构状态，校验帧头/长度/校验和，支持分包粘包，拒绝坏帧/重复刷新；禁用自动重连与 XML-RPC 隐式重试，保持进程隔离和显式停止。
 - ROS 驱动与 Web 共用新 Adapter 后端；移除 python-mbedtls 依赖，更新只读报告、回归和 [迁移说明](docs/integrations/FR3_SDK_2_1_5_MIGRATION.md)。本轮不连接或修改 ROS 主机，不进行真机验收。
 
-## 2026-11-06 — FR3 Quest forward translation
+## 2026-11-06 — FR3 Quest 平移映射
 
-- FR3 Quest forward translation now follows base +X; right/up remain +Y/+Z, with position scale 0.25.
-- Separate input_position_rotation from the orientation basis; old bindings without the new parameter retain their saved mapping. Templates, Web defaults and migration documentation updated.
-- Regression verifies all three translation axes and unchanged orientation increments.
-
+- FR3 Quest 平移映射为右→base −X、上→+Z、前→−Y，即 `input_position_rotation: [[-1,0,0],[0,0,-1],[0,1,0]]`（det −1 基变换）；位移倍率仍为 0.25。取代同日早先提交的 +X/+Y/+Z 版本（真机验收前按操作要求更正），姿态 `input_rotation` 未变。
+- 平移矩阵 `input_position_rotation` 与姿态基 `input_rotation` 分离；未声明新参数的历史绑定保留原有平移映射。模板、控制器默认参数（`controller.json`）与迁移文档同步更新。
+- 回归覆盖 det +1 与 det −1 两种平移矩阵，并确认姿态增量不受影响。
 
 ## 2026-11-06 — 插件声明驱动 Web 与共享仿真
 
