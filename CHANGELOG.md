@@ -4,7 +4,7 @@
 
 - 现场固件 `V3.8.25-QX` 的实时状态帧为 960 字节（`data_len=953`），比 packed `RobotStatePkg` 多 2 字节；原先按“总长必须等于 `sizeof`”校验，启动即报 `FR3 20004 frame length 960, expected 958; SDK/firmware layout mismatch`。
 - `StateFrames` 改为接受 958 与 960 两种总长，校验和仍对整帧计算、结构体仍按原偏移解码前 958 字节，样本记录 `frame_extra_bytes`；其它长度继续锁存故障。
-- 用现场 XML-RPC（关节角/TCP/法兰/故障码）逐字段比对确认偏移未变，并回放 3 帧实机数据；新增 960 帧回归与 959/961 拒绝用例。证据见 [SDK 迁移记录](docs/integrations/FR3_SDK_2_1_5_MIGRATION.md#实机帧长-9602026-11-06-现场)。
+- 用现场 XML-RPC（关节角/TCP/法兰/故障码）逐字段比对确认偏移未变，并回放 3 帧实机数据；新增 960 帧回归与 959/961 拒绝用例。多出 2 字节的位置已定位到结构体偏移 947 之后的全零尾部，具体归属（`smartToolState` 4 字节 vs 追加字段）需非零值才能定案，已写入文档。证据见 [SDK 迁移记录](docs/integrations/FR3_SDK_2_1_5_MIGRATION.md#实机帧长-9602026-11-06-现场)。
 
 ## 2026-11-06 — 合并远程坐标更新与本地 SDK 适配
 
