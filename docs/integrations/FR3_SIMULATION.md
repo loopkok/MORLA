@@ -84,18 +84,27 @@ MUJOCO_GL=egl python3 docs/testing/fr3_sim_camera_acceptance.py \
 
 ## Quest → FR3 平移与姿态映射（2026-11-06）
 
-FR3 随包 fake/sim 模板与 `controller.json` 默认参数采用：
+FR3 随包 fake/sim 模板、`descriptor.json` 的 Quest 绑定预设与 `controller.json` 默认参数采用
+**同一个基变换矩阵** `P = [[-1,0,0],[0,0,-1],[0,1,0]]`（det −1）：
 
-| Quest（Unity 左手系） | 平移 `input_position_rotation` | 姿态 `input_rotation` |
+| Quest（Unity 左手系） | 平移产物（`P·Δp`） | 姿态产物（工具绕 base 的转向轴） |
 | --- | --- | --- |
-| +X 右 | −X | +Y |
-| +Y 上 | +Z | +Z |
-| +Z 前 | −Y | −X |
+| +X 右 | −X | +X |
+| +Y 上 | +Z | −Z |
+| +Z 前 | −Y | +Y |
 
-- 平移矩阵 `[[-1,0,0],[0,0,-1],[0,1,0]]`（det −1）：Unity 左手系到 FR3 base 的基变换，只作用于位置增量 `Δp_base = R_p·Δp_quest·0.25`。
-- 姿态矩阵 `[[0,0,-1],[1,0,0],[0,1,0]]`（det −1）：只作用于姿态增量，按 `ΔR_base = U·ΔR_quest·Uᵀ` 做相似变换，结果仍为 proper rotation。
-- `position_scale` 仍为 0.25；`solver_tip_from_tool` 为单位矩阵（TCP = `flange`）。
+- 平移：`Δp_base = P·Δp_quest·0.25`。
+- 姿态：`ΔR_base = P·ΔR_quest·Pᵀ`（相似变换，结果仍是 proper rotation）。旋转是物理量，必须用
+  与平移相同的基变换搬运；用别的矩阵会让手部的 pitch 变成工具的 roll。
+- `position_scale` 为 0.25；`solver_tip_from_tool` 为单位矩阵（TCP = `flange`）。
 
-同日上午的版本曾把平移改为 +X/+Y/+Z，操作员在真机验收前要求改成上表，以本表为准。两个矩阵互不替代：删掉 `input_position_rotation` 会让平移回退到 `input_rotation` 的轴序（前 → −X），而不是报错。
+2026-11-06 上午的版本把姿态矩阵写成 `[[0,0,-1],[1,0,0],[0,1,0]]`（当时按“轴像”列表填的），
+真机验收发现平移正确、yaw 正确，但 pitch/roll 互换：那个矩阵把 Quest +X（右）的手腕俯仰
+转成了 base −Y（前方）轴的转动，也就是工具的自转。现统一为与平移相同的 `P`；yaw 仍不变
+（两个矩阵对 +Y 的映射一致），pitch/roll 恢复。
+
+删掉 `input_position_rotation` 会让平移回退到 `input_rotation` 的轴序（前 → +X），而不是报错；
+两者必须显式写成同一个矩阵。已有保存配置需在绑定参数里把 `input_rotation` 改成 `P` 并保存
+新 revision，或重新加载 FR3 预设；不会静默覆盖用户标定。
 
 该操作映射与坐标系手性转换分开：控制器用 `validate_basis_change` 接受正交且行列式为 ±1 的矩阵，故平移矩阵现在可以是 det −1。未声明新参数的历史装配沿用原有平移行为。已有保存配置需在绑定参数中写入该矩阵并保存新 revision，或重新加载 FR3 预设；不会静默覆盖用户标定。真机方向仍未验收，上机按 [CR5 三步核对](cr5_vr.md) 的等效流程验证（手抬起→+Z、手前推→−Y、俯视顺时针→同向自转）。

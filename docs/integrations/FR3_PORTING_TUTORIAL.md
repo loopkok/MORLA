@@ -409,4 +409,4 @@ FR3 本轮六维状态 1183 条、六维动作 2450 条，说明两类流写入�
 
 ### FR3 当前平移方向更新
 
-2026-11-06 按操作要求确定 Quest 平移映射为右移→FR3 −X、上移→+Z、前推→−Y（`input_position_rotation: [[-1,0,0],[0,0,-1],[0,1,0]]`，det −1；同日早先的 +X/+Y/+Z 版本已被取代）。使用独立 `input_position_rotation` 声明平移映射，`input_rotation` 保留姿态基变换；配置和旧 revision 升级见 [仿真说明](FR3_SIMULATION.md#quest--fr3-平移与姿态映射2026-11-06)。
+2026-11-06 按操作要求确定 Quest 平移映射为右移→FR3 −X、上移→+Z、前推→−Y（`input_position_rotation: [[-1,0,0],[0,0,-1],[0,1,0]]`，det −1；同日早先的 +X/+Y/+Z 版本已被取代）。姿态 `input_rotation` 必须写成**同一个矩阵**：旋转是物理量，只有用同一基变换搬运（`ΔR_base = P·ΔR_quest·Pᵀ`）才与平移一致；早先沿用的 `[[0,0,-1],[1,0,0],[0,1,0]]` 会让手腕俯仰变成工具自转（现场表现为 yaw 对、pitch/roll 互换），已更正。配置和旧 revision 升级见 [仿真说明](FR3_SIMULATION.md#quest--fr3-平移与姿态映射2026-11-06)。

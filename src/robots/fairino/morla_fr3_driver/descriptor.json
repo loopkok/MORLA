@@ -375,6 +375,16 @@
     "preferred_controllers": {
       "pose6d": "morla.fr3.cartesian_delta",
       "axes_buttons": "morla.fr3.cartesian_jog"
-    }
+    },
+    "binding_presets": [
+      {
+        "controller": "morla.fr3.cartesian_delta",
+        "source_plugin": "morla.input.quest",
+        "parameters": {},
+        "defaults": {
+          "input_rotation": [[-1, 0, 0], [0, 0, -1], [0, 1, 0]]
+        }
+      }
+    ]
   }
 }

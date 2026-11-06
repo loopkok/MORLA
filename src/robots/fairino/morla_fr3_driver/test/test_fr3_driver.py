@@ -412,3 +412,24 @@ def test_sdk_source_is_unmodified():
     import hashlib
     provenance = json.loads((ROOT / 'PROVENANCE.json').read_text())
     assert hashlib.sha256((ROOT / 'morla_fr3_driver/vendor/Robot.py').read_bytes()).hexdigest() == provenance['sha256']
+
+
+@pytest.mark.parametrize('name', ['quest.fake.yaml', 'quest.sim.yaml'])
+def test_quest_orientation_shares_the_validated_translation_basis(name):
+    # A rotation delta is a physical motion, so it must be carried into the robot
+    # base by the same basis change as the translation delta. Using a different
+    # matrix turned a hand pitch into a tool roll (roll/pitch swapped on the arm).
+    from scipy.spatial.transform import Rotation
+    parameters = load_document(ROOT / 'config' / name)['bindings'][0]['parameters']
+    basis = np.asarray(parameters['input_position_rotation'], dtype=float)
+    np.testing.assert_allclose(parameters['input_rotation'], basis)
+    # dR_base = P dR_quest P^T: Unity right/up/forward turn the tool about
+    # base +X/-Z/+Y.
+    expected = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]], dtype=float)
+    for axis, want in enumerate(expected):
+        delta = Rotation.from_rotvec(np.radians(7) * np.eye(3)[axis]).as_matrix()
+        observed = Rotation.from_matrix(basis @ delta @ basis.T).as_rotvec()
+        np.testing.assert_allclose(observed / np.linalg.norm(observed), want, atol=1e-9)
+    preset = next(p for p in DESCRIPTOR['web']['binding_presets']
+                  if p['source_plugin'] == 'morla.input.quest')
+    np.testing.assert_allclose(preset['defaults']['input_rotation'], basis)
