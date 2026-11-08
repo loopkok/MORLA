@@ -1,0 +1,13 @@
+
+> morla-web-manager@0.1.0 build
+> tsc -b && vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 66 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.40 kB │ gzip:   0.28 kB
+dist/assets/index-N_1VrTr9.css   15.84 kB │ gzip:   3.89 kB
+dist/assets/index-DwX3xtoE.js   338.53 kB │ gzip: 117.79 kB
+✓ built in 873ms

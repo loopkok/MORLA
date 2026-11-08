@@ -1,0 +1,17 @@
+# saved assemblies under ~/.local/share/morla/assemblies (2026-11-09)
+cr5_quest_sim                rev10  assembly_hash=67c99ffffa48ad4b resolved_hash=34e188fd589b2213 recompiles_identically=True
+cr5_real_bench               rev5   assembly_hash=2223a0b1a88c9a10 resolved_hash=b162f9e434946752 recompiles_identically=True
+cr5_real_epg                 rev3   assembly_hash=0e77d44ce6cf71d3 resolved_hash=aa6a73742747abe9 recompiles_identically=True
+cr5_real_joint_test          rev3   assembly_hash=7a02b8a5f5cf4569 resolved_hash=ffc82d14ea88cdf2 recompiles_identically=True
+cr5_real_quest               rev5   assembly_hash=0a4e9d4d2a11de73 resolved_hash=929e4ce105d5783e recompiles_identically=True
+cr5_real_quest_epg           rev5   assembly_hash=9738d0d1c1cae09f resolved_hash=5e9fa1a5ffe4094f recompiles_identically=True
+fr3_quest_real               rev3   assembly_hash=8ae3ac34cccafeac resolved_hash=1ddd9ddb90dd3e4f recompiles_identically=True
+fr3_quest_sim                rev1   assembly_hash=0eaaee11f31d03f7 resolved_hash=51ad08565691ba26 recompiles_identically=False
+fr3_real_test                rev5   assembly_hash=e99c63ec3817b06a resolved_hash=a5afecd30f36059e recompiles_identically=False
+quest_controller_cr5_sim     rev3   assembly_hash=495c224e6e00101d resolved_hash=4940f25e91d24c63 recompiles_identically=True
+quest_right_cr5              rev4   assembly_hash=cc88de8680213648 resolved_hash=0fbdc2faed2ba994 recompiles_identically=True
+test                         rev4   assembly_hash=ba08cef5cadac692 resolved_hash=802b0407f0d66603 recompiles_identically=True
+vader5_astral                rev1   assembly_hash=e4a8ac7ac00ad36a resolved_hash=7301fa7e8e3b3c31 recompiles_identically=False
+vader5_cr5_sim               rev3   assembly_hash=9ed14c6ca232ea94 resolved_hash=6d4d1380feb7676d recompiles_identically=True
+vader5_nero                  rev1   assembly_hash=dc743e1bd64c6a27 resolved_hash=001e399428f9da36 recompiles_identically=False
+vader5_nero_mujoco           rev1   assembly_hash=9257ed87ea1f9611 resolved_hash=63d040900c4dae87 recompiles_identically=False

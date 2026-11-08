@@ -12,6 +12,7 @@
 - 文档：`docs/integrations/epg50_060.md`、`morla_epg_driver/README.md`、`config/deployment.real.yaml` 同步；旧 deployment 里残留的这些键不参与 schema 校验，会被静默忽略。
 - 回归：EPG/LoopHand/CR5/FR3 驱动 144 项、`morla_core` 62 项通过；`npm run build` 重建 `web/dist`。
 - 仍不同步（与本次无关，start 时会要求重新保存）：`fr3_quest_sim` rev1、`fr3_real_test` rev5、`vader5_astral`/`vader5_nero`/`vader5_nero_mujoco` rev1。
+- 详细记录（含两个提交、逐装配 revision/hash、验证日志与边界）见 [2026-11-09 提交日志](docs/integrations/CHANGE_LOG_2026-11-09.md)。
 
 ## 2026-11-09 — 遥操速度上限：FR3 实机放到 1.0，CR5 补齐设备级上限
 
@@ -23,6 +24,7 @@
 - 回归：CR5 驱动 53 项、FR3 驱动 70 项通过；新增 `test_device_caps_are_taken_from_the_instance_not_only_the_binding`。
 - 审计发现的“能填但不生效”字段：FR3/CR5 `kinematics_verified`；CR5 `command_timeout_s`、实例级 `max_step_rad`；EPG `max_step_m`、`activation_motion_verified`、`device_watchdog_verified`、`position_feedback_verified`（watchdog 相关按既定范围不处理）；loophand `command_timeout_s`、`max_step_rad`。本轮先不删（避免破坏已保存装配的 `additionalProperties:false` 校验），同日后续清理见上一节。
 - 迁移：Web 需重启以重建 catalog；`fr3_quest_sim` rev1、`fr3_real_test` rev5、`vader5_*` 等旧 revision 与当前代码本就不同步，start 时会要求重新保存（与本次改动无关）。`fr3_quest_sim` 的 arm 实例仍是 0.65。
+- 详细记录见 [2026-11-09 提交日志](docs/integrations/CHANGE_LOG_2026-11-09.md)。
 
 ## 2026-11-06 — FR3 Quest 姿态映射改用与平移相同的基变换
 
