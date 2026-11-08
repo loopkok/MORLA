@@ -285,7 +285,7 @@ export function ComposableTab(){
      const deviceIk=!!catalog.find(c=>c.plugin_id===binding.controller)?.web?.ik_modes?.length
      const common=cartesian?['position_scale','linear_speed','angular_speed',...(deviceIk?['max_joint_velocity','smoothing_alpha']:[])].filter(key=>jog?!['position_scale','smoothing_alpha'].includes(key):!['linear_speed','angular_speed'].includes(key)):joint?['speed']:[]
      const hidden=['input_rotation','input_basis','solver_tip_from_tool','axes_map',...common]
-     const advanced=deviceIk?['max_joint_step','position_lead_m','rotation_lead_rad','damping_min','damping_max','singularity_threshold','differential_step_rad']:[]
+     const advanced=deviceIk?['command_lead_rad','max_joint_step','position_lead_m','rotation_lead_rad','damping_min','damping_max','singularity_threshold','differential_step_rad']:[]
      return <article className="wc-device" key={binding.id}><div className="wc-device-heading"><h4>{label(binding.controller)} <code>{binding.id}</code></h4><button className="wc-text-button wc-destructive" onClick={()=>changed({...assembly,bindings:assembly.bindings.filter((_,i)=>i!==index)})}>移除映射</button></div><div className="wc-form-grid">
       <label>控制目标<select aria-label={binding.id+'控制目标'} value={binding.target} onChange={e=>updateBinding(index,'target',e.target.value)}>{targetOptions.map(e=>{
        const item=assembly.instances[e.instance]

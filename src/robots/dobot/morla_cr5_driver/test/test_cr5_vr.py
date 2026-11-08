@@ -88,11 +88,33 @@ def test_integration_seed_follows_the_command_and_is_lead_bounded():
     np.testing.assert_allclose(integration_seed(measured,measured+.9,.25),measured+.25)
 
 
+def test_device_caps_are_taken_from_the_instance_not_only_the_binding():
+    # The deployment's max_velocity_rad_s / max_command_lead_rad used to be
+    # ignored by create_controller, so every binding silently ran at the
+    # constructor defaults (.3 rad/s, .1 rad) with no Web field to change it.
+    controller=create_controller({'instance':{'plugin_id':'morla.dobot.cr5','backend':'fake',
+        'parameters':{'max_command_lead_rad':.025,'max_velocity_rad_s':.05}},'binding':{'parameters':{}}})
+    ready=np.array([0.,.6,-.6,.3,.5,0.])
+    try:
+        assert controller.device_joint_velocity==.05
+        assert controller.device_command_lead==.025
+        # Hold the worker out and inject a candidate far beyond both caps, so
+        # this exercises the output boundary independently of solver results.
+        with controller.condition:
+            controller.result=(ready+.5,controller.clock())
+            controller.last_output=ready.copy()
+            outputs=[np.array(controller({'position':[0,0,0],'quaternion':[0,0,0,1]},
+                ready,.02,{'command_lead_rad':.9,'max_joint_velocity':.9})) for _ in range(20)]
+        values=np.vstack([ready,*outputs])
+        assert np.max(np.abs(np.diff(values,axis=0)))<=.00100000001
+    finally:controller.close()
+
+
 def test_stale_feedback_does_not_reset_the_integration_base():
     # 30004 feedback arrives at ~25 Hz while the loop runs at ~90 Hz. The seed
     # must keep following the command instead of snapping back to the repeated
     # stale sample, which is what made the commanded joints staircase.
-    c=AsyncCartesianController(FakeSolver())
+    c=AsyncCartesianController(FakeSolver(),device_joint_velocity=1.,device_command_lead=.3)
     def wait_report(previous):
         deadline=time.monotonic()+2
         while time.monotonic()<deadline:

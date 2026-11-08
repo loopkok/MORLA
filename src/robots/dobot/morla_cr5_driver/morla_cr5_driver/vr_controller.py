@@ -56,8 +56,11 @@ def integration_seed(measured, last_output, lead):
 
 
 class AsyncCartesianController:
-    def __init__(self, solver, *, clock=time.monotonic_ns, jog=False):
+    def __init__(self, solver, *, clock=time.monotonic_ns, jog=False,
+                 device_command_lead=.1, device_joint_velocity=.3):
         self.clock = clock
+        self.device_command_lead=device_command_lead
+        self.device_joint_velocity=device_joint_velocity
         self.jog=jog
         self.controller = CartesianController(solver, jog=jog, max_solve_ns=250_000_000)
         self.condition = threading.Condition()
@@ -117,6 +120,8 @@ class AsyncCartesianController:
         if not 0 < speed <= 1: raise ValueError('Invalid CR5 joint velocity')
         lead = float(parameters.get('command_lead_rad', .3))
         if not 0 < lead <= 1: raise ValueError('Invalid CR5 command lead')
+        lead=min(lead,self.device_command_lead)
+        speed=min(speed,self.device_joint_velocity)
         now = self.clock()
         with self.condition:
             if self.closed: raise RuntimeError('CR5 VR controller closed')
@@ -262,7 +267,9 @@ def _create(context, *, jog=False):
                     # Strict mode retains its existing local-window policy.
                     # Differential mode uses bounded steps and absorbing lead limits.
                     retry_trust=(.3,) if jog else (.3,.6,1.2))
-    controller=AsyncCartesianController(solver, clock=context.get('clock', time.monotonic_ns),jog=jog)
+    controller=AsyncCartesianController(solver, clock=context.get('clock', time.monotonic_ns),jog=jog,
+        device_command_lead=hardware.get('max_command_lead_rad',.1),
+        device_joint_velocity=hardware.get('max_velocity_rad_s',.3))
     controller.requires_fresh_input=instance['backend']=='real'
     return controller
 

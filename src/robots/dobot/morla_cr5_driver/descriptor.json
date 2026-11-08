@@ -206,6 +206,18 @@
         "exclusiveMinimum": 0,
         "maximum": 0.2
       },
+      "max_velocity_rad_s": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 1,
+        "description": "Device joint-speed cap; the binding's max_joint_velocity is min()'d with it"
+      },
+      "max_command_lead_rad": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 0.3,
+        "description": "Device command lead; the binding's command_lead_rad is min()'d with it"
+      },
       "joint_lower": {
         "type": "array",
         "items": {
@@ -258,6 +270,8 @@
     "enable_timeout_s": 10,
     "command_timeout_s": 0.3,
     "max_step_rad": 0.05,
+    "max_velocity_rad_s": 1.0,
+    "max_command_lead_rad": 0.3,
     "kinematics_verified": false,
     "urdf_joint_signs": [
       1,

@@ -99,7 +99,7 @@ export const enumLabels: Record<string,string> = { left:'左侧',right:'右侧',
 export function parameterSchema(key: string): Schema {
  if(['input_range','output_range','pinch_range_m'].includes(key))return {type:'array',minItems:2,maxItems:2,items:{type:'number'}}
  if(key==='ik_mode') return {type:'string',enum:['differential','strict']}
- const defaults:Record<string,number>={position_scale:.8,max_joint_velocity:.3,smoothing_alpha:.35,max_joint_step:.15,linear_speed:.02,angular_speed:.15,speed:.25,position_lead_m:.05,rotation_lead_rad:.35,damping_min:.005,damping_max:.15,singularity_threshold:.05,differential_step_rad:.04}
+ const defaults:Record<string,number>={position_scale:.8,max_joint_velocity:.3,smoothing_alpha:.35,max_joint_step:.15,linear_speed:.02,angular_speed:.15,speed:.25,position_lead_m:.05,rotation_lead_rad:.35,damping_min:.005,damping_max:.15,singularity_threshold:.05,differential_step_rad:.04,command_lead_rad:.08}
  return key in defaults?{type:'number',default:defaults[key],minimum:0}:{}
 }
 export function parseWorkcellDocument(raw:unknown): {assembly:Assembly;deployment:Deployment} {

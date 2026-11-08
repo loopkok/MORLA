@@ -1,5 +1,16 @@
 # Changelog（MORLA）
 
+## 2026-11-09 — 遥操速度上限：FR3 实机放到 1.0，CR5 补齐设备级上限
+
+- 背景：`fr3_quest_real` 的 arm 实例 `max_velocity_rad_s` 为 0.65，绑定的 `max_joint_velocity: 1` 被 `min()` 静默压到 0.65（控制器每拍只放行 7.2 mrad，而 IK 愿意走 30 mrad）；CR5 驱动则完全没有设备级上限，`max_joint_velocity` 是唯一可调项。
+- `fr3_quest_real` 新 revision 3：仅 `arm.max_velocity_rad_s` 0.65 → 1.0，其余参数不变（`assembly_hash 8ae3ac34…`，`resolved_hash 1ddd9ddb…`）。
+- CR5 `AsyncCartesianController` 新增 `device_command_lead` / `device_joint_velocity`，`__call__` 与绑定值取小，`_create` 从实例参数读取；`descriptor.json` 新增 `max_velocity_rad_s`（默认 1.0）与 `max_command_lead_rad`（默认 0.3）——默认值等于改动前绑定的实际效果，行为不变，只是现在可以在 Web 设备参数里调低。
+- 9 个已保存 CR5 装配因 descriptor 摘要变化会无法 start，已重编译到新 revision 并显式写入这两个参数（`cr5_real_quest` rev3→4、`cr5_real_quest_epg` rev3→4、`cr5_quest_sim` rev8→9、`cr5_real_bench` rev3→4、`cr5_real_joint_test` rev1→2、`quest_right_cr5` rev2→3、`quest_controller_cr5_sim` rev1→2、`vader5_cr5_sim` rev1→2、`test` rev2→3）。
+- Web：把 `command_lead_rad` 加进「求解与跟随参数」（此前 CR5 绑定没有该字段时无法新增），并在 `parameterSchema` 补上默认值与下限；`npm run build` 重建 `web/dist`。
+- 回归：CR5 驱动 53 项、FR3 驱动 70 项通过；新增 `test_device_caps_are_taken_from_the_instance_not_only_the_binding`。
+- 审计发现的“能填但不生效”字段（未删，避免破坏已保存装配的 `additionalProperties:false` 校验）：FR3/CR5 `kinematics_verified`；CR5 `command_timeout_s`、实例级 `max_step_rad`；EPG `max_step_m`、`activation_motion_verified`、`device_watchdog_verified`、`position_feedback_verified`（watchdog 相关按既定范围不处理）；loophand `command_timeout_s`、`max_step_rad`。
+- 迁移：Web 需重启以重建 catalog；`fr3_quest_sim` rev1、`fr3_real_test` rev5、`vader5_*` 等旧 revision 与当前代码本就不同步，start 时会要求重新保存（与本次改动无关）。`fr3_quest_sim` 的 arm 实例仍是 0.65。
+
 ## 2026-11-06 — FR3 Quest 姿态映射改用与平移相同的基变换
 
 - 现场验收：平移（前后左右上下）正确、yaw 正确，但腕部 pitch/roll 互换——手俯仰时工具在自转。
