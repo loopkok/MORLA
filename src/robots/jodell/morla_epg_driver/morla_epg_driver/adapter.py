@@ -26,7 +26,6 @@ class EPGAdapter:
         if type(p['slave_id']) is not int or not 1<=p['slave_id']<=247:raise ValueError('Invalid slave_id')
         if p['baudrate'] not in (4800,9600,19200,38400,57600,115200):raise ValueError('Invalid baudrate')
         number(p['poll_hz'],1,50,'poll_hz');number(p['timeout_s'],.01,.5,'timeout_s')
-        number(p['command_timeout_s'],.05,1,'command_timeout_s')
         number(p['feedback_timeout_s'],.05,1,'feedback_timeout_s')
         number(p['enable_timeout_s'],.1,60,'enable_timeout_s');number(p['stop_timeout_s'],.1,3,'stop_timeout_s')
         from .protocol import byte

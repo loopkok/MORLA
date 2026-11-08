@@ -1,5 +1,18 @@
 # Changelog（MORLA）
 
+## 2026-11-09 — 删除不起作用的设备参数（各机器人的“假旋钮”）
+
+- 背景：上一节的审计列出了“能填但不生效”的字段。它们出现在 Web 设备参数里，等于给出了并不存在的限速/超时/步长保证。
+- 删除（descriptor 属性 + 默认值，Web 不再提供）：
+  - CR5 `command_timeout_s`、实例级 `max_step_rad`：适配器不执行主机命令超时；实例级步长从未被读取（VR 步长只由绑定的 `differential_step_rad`/`max_joint_step` 决定）。
+  - EPG `max_step_m`、`command_timeout_s`：重构后已不执行目标步长限制与主机命令超时，`command_timeout_s` 只剩 configure 里的范围检查（该检查一并删除）。
+  - LoopHand `command_timeout_s`、`max_step_rad`：`CachedActuatorAdapter` 直接写目标，不消费这两个键。
+- 保留为记录字段：`kinematics_verified`、`verified`/`stop_verified`、EPG `activation_motion_verified`/`position_feedback_verified`/`device_watchdog_verified`（watchdog 按既定范围不处理）。Web 标签统一加「（仅记录）」，明确它们不参与编译或运行门禁。
+- 已保存装配：descriptor 摘要变化会让 start 拒绝，已把 10 个引用这些插件的装配重编译到新 revision：`cr5_quest_sim` 9→10、`cr5_real_bench` 4→5、`cr5_real_joint_test` 2→3、`cr5_real_quest` 4→5、`cr5_real_quest_epg` 4→5、`quest_controller_cr5_sim` 2→3、`quest_right_cr5` 3→4、`test` 3→4、`vader5_cr5_sim` 2→3、`cr5_real_epg` 2→3；`cr5_real_bench` 的 deployment 里显式写的 `max_step_rad: 0.1` 一并删除。逐装配核对过：`resolved` 除 `lockfile`/hash 外只有 `instances[*].parameters`、`capture_schema.metadata.assembly_revision` 与 `cr5_real_bench.device_sessions` 变化。
+- 文档：`docs/integrations/epg50_060.md`、`morla_epg_driver/README.md`、`config/deployment.real.yaml` 同步；旧 deployment 里残留的这些键不参与 schema 校验，会被静默忽略。
+- 回归：EPG/LoopHand/CR5/FR3 驱动 144 项、`morla_core` 62 项通过；`npm run build` 重建 `web/dist`。
+- 仍不同步（与本次无关，start 时会要求重新保存）：`fr3_quest_sim` rev1、`fr3_real_test` rev5、`vader5_astral`/`vader5_nero`/`vader5_nero_mujoco` rev1。
+
 ## 2026-11-09 — 遥操速度上限：FR3 实机放到 1.0，CR5 补齐设备级上限
 
 - 背景：`fr3_quest_real` 的 arm 实例 `max_velocity_rad_s` 为 0.65，绑定的 `max_joint_velocity: 1` 被 `min()` 静默压到 0.65（控制器每拍只放行 7.2 mrad，而 IK 愿意走 30 mrad）；CR5 驱动则完全没有设备级上限，`max_joint_velocity` 是唯一可调项。
@@ -8,7 +21,7 @@
 - 9 个已保存 CR5 装配因 descriptor 摘要变化会无法 start，已重编译到新 revision 并显式写入这两个参数（`cr5_real_quest` rev3→4、`cr5_real_quest_epg` rev3→4、`cr5_quest_sim` rev8→9、`cr5_real_bench` rev3→4、`cr5_real_joint_test` rev1→2、`quest_right_cr5` rev2→3、`quest_controller_cr5_sim` rev1→2、`vader5_cr5_sim` rev1→2、`test` rev2→3）。
 - Web：把 `command_lead_rad` 加进「求解与跟随参数」（此前 CR5 绑定没有该字段时无法新增），并在 `parameterSchema` 补上默认值与下限；`npm run build` 重建 `web/dist`。
 - 回归：CR5 驱动 53 项、FR3 驱动 70 项通过；新增 `test_device_caps_are_taken_from_the_instance_not_only_the_binding`。
-- 审计发现的“能填但不生效”字段（未删，避免破坏已保存装配的 `additionalProperties:false` 校验）：FR3/CR5 `kinematics_verified`；CR5 `command_timeout_s`、实例级 `max_step_rad`；EPG `max_step_m`、`activation_motion_verified`、`device_watchdog_verified`、`position_feedback_verified`（watchdog 相关按既定范围不处理）；loophand `command_timeout_s`、`max_step_rad`。
+- 审计发现的“能填但不生效”字段：FR3/CR5 `kinematics_verified`；CR5 `command_timeout_s`、实例级 `max_step_rad`；EPG `max_step_m`、`activation_motion_verified`、`device_watchdog_verified`、`position_feedback_verified`（watchdog 相关按既定范围不处理）；loophand `command_timeout_s`、`max_step_rad`。本轮先不删（避免破坏已保存装配的 `additionalProperties:false` 校验），同日后续清理见上一节。
 - 迁移：Web 需重启以重建 catalog；`fr3_quest_sim` rev1、`fr3_real_test` rev5、`vader5_*` 等旧 revision 与当前代码本就不同步，start 时会要求重新保存（与本次改动无关）。`fr3_quest_sim` 的 arm 实例仍是 0.65。
 
 ## 2026-11-06 — FR3 Quest 姿态映射改用与平移相同的基变换

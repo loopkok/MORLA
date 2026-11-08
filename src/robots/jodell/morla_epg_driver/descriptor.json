@@ -165,11 +165,6 @@
         "minimum": 0.05,
         "maximum": 1
       },
-      "command_timeout_s": {
-        "type": "number",
-        "minimum": 0.05,
-        "maximum": 1
-      },
       "enable_timeout_s": {
         "type": "number",
         "minimum": 0.1,
@@ -179,11 +174,6 @@
         "type": "number",
         "minimum": 0.1,
         "maximum": 3
-      },
-      "max_step_m": {
-        "type": "number",
-        "minimum": 0.0001,
-        "maximum": 0.05
       },
       "speed_raw": {
         "type": "integer",
@@ -214,10 +204,8 @@
     "poll_hz": 20,
     "timeout_s": 0.1,
     "feedback_timeout_s": 0.5,
-    "command_timeout_s": 0.3,
     "enable_timeout_s": 20.0,
     "stop_timeout_s": 1.0,
-    "max_step_m": 0.005,
     "speed_raw": 32,
     "force_raw": 32,
     "activation_motion_verified": false,

@@ -96,7 +96,7 @@ python3 src/robots/jodell/morla_epg_driver/scripts/epg_real_check.py \
 
 ## 频率与故障
 
-I/O目标轮询20 Hz（1–50可配），单线程串行SDK，单槽最新目标；该周期不是已测设备采样频率。串口读写超时0.1 s、反馈新鲜度0.5 s。descriptor里仍保留 `max_step_m`、`command_timeout_s` 字段以兼容旧配置，但适配器**不执行目标步长限制，也没有主机命令超时**（`command_timeout_s`只在configure中做范围检查）。ROS网关tick50 Hz，状态样本时间不会因重复发布被刷新。
+I/O目标轮询20 Hz（1–50可配），单线程串行SDK，单槽最新目标；该周期不是已测设备采样频率。串口读写超时0.1 s、反馈新鲜度0.5 s。适配器**不执行目标步长限制，也没有主机命令超时**：`max_step_m`、`command_timeout_s` 已从 descriptor 删除，Web 不再提供这两个不起作用的旋钮（旧配置里若仍写了这两个键，deployment 参数不参与 schema 校验，会被静默忽略——建议删掉）。ROS网关tick50 Hz，状态样本时间不会因重复发布被刷新。
 
 通信错误或适配器故障会清空目标并尝试rSTOP，失败保留stop_error；不自动重连或重放旧命令。主机不再判定“过期命令”。取消/停止隔离迟到的初始化结果。停止保持使能，不通过去使能或松闸释放工件。软件停止不能替代现场掉落防护或物理急停。
 

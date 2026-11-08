@@ -15,10 +15,8 @@ instances:
       poll_hz: 20
       timeout_s: 0.1
       feedback_timeout_s: 0.5
-      command_timeout_s: 0.3
       enable_timeout_s: 20.0
       stop_timeout_s: 1.0
-      max_step_m: 0.005
       speed_raw: 32
       force_raw: 32
       # 记录字段，不参与门禁；断链/watchdog 按操作员指示不纳入范围

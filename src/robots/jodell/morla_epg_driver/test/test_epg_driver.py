@@ -28,7 +28,7 @@ def instance():
     _,r=system(True);i=r['instances'][0]
     i.update(deployment_verified=True,watchdog_verified=True)
     i['parameters'].update(position_feedback_verified=True,activation_motion_verified=True,
-       device_watchdog_verified=True,poll_hz=50,command_timeout_s=.05,stop_timeout_s=.1,enable_timeout_s=.2)
+       device_watchdog_verified=True,poll_hz=50,stop_timeout_s=.1,enable_timeout_s=.2)
     return i
 
 
