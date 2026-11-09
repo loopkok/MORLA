@@ -26,3 +26,9 @@
 用户授权提交并推送本轮本地更新。发布前已执行 `git fetch origin`，确认 HEAD 与 origin/main 均为 d3e0ab3，无需合并远程更新。本日志与实现、构建产物及验证证据一并提交；最终提交号和远程落点以 Git 历史为准，使用普通 push，不改写既有历史。
 
 临时预览服务、隔离配置存储、测试输入注入脚本和临时安装的插件均位于 /tmp，不纳入提交。未部署到机器人主机；真机、ROS、MuJoCo 和现场设备验收仍按验收记录执行。
+
+## 发布结果
+
+- 实现与证据提交：`d86d35e`（`feat(web): complete workstation UX redesign and validation logs`），共 43 个文件。
+- HTTPS 推送因当前终端缺少可用凭据失败；已有 SSH 密钥认证为 loopkok，随后通过 `git@github.com:loopkok/MORLA.git` 完成普通推送。
+- Git 返回 `d3e0ab3..d86d35e main -> main`，远程实现提交已更新。本记录的发布结果作为后续文档提交同步；未修改 origin URL 或用户全局 Git 配置。
