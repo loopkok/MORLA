@@ -8,7 +8,7 @@ import pytest
 from morla_core.schema import StreamSpec, StateBlockSpec
 from morla_core.contracts import SchemaV3, ActionBlockV3
 from morla_data_collect.schema import FrozenPipelineSchema
-from morla_data_collect.composable_recorder import ComposableRecorder
+from morla_data_collect.composable_recorder import ComposableRecorder,AsyncComposableRecorder
 from morla_data_collect.pipeline.align_data import align_episode
 from morla_data_collect.pipeline.validate_data import validate_episode
 from morla_data_collect.pipeline.convert_to_lerobot import convert_session
@@ -198,13 +198,16 @@ def test_missing_optional_generic_sensor_has_invalid_quality(tmp_path):
         assert ((aligned['quality'][:-1]&8)!=0).all()
 
 
-def test_empty_recording_is_incomplete_and_provenance_is_explicit(tmp_path):
+@pytest.mark.parametrize('recorder_type',[ComposableRecorder,AsyncComposableRecorder])
+def test_empty_recording_is_incomplete_and_provenance_is_explicit(tmp_path,recorder_type):
     value=schema().to_dict()
-    recorder=ComposableRecorder(value,str(tmp_path/'empty'))
+    recorder=recorder_type(value,str(tmp_path/'empty'))
     ep=Path(recorder.start())
-    assert recorder.stop()['status']=='failed'
+    result=recorder.stop()
+    assert result['status']=='failed'
+    assert result['failure']=='required streams are empty: feedback'
     assert validate_episode(str(ep),min_duration_s=0).status=='fail'
-    recorder=ComposableRecorder(value,str(tmp_path/'source'))
+    recorder=recorder_type(value,str(tmp_path/'source'))
     ep=Path(recorder.start())
     for i in range(61):
         recorder.append_stream('feedback',np.arange(11),1_700_000_000.+i/30,

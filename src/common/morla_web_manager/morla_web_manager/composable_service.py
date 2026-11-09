@@ -477,6 +477,8 @@ class ComposableService:
         from morla_policy_inference.composable_remote import ManifestRemotePredictor
         with self.lock:
             session=self.require(session_id)
+            if session.status != 'ACTIVE':
+                raise ServiceError('设备尚未激活。请先在遥操控制中显式启动遥操，再启动策略。')
             if self.operator.handoff.pending or self.operator.playback or self.operator.return_to or self.operator.activity=='workpos':
                 raise ServiceError('another operator motion is active')
             if self.policy and not self.policy.closed: raise ServiceError('policy already active')
@@ -491,7 +493,7 @@ class ComposableService:
             except Exception:
                 predictor.close(); raise
             self.policy=policy; self.policy_error=None; self.last_policy_ns=0
-            self.operator.activity='policy';self.operator.paused=False;self.operator.gate='policy'
+            self.operator.activity='policy';self.operator.paused=False;self.operator.gate='policy';self.operator.error=None
             return {'status':'RUNNING','producer':'policy'}
 
     def stop_policy(self, session_id):

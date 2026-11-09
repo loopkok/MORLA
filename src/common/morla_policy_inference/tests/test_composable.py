@@ -64,3 +64,25 @@ def test_replay_frozen_contract_and_action_finiteness(tmp_path):
         # Command TTL is carried but no longer enforced after the rollback.
         assert replay.send([.3],sample_ns=runtime.clock()-300_000_000)['accepted']
     finally:runtime.stop()
+
+
+def test_rejected_policy_dispatch_closes_predictor_and_releases_authority(tmp_path):
+    value=resolved();runtime=RuntimeSession(value,resource_root=tmp_path);runtime.start();runtime.activate('activate')
+    closed=[]
+    class Predictor:
+        def __call__(self, observation):return [.4]
+        def close(self):closed.append(True)
+    runner=RuntimePolicy(runtime,Predictor(),manifest(value),normalization_hash='norm')
+    try:
+        runner.acquire();runner.request()
+        # Device output can become unavailable after a valid prediction request.
+        runtime.adapters['tool'].stop()
+        for _ in range(100):
+            if runner.pending.done():break
+            time.sleep(.001)
+        with pytest.raises(ComposablePolicyError,match='ADAPTER_DISARMED'):
+            runner.poll()
+        assert runner.closed and runtime.lease is None and closed==[True]
+        assert runtime.adapters['tool'].values==[0.0]
+        assert not runner.actions
+    finally:runner.close();runtime.stop()

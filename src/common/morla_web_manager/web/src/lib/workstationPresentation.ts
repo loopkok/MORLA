@@ -59,3 +59,23 @@ export function capSummary(binding:Binding,assembly:Assembly,deployment:Deployme
   return {id,deviceKey,key,title,unit,source,bound,effective:typeof source.value==='number'&&typeof bound==='number'?Math.min(source.value,bound):undefined}
  })
 }
+// Camera selection follows actuator mode, rather than the presence of a spare simulated sensor.
+export function workspaceCameras(assembly:Assembly,deployment:Deployment,catalog:Component[]){
+ const entries=Object.entries(assembly.instances),descriptor=(plugin:string)=>catalog.find(c=>c.plugin_id===plugin)
+ const backend=(id:string)=>deployment.instances?.[id]?.backend||assembly.instances[id].backend||'fake'
+ const simulated=entries.some(([id,item])=>descriptor(item.plugin)?.kind==='actuator'&&backend(id)==='sim')
+ const cameras=entries.filter(([,item])=>descriptor(item.plugin)?.ports.rgb?.semantic==='image')
+ return {simulated,cameras,candidates:cameras.filter(([id])=>simulated?backend(id)==='sim':backend(id)!=='sim')}
+}
+export const deviceCategories=[['input','输入设备'],['arm','机械臂'],['end','末端'],['whole','整机'],['camera','相机'],['sensor','传感器']] as const
+export function deviceCategory(component:Component):string{
+ const declared=component.web?.device_category
+ if(deviceCategories.some(([key])=>key===declared))return declared!
+ if(component.kind==='input')return 'input'
+ if(component.kind==='sensor')return Object.values(component.ports||{}).some(p=>p.semantic==='image')?'camera':'sensor'
+ const identity=(component.web?.label||'')+' '+component.plugin_id
+ if(component.ports?.closure||/hand|gripp|末端|夹爪|灵巧手/i.test(identity))return 'end'
+ if(/whole.body|humanoid|quadruped|整机|全身|底盘|head|waist|头部|腰部/i.test(identity))return 'whole'
+ if(component.kind==='actuator')return 'arm'
+ return 'sensor'
+}

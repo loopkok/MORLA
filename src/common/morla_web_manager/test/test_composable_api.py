@@ -24,6 +24,21 @@ def saved_session(client):
     return a,body,started.json()
 
 
+def test_policy_cannot_start_on_disarmed_devices(tmp_path, monkeypatch):
+    from morla_policy_inference import composable_remote
+    def unexpected_connection(*args, **kwargs):
+        pytest.fail('disarmed policy start must not connect to a predictor')
+    monkeypatch.setattr(composable_remote,'ManifestRemotePredictor',unexpected_connection)
+    with TestClient(create_app(tmp_path,resource_root=tmp_path/'locks')) as client:
+        _,_,state=saved_session(client)
+        response=client.post('/api/v2/sessions/'+state['session_id']+'/policy/start',
+                             json={'manifest':{},'normalization_hash':'test'})
+        assert response.status_code==409
+        assert '设备尚未激活' in response.json()['detail']
+        assert client.app.state.composable.session.lease is None
+        assert client.app.state.composable.policy is None
+
+
 def test_quest_right_grip_and_web_share_start_and_pause(tmp_path):
     from types import SimpleNamespace
     from morla_input.quest_events import QuestEventSource

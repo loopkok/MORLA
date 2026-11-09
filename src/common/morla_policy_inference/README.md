@@ -513,3 +513,9 @@ payload、错误处理、工厂）、engine（三种模式、后台规划、RTC 
   MAE 被污染 0.20→0.004）；视频用 PyAV seek 按需解码（整段解码 OOM）；
 - 真机部署流程：起 `serve.py --model <act|pi05>`（GPU 机）→ 起 `policy_node`
   （backend_type=remote，`camera_image_size` 与模型 preprocessor 一致）→ 跑 B 冒烟 → 接真话题。
+
+### 公共工作站策略回归（2026-11-09）
+
+Web 公共工作站启动策略前要求设备已显式激活。策略命令被运行时拒绝时关闭预测器、清空待执行动作并释放策略权限，错误通过工作站状态呈现。含图像的策略在取得权限前加载 JPEG 解码依赖，避免冷加载消耗首轮预测时限。安装依赖声明补充 `websockets>=12`（同步客户端需要该版本）；本地验证使用 15.0.1，安装在隔离测试目录。
+
+全 fake 工作站通过本地 echo 测试策略验证 manifest/normalization 契约、推理接管、人工接管/交还与停止；不代表真实 ACT/OpenPI checkpoint 已验证。见 [Web 全流程验证](../../../docs/testing/WEB_WORKSTATION_FULL_FLOW_2026-11-09.md)。

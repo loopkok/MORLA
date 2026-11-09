@@ -200,7 +200,8 @@ class ComposableRecorder:
                 self._active = False
                 self._write_meta()
             return {'episode_dir': str(self.episode_dir), 'counts': counts,
-                    'camera_counts': cameras, 'status': self._meta['recording_status']}
+                    'camera_counts': cameras, 'status': self._meta['recording_status'],
+                    'failure': self._meta.get('failure')}
 
 
 class AsyncComposableRecorder:
@@ -307,5 +308,5 @@ class AsyncComposableRecorder:
             self._writer._meta['failure'] = self._failure
         self._writer._meta['dropped_samples'] = self._drops
         result = self._writer.stop(cancelled=cancelled)
-        result.update(dropped_samples=self._drops, failure=self._failure)
+        result.update(dropped_samples=self._drops, failure=self._failure or result.get('failure'))
         return result

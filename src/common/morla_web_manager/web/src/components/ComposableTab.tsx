@@ -3,23 +3,15 @@ import { useEffect, useRef, useState } from 'react'
 import { pluginBindingDefaults, preferredController, compatible, initial, label as componentLabel, normalise, parseWorkcellDocument, portLabel } from '../lib/workcell'
 import type { Assembly, Binding, Component, Deployment, Device, Instance, Template, SimOptions } from '../lib/workcell'
 import './workcell.css'
-import { FieldIssues } from './WorkcellFields'
 
 import { request, awaitOperation, awaitControlTransition, WorkstationError, explainError } from '../api/workstation'
 import { useWorkstationSession } from '../hooks/useWorkstationSession'
-import { useConfirmation, ConfirmDialog, ErrorSheet, OperationFeedback } from './workstation/OperationFeedback'
+import { useConfirmation } from './workstation/OperationFeedback'
 import type { OperationRecord } from './workstation/OperationFeedback'
-import { WorkstationShell, DevicePanel } from './workstation/WorkstationShell'
 import { stages, snapshot, changeBackend, preserveBindingParameters, describeChanges, obsoleteFields, issueLocation } from '../lib/workstationPresentation'
 import { pushToast } from '../hooks/useToast'
-import { Resolved, LogRun, Session, Endpoint, states } from './workstation/shared'
-import { DeviceSelection } from './workstation/DeviceSelection'
-import { ConnectionCalibration } from './workstation/ConnectionCalibration'
-import { TeleopChains } from './workstation/TeleopChains'
-import { WorkPositionSettings } from './workstation/WorkPositionSettings'
-import { CaptureSettings } from './workstation/CaptureSettings'
-import { PreflightReview } from './workstation/PreflightReview'
-import { RunConsole } from './workstation/RunConsole'
+import { Resolved, LogRun, Session, Endpoint } from './workstation/shared'
+import { ReferenceWorkspace } from './workstation/ReferenceWorkspace'
 export type WorkstationModel=ReturnType<typeof useWorkstationModel>
 function useWorkstationModel(visible:boolean){
 
@@ -63,7 +55,7 @@ function useWorkstationModel(visible:boolean){
  const changeDeployment=(next:Deployment)=>{if(active)return;invalidate();setDeployment(next)}
  const run=async(fn:(requestId:string)=>Promise<void>,title='更新工作站')=>{
   if(pendingActions.current.has(title))return
-  pendingActions.current.add(title);setBusy(true);setError(false)
+  pendingActions.current.add(title);setBusy(true);setError(false);setMessage('')
   const id=crypto.randomUUID()
   setRecords(old=>[{id,title,status:'执行中',started:Date.now(),target:session?.session_id||assembly.assembly_id},...old].slice(0,20))
   try{await fn(id);setRecords(old=>old.map(r=>r.id===id?{...r,status:'已完成'}:r))}
@@ -139,6 +131,15 @@ function useWorkstationModel(visible:boolean){
   if((device(target.instance).backend||robot.backend)==='real'&&source.port.semantic==='pose6d')binding.deadman=standardHold(source)?.ref||binding.deadman
   changed({...assembly,bindings:[...assembly.bindings,binding]});setSelectedChain(binding.id)
  }
+ function connect(source:string,target:string,controller:string){
+  if(locked||!choices(source,target).includes(controller))return
+  if(assembly.bindings.some(b=>b.target.split('.')[0]===target.split('.')[0])){setError(true);setMessage('该执行器已有控制链，请点击控制器节点修改，或先移除原连接。');return}
+  let n=1;while(assembly.bindings.some(b=>b.id==='control_'+n))n++
+  const binding={...buildBinding(source,target,'control_'+n),controller,parameters:defaults(controller,source,target)}
+  const endpoint=sources.find(e=>e.ref===source)
+  if(endpoint&&(device(target.split('.')[0]).backend||assembly.instances[target.split('.')[0]]?.backend)==='real')binding.deadman=standardHold(endpoint)?.ref||binding.deadman
+  changed({...assembly,bindings:[...assembly.bindings,binding]});setSelectedChain(binding.id)
+ }
  const patchBinding=(index:number,patch:Partial<Binding>)=>changed({...assembly,bindings:assembly.bindings.map((b,i)=>i===index?{...b,...patch}:b)})
  async function updateBinding(index:number,key:'source'|'target'|'controller',value:string){
   const old=assembly.bindings[index],target=key==='target'?value:old.target
@@ -203,9 +204,9 @@ function useWorkstationModel(visible:boolean){
   const titles=['建立运行会话','启动输入接收','设备就绪检查']
   setInitialization(titles.map(title=>({title,status:'待执行'})))
   const step=async(index:number,fn:()=>Promise<void>)=>{
-   if(generation!==initializationGeneration.current)throw new Error('初始化已中断，请查看当前运行状态。')
+   if(generation!==initializationGeneration.current)throw new Error('启动已中断，请查看当前运行状态。')
    setInitialization(rows=>rows.map((row,i)=>i===index?{...row,status:'执行中'}:row))
-   try{await fn();if(generation!==initializationGeneration.current)throw new Error('初始化已中断。');setInitialization(rows=>rows.map((row,i)=>i===index?{...row,status:'已完成'}:row))}
+   try{await fn();if(generation!==initializationGeneration.current)throw new Error('启动已中断。');setInitialization(rows=>rows.map((row,i)=>i===index?{...row,status:'已完成'}:row))}
    catch(e){setInitialization(rows=>rows.map((row,i)=>i===index?{...row,status:(e as Error).message.includes('待确认')?'待确认':'未完成',detail:(e as Error).message}:row));throw e}
   }
   let current=session
@@ -219,8 +220,8 @@ function useWorkstationModel(visible:boolean){
     }
    }
    if(!current||current.status==='STOPPED'){
-    if(dirty||!resolved||resolved.assembly_hash!==savedHash)throw new Error('请检查并保存当前配置后初始化。')
-    if(instances.some(([id,item])=>(device(id).backend||item.backend)==='real')&&!await confirm('连接配置中的真实设备？初始化后仍需单独开始遥操。'))throw new Error('已取消设备连接。')
+    if(dirty||!resolved||resolved.assembly_hash!==savedHash)throw new Error('请检查并保存当前配置后启动。')
+    if(instances.some(([id,item])=>(device(id).backend||item.backend)==='real')&&!await confirm('连接配置中的真实设备？启动后仍需单独开始遥操。'))throw new Error('已取消设备连接。')
     const identity=JSON.stringify([assembly.assembly_id,savedRevision,savedHash]);if(startRequest.current?.identity!==identity)startRequest.current={identity,id:requestId+'-session'}
     current=await request<Session>('/sessions',{assembly_id:assembly.assembly_id,revision:savedRevision,assembly_hash:savedHash,request_id:startRequest.current!.id})
     setSession(current)
@@ -230,7 +231,7 @@ function useWorkstationModel(visible:boolean){
   if(needsReceiver)await step(1,()=>sessionOperation('connect_inputs',current!.session_id,requestId+'-inputs'))
   else setInitialization(rows=>rows.map((row,i)=>i===1?{...row,status:'无需启动',detail:'测试数据或手机配对不需要 ROS 接收服务。'}:row))
   await step(2,()=>sessionOperation('prepare',current!.session_id,requestId+'-prepare'))
-  setMessage('初始化已完成。等待有效输入，确认状态后单独开始遥操。')
+  setMessage('启动已完成。等待有效输入，确认状态后单独开始遥操。')
  }
  const operate=(operation:string)=>void run(async(requestId)=>{
   const sid=session!.session_id
@@ -266,43 +267,6 @@ function useWorkstationModel(visible:boolean){
   changed(normalise(a));setDeployment(document.deployment||{});setSavedRevision(saved.find(x=>x.assembly_id===a.assembly_id)?.revision||0);setSavedHash('');setMessage('配置已导入，请检查表单并保存新版本。');setStage('devices')
  }
 
-return {operatorAction,checkIssues, initialization, refreshSession, visible, active, actuators, add, addBinding, answer, applySaved, assembly, backend, busy, catalog, changeDeployment, changed, check, checkError, checkedSnapshot, choices, confirm, connectionError, copyName, count, currentLogRun, currentQuestPort, deployment, descriptor, device, dirty, duplicate, endpoints, error, errorDetails, frames, holdPort, importText, initialize, inputs, instances, isQuest, label, loadImport, loadTemplate, locate, locked, logEntry, logFiles, logOptions, logRuns, logTail, message, mountable, nextStage, operate, pairLink, patchBinding, patchDevice, pending, portName, preflight, questVisible, records, recovering, remove, resolved, run, save, saveAs, saved, savedRevision, selected, selectedBinding, session, setCopyName, setError, setErrorDetails, setImportText, setInstance, setLogRuns, setLogTail, setMessage, setPairLink, setSavedHash, setSavedRevision, setSelectedChain, setSelectedDevice, setSelectedRun, setSession, setStage, setTask, setTemplate, signalLabel, sim, simOptions, simPresent, sources, stage, staleFields, standardHold, targets, task, template, templates, updateBinding}
+return {connect,operatorAction,checkIssues, initialization, refreshSession, visible, active, actuators, add, addBinding, answer, applySaved, assembly, backend, busy, catalog, changeDeployment, changed, check, checkError, checkedSnapshot, choices, confirm, connectionError, copyName, count, currentLogRun, currentQuestPort, deployment, descriptor, device, dirty, duplicate, endpoints, error, errorDetails, frames, holdPort, importText, initialize, inputs, instances, isQuest, label, loadImport, loadTemplate, locate, locked, logEntry, logFiles, logOptions, logRuns, logTail, message, mountable, nextStage, operate, pairLink, patchBinding, patchDevice, pending, portName, preflight, questVisible, records, recovering, remove, resolved, run, save, saveAs, saved, savedRevision, selected, selectedBinding, session, setCopyName, setError, setErrorDetails, setImportText, setInstance, setLogRuns, setLogTail, setMessage, setPairLink, setSavedHash, setSavedRevision, setSelectedChain, setSelectedDevice, setSelectedRun, setSession, setStage, setTask, setTemplate, signalLabel, sim, simOptions, simPresent, sources, stage, staleFields, standardHold, targets, task, template, templates, updateBinding}
 }
-export function ComposableTab({visible=true}:{visible?:boolean}){const [configExpanded,setConfigExpanded]=useState(()=>window.innerWidth>760);const model=useWorkstationModel(visible);const {active, add, answer, applySaved, assembly, catalog, changed, checkedSnapshot, connectionError, copyName, deployment, dirty, error, errorDetails, importText, label, loadImport, loadTemplate, locked, message, nextStage, pending, records, recovering, run, save, saveAs, saved, savedRevision, selected, selectedBinding, session, setCopyName, setErrorDetails, setImportText, setMessage, setSavedHash, setSavedRevision, setSelectedDevice, setSession, setStage, setTemplate, stage, template, templates}=model;
-return <div className="workcell">
-  <header className="wc-header"><div><div className="wc-eyebrow">MORLA / WORKCELL</div><h2>机器人工作站</h2><p>配置设备与坐标关系，建立遥操作映射，然后检查并运行。</p></div><div className="wc-header-status"><span className={'wc-status '+(active?'is-live':'')}>{session?.operator?.transition?.status==='RUNNING'?'控制权切换中':session?states[session.status]||session.status:'配置中'}</span><span>{dirty?'有未保存修改 · ':''}{savedRevision?'v'+savedRevision:'草稿'}</span></div></header>
-  <details className="wc-config-details" open={configExpanded} onToggle={e=>setConfigExpanded(e.currentTarget.open)}><summary>工作站：{assembly.assembly_id} · 打开与设备预设</summary><div className="wc-config-bar"><label>配置名称<input aria-label="配置名称" disabled={locked} value={assembly.assembly_id} onChange={e=>{setSavedRevision(0);setSavedHash('');changed({...assembly,assembly_id:e.target.value,revision:1})}} /></label><label>已保存的工作站<select aria-label="打开已保存配置" disabled={locked} value="" onChange={e=>{const id=e.target.value;void run(async()=>{if(dirty&&!await model.confirm('打开保存配置并替换当前草稿？'))return;const item=await request<{assembly:Assembly;deployment?:Deployment;resolved:Resolved}>(`/assemblies/${id}/revisions/${saved.find(x=>x.assembly_id===id)!.revision}`);applySaved(item);setSession(null);setMessage('已打开保存的配置。')})}}><option value="">选择配置…</option>{saved.map(s=><option key={s.assembly_id} value={s.assembly_id}>{s.assembly_id} · v{s.revision}</option>)}</select></label><div className="wc-template"><label>设备预设<select aria-label="仿真机器人模板" disabled={locked} value={template} onChange={e=>setTemplate(e.target.value)}><option value="">选择预设…</option>{templates.map(t=><option key={t.id} value={t.id}>{t.title}</option>)}</select></label><button disabled={locked||!template} onClick={()=>void run(loadTemplate)}>载入预设</button></div></div></details>
-  <div className="wc-toolbar"><button disabled={locked} onClick={()=>void run(()=>save(),'保存草稿')}>保存草稿</button><details><summary>另存为</summary><label>新配置名称<input value={copyName} disabled={locked} onChange={e=>setCopyName(e.target.value)} /></label><button disabled={locked||!copyName} onClick={()=>void run(()=>saveAs(copyName),'另存为')}>另存为新配置</button></details><details className="wc-details wc-file-tools"><summary>配置文件 · 导入与导出</summary><p className="wc-note">普通配置使用上方表单即可。导入会替换当前草稿；未识别的字段会保留在配置中。</p><div className="wc-inline"><button disabled={locked} onClick={()=>{const file=new Blob([JSON.stringify({assembly,deployment},null,2)],{type:'application/json'});const url=URL.createObjectURL(file);const a=document.createElement('a');a.href=url;a.download=assembly.assembly_id+'.json';a.click();URL.revokeObjectURL(url)}}>导出配置文件</button><label className="wc-file-input">导入配置文件<input disabled={locked} type="file" accept=".json,application/json" onChange={e=>{const file=e.target.files?.[0];if(file)void run(async()=>{const text=await file.text();let value:unknown;try{value=JSON.parse(text)}catch{throw new Error(`不是有效的 JSON 配置文件：${file.name}（文件开头是「${text.slice(0,40).replace(/\n/g,' ')}」）`)}await loadImport(value)});e.target.value=''}} /></label></div><details><summary>开发者文本编辑</summary><textarea aria-label="高级配置文本" rows={12} value={importText} onChange={e=>setImportText(e.target.value)} /><div className="wc-inline"><button disabled={locked} onClick={()=>setImportText(JSON.stringify({assembly,deployment},null,2))}>显示当前配置</button><button disabled={locked||!importText} onClick={()=>void run(async()=>{let value:unknown;try{value=JSON.parse(importText)}catch{throw new Error('导入文本不是有效的 JSON（必须以 { 开头，且不是 YAML）')}await loadImport(value)})}>应用导入配置</button></div></details></details><span>{recovering?'正在恢复工作站…':active?'运行中 · 配置只读':dirty?'未保存':'已保存'}</span></div>
-  <nav className="wc-stage-nav" aria-label="工作站配置流程">{stages.map(s=><button key={s.id} className={stage===s.id?'is-current':''} aria-current={stage===s.id?'step':undefined} onClick={()=>{setStage(s.id)}}>{s.title}<small>{s.id==='check'?(model.checkError?'有问题':checkedSnapshot===snapshot(assembly,deployment)?'已检查':'待检查'):s.id==='run'?(active?'运行中':'待启动'):model.checkIssues.some(issue=>issueLocation(issue.path,assembly).stage===s.id)?'有问题':''}</small></button>)}</nav>
-  {message&&<div role="status" aria-live="polite" className={'wc-message '+(error?'is-error':'')}>{message}{error&&<button onClick={()=>setErrorDetails(message)}>查看详情</button>}</div>}
-  {connectionError&&<p className="wc-message is-error" role="status">{connectionError}</p>}
-  <WorkstationShell viewKey={stage+':'+selected+':'+selectedBinding} selection={selected?(assembly.instances[selected].display_name||label(assembly.instances[selected].plugin))+' · '+selected:''} panel={['devices','geometry','capture'].includes(stage)?<DevicePanel assembly={assembly} deployment={deployment} catalog={catalog} selected={selected} onSelect={setSelectedDevice} onAdd={add} locked={locked}/>:undefined}>
-
-  {active&&stage!=='run'&&<div className="wc-message">当前配置正在运行，可查看设置。停止运行后才能修改设备与控制参数。</div>}
-  <div className="wc-stage-heading"><h3>{stages.find(s=>s.id===stage)?.title}</h3><p>{stages.find(s=>s.id===stage)?.note}</p></div>
-
-  {!selected&&stage==='devices'&&<div className="wc-empty"><h3>创建你的机器人工作站</h3><p>从右侧设备库添加输入、机械臂、末端或相机。</p></div>}
-  {model.checkIssues.filter(issue=>issueLocation(issue.path,assembly).stage===stage&&(!issueLocation(issue.path,assembly).id||issueLocation(issue.path,assembly).id===selected)).map((issue,i)=><p className="wc-message is-error" key={i}>{issue.message} · {issue.path}</p>)}
-  <FieldIssues.Provider value={Object.fromEntries(model.checkIssues.filter(issue=>{const place=issueLocation(issue.path,assembly);return place.stage===stage&&(!place.id||place.id===selected)&&(!place.binding||place.binding===selectedBinding)}).map(issue=>[issueLocation(issue.path,assembly).field,issue.message]))}>
-  <DeviceSelection {...model}/>
-
-  <ConnectionCalibration {...model}/>
-
-  <TeleopChains {...model}/>
-
-  <WorkPositionSettings {...model}/>
-  <CaptureSettings {...model}/>
-
-  <PreflightReview {...model}/>
-
-  <RunConsole {...model}/>
-  </FieldIssues.Provider>
-
-  </WorkstationShell>
-  <OperationFeedback records={records}/>
-  <footer className="wc-flow-footer">{active&&<div className="wc-inline"><button onClick={()=>model.operate('disarm')}>暂停遥操</button><button className="wc-danger" onClick={()=>model.operate('estop')}>急停</button><button onClick={()=>model.operate('stop')}>结束工作站</button></div>}<span>{active?'运行期间设置为只读。':'选择项会自动生成装配与控制配置。'}</span>{stage!=='run'?<button className="wc-primary" onClick={nextStage}>继续：{stages[stages.findIndex(s=>s.id===stage)+1]?.title}</button>:<button className="wc-text-button" onClick={()=>setStage('devices')}>返回设备设置</button>}</footer>
-
- {pending&&<ConfirmDialog message={pending.message} onAnswer={answer}/>}
- {errorDetails&&!pending&&<ErrorSheet message={errorDetails} onClose={()=>setErrorDetails('')}/>}
- </div>
-}
+export function ComposableTab({visible=true,onOpenLegacy}:{visible?:boolean;onOpenLegacy?:(id:string)=>void}){const model=useWorkstationModel(visible);return <ReferenceWorkspace m={model} onOpenLegacy={onOpenLegacy}/>}

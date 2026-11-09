@@ -474,3 +474,7 @@ LeRobot v2/v3 将原始数值流和来源掩码保存在 `meta/provenance/episod
 其时间戳保留原始采样语义，不能按已对齐帧号直接索引。缺少必需数值/图像/传感器样本的
 录制不会标 complete。codec 在类型转换前拒绝整型截断、负数转 unsigned、非二值 bool
 和 float32 溢出；JointState 速度流依据 rad/s、m/s、ratio/s 单位读取 velocity 字段。
+
+### 公共录制停止回执（2026-11-09）
+
+ComposableRecorder.stop 的回执增加 `failure`，与落盘 meta.json 的失败原因一致；异步包装保留完整性检查原因，不再用空的工作线程错误覆盖它。缺少必需观测、动作或图像时仍返回 failed，校验和数据布局均不变。同步/异步空记录回归及 Web UI 负例验证通过，界面可显示具体缺失的通道。

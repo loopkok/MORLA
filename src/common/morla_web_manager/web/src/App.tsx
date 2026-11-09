@@ -49,7 +49,7 @@ export default function App() {
       <div style={appStyle}>
         <ToastHost />
 
-        <header style={headerStyle}>
+        {active!=='compose'&&<header style={headerStyle}>
         <h1 style={titleStyle}>MORLA</h1>
         <span style={subStyle}>机器人操作台</span>
         <div style={spacer} />
@@ -62,15 +62,15 @@ export default function App() {
           colorOk="#22c55e"
           warn={state?.health?.overall === 'slow' || state?.health?.overall === 'stale'}
         /></>}
-      </header>
+      </header>}
 
       {active !== 'compose' && <ControlBar state={state} onAction={() => void api.health()} />}
 
-      <Tabs tabs={TABS} active={active} onChange={setActive} />
+      {active!=='compose'&&<Tabs tabs={TABS} active={active} onChange={setActive} />}
       {active !== 'piano' && pianoActive && <p role="status" style={{ color: '#fbbf24', padding: '0 16px' }}>钢琴会话仍保留，原机器人控制仍受互斥保护。<button onClick={() => setActive('piano')}>返回钢琴工作台停止或断开</button></p>}
 
-      <main style={mainStyle}>
-        <div hidden={active !== 'compose'}><ComposableTab visible={active === 'compose'} /></div>
+      <main style={active==='compose'?{width:'100%',padding:0}:mainStyle}>
+        <div hidden={active !== 'compose'}><ComposableTab visible={active === 'compose'} onOpenLegacy={setActive} /></div>
         {active === 'monitor' && <MonitorTab state={state} />}
         {active === 'health' && <HealthPanel state={state} />}
         {active === 'data' && <DataProcessTab state={state} connected={wsConnected} />}

@@ -1,0 +1,211 @@
+{
+  "assembly": {
+    "assembly_id": "webui_flow_fake_20261109",
+    "assembly_version": 1,
+    "bindings": [
+      {
+        "controller": "morla.fr3.cartesian_delta",
+        "deadman": "",
+        "id": "control_1",
+        "input_basis_id": "unity_left_handed_v1",
+        "max_age_ms": 250,
+        "parameters": {
+          "calibration_verified": true,
+          "command_lead_rad": 0.08,
+          "ik_mode": "differential",
+          "input_position_rotation": [
+            [
+              -1,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              -1
+            ],
+            [
+              0,
+              1,
+              0
+            ]
+          ],
+          "input_rotation": [
+            [
+              -1,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              -1
+            ],
+            [
+              0,
+              1,
+              0
+            ]
+          ],
+          "max_joint_step": 0.03,
+          "max_joint_velocity": 0.2,
+          "position_scale": 0.25,
+          "smoothing_alpha": 0.35,
+          "solver_tip_from_tool": [
+            [
+              1,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              1
+            ]
+          ]
+        },
+        "source": "quest.right_pose",
+        "target": "arm.position_target"
+      },
+      {
+        "controller": "morla.trigger_filtered",
+        "deadman": "",
+        "id": "control_2",
+        "max_age_ms": 250,
+        "parameters": {
+          "max_ratio_rate": 2.5,
+          "output_range": [
+            0,
+            1
+          ],
+          "trigger_deadzone": 0.05,
+          "trigger_ema_alpha": 0.4,
+          "trigger_gamma": 1.4,
+          "trigger_invert": false
+        },
+        "source": "quest.right_scalar",
+        "target": "gripper.closure"
+      }
+    ],
+    "capture": {
+      "action": [
+        "arm.position_target",
+        "gripper.closure"
+      ],
+      "action_source": "command",
+      "auxiliary": [
+        "quest.right_pose",
+        "quest.right_scalar"
+      ],
+      "dataset_fps": 10,
+      "images": {
+        "camera": "camera.rgb"
+      },
+      "state": [
+        "arm.position",
+        "gripper.position"
+      ]
+    },
+    "control_groups": {},
+    "instances": {
+      "arm": {
+        "backend": "fake",
+        "plugin": "morla.fairino.fr3",
+        "version": "1.0.0"
+      },
+      "camera": {
+        "backend": "fake",
+        "parameters": {
+          "fps": 30,
+          "height": 480,
+          "width": 640
+        },
+        "plugin": "morla.fake.camera",
+        "version": "1.0.0"
+      },
+      "gripper": {
+        "backend": "fake",
+        "plugin": "morla.astral.gripper",
+        "version": "1.0.0"
+      },
+      "quest": {
+        "backend": "fake",
+        "parameters": {
+          "side": "right"
+        },
+        "plugin": "morla.input.quest",
+        "version": "1.0.0"
+      }
+    },
+    "metadata": {
+      "diagnostic_logging": {
+        "enabled": true,
+        "feedback_hz": 10,
+        "max_run_mb": 1024,
+        "queue_size": 4096,
+        "segment_mb": 16
+      },
+      "simulation": {
+        "display": "web",
+        "mode": "kinematic"
+      }
+    },
+    "mounts": [
+      {
+        "child": "arm.base",
+        "parent": "world",
+        "transform": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "child": "gripper.base",
+        "parent": "arm.flange",
+        "transform": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "child": "camera.optical",
+        "parent": "world",
+        "transform": [
+          1.5,
+          1.5,
+          1.4,
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    ],
+    "revision": 3
+  },
+  "deployment": {}
+}

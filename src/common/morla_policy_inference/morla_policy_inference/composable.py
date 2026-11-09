@@ -87,6 +87,10 @@ class RuntimePolicy:
                  max_age_ns=250_000_000,producer='policy',camera_map=None):
         validate_model(runtime.resolved,manifest,normalization_hash=normalization_hash,
                        backend_revision=backend_revision,camera_map=camera_map)
+        # Loading the image decoder can take longer than a prediction lease on
+        # a cold process. Resolve it before acquiring any policy authority.
+        if runtime.resolved.get('feature_contract',{}).get('cameras'):
+            from .robot_io import decode_jpeg_rgb  # noqa: F401
         self.runtime,self.predictor,self.manifest=runtime,predictor,manifest
         self.max_age_ns,self.producer=max_age_ns,producer
         self.pool=ThreadPoolExecutor(max_workers=1,thread_name_prefix='morla-predictor')
@@ -168,9 +172,12 @@ class RuntimePolicy:
             commands=action_commands(self.runtime.resolved,action)
             self.permit=self.runtime.renew(self.producer,lease['token'],self.max_age_ns)
             self.sequence+=1
-            return self.runtime.submit({'session_id':self.runtime.session_id,'producer':self.producer,
+            receipt=self.runtime.submit({'session_id':self.runtime.session_id,'producer':self.producer,
                 'token':self.permit['token'],'epoch':self.permit['epoch'],'sequence':self.sequence,
                 'issued_ns':self.chunk_stamp,'ttl_ns':self.max_age_ns,'commands':commands})
+            if not receipt.get('accepted'):
+                raise ComposablePolicyError('policy command rejected: '+str(receipt.get('reason','unknown')))
+            return receipt
         except Exception:
             self.close(reason='prediction_failed')
             raise

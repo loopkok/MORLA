@@ -1,0 +1,444 @@
+{
+  "assembly_id": "webui_flow_fake_20261109",
+  "revision": 3,
+  "tests": {
+    "frontend": 47,
+    "backend": 61
+  },
+  "episodes": [
+    {
+      "task": "negative_missing_commands_fake",
+      "recording_status": "failed",
+      "failure": "required streams are empty: arm__position_target, gripper__closure",
+      "duration_s": 16.391606092453003,
+      "counts": {
+        "arm__position": 153,
+        "arm__position_target": 0,
+        "gripper__closure": 0,
+        "gripper__position": 153,
+        "quest__right_pose": 152,
+        "quest__right_scalar": 152
+      },
+      "camera_counts": {
+        "camera": 153
+      },
+      "dropped_samples": 0,
+      "session_id": "355a72e9342f490792cbbdec57714337",
+      "episode": "episode000000",
+      "directory": "/tmp/morla-ux-preview-store/recordings/355a72e9342f490792cbbdec57714337/episode000000",
+      "dispatched_producers": {},
+      "streams": {
+        "arm__position": {
+          "count": 153,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.0,
+          "all_synthetic": true,
+          "any_measured": false,
+          "source": [
+            "fake"
+          ]
+        },
+        "arm__position_target": {
+          "count": 0,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0
+        },
+        "gripper__closure": {
+          "count": 0,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0
+        },
+        "gripper__position": {
+          "count": 153,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.0,
+          "all_synthetic": true,
+          "any_measured": false,
+          "source": [
+            "fake"
+          ]
+        },
+        "quest__right_pose": {
+          "count": 152,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.02999333292245865
+        },
+        "quest__right_scalar": {
+          "count": 152,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.799822211265564
+        }
+      }
+    },
+    {
+      "task": "final_dynamic_success_fake",
+      "recording_status": "complete",
+      "failure": null,
+      "duration_s": 60.7820680141449,
+      "counts": {
+        "arm__position": 551,
+        "arm__position_target": 1642,
+        "gripper__closure": 1642,
+        "gripper__position": 551,
+        "quest__right_pose": 550,
+        "quest__right_scalar": 550
+      },
+      "camera_counts": {
+        "camera": 551
+      },
+      "dropped_samples": 0,
+      "session_id": "355a72e9342f490792cbbdec57714337",
+      "episode": "episode000001",
+      "directory": "/tmp/morla-ux-preview-store/recordings/355a72e9342f490792cbbdec57714337/episode000001",
+      "dispatched_producers": {
+        "human_mobile": 3284
+      },
+      "streams": {
+        "arm__position": {
+          "count": 551,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.026752710342407227,
+          "all_synthetic": true,
+          "any_measured": false,
+          "source": [
+            "fake"
+          ]
+        },
+        "arm__position_target": {
+          "count": 1642,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.026753783226013184
+        },
+        "gripper__closure": {
+          "count": 1642,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.8389465808868408
+        },
+        "gripper__position": {
+          "count": 551,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.8389025926589966,
+          "all_synthetic": true,
+          "any_measured": false,
+          "source": [
+            "fake"
+          ]
+        },
+        "quest__right_pose": {
+          "count": 550,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.02999909780919552
+        },
+        "quest__right_scalar": {
+          "count": 550,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.7999759316444397
+        }
+      }
+    },
+    {
+      "task": "webui_dynamic_policy_hitl_fake",
+      "recording_status": "complete",
+      "failure": null,
+      "duration_s": 70.08582019805908,
+      "counts": {
+        "arm__position": 616,
+        "arm__position_target": 957,
+        "gripper__closure": 957,
+        "gripper__position": 616,
+        "quest__right_pose": 616,
+        "quest__right_scalar": 616
+      },
+      "camera_counts": {
+        "camera": 616
+      },
+      "dropped_samples": 0,
+      "session_id": "3deb869eb6f2447fbe9fc8a33e328154",
+      "episode": "episode000000",
+      "directory": "/tmp/morla-ux-preview-store/recordings/3deb869eb6f2447fbe9fc8a33e328154/episode000000",
+      "dispatched_producers": {
+        "human_mobile": 1593,
+        "policy": 160
+      },
+      "streams": {
+        "arm__position": {
+          "count": 616,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.030779004096984863,
+          "all_synthetic": true,
+          "any_measured": false,
+          "source": [
+            "fake"
+          ]
+        },
+        "arm__position_target": {
+          "count": 957,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.03078484535217285
+        },
+        "gripper__closure": {
+          "count": 957,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.8388755917549133
+        },
+        "gripper__position": {
+          "count": 616,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.8388755917549133,
+          "all_synthetic": true,
+          "any_measured": false,
+          "source": [
+            "fake"
+          ]
+        },
+        "quest__right_pose": {
+          "count": 616,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.02999982237815857
+        },
+        "quest__right_scalar": {
+          "count": 616,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.7999952435493469
+        }
+      }
+    },
+    {
+      "task": "webui_message_regression_fake",
+      "recording_status": "failed",
+      "failure": "required streams are empty: arm__position_target, gripper__closure",
+      "duration_s": 18.916935920715332,
+      "counts": {
+        "arm__position": 173,
+        "arm__position_target": 0,
+        "gripper__closure": 0,
+        "gripper__position": 173,
+        "quest__right_pose": 172,
+        "quest__right_scalar": 172
+      },
+      "camera_counts": {
+        "camera": 173
+      },
+      "dropped_samples": 0,
+      "session_id": "3deb869eb6f2447fbe9fc8a33e328154",
+      "episode": "episode000001",
+      "directory": "/tmp/morla-ux-preview-store/recordings/3deb869eb6f2447fbe9fc8a33e328154/episode000001",
+      "dispatched_producers": {},
+      "streams": {
+        "arm__position": {
+          "count": 173,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.0,
+          "all_synthetic": true,
+          "any_measured": false,
+          "source": [
+            "fake"
+          ]
+        },
+        "arm__position_target": {
+          "count": 0,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0
+        },
+        "gripper__closure": {
+          "count": 0,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0
+        },
+        "gripper__position": {
+          "count": 173,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.0,
+          "all_synthetic": true,
+          "any_measured": false,
+          "source": [
+            "fake"
+          ]
+        },
+        "quest__right_pose": {
+          "count": 172,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.02999705821275711
+        },
+        "quest__right_scalar": {
+          "count": 172,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.7999216318130493
+        }
+      }
+    },
+    {
+      "task": "webui_full_flow_fake",
+      "recording_status": "complete",
+      "failure": null,
+      "duration_s": 18.54529309272766,
+      "counts": {
+        "arm__position": 169,
+        "arm__position_target": 498,
+        "gripper__closure": 498,
+        "gripper__position": 169,
+        "quest__right_pose": 169,
+        "quest__right_scalar": 169
+      },
+      "camera_counts": {
+        "camera": 169
+      },
+      "dropped_samples": 0,
+      "session_id": "7168e2ac432a457c8b8719d472642b42",
+      "episode": "episode000000",
+      "directory": "/tmp/morla-ux-preview-store/recordings/7168e2ac432a457c8b8719d472642b42/episode000000",
+      "dispatched_producers": {
+        "human_mobile": 996
+      },
+      "streams": {
+        "arm__position": {
+          "count": 169,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.0,
+          "all_synthetic": true,
+          "any_measured": false,
+          "source": [
+            "fake"
+          ]
+        },
+        "arm__position_target": {
+          "count": 498,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.0
+        },
+        "gripper__closure": {
+          "count": 498,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.0
+        },
+        "gripper__position": {
+          "count": 169,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.0,
+          "all_synthetic": true,
+          "any_measured": false,
+          "source": [
+            "fake"
+          ]
+        },
+        "quest__right_pose": {
+          "count": 169,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.0
+        },
+        "quest__right_scalar": {
+          "count": 169,
+          "finite": true,
+          "strictly_increasing_time": true,
+          "max_value_range": 0.0
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "directory": "/tmp/morla-ux-preview-logs/20261109T143111Z_webui_flow_fake_20261109_7168e2ac432a457c8b8719d472642b42",
+      "state": "closed",
+      "clean_shutdown": true,
+      "dropped": {},
+      "error": null,
+      "written": {
+        "run_started": 1,
+        "event": 11814,
+        "feedback": 16492,
+        "input": 47596,
+        "input_gate": 24536,
+        "operator_request": 2,
+        "handoff": 8,
+        "operator_result": 2,
+        "controller": 5761,
+        "control": 11522,
+        "command_request": 11792,
+        "command_receipt": 11792,
+        "control_gate": 5,
+        "operator_error": 1,
+        "run_ended": 1
+      }
+    },
+    {
+      "directory": "/tmp/morla-ux-preview-logs/20261109T144016Z_webui_flow_fake_20261109_3deb869eb6f2447fbe9fc8a33e328154",
+      "state": "closed",
+      "clean_shutdown": true,
+      "dropped": {},
+      "error": null,
+      "written": {
+        "run_started": 1,
+        "event": 8014,
+        "feedback": 15228,
+        "input": 43852,
+        "input_gate": 21504,
+        "operator_request": 7,
+        "handoff": 24,
+        "operator_result": 7,
+        "controller": 3846,
+        "control": 7686,
+        "command_request": 7980,
+        "command_receipt": 7980,
+        "control_gate": 5,
+        "run_ended": 1
+      }
+    },
+    {
+      "directory": "/tmp/morla-ux-preview-logs/20261109T144749Z_webui_flow_fake_20261109_355a72e9342f490792cbbdec57714337",
+      "state": "closed",
+      "clean_shutdown": true,
+      "dropped": {},
+      "error": null,
+      "written": {
+        "run_started": 1,
+        "event": 4972,
+        "feedback": 5140,
+        "input": 15116,
+        "input_gate": 5128,
+        "operator_request": 1,
+        "handoff": 4,
+        "operator_result": 1,
+        "controller": 2481,
+        "control": 4962,
+        "command_request": 4961,
+        "command_receipt": 4961,
+        "run_ended": 1
+      }
+    }
+  ],
+  "scope": {
+    "hardware": false,
+    "mujoco": false,
+    "ros_launch": false,
+    "policy": "local all-fake echo stub, not a trained ACT/OpenPI checkpoint"
+  }
+}
