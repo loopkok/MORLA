@@ -122,3 +122,10 @@ GitHub API 以 `loopkok` 身份重新生成提交对象，因此下表远端 SHA
 | 14 | `c88af46444d9230950d43a820b6fe307a44f17cb` | `63122820380113b5394b7e014c04ce2f90736469` | `docs: switch MORLA publication to loopkok API` |
 
 收尾日志提交以已修正路径的远端 HEAD `b471886d70e3f4e81fbf6ad87714be0b46297776` 为父提交，并将本次调查与修复记录纳入发布树；最终远端分支 SHA 由更新后查询的 `main` ref 确认。
+
+## 2026-11-09 — 参考图工作站 UI 与测试数据闭环发布
+
+- 基线 `8878a7a`，实现提交 `b4c78bf`，73 个文件；包含 UI、流程修复、dist、CHANGELOG、README、验证报告与截图/fake 配置。
+- 通过已有 SSH 认证普通推送至 `loopkok/MORLA:main`，返回 `8878a7a..b4c78bf HEAD -> main`；随后 ls-remote 核验远端实现提交一致。
+- 前端 47 项、后端 61 项通过，TypeScript/Vite 构建通过；浏览器测试数据主流程完成，3 段完整数据共 1336 帧图像且丢样 0。临时服务与原始 HDF5 不提交，未部署真机。
+- 详细范围、现场边界与发布结果见 [本轮日志](integrations/CHANGE_LOG_WEB_UI_REFERENCE_2026-11-09.md)。本结果记录以单独文档提交同步。

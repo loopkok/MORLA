@@ -22,4 +22,9 @@
 
 代码、README、CHANGELOG、验证报告、截图、精简的下载日志及 fake 配置纳入仓库。/tmp 下临时服务/插件安装/输入注入器和原始 HDF5 不提交，不部署到机器人。真机、MuJoCo、ROS launch 与真实训练 checkpoint 未在本轮验收；echo 仅验证传输/契约/仲裁流程。
 
-实现提交完成后将补记提交号与远端核验结果。
+## 发布结果
+
+- 实现与证据提交：`b4c78bf`（feat(web): rebuild workstation UI and validate fake-device workflows），73 个文件。
+- 普通 SSH 推送成功：`8878a7a..b4c78bf HEAD -> main`。随后 ls-remote 确认远端 main 与本地实现提交一致。
+- TypeScript/Vite 在提交前重新构建通过，产物无额外差异；前端 47 项、后端 61 项验证详见全流程记录。
+- 本发布结果作为后续文档提交同步；最终分支提交号以 Git 历史为准，避免日志自引用。未修改 origin URL 或用户全局配置。
