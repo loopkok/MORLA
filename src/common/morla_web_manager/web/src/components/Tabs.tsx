@@ -33,6 +33,7 @@ export function Tabs({ tabs, active, onChange }: Props) {
 const barStyle: React.CSSProperties = {
   display: 'flex',
   gap: '4px',
+  overflowX: 'auto',
   padding: '0 20px',
   borderBottom: '1px solid #1f2937',
 }
@@ -44,6 +45,8 @@ function tabStyle(on: boolean): React.CSSProperties {
     borderBottom: on ? '2px solid #d9b770' : '2px solid transparent',
     padding: '10px 16px',
     cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
     fontSize: '14px',
     fontWeight: on ? 600 : 400,
   }

@@ -70,7 +70,7 @@ export default function App() {
       {active !== 'piano' && pianoActive && <p role="status" style={{ color: '#fbbf24', padding: '0 16px' }}>钢琴会话仍保留，原机器人控制仍受互斥保护。<button onClick={() => setActive('piano')}>返回钢琴工作台停止或断开</button></p>}
 
       <main style={mainStyle}>
-        {active === 'compose' && <ComposableTab />}
+        <div hidden={active !== 'compose'}><ComposableTab visible={active === 'compose'} /></div>
         {active === 'monitor' && <MonitorTab state={state} />}
         {active === 'health' && <HealthPanel state={state} />}
         {active === 'data' && <DataProcessTab state={state} connected={wsConnected} />}

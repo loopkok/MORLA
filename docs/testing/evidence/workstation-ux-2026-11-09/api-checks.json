@@ -1,0 +1,130 @@
+{
+  "preflight_ready": true,
+  "contract": {
+    "state_features": [
+      {
+        "feature_id": "arm.position.joint1",
+        "name": "arm.position.joint1",
+        "instance_id": "arm",
+        "port_id": "position",
+        "local_name": "joint1",
+        "unit": "rad",
+        "semantic": "joint_state"
+      },
+      {
+        "feature_id": "arm.position.joint2",
+        "name": "arm.position.joint2",
+        "instance_id": "arm",
+        "port_id": "position",
+        "local_name": "joint2",
+        "unit": "rad",
+        "semantic": "joint_state"
+      },
+      {
+        "feature_id": "arm.position.joint3",
+        "name": "arm.position.joint3",
+        "instance_id": "arm",
+        "port_id": "position",
+        "local_name": "joint3",
+        "unit": "rad",
+        "semantic": "joint_state"
+      },
+      {
+        "feature_id": "arm.position.joint4",
+        "name": "arm.position.joint4",
+        "instance_id": "arm",
+        "port_id": "position",
+        "local_name": "joint4",
+        "unit": "rad",
+        "semantic": "joint_state"
+      },
+      {
+        "feature_id": "arm.position.joint5",
+        "name": "arm.position.joint5",
+        "instance_id": "arm",
+        "port_id": "position",
+        "local_name": "joint5",
+        "unit": "rad",
+        "semantic": "joint_state"
+      },
+      {
+        "feature_id": "arm.position.joint6",
+        "name": "arm.position.joint6",
+        "instance_id": "arm",
+        "port_id": "position",
+        "local_name": "joint6",
+        "unit": "rad",
+        "semantic": "joint_state"
+      }
+    ],
+    "action_features": [
+      {
+        "feature_id": "arm.position_target.joint1",
+        "name": "arm.position_target.joint1",
+        "instance_id": "arm",
+        "port_id": "position_target",
+        "local_name": "joint1",
+        "unit": "rad",
+        "semantic": "absolute_position"
+      },
+      {
+        "feature_id": "arm.position_target.joint2",
+        "name": "arm.position_target.joint2",
+        "instance_id": "arm",
+        "port_id": "position_target",
+        "local_name": "joint2",
+        "unit": "rad",
+        "semantic": "absolute_position"
+      },
+      {
+        "feature_id": "arm.position_target.joint3",
+        "name": "arm.position_target.joint3",
+        "instance_id": "arm",
+        "port_id": "position_target",
+        "local_name": "joint3",
+        "unit": "rad",
+        "semantic": "absolute_position"
+      },
+      {
+        "feature_id": "arm.position_target.joint4",
+        "name": "arm.position_target.joint4",
+        "instance_id": "arm",
+        "port_id": "position_target",
+        "local_name": "joint4",
+        "unit": "rad",
+        "semantic": "absolute_position"
+      },
+      {
+        "feature_id": "arm.position_target.joint5",
+        "name": "arm.position_target.joint5",
+        "instance_id": "arm",
+        "port_id": "position_target",
+        "local_name": "joint5",
+        "unit": "rad",
+        "semantic": "absolute_position"
+      },
+      {
+        "feature_id": "arm.position_target.joint6",
+        "name": "arm.position_target.joint6",
+        "instance_id": "arm",
+        "port_id": "position_target",
+        "local_name": "joint6",
+        "unit": "rad",
+        "semantic": "absolute_position"
+      }
+    ],
+    "cameras": {
+      "scene": {
+        "instance_id": "scene_camera",
+        "port_id": "rgb",
+        "dataset_key": "scene",
+        "unit": "rgb",
+        "model_slot": null
+      }
+    },
+    "state_dim": 6,
+    "action_dim": 6
+  },
+  "roundtrip_preserved": true,
+  "conflict_status": 409
+}

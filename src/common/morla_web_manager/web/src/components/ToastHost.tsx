@@ -11,11 +11,11 @@ const COLORS: Record<ToastKind, string> = {
 export function ToastHost() {
   const toasts = useSyncExternalStore(subscribeToasts, getToasts, getToasts)
   return (
-    <div style={hostStyle}>
+    <div style={hostStyle} role="status" aria-live="polite">
       {toasts.map((t: Toast) => (
         <div key={t.id} style={toastStyle(COLORS[t.kind])} onClick={() => dismissToast(t.id)}>
           <span style={dotStyle(COLORS[t.kind])} />
-          <span>{t.message}</span>
+          <span>{t.message}</span><button aria-label="关闭通知" onClick={() => dismissToast(t.id)} style={{background:'transparent',border:0,color:'inherit',cursor:'pointer'}}>×</button>
         </div>
       ))}
     </div>
@@ -30,7 +30,7 @@ const hostStyle: React.CSSProperties = {
   flexDirection: 'column',
   gap: '8px',
   zIndex: 1000,
-  maxWidth: '420px',
+  maxWidth: 'min(420px, calc(100vw - 32px))',
 }
 
 function toastStyle(color: string): React.CSSProperties {

@@ -1,6 +1,10 @@
-import { useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { enumLabels, identity, matrixToTransform, parameterLabels, poseToTransform, transformToMatrix, transformToPose } from '../lib/workcell'
 import type { Schema } from '../lib/workcell'
+
+export const FieldIssues=createContext<Record<string,string>>({})
+
+export function InlineIssue({name}:{name:string}){const issues=useContext(FieldIssues);return issues[name]?<span className="wc-field-error" role="alert">{issues[name]}</span>:null}
 
 export function NumberInput({ value, onChange, label, schema = {}, placeholder }: { value?: number; onChange:(v:number)=>void; label:string; schema?:Schema; placeholder?:string }) {
  const [text,setText]=useState(value==null?'':String(value))
@@ -40,13 +44,18 @@ export function ValueField({ name, value, schema={}, onChange }: {name:string;va
  if(kind==='null') return <label>{title}<select aria-label={title} value="" onChange={e=>onChange(e.target.value)}><option value="">未分配</option></select></label>
  return <label>{title}<input aria-label={title} value={value==null?'':String(value)} placeholder={schema.description || '未设置'} onChange={e=>onChange(e.target.value)} /></label>
 }
-export function ObjectFields({ value, properties={}, defaults={}, onChange, allowNew=false }: {value:Record<string,unknown>;properties?:Record<string,Schema>;defaults?:Record<string,unknown>;onChange:(v:Record<string,unknown>)=>void;allowNew?:boolean}) {
+export function ObjectFields({ value, properties={}, defaults={}, overrides={}, sourceLabel, required=[], onChange, allowNew=false }: {value:Record<string,unknown>;properties?:Record<string,Schema>;defaults?:Record<string,unknown>;overrides?:Record<string,unknown>;sourceLabel?:string;required?:string[];onChange:(v:Record<string,unknown>)=>void;allowNew?:boolean}) {
+ const issues=useContext(FieldIssues)
  const [newKey,setNewKey]=useState('');const [newType,setNewType]=useState('string')
  const keys=[...new Set([...Object.keys(properties),...Object.keys(value)])]
  return <><div className="wc-form-grid">{keys.map(key=>{
  const schema=properties[key] || {};const current=value[key] ?? defaults[key] ?? schema.default
- return <div key={key} className={schema.type==='array'||schema.type==='object'||Array.isArray(current)||current&&typeof current==='object'?'wc-wide':''}>
+ return <div key={key} data-field={key} data-invalid={!!issues[key]} className={schema.type==='array'||schema.type==='object'||Array.isArray(current)||current&&typeof current==='object'?'wc-wide':''}>
+ {required.includes(key)&&<small className="wc-required">必填</small>}
  <ValueField name={key} value={current} schema={schema} onChange={v=>onChange({...value,[key]:v})} />
+ {issues[key]&&<p className="wc-field-error" role="alert">{issues[key]}</p>}
+ <small className="wc-field-source">{key in value?(sourceLabel||'显式值'):'插件默认'}{key in overrides?' · 运行时被部署覆盖为 '+JSON.stringify(overrides[key]):''}</small>
+ {schema.description&&<p className="wc-field-description">{schema.description}</p>}
  {key in value&&<button type="button" className="wc-text-button wc-reset" aria-label={'恢复默认 '+(parameterLabels[key]||key)} onClick={()=>{const next={...value};delete next[key];onChange(next)}}>恢复默认</button>}
  </div>})}</div>
  {allowNew&&<div className="wc-inline wc-new-property"><input aria-label="新增字段名称" placeholder="自定义字段名称" value={newKey} onChange={e=>setNewKey(e.target.value)} /><select aria-label="新增字段类型" value={newType} onChange={e=>setNewType(e.target.value)}><option value="string">文本</option><option value="number">数值</option><option value="boolean">开关</option><option value="array">列表</option><option value="object">属性组</option></select><button type="button" disabled={!newKey.trim()||newKey in value||['__proto__','constructor','prototype'].includes(newKey)} onClick={()=>{onChange({...value,[newKey]:newType==='number'?0:newType==='boolean'?false:newType==='array'?[]:newType==='object'?{}:''});setNewKey('')}}>添加字段</button></div>}

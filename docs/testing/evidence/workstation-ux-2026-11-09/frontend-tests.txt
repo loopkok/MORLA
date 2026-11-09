@@ -1,0 +1,48 @@
+✔ S starts once per press, B saves, old keys have no action (0.999292ms)
+✔ single A and N execute only on release (0.083542ms)
+✔ A+N in either order only moves to work position, both release orders work (0.127ms)
+✔ focus loss cancels pending actions and held state (0.087875ms)
+✔ FR3 offers its installed common IK and joint jog, not CR5 controllers (1.131833ms)
+✔ Cartesian jog defaults generate a named map, never joint-jog parameters (0.413542ms)
+✔ joint jog has one assignment per joint, leaving unavailable axes unassigned (0.239ms)
+✔ Quest pose mapping has an orthonormal left-handed basis (0.127ms)
+✔ XYZ and RPY forms round-trip to normalized quaternion and TCP matrix (0.335875ms)
+✔ new configurations are explicitly kinematic, imported defaults are preserved (0.206292ms)
+✔ controller suggestions respect dimensions and scalar target restrictions (0.117125ms)
+✔ pinch and trigger defaults match their actual controller parameters (0.126917ms)
+✔ file import rejects malformed values before rendering, preserves extra fields (0.372ms)
+✔ shipped Vader maps migrate to M3/A/B/R3/X, custom maps remain unchanged (0.268541ms)
+✔ Quest hides actuator parameters and exposes only the selected protocol port (0.26725ms)
+✔ controllers respect robot identity as well as port semantics (0.098333ms)
+✔ camera fields exclude arm and joint configuration in every backend (0.284417ms)
+✔ public Cartesian IK diagnostics show nested solver residuals and preserve CR5 flat reports (0.10775ms)
+✔ FR3 dedicated URDF controllers are robot-specific with differential and lead defaults (0.126917ms)
+✔ recording completion follows validation status even when failure detail is empty (0.168792ms)
+✔ unknown robot and controller metadata drives UI without brand changes (0.142583ms)
+✔ backend round-trip preserves explicit deployment and identity without mutating input (1.293958ms)
+✔ obsolete cleanup preserves unknown and record fields and original data (0.311125ms)
+✔ input switch with same controller preserves TCP, basis and custom explicit parameters (0.144291ms)
+✔ different controller retains supported parameters and previews removals (0.26725ms)
+✔ known controller cap summary respects deployment override (0.272917ms)
+✔ diagnostic paths locate binding and deployment editors (0.221041ms)
+✔ v2 handles null, structured conflicts and non JSON errors (14.423292ms)
+✔ operation failures are tracked; direct success does not poll (302.427791ms)
+✔ unregistered operation remains uncertain without replaying POST (302.653417ms)
+✔ toast store provides immutable snapshots (0.287958ms)
+✔ snapshot ignores object key order but retains explicit values (13.808208ms)
+✔ lost mutation response is uncertain and never automatically replayed (0.180292ms)
+✔ structured compile issues and server failures keep their original details (0.38275ms)
+✔ aborted preflight cannot return a successful late result (0.180125ms)
+✔ teleop completion waits for state and reports transition rollback (301.478208ms)
+✔ work position failure is not reported as successful submission (0.194916ms)
+✔ unresolved endpoints and mount paths select the owning editor (0.224083ms)
+✔ known conflicts have an actionable explanation without losing raw detail (0.05925ms)
+✔ lost control-state response reports uncertainty without resubmitting (0.088958ms)
+ℹ tests 40
+ℹ suites 0
+ℹ pass 40
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1273.573916

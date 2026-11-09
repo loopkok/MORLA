@@ -11,7 +11,7 @@ export interface Toast {
 }
 
 let nextId = 1
-const toasts: Toast[] = []
+let toasts: Toast[] = []
 const listeners = new Set<() => void>()
 
 function emit() {
@@ -20,7 +20,7 @@ function emit() {
 
 export function pushToast(message: string, kind: ToastKind = 'info', ttlMs = 3500): void {
   const t: Toast = { id: nextId++, kind, message }
-  toasts.push(t)
+  toasts = [...toasts, t]
   emit()
   if (ttlMs > 0) {
     setTimeout(() => dismissToast(t.id), ttlMs)
@@ -30,7 +30,7 @@ export function pushToast(message: string, kind: ToastKind = 'info', ttlMs = 350
 export function dismissToast(id: number): void {
   const i = toasts.findIndex((t) => t.id === id)
   if (i >= 0) {
-    toasts.splice(i, 1)
+    toasts = toasts.filter(t => t.id !== id)
     emit()
   }
 }
