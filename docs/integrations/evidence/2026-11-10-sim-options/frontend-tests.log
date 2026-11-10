@@ -1,0 +1,296 @@
+
+> morla-web-manager@0.1.0 test:workcell
+> node --test test/workcell.test.mjs test/operatorKeyboard.test.mjs test/workstation.test.mjs
+
+TAP version 13
+# Subtest: S starts once per press, B saves, old keys have no action
+ok 1 - S starts once per press, B saves, old keys have no action
+  ---
+  duration_ms: 1.746776
+  type: 'test'
+  ...
+# Subtest: single A and N execute only on release
+ok 2 - single A and N execute only on release
+  ---
+  duration_ms: 0.387448
+  type: 'test'
+  ...
+# Subtest: A+N in either order only moves to work position, both release orders work
+ok 3 - A+N in either order only moves to work position, both release orders work
+  ---
+  duration_ms: 0.486151
+  type: 'test'
+  ...
+# Subtest: focus loss cancels pending actions and held state
+ok 4 - focus loss cancels pending actions and held state
+  ---
+  duration_ms: 0.347003
+  type: 'test'
+  ...
+# Subtest: FR3 offers its installed common IK and joint jog, not CR5 controllers
+ok 5 - FR3 offers its installed common IK and joint jog, not CR5 controllers
+  ---
+  duration_ms: 2.719909
+  type: 'test'
+  ...
+# Subtest: Cartesian jog defaults generate a named map, never joint-jog parameters
+ok 6 - Cartesian jog defaults generate a named map, never joint-jog parameters
+  ---
+  duration_ms: 0.917479
+  type: 'test'
+  ...
+# Subtest: joint jog has one assignment per joint, leaving unavailable axes unassigned
+ok 7 - joint jog has one assignment per joint, leaving unavailable axes unassigned
+  ---
+  duration_ms: 0.266433
+  type: 'test'
+  ...
+# Subtest: Quest pose mapping has an orthonormal left-handed basis
+ok 8 - Quest pose mapping has an orthonormal left-handed basis
+  ---
+  duration_ms: 0.32382
+  type: 'test'
+  ...
+# Subtest: XYZ and RPY forms round-trip to normalized quaternion and TCP matrix
+ok 9 - XYZ and RPY forms round-trip to normalized quaternion and TCP matrix
+  ---
+  duration_ms: 0.641509
+  type: 'test'
+  ...
+# Subtest: new configurations are explicitly kinematic, imported defaults are preserved
+ok 10 - new configurations are explicitly kinematic, imported defaults are preserved
+  ---
+  duration_ms: 0.37249
+  type: 'test'
+  ...
+# Subtest: controller suggestions respect dimensions and scalar target restrictions
+ok 11 - controller suggestions respect dimensions and scalar target restrictions
+  ---
+  duration_ms: 0.271523
+  type: 'test'
+  ...
+# Subtest: pinch and trigger defaults match their actual controller parameters
+ok 12 - pinch and trigger defaults match their actual controller parameters
+  ---
+  duration_ms: 0.22152
+  type: 'test'
+  ...
+# Subtest: file import rejects malformed values before rendering, preserves extra fields
+ok 13 - file import rejects malformed values before rendering, preserves extra fields
+  ---
+  duration_ms: 1.167243
+  type: 'test'
+  ...
+# Subtest: shipped Vader maps migrate to M3/A/B/R3/X, custom maps remain unchanged
+ok 14 - shipped Vader maps migrate to M3/A/B/R3/X, custom maps remain unchanged
+  ---
+  duration_ms: 1.225851
+  type: 'test'
+  ...
+# Subtest: Quest hides actuator parameters and exposes only the selected protocol port
+ok 15 - Quest hides actuator parameters and exposes only the selected protocol port
+  ---
+  duration_ms: 0.587819
+  type: 'test'
+  ...
+# Subtest: controllers respect robot identity as well as port semantics
+ok 16 - controllers respect robot identity as well as port semantics
+  ---
+  duration_ms: 0.187227
+  type: 'test'
+  ...
+# Subtest: camera fields exclude arm and joint configuration in every backend
+ok 17 - camera fields exclude arm and joint configuration in every backend
+  ---
+  duration_ms: 0.381697
+  type: 'test'
+  ...
+# Subtest: public Cartesian IK diagnostics show nested solver residuals and preserve CR5 flat reports
+ok 18 - public Cartesian IK diagnostics show nested solver residuals and preserve CR5 flat reports
+  ---
+  duration_ms: 0.206713
+  type: 'test'
+  ...
+# Subtest: FR3 dedicated URDF controllers are robot-specific with differential and lead defaults
+ok 19 - FR3 dedicated URDF controllers are robot-specific with differential and lead defaults
+  ---
+  duration_ms: 0.315725
+  type: 'test'
+  ...
+# Subtest: recording completion follows validation status even when failure detail is empty
+ok 20 - recording completion follows validation status even when failure detail is empty
+  ---
+  duration_ms: 0.321746
+  type: 'test'
+  ...
+# Subtest: unknown robot and controller metadata drives UI without brand changes
+ok 21 - unknown robot and controller metadata drives UI without brand changes
+  ---
+  duration_ms: 0.335592
+  type: 'test'
+  ...
+# Subtest: backend round-trip preserves explicit deployment and identity without mutating input
+ok 22 - backend round-trip preserves explicit deployment and identity without mutating input
+  ---
+  duration_ms: 2.710511
+  type: 'test'
+  ...
+# Subtest: obsolete cleanup preserves unknown and record fields and original data
+ok 23 - obsolete cleanup preserves unknown and record fields and original data
+  ---
+  duration_ms: 0.976719
+  type: 'test'
+  ...
+# Subtest: input switch with same controller preserves TCP, basis and custom explicit parameters
+ok 24 - input switch with same controller preserves TCP, basis and custom explicit parameters
+  ---
+  duration_ms: 0.466634
+  type: 'test'
+  ...
+# Subtest: different controller retains supported parameters and previews removals
+ok 25 - different controller retains supported parameters and previews removals
+  ---
+  duration_ms: 0.671875
+  type: 'test'
+  ...
+# Subtest: known controller cap summary respects deployment override
+ok 26 - known controller cap summary respects deployment override
+  ---
+  duration_ms: 1.020951
+  type: 'test'
+  ...
+# Subtest: diagnostic paths locate binding and deployment editors
+ok 27 - diagnostic paths locate binding and deployment editors
+  ---
+  duration_ms: 0.493314
+  type: 'test'
+  ...
+# Subtest: v2 handles null, structured conflicts and non JSON errors
+ok 28 - v2 handles null, structured conflicts and non JSON errors
+  ---
+  duration_ms: 24.043763
+  type: 'test'
+  ...
+# Subtest: operation failures are tracked; direct success does not poll
+ok 29 - operation failures are tracked; direct success does not poll
+  ---
+  duration_ms: 302.282179
+  type: 'test'
+  ...
+# Subtest: unregistered operation remains uncertain without replaying POST
+ok 30 - unregistered operation remains uncertain without replaying POST
+  ---
+  duration_ms: 301.393864
+  type: 'test'
+  ...
+# Subtest: toast store provides immutable snapshots
+ok 31 - toast store provides immutable snapshots
+  ---
+  duration_ms: 0.62096
+  type: 'test'
+  ...
+# Subtest: snapshot ignores object key order but retains explicit values
+ok 32 - snapshot ignores object key order but retains explicit values
+  ---
+  duration_ms: 6.26163
+  type: 'test'
+  ...
+# Subtest: lost mutation response is uncertain and never automatically replayed
+ok 33 - lost mutation response is uncertain and never automatically replayed
+  ---
+  duration_ms: 0.366038
+  type: 'test'
+  ...
+# Subtest: structured compile issues and server failures keep their original details
+ok 34 - structured compile issues and server failures keep their original details
+  ---
+  duration_ms: 1.370269
+  type: 'test'
+  ...
+# Subtest: aborted preflight cannot return a successful late result
+ok 35 - aborted preflight cannot return a successful late result
+  ---
+  duration_ms: 0.434064
+  type: 'test'
+  ...
+# Subtest: teleop completion waits for state and reports transition rollback
+ok 36 - teleop completion waits for state and reports transition rollback
+  ---
+  duration_ms: 301.268501
+  type: 'test'
+  ...
+# Subtest: work position failure is not reported as successful submission
+ok 37 - work position failure is not reported as successful submission
+  ---
+  duration_ms: 0.3023
+  type: 'test'
+  ...
+# Subtest: unresolved endpoints and mount paths select the owning editor
+ok 38 - unresolved endpoints and mount paths select the owning editor
+  ---
+  duration_ms: 0.220438
+  type: 'test'
+  ...
+# Subtest: known conflicts have an actionable explanation without losing raw detail
+ok 39 - known conflicts have an actionable explanation without losing raw detail
+  ---
+  duration_ms: 0.105255
+  type: 'test'
+  ...
+# Subtest: lost control-state response reports uncertainty without resubmitting
+ok 40 - lost control-state response reports uncertainty without resubmitting
+  ---
+  duration_ms: 0.171137
+  type: 'test'
+  ...
+# Subtest: main camera follows simulation actuator mode and deployment backend overrides
+ok 41 - main camera follows simulation actuator mode and deployment backend overrides
+  ---
+  duration_ms: 0.360158
+  type: 'test'
+  ...
+# Subtest: simulation without a configured simulation camera stays empty
+ok 42 - simulation without a configured simulation camera stays empty
+  ---
+  duration_ms: 0.125823
+  type: 'test'
+  ...
+# Subtest: device library separates input, arms, end effectors, body, cameras and sensors
+ok 43 - device library separates input, arms, end effectors, body, cameras and sensors
+  ---
+  duration_ms: 0.395643
+  type: 'test'
+  ...
+# Subtest: explicit plugin category supports whole robots without a frontend brand list
+ok 44 - explicit plugin category supports whole robots without a frontend brand list
+  ---
+  duration_ms: 0.125913
+  type: 'test'
+  ...
+# Subtest: hardware frame counts measure feedback rate independently of UI polling
+ok 45 - hardware frame counts measure feedback rate independently of UI polling
+  ---
+  duration_ms: 0.206292
+  type: 'test'
+  ...
+# Subtest: synthetic, stale, faulted and counterless feedback never claim a measured hardware rate
+ok 46 - synthetic, stale, faulted and counterless feedback never claim a measured hardware rate
+  ---
+  duration_ms: 0.204749
+  type: 'test'
+  ...
+# Subtest: solver duration is distinct from feedback age and rejects invalid timestamps
+ok 47 - solver duration is distinct from feedback age and rejects invalid timestamps
+  ---
+  duration_ms: 0.134519
+  type: 'test'
+  ...
+1..47
+# tests 47
+# suites 0
+# pass 47
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1641.866084

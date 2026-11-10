@@ -41,7 +41,7 @@ function simOptions(patch){
 
 真实浏览器复现（`ACTIVE=1` 打桩会话 + 点击「结束工作站」）：
 
-```
+```text
 display after stop web    ← 停用后下拉仍读会话快照
 display after choosing local web   ← 选“本机窗口”被弹回
 ```
@@ -68,12 +68,16 @@ display after choosing local web   ← 选“本机窗口”被弹回
 
 ## 验证
 
-- `npm run build` 通过（tsc + vite），`npm run test:workcell` **47 passed**。
-- 真实 Chromium（Playwright，隔离打桩 API，不启动正式 Web 服务）：
-  - 无会话：打开折叠面板有内容，包含新的空状态说明；「仿真显示」可改并保持。
-  - 点击「运行前检查」后回到运行概览：面板仍有内容，「仿真显示」仍可改。
-  - 有活动会话：改「仿真显示」会 `POST /sessions/{id}/simulation`，值随状态刷新。
-  - **结束后**：改「仿真显示」不再弹回（修复前必然弹回）。
+证据目录：[evidence/2026-11-10-sim-options](evidence/2026-11-10-sim-options/README.md)。
+
+- `npm run build` 通过（tsc + vite），产物 `index-BHkflyt9.js`（[web-build.log](evidence/2026-11-10-sim-options/web-build.log)）。
+- `npm run test:workcell` **47 passed、0 failed**（[frontend-tests.log](evidence/2026-11-10-sim-options/frontend-tests.log)）。
+- 真实 Chromium（Playwright，隔离打桩 API，不启动正式 Web 服务，[browser.log](evidence/2026-11-10-sim-options/browser.log)）：
+  - 无会话：面板有内容并显示新的空状态说明；「仿真显示」可改并保持；点「运行前检查」再回运行概览，面板仍有内容。
+  - 有活动会话：面板显示运行控制；改「仿真显示」发出 `POST /sessions/{id}/simulation` 并保持新值。
+  - **结束后**：改「仿真显示」保持新值（修复前同一脚本失败，值弹回 `web`）。
+- 修复前后对照：同一脚本对提交 `7057691` 的旧 `web/dist` 运行「结束后」场景失败
+  （[browser-before.log](evidence/2026-11-10-sim-options/browser-before.log)），对新产物通过。
 - 未验证：真实 MMK2 场景下的 `set_options`（本机窗口需要图形环境），真机方向与
   实机验收不在本次范围；未改动 watchdog/断链相关逻辑。
 

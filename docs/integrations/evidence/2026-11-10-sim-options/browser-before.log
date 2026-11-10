@@ -1,0 +1,4 @@
+== stopped, bundle from 7057691 (before the fix) ==
+PASS workstation stopped
+FAIL display option no longer snaps back after stop — web
+1 check(s) failed

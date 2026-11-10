@@ -1,0 +1,13 @@
+== no-session ==
+PASS panel explains why controls/pairing are absent
+PASS display option holds without a session — local
+PASS panel still renders after the check tab
+all checks passed
+== active ==
+PASS live session shows the run controls
+PASS active session applies the posted option — local
+all checks passed
+== stopped ==
+PASS workstation stopped
+PASS display option no longer snaps back after stop — local
+all checks passed
