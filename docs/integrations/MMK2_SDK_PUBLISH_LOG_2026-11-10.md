@@ -21,4 +21,10 @@
 
 ## 发布回执
 
-本次先提交功能、文档和证据，再推送 main。成功后的功能提交 SHA 与远端核验记录将补充在本节；日志回执使用后续文档提交发布，最终 SHA 在回复中提供，避免日志自引用。
+- 提交前专项复验：18 passed、1 warning（Starlette/httpx 依赖弃用提示），7.12 s；暂存区 `git diff --cached --check` 通过。
+- 最初本地功能提交：`3d854d4396a42850b6024381b0b41ac8e5128ee7`，56 个文件，6498 行新增、7 行删除。
+- 命令行 `git push origin main` 因 HTTPS 凭据不可用失败：`could not read Username for https://github.com: Device not configured`。未修改认证配置，改用用户已连接且具有 push 权限的 GitHub 接口。
+- 两张 PNG 以原始字节创建 blob；其余文本按 UTF-8 创建。远端生成的完整文件树为 `3ba83a8c21f643186e55d2e8e2209bee93c90fa9`，与本地功能提交树 SHA 完全一致，包含许可证、SDK 原始协议、可执行脚本权限和全部证据。
+- 远端功能提交：[95fa56d792f1c16c1da6970a103800b4419dab1f](https://github.com/loopkok/MORLA/commit/95fa56d792f1c16c1da6970a103800b4419dab1f)，父提交为原基线 7a5addc。通过非强制、带 expected_sha 的 main 引用更新发布，接口返回成功。
+- 随后 `git fetch origin` 成功，origin/main 与上述功能 SHA、文件树一致。GitHub 接口生成的提交身份/时间与本地不同，因此 SHA 不同；本地 main 已按相同文件树对齐到远端功能提交，原始本地提交保留在 reflog 中。
+- 本回执作为后续文档提交发布。最终提交号和远端/工作区一致性在回复中提供，避免日志自引用。
