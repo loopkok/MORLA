@@ -107,6 +107,8 @@
       "input_basis_id": "unity_left_handed_v1",
       "parameters": {
         "position_scale": 0.25,
+        "rotation_scale": 1.0,
+        "smoothing_alpha": 0.35,
         "input_rotation": [
           [
             0.70710418383354,
@@ -156,6 +158,8 @@
       "input_basis_id": "unity_left_handed_v1",
       "parameters": {
         "position_scale": 0.25,
+        "rotation_scale": 1.0,
+        "smoothing_alpha": 0.35,
         "input_rotation": [
           [
             -0.7071093785300145,

@@ -23,7 +23,7 @@ from .scene import model_xml
 # Optional instance parameters. Defaults and bounds match morla_mmk2_driver and
 # the CR5/FR3 differential solvers; the same defaults keep sim and real equal.
 _PARAMETERS = (('position_lead_m', .02, .25),
-               ('rotation_lead_rad', .15, 1.),
+               ('rotation_lead_rad', .35, 1.),
                ('damping_min', .005, 1.),
                ('damping_max', .145, 1.),
                ('singularity_threshold', .05, 1.))

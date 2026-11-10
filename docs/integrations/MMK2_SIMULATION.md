@@ -43,7 +43,7 @@ URDF 的原包名 URI 在运行副本归一为 mmk2_description；原件保存�
 | 参数 | 默认 | 含义 |
 | --- | --- | --- |
 | `position_lead_m` | 0.02 | 每拍有效平移目标相对当前 TCP 的最大超前 |
-| `rotation_lead_rad` | 0.15 | 每拍有效旋转目标相对当前姿态的最大超前 |
+| `rotation_lead_rad` | 0.35 | 每拍有效旋转目标相对当前姿态的最大超前（2026-11-10 由 0.15 调到与 FR3/CR5 一致的 0.35） |
 | `damping_min` | 0.005 | 远离奇异时的 DLS 阻尼 |
 | `damping_max` | 0.145 | 奇异点的 DLS 阻尼 |
 | `singularity_threshold` | 0.05 | `σ_min` 低于该值时阻尼开始增加 |
@@ -53,6 +53,16 @@ URDF 的原包名 URI 在运行副本归一为 mmk2_description；原件保存�
 同轮排查发现公共 `BindingController` 的一个真实缺陷，与 IK 策略无关但会让双臂同时丢帧：新鲜度是用**处理到该绑定那一刻**的时钟判断的。第一帧要为左臂惰性构建 MuJoCo 模型（本机实测约 0.34 s），轮到右臂时同一帧已被判成超过 `max_age_ms: 250` 而过期，于是右臂整帧丢弃。`test_dual_quest_binding_uses_public_ik_and_units` 在 HEAD 上就稳定失败，与本次 solver 改动无关。现在 `BindingEngine._targets` 在帧进入时取一次时间，deadman 与 `controller.step` 都用它判断新鲜度：过期指“样本到达时就已过期”，不包含我们自己的构建/求解耗时。
 
 这是“平滑饱和并保持”，不是“到达目标”。工作位仍应避开限位，腕部到限位时会停住直到反向，这是设计内行为。
+
+### 旋转手感参数（2026-11-10 晚）
+
+上一轮数据里姿态误差长期顶在领先上限、`damping` 贴在 `damping_max`、q4 频繁贴限位。对照 FR3/CR5 之后，MMK2 缺的不是“旋转增益”，而是三个已经存在或刚补上的旋钮：
+
+- **`rotation_lead_rad`**：每臂实例参数，默认从 0.15 改为 0.35（与 FR3/CR5 的 solver 默认一致）。它在 Web 的设备页可见（descriptor `web.fields`），改完需要重新编译已保存装配。
+- **`smoothing_alpha`**：绑定参数，公共 `CartesianController` 新增的输入低通（位置 lerp、姿态 slerp，1=关闭），与 FR3/CR5 异步 controller 里原来的实现同一语义。整机模板双臂写 `0.35`；FR3/CR5 仍用自己的滤波，构造公共 controller 时传 `smooth_input=False`，避免应用两次。
+- **`rotation_scale`**：绑定参数，旋转增量倍率，默认 1.0（1:1，与之前完全一致）。把 `ΔR` 的旋转向量乘以该系数；平移仍只受 `position_scale` 影响。
+
+三者都在 Web 的“遥操控制链”参数里可改。**旋转权重没有暴露**：FR3/CR5/MMK2 的 solver 都把姿态权重硬编码成 `.3`（位置 `1.0`），同时作用于误差、Jacobian 和 alpha 回溯残差；要改属于算法改动，不是配置项。
 
 ## 按下 Grip 时双臂先“降一下”（2026-11-10 夜）
 

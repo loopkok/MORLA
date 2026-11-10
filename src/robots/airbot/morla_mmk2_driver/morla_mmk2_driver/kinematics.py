@@ -13,7 +13,7 @@ from .contract import limits
 # Optional instance parameters shared with the simulation package so sim and
 # real run the same differential-IK policy. Defaults are unchanged behaviour.
 _PARAMETERS = (('position_lead_m', .02, .25),
-               ('rotation_lead_rad', .15, 1.),
+               ('rotation_lead_rad', .35, 1.),
                ('damping_min', .005, 1.),
                ('damping_max', .145, 1.),
                ('singularity_threshold', .05, 1.))

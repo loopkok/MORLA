@@ -29,7 +29,7 @@
 底盘不支持位置偏移。连接断开后软件无法保证控制器停止，需现场验证控制器侧超时。
 故障不自动重连、不恢复旧目标；排除故障后重新启动会话。
 
-双臂默认使用受限微分 IK（同 FR3/CR5 策略）：每帧一次阻尼更新，关节步长由驱动限速/频率与领先距离共同限制，笛卡尔目标领先截断 2cm/0.15rad，不宣称每帧精确收敛。领先与阻尼是实例参数 `position_lead_m`、`rotation_lead_rad`、`damping_min`、`damping_max`、`singularity_threshold`（默认 0.02 / 0.15 / 0.005 / 0.145 / 0.05，与仿真包一致）；腕部到限位时保持当前关节并报告 `limit_pressure_rad`，不返回空解，也不会冻结。
+双臂默认使用受限微分 IK（同 FR3/CR5 策略）：每帧一次阻尼更新，关节步长由驱动限速/频率与领先距离共同限制，笛卡尔目标领先截断 2cm/0.35rad，不宣称每帧精确收敛。领先与阻尼是实例参数 `position_lead_m`、`rotation_lead_rad`、`damping_min`、`damping_max`、`singularity_threshold`（默认 0.02 / 0.35 / 0.005 / 0.145 / 0.05，与仿真包一致；`rotation_lead_rad` 在设备页可见）；绑定侧另有 `smoothing_alpha`（输入低通，1=关闭）和 `rotation_scale`（旋转倍率，默认 1.0）。腕部到限位时保持当前关节并报告 `limit_pressure_rad`，不返回空解，也不会冻结。
 默认 trajectory 请求，缩放 0.05，主机限速/目标领先距离额外约束；此接口不宣称高频伺服。
 `forward_position` 是显式可选 SDK 接口，需按固件验证后使用。底盘 250ms 主机命令超时会请求零速度，
 不是经过验证的控制器看门狗。

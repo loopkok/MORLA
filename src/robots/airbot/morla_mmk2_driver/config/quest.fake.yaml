@@ -46,7 +46,9 @@
         ],
         "max_joint_step": 0.02,
         "max_joint_velocity": 0.2,
-        "position_scale": 0.25
+        "position_scale": 0.25,
+        "rotation_scale": 1.0,
+        "smoothing_alpha": 0.35
       },
       "source": "quest.left_pose",
       "target": "left_arm.position_target"
@@ -95,7 +97,9 @@
         ],
         "max_joint_step": 0.02,
         "max_joint_velocity": 0.2,
-        "position_scale": 0.25
+        "position_scale": 0.25,
+        "rotation_scale": 1.0,
+        "smoothing_alpha": 0.35
       },
       "source": "quest.right_pose",
       "target": "right_arm.position_target"

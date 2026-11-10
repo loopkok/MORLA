@@ -43,8 +43,13 @@ def solver_for(instance):
 
 
 class CartesianController:
-    def __init__(self,solver,*,jog=False,clock=time.monotonic_ns,max_solve_ns=50_000_000,step_cap=True):
+    def __init__(self,solver,*,jog=False,clock=time.monotonic_ns,max_solve_ns=50_000_000,step_cap=True,
+                 smooth_input=True):
         self.solver,self.jog,self.clock,self.max_solve_ns=solver,jog,clock,max_solve_ns
+        # Optional input low-pass (`smoothing_alpha`). Wrappers that already
+        # filter the pose themselves (FR3/CR5 async controllers) pass False, or
+        # the same alpha would be applied twice and quietly soften the arm.
+        self.smooth_input=smooth_input
         # Wrappers that clip their own output (FR3/CR5 async controllers bound
         # the step against the last command and the measured lead) must pass
         # step_cap=False. Applying the same cap twice halves the commanded rate:
@@ -79,6 +84,9 @@ class CartesianController:
         # ~120 ms failed solve per frame, so they stay masked until released.
         self.jog_blocked=None
         self._synced=False
+        # Anchor-time input filter state. Cleared with the anchor so a re-grip
+        # never compares the new hand pose against an old filtered one.
+        self._filtered_input=None
         self.last_report={}
 
     def diagnostics(self):
@@ -113,6 +121,10 @@ class CartesianController:
             self.anchor_input=np.eye(4)
             self.anchor_input[:3,3]=position
             self.anchor_input[:3,:3]=Rotation.from_quat(quat).as_matrix()
+            # Start the optional input filter exactly at the anchored pose: the
+            # anchor is stored raw, so a stale filter would add its difference
+            # to the first target and read as a jump on grip.
+            self._filtered_input=(position.copy(),self.anchor_input[:3,:3].copy())
             self.anchor_robot=current.copy()
         self._synced=True
         self.last_report={'stage':'anchored','feedback_seed':seed.tolist(),'current_tcp':current.tolist(),
@@ -196,15 +208,39 @@ class CartesianController:
             position=np.asarray(value['position'],dtype=float); quat=np.asarray(value['quaternion'],dtype=float)
             if position.shape!=(3,) or quat.shape!=(4,) or not np.isfinite(position).all() or not np.isfinite(quat).all() or not np.isclose(np.linalg.norm(quat),1,atol=1e-3):
                 raise ControllerError('invalid pose')
-            input_pose=np.eye(4); input_pose[:3,3]=position; input_pose[:3,:3]=Rotation.from_quat(quat).as_matrix()
+            # `smoothing_alpha` is the FR3/CR5 input low-pass (1 = off). It is
+            # applied here so every controller that shares this class has the
+            # same knob; wrappers that filter themselves opt out at construction.
+            try: alpha=float(parameters.get('smoothing_alpha',1.))
+            except (TypeError,ValueError): raise ControllerError('invalid smoothing_alpha')
+            if not np.isfinite(alpha) or not 0.<alpha<=1.: raise ControllerError('smoothing_alpha must be in (0, 1]')
+            orientation=Rotation.from_quat(quat).as_matrix()
+            if self.smooth_input and alpha<1.:
+                if self._filtered_input is None:
+                    self._filtered_input=(position.copy(),orientation.copy())
+                else:
+                    previous_position,previous_orientation=self._filtered_input
+                    position=previous_position+alpha*(position-previous_position)
+                    step=Rotation.from_matrix(orientation@previous_orientation.T).as_rotvec()
+                    orientation=Rotation.from_rotvec(alpha*step).as_matrix()@previous_orientation
+                self._filtered_input=(position.copy(),orientation.copy())
+            input_pose=np.eye(4); input_pose[:3,3]=position; input_pose[:3,:3]=orientation
             if self.anchor_input is None:
                 self.anchor_input=input_pose; self.anchor_robot=current.copy()
+                self._filtered_input=(position.copy(),orientation.copy())
                 self.last_report.update(stage='anchored',target_tcp=current.tolist(),target_values=start.tolist())
                 return start.tolist()
             scale=float(parameters.get('position_scale',1))
+            try: rotation_scale=float(parameters.get('rotation_scale',1))
+            except (TypeError,ValueError): raise ControllerError('invalid rotation_scale')
+            if not np.isfinite(rotation_scale) or not 0.<rotation_scale<=2.: raise ControllerError('rotation_scale must be in (0, 2]')
             target=self.anchor_robot.copy()
             target[:3,3]+=position_rotation@(position-self.anchor_input[:3,3])*scale
             delta=input_pose[:3,:3]@self.anchor_input[:3,:3].T
+            # Rotation gain. Only translation used to be scalable; a scale of 1
+            # (the default) keeps the exact previous matrix product.
+            if rotation_scale!=1.:
+                delta=Rotation.from_rotvec(Rotation.from_matrix(delta).as_rotvec()*rotation_scale).as_matrix()
             target[:3,:3]=rotation@delta@rotation.T@self.anchor_robot[:3,:3]
         # Tool offsets must already be resolved and versioned by the compiler.
         target_tip=target@np.linalg.inv(tool)

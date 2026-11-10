@@ -1,5 +1,15 @@
 # Changelog（MORLA）
 
+## 2026-11-10 — MMK2 旋转手感三旋钮：输入滤波、旋转倍率、旋转领先（均上 Web）
+
+- 对照 FR3/CR5 后确认三台机器人**都没有"旋转增益"**：相对位姿的旋转增量一直是 1:1（`target_R = U·ΔR·Uᵀ·R_anchor`），`position_scale` 只作用于平移；姿态权重也都是 solver 里硬编码的 `.3`（位置 `1.0`，同时作用于误差、Jacobian 和 alpha 回溯残差）。MMK2 缺的是 FR3/CR5 已有的输入滤波，以及 `rotation_lead_rad` 默认值：FR3/CR5 为 0.35，MMK2 只有 0.15。
+- `morla_teleop.kinematics.CartesianController` 新增两个绑定参数：`smoothing_alpha`（位置 lerp + 姿态 slerp 的输入低通，1=关闭；锚点/重锚时滤波器从锚点姿态起步，按下 Grip 不会把旧滤波状态当成位移）和 `rotation_scale`（把 `ΔR` 的旋转向量乘以该系数，`(0, 2]`，默认 1.0 时走原矩阵乘法、数值不变）。新增构造开关 `smooth_input`：FR3/CR5 的异步 controller 原本就自己滤波，传 `False` 防止 alpha 被应用两次。
+- MMK2 `rotation_lead_rad` 默认 0.15 → 0.35（`mmk2_mujoco_sim` 与 `morla_mmk2_driver` 的 `_PARAMETERS`、两侧 descriptor `defaults`），并在两侧臂 descriptor 的 `web.fields` 中暴露，Web 设备页可直接改。已保存装配未固定该值，重新编译即可生效。
+- Web：`TeleopChains` 的“求解与跟随参数”对所有 Cartesian 绑定显示 `position_scale`、`rotation_scale`、`smoothing_alpha`（摇杆点动不显示）；`workcell.ts` 补标签“旋转倍率”、默认值 1 与新绑定默认参数。`web/dist` 已重建。
+- 配置：`mmk2_mujoco_sim/config/quest.sim.yaml`、`quest.whole.sim.yaml`、`morla_mmk2_driver/config/quest.fake.yaml`、`quest.real.example.yaml` 的双臂绑定写 `smoothing_alpha: 0.35`、`rotation_scale: 1.0`（与 FR3/CR5 模板的滤波系数一致）。FR3/CR5 的参数白名单同步接受 `rotation_scale`。
+- 测试：`test_kinematics.py` 新增旋转倍率、滤波收敛、默认关闭与非法值拒绝 11 项，`morla_teleop` 78 passed、`morla_core` 62 passed、FR3/CR5 123 passed、MMK2 仿真 24 passed、驱动 18 passed；`npm run build` 通过。MMK2 两项"旋转领先上界"用例改为断言 `solver.rotation_lead_rad`，不再写死 0.15。
+- 文档：设备接入指南 §5.1 增加“旋转有三类旋钮：倍率、滤波、领先；权重不是旋钮”，MMK2 仿真记录新增“旋转手感参数”小节，两份 README 同步。未启动或重启生产 Web 服务。
+
 ## 2026-11-10 — 按下 Grip 时 MMK2 双臂先“降一下”：扳机→升降改为锚定相对映射
 
 - 操作员报告：工作站启动、恢复发送后按住两个手柄的 Grip，仿真的两个臂先整体降一下才开始遥操；FR3/CR5 没有这个突变。追踪录制 `20261110T145258Z_…_a2f7885`：`handoff` 在 55.51 s，55.552 s 第一拍升降命令就是 `[0.1]`，55.573 s 升降反馈从 `0.0` 变成 `0.1`；同一时刻 `left_arm` 的目标 TCP 与实测只差 0.1 mm，0.6 s 内关节变化 ≤0.05 rad。**跳变在升降，不在双臂 IK。**

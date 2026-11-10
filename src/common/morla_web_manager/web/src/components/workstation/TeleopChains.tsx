@@ -20,7 +20,7 @@ export function TeleopChains({actuators, addBinding, assembly, catalog, changed,
      })
      const setParams=(parameters:Record<string,unknown>)=>patchBinding(index,{parameters})
      const deviceIk=!!catalog.find(c=>c.plugin_id===binding.controller)?.web?.ik_modes?.length
-     const common=cartesian?['position_scale','linear_speed','angular_speed',...(deviceIk?['max_joint_velocity','smoothing_alpha']:[])].filter(key=>jog?!['position_scale','smoothing_alpha'].includes(key):!['linear_speed','angular_speed'].includes(key)):joint?['speed']:[]
+     const common=cartesian?['position_scale','rotation_scale','smoothing_alpha','linear_speed','angular_speed',...(deviceIk?['max_joint_velocity']:[])].filter(key=>jog?!['position_scale','rotation_scale','smoothing_alpha'].includes(key):!['linear_speed','angular_speed'].includes(key)):joint?['speed']:[]
      const hidden=['input_position_rotation','input_rotation','input_basis','solver_tip_from_tool','axes_map',...common]
      const advanced=deviceIk?['command_lead_rad','max_joint_step','position_lead_m','rotation_lead_rad','damping_min','damping_max','singularity_threshold','differential_step_rad']:[]
      return binding.id===selectedBinding&&<article className="wc-device" key={binding.id}><div className="wc-device-heading"><h4>{label(binding.controller)} <code>{binding.id}</code></h4><button className="wc-text-button wc-destructive" onClick={()=>changed({...assembly,bindings:assembly.bindings.filter((_,i)=>i!==index)})}>移除映射</button></div><div className="wc-form-grid">

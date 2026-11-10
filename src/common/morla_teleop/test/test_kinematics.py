@@ -244,3 +244,58 @@ def test_invalid_joint_step_limits_are_rejected(bad):
         _far_request(CartesianController(FarBranchSolver()),{'max_joint_step':bad},seed)
     with pytest.raises(ControllerError):
         _far_request(CartesianController(FarBranchSolver()),{'max_joint_velocity':bad},seed)
+
+
+def _pose_tick(controller, parameters, angle=.4, position=(0.,0.,0.), seed=None):
+    from scipy.spatial.transform import Rotation
+    seed=np.zeros(7) if seed is None else seed
+    controller.reanchor({'position':[0,0,0],'quaternion':[0,0,0,1]},seed,parameters)
+    delta=Rotation.from_rotvec([angle,0,0]).as_quat().tolist()
+    controller({'position':list(position),'quaternion':delta},seed,.02,parameters)
+    return np.asarray(controller.diagnostics()['target_tcp'])
+
+
+def test_rotation_scale_scales_the_hand_rotation_only():
+    from scipy.spatial.transform import Rotation
+    for scale,expected in ((1.,.4),(.5,.2),(1.5,.6)):
+        target=_pose_tick(CartesianController(Solver()),{'rotation_scale':scale},position=(.2,0,0))
+        assert Rotation.from_matrix(target[:3,:3]).magnitude()==pytest.approx(expected,abs=1e-9)
+        # Translation keeps the 1:1 mapping (position_scale defaults to 1).
+        np.testing.assert_allclose(target[:3,3],[.2,0,0],atol=1e-12)
+
+
+def test_smoothing_alpha_eases_the_pose_towards_the_hand():
+    from scipy.spatial.transform import Rotation
+    controller=CartesianController(Solver());seed=np.zeros(7)
+    parameters={'smoothing_alpha':.5}
+    delta=Rotation.from_rotvec([.4,0,0]).as_quat().tolist()
+    controller.reanchor({'position':[0,0,0],'quaternion':[0,0,0,1]},seed,parameters)
+    # The filter starts at the anchored pose, so the first tick covers half the
+    # hand motion and the next one half of what is left rather than jumping.
+    controller({'position':[.2,0,0],'quaternion':delta},seed,.02,parameters)
+    target=np.asarray(controller.diagnostics()['target_tcp'])
+    assert Rotation.from_matrix(target[:3,:3]).magnitude()==pytest.approx(.2,abs=1e-9)
+    np.testing.assert_allclose(target[:3,3],[.1,0,0],atol=1e-12)
+    controller({'position':[.2,0,0],'quaternion':delta},seed,.02,parameters)
+    target=np.asarray(controller.diagnostics()['target_tcp'])
+    assert Rotation.from_matrix(target[:3,:3]).magnitude()==pytest.approx(.3,abs=1e-9)
+    np.testing.assert_allclose(target[:3,3],[.15,0,0],atol=1e-12)
+
+
+def test_filter_defaults_off_and_wrappers_can_opt_out():
+    # 1 (or a missing key) is the previous behaviour: no input filter at all.
+    from scipy.spatial.transform import Rotation
+    target=_pose_tick(CartesianController(Solver(),smooth_input=False),{'smoothing_alpha':.5})
+    assert Rotation.from_matrix(target[:3,:3]).magnitude()==pytest.approx(.4,abs=1e-9)
+
+
+@pytest.mark.parametrize('bad',[0,-1,float('nan'),2.5,'x'])
+def test_invalid_rotation_scale_is_rejected(bad):
+    with pytest.raises(ControllerError):
+        _pose_tick(CartesianController(Solver()),{'rotation_scale':bad})
+
+
+@pytest.mark.parametrize('bad',[0,-.5,1.5,float('nan'),'x'])
+def test_invalid_smoothing_alpha_is_rejected(bad):
+    with pytest.raises(ControllerError):
+        _pose_tick(CartesianController(Solver()),{'smoothing_alpha':bad})

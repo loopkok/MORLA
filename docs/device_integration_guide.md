@@ -360,6 +360,8 @@ MORLA 的笛卡尔遥操采用相对位移：首次有效输入将人手位姿�
 
 **同理，用扳机/摇杆驱动位置执行器时也要用相对量。** `morla.scalar_map` 写的是“扳机当前指的那个绝对位置”，配上 hold deadman 后每次按下 grip 都会把关节瞬移到扳机当时的值。MMK2 整机模板的左扳机静止为 0，升降映射是 `[0.1, 0.2]`：按下 grip 后 20 ms 内升降目标就是 `0.1 m`，而厂商 URDF 的 slide 关节（origin rpy `3.1416 0 1.5708`、axis `0 0 1`）在世界里朝下，于是双臂连同躯干瞬降 10 cm，之后才开始遥操；FR3/CR5 不会突变，因为它们的位置输入走相对位移。同类输入用 `morla.scalar_anchored`：engage 时锁存实测位置与扳机值，只下发之后的变化量，松开再按重新锁存；`input_range`/`output_range` 含义不变，但 `output_range` 变成相对行程而不是绝对位置。夹爪可以继续用 `scalar_map`——开合本来就是绝对状态，按下瞬间张开几厘米是预期行为。
 
+**旋转有三类旋钮：倍率、滤波、领先；权重不是旋钮。** 相对位移的旋转增量一直是 1:1（`target_R = U·ΔR·Uᵀ·R_anchor`），`position_scale` 只作用于平移。2026-11-10 起公共 `CartesianController` 读两个绑定参数：`rotation_scale`（默认 1，允许 `(0, 2]`，把 `ΔR` 的旋转向量乘以该系数；取 1 时走原来的矩阵乘法，数值不变）和 `smoothing_alpha`（与 FR3/CR5 相同的输入低通：位置 lerp、姿态 slerp，1=关闭）。锚点建立时滤波器从锚点姿态起步，否则按下 grip 的第一拍会把旧滤波状态当成位移。FR3/CR5 的异步 controller 在送进公共 controller 之前已经自己滤波，所以构造时传 `smooth_input=False`，否则 alpha 会被应用两次。姿态领先是 solver 参数 `rotation_lead_rad`（MMK2 默认已从 0.15 调到 0.35，与 FR3/CR5 一致；MMK2 是每臂实例参数，FR3/CR5 是绑定参数）。而姿态在误差和雅可比里的**权重**（三台机器人都是硬编码 `.3`，位置 `1.0`，同时作用于误差、Jacobian 与 alpha 回溯残差）没有 Web 参数：要改必须改代码并重测，不要把它当成可调手感旋钮。
+
 同一控制板上的双臂、头、腰必须说明 HOME/disable/stop 的板级作用范围。只选左臂时，不得误使能或回位右臂/头/腰；未选择关节是 disabled 还是 held 需要实际证明。
 
 ### 5.2 夹爪

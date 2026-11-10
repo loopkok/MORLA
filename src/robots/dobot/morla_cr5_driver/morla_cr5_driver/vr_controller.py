@@ -11,7 +11,7 @@ from morla_core.coordinates import validate_basis_change, validate_transform
 
 
 def validate_parameters(parameters, *, jog=False):
-    allowed={'position_scale','input_rotation','solver_tip_from_tool','max_joint_step',
+    allowed={'position_scale','rotation_scale','input_rotation','solver_tip_from_tool','max_joint_step',
              'max_joint_velocity','command_lead_rad','calibration_verified','smoothing_alpha','ik_mode',
              'position_lead_m','rotation_lead_rad','damping_min','damping_max',
              'singularity_threshold','differential_step_rad'}
@@ -22,7 +22,7 @@ def validate_parameters(parameters, *, jog=False):
         raise ValueError('Invalid CR5 ik_mode')
     for name,maximum in [('position_lead_m',.25),('rotation_lead_rad',1),
                           ('damping_min',1),('damping_max',1),('singularity_threshold',1),
-                          ('differential_step_rad',.15),('position_scale',2),('max_joint_step',.3),
+                          ('differential_step_rad',.15),('position_scale',2),('rotation_scale',2),('max_joint_step',.3),
                           ('max_joint_velocity',1),('command_lead_rad',1),('smoothing_alpha',1)]:
         if name in parameters:
             value=parameters[name]
@@ -65,7 +65,8 @@ class AsyncCartesianController:
         # This wrapper already bounds the outgoing step (max_joint_velocity·dt
         # against last_output) and the differential solver bounds max_joint_step,
         # so the shared controller must not clip the same command again.
-        self.controller = CartesianController(solver, jog=jog, max_solve_ns=250_000_000, step_cap=False)
+        self.controller = CartesianController(solver, jog=jog, max_solve_ns=250_000_000, step_cap=False,
+                                              smooth_input=False)
         self.condition = threading.Condition()
         self.generation = 0
         self.worker_generation = -1

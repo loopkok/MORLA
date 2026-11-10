@@ -30,7 +30,7 @@ ros2 launch mmk2_mujoco_sim mmk2_mujoco_sim.launch.py sim_mode:=physics sim_disp
 
 双臂注册 `morla.kinematics`，可使用公共 `morla.cartesian_delta_ik`；FK/IK 均以各臂自身 `left_base_link/right_base_link` 为参考，以 gripper_center 为末端。`config/quest.sim.yaml` 提供双臂示例；`config/quest.whole.sim.yaml` 是从 Web 逐步配置得到的整机七组映射，预设名为 **AIRBOT MMK2 整机七组 / Quest（仿真）**。双臂 Unity 基变换包含 base→slide→arm 的完整固定旋转链，现场方向/工具偏置仍未标定。
 
-双臂微分 IK 与实机驱动同策略：每拍一次带阻尼的 DLS，把需求吸收在 `position_lead_m`（默认 0.02 m）/ `rotation_lead_rad`（默认 0.15 rad）之内，alpha 回溯找下降步长，无法改进时保持当前关节并报告 `limit_pressure_rad`，不返回 `None`。阻尼参数为 `damping_min` 0.005、`damping_max` 0.145，`singularity_threshold` 0.05；五个值都是实例参数，未配置时用 descriptor 默认值。腕部贴限位时会平滑停住直到反向，不是收敛到目标。
+双臂微分 IK 与实机驱动同策略：每拍一次带阻尼的 DLS，把需求吸收在 `position_lead_m`（默认 0.02 m）/ `rotation_lead_rad`（默认 0.35 rad，与 FR3/CR5 一致）之内，alpha 回溯找下降步长，无法改进时保持当前关节并报告 `limit_pressure_rad`，不返回 `None`。阻尼参数为 `damping_min` 0.005、`damping_max` 0.145，`singularity_threshold` 0.05；五个值都是实例参数，未配置时用 descriptor 默认值，其中 `rotation_lead_rad` 在设备页可改。绑定侧另有 `smoothing_alpha`（输入低通，1=关闭，模板 0.35）和 `rotation_scale`（旋转增量倍率，默认 1.0=1:1）。腕部贴限位时会平滑停住直到反向，不是收敛到目标。
 
 整机模板的升降绑定用 `morla.scalar_anchored` 而不是 `morla.scalar_map`：扳机是相对量，按下 Grip 时锁存当前升降高度，只下发之后的行程。用绝对映射时，扳机静止为 0、映射起点为 `0.1 m`，deadman 一生效躯干就瞬降 10 cm（厂商 URDF 的 `slide_joint` 正值朝下），双臂看起来“先降一下”才开始遥操。夹爪仍是 `scalar_map`（开合是绝对状态）。
 

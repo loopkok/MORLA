@@ -631,7 +631,7 @@
         0
       ],
       "position_lead_m": 0.02,
-      "rotation_lead_rad": 0.15,
+      "rotation_lead_rad": 0.35,
       "damping_min": 0.005,
       "damping_max": 0.145,
       "singularity_threshold": 0.05
@@ -643,7 +643,8 @@
     "web": {
       "label": "MMK2 left_arm",
       "fields": [
-        "initial_positions"
+        "initial_positions",
+        "rotation_lead_rad"
       ],
       "preferred_controllers": {
         "pose6d": "morla.cartesian_delta_ik"
@@ -983,7 +984,7 @@
         0
       ],
       "position_lead_m": 0.02,
-      "rotation_lead_rad": 0.15,
+      "rotation_lead_rad": 0.35,
       "damping_min": 0.005,
       "damping_max": 0.145,
       "singularity_threshold": 0.05
@@ -995,7 +996,8 @@
     "web": {
       "label": "MMK2 right_arm",
       "fields": [
-        "initial_positions"
+        "initial_positions",
+        "rotation_lead_rad"
       ],
       "preferred_controllers": {
         "pose6d": "morla.cartesian_delta_ik"

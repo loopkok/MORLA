@@ -162,7 +162,7 @@ def test_absorbing_lead_bounds_goal_and_reversal_is_immediate():
     solver=create_kinematics({'plugin_id':'morla.airbot.mmk2.left_arm'});solver.sync_state(q0)
     turned=start.copy();turned[:3,:3]=Rotation.from_rotvec([0,0,1.]).as_matrix()@start[:3,:3]
     solver.solve(turned)
-    assert Rotation.from_matrix(solver.goal[:3,:3]@start[:3,:3].T).magnitude()<=.15+1e-9
+    assert Rotation.from_matrix(solver.goal[:3,:3]@start[:3,:3].T).magnitude()<=solver.rotation_lead_rad+1e-9
 
 
 @pytest.mark.parametrize('side',['left','right'])
@@ -190,7 +190,7 @@ def test_wrist_stop_holds_instead_of_returning_none(side):
         held+=solver.last_report['reason'] in {'holding','deadline_hold'}
     assert held,'the wrist never saturated; this sequence stopped exercising the limit'
     assert solver.last_report['limit_pressure_rad']>0
-    assert solver.last_report['angle_error_rad']<=.15+1e-9
+    assert solver.last_report['angle_error_rad']<=solver.rotation_lead_rad+1e-9
     assert solver.last_report['raw_angle_error_rad']>1.
 
 
