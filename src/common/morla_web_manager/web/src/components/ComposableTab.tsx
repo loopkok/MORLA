@@ -13,6 +13,13 @@ import { pushToast } from '../hooks/useToast'
 import { Resolved, LogRun, Session, Endpoint } from './workstation/shared'
 import { ReferenceWorkspace } from './workstation/ReferenceWorkspace'
 export type WorkstationModel=ReturnType<typeof useWorkstationModel>
+// A session state carries viewer/render_error next to the two stored options.
+// Keep only what the compiler reads so a draft built from a live session never
+// writes runtime state into a saved revision.
+const storedSimulation=(a:Assembly):Assembly=>{
+ const simulation=a.metadata?.simulation
+ return simulation?{...a,metadata:{...a.metadata,simulation:{mode:simulation.mode,display:simulation.display}}}:a
+}
 function useWorkstationModel(visible:boolean){
 
  const [catalog,setCatalog]=useState<Component[]>([]),[assembly,setAssembly]=useState<Assembly>(initial),[deployment,setDeployment]=useState<Deployment>({})
@@ -181,7 +188,7 @@ function useWorkstationModel(visible:boolean){
  async function save(enterRun=false){
   const epoch=draftEpoch.current
   if(enterRun&&checkedSnapshot!==snapshot(assembly,deployment))throw new Error('请先检查当前配置。')
-  const next={...assembly,revision:savedRevision+1}
+  const next={...storedSimulation(assembly),revision:savedRevision+1}
   const item=await request<{assembly:Assembly;deployment:Deployment;resolved:Resolved}>('/assemblies',{assembly:next,deployment,expected_revision:savedRevision})
   if(epoch!==draftEpoch.current)throw new Error('保存已完成，但草稿已变化；保留当前编辑，请重新打开保存版本核对。')
   applySaved(item);setCheckedSnapshot(enterRun?snapshot(item.assembly,item.deployment):'');setSaved(await request<typeof saved>('/assemblies'));setMessage(`配置已保存，版本 ${next.revision}。`);pushToast('配置已保存','success');if(enterRun)setStage('run')
@@ -189,7 +196,7 @@ function useWorkstationModel(visible:boolean){
  async function saveAs(name:string){
   const epoch=draftEpoch.current
   if(!/^[A-Za-z][A-Za-z0-9_-]*$/.test(name)||saved.some(s=>s.assembly_id===name))throw new Error('请输入未使用的配置名称（字母开头，字母、数字、下划线或连字符）。')
-  const item=await request<{assembly:Assembly;deployment:Deployment;resolved:Resolved}>('/assemblies',{assembly:{...assembly,assembly_id:name,revision:1},deployment,expected_revision:0})
+  const item=await request<{assembly:Assembly;deployment:Deployment;resolved:Resolved}>('/assemblies',{assembly:{...storedSimulation(assembly),assembly_id:name,revision:1},deployment,expected_revision:0})
   if(epoch!==draftEpoch.current)throw new Error('另存为已完成，但草稿已变化；当前编辑已保留，请重新打开保存版本核对。')
   applySaved(item);setSaved(await request<typeof saved>('/assemblies'));setCheckedSnapshot('');setMessage('已另存为 '+name)
  }
@@ -250,8 +257,16 @@ function useWorkstationModel(visible:boolean){
   else await refreshSession(sid,true)
  }
  function locate(path:string){const place=issueLocation(path,assembly);setSelectedDevice(place.id);setSelectedChain(place.binding);setStage(place.stage);setTimeout(()=>{const key=place.field;const field=Array.from(document.querySelectorAll<HTMLElement>('[data-field]')).find(el=>el.dataset.field===key);let parent=field?.parentElement;while(parent){if(parent instanceof HTMLDetailsElement)parent.open=true;parent=parent.parentElement}field?.scrollIntoView({block:'center'});field?.querySelector<HTMLElement>('input,select,button')?.focus()},50)}
- const sim=session?.simulation||assembly.metadata?.simulation||{mode:'physics' as const,display:'web' as const}
- function simOptions(patch:Partial<SimOptions>){if(active)void run(async()=>{await request(`/sessions/${session!.session_id}/simulation`,patch);await refreshSession(session!.session_id,true)});else changed({...assembly,metadata:{...assembly.metadata,simulation:{...sim,...patch}}})}
+ // A stopped session keeps its last simulation snapshot; only a live session
+ // owns the option values. Reading it while stopped made the selects snap back
+ // to the old value because simOptions wrote the draft assembly instead.
+ const sim=(active?session?.simulation:undefined)||assembly.metadata?.simulation||{mode:'physics' as const,display:'web' as const}
+ function simOptions(patch:Partial<SimOptions>){
+  if(active)void run(async()=>{await request(`/sessions/${session!.session_id}/simulation`,patch);await refreshSession(session!.session_id,true)})
+  // Persist only the two stored options; the live settings also carry viewer
+  // state that must never leak into a saved assembly.
+  else changed({...assembly,metadata:{...assembly.metadata,simulation:{mode:sim.mode,display:sim.display,...patch}}})
+ }
  const logOptions={enabled:true,feedback_hz:50,queue_size:4096,segment_mb:16,max_run_mb:1024,...assembly.metadata?.diagnostic_logging}
  const currentLogRun=selectedRun||session?.session_id||logRuns[0]?.session_id||''
  const logEntry=logRuns.find(r=>r.session_id===currentLogRun)

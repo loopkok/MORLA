@@ -6,9 +6,10 @@ import { request } from '../../api/workstation'
 
 import type { WorkstationModel } from '../ComposableTab'
 import { IkReport, LogRun, states, reasons, controlNames, handoffPhases, workStates, metric, Section, SimPreview } from './shared'
-export function RunConsole({operatorAction,initialization,refreshSession,confirm,visible,active, assembly, busy, currentLogRun, descriptor, device, dirty, initialize, inputs, instances, logEntry, logFiles, logRuns, logTail, operate, pairLink, recovering, run, session, setError, setLogRuns, setLogTail, setMessage, setPairLink, setSelectedRun, setStage, setTask, sim, simOptions, simPresent, stage, task}:Pick<WorkstationModel,'operatorAction'|'initialization'|'refreshSession'|'confirm'|'visible'|'active'|'assembly'|'busy'|'currentLogRun'|'descriptor'|'device'|'dirty'|'initialize'|'inputs'|'instances'|'logEntry'|'logFiles'|'logRuns'|'logTail'|'operate'|'pairLink'|'recovering'|'run'|'session'|'setError'|'setLogRuns'|'setLogTail'|'setMessage'|'setPairLink'|'setSelectedRun'|'setStage'|'setTask'|'sim'|'simOptions'|'simPresent'|'stage'|'task'>){return <>{stage==='run'&&<>
+export function RunConsole({operatorAction,initialization,refreshSession,confirm,visible,active, assembly, busy, currentLogRun, descriptor, device, dirty, initialize, inputs, instances, logEntry, logFiles, logRuns, logTail, operate, pairLink, recovering, run, session, setError, setLogRuns, setLogTail, setMessage, setPairLink, setSelectedRun, setStage, setTask, sim, simOptions, simPresent, task}:Pick<WorkstationModel,'operatorAction'|'initialization'|'refreshSession'|'confirm'|'visible'|'active'|'assembly'|'busy'|'currentLogRun'|'descriptor'|'device'|'dirty'|'initialize'|'inputs'|'instances'|'logEntry'|'logFiles'|'logRuns'|'logTail'|'operate'|'pairLink'|'recovering'|'run'|'session'|'setError'|'setLogRuns'|'setLogTail'|'setMessage'|'setPairLink'|'setSelectedRun'|'setStage'|'setTask'|'sim'|'simOptions'|'simPresent'|'task'>){return <>
    {initialization.length>0&&<ol className="wc-initialization" aria-label="初始化进度">{initialization.map(row=><li key={row.title}><strong>{row.title}</strong><span>{row.status}</span>{row.detail&&<p>{row.detail}</p>}</li>)}</ol>}
    <div className="wc-run-actions"><button className="wc-primary" disabled={busy||recovering||(!active&&dirty)||!!session&&session.status!=='STOPPED'&&session.status!=='READY_DISARMED'} onClick={()=>void run(initialize,'启动工作站')}>{active?'重试输入与就绪检查':'启动工作站'}</button>{!active&&<button onClick={()=>setStage('check')}>返回检查</button>}</div>
+   {!session&&<p className="wc-note">尚未建立运行会话。点击「启动工作站」后，这里提供输入连接、设备准备、开始遥操、手机配对与运行诊断。</p>}
    {session&&<Section title="运行控制" note="Quest3 右手柄 grip、Vader M3 或键盘 S 开始遥操。暂停遥操会停止跟随，停止工作站会释放设备连接。">
     <div className="wc-device-heading"><h4 data-testid="session-status">{session.operator?.transition?.status==='RUNNING'?'控制权切换中':states[session.status]||session.status}</h4><code>{session.session_id.slice(0,12)}</code></div>
     <p className="wc-note">当前控制：{session.operator?.transition?.status==='RUNNING'?'切换中，输出已冻结':controlNames[session.operator?.activity||'paused']||session.operator?.activity}{session.operator?.paused&&session.operator.activity!=='paused'?' · 已暂停':''}{session.operator?.return_to?' · 可交还 '+(controlNames[session.operator.return_to]||session.operator.return_to):''}{session.operator?.work_position?' · 工作位 '+(workStates[session.operator.work_position.status]||session.operator.work_position.status):''}</p>
@@ -31,7 +32,7 @@ export function RunConsole({operatorAction,initialization,refreshSession,confirm
    </Section>}
    <Section title="运行设置" note="仿真模式与逆运动学模式独立。物理模式用于动力学测试，不代表已经完成实机参数标定。">
     {simPresent?<div className="wc-form-grid"><label>仿真模式<select aria-label="仿真模式" value={sim.mode} disabled={busy||session?.status==='ACTIVE'||!!session?.recording} onChange={e=>simOptions({mode:e.target.value as SimOptions['mode']})}><option value="kinematic">运动学仿真 · 验证 IK 与映射</option><option value="physics">动力学仿真 · 执行器与物理步进</option></select></label><label>仿真显示<select aria-label="仿真显示方式" value={sim.display} disabled={busy||!!session?.recording} onChange={e=>simOptions({display:e.target.value as SimOptions['display']})}><option value="web">浏览器画面</option><option value="local">本机 MuJoCo 窗口</option><option value="both">浏览器与本机窗口</option></select></label></div>:<p className="wc-note">当前未选用 MuJoCo 设备。</p>}
-    {simPresent&&<p className="wc-note">本机窗口在运行服务的电脑上打开。改变动力学模式前，先暂停遥操并结束记录。</p>}
+    {simPresent&&<p className="wc-note">本机窗口在运行服务的电脑上打开。改变动力学模式前，先暂停遥操并结束记录。{session&&!active?'当前工作站已结束，这里的修改写入工作空间配置，重新启动工作站后生效。':''}</p>}
     {session?.simulation?.render_error&&<p className="wc-message is-error">{session.simulation.render_error}</p>}
     {session?.simulation?.viewer&&<p className="wc-note">MuJoCo 窗口：{session.simulation.viewer.status==='running'?'已打开':'未打开'} {session.simulation.viewer.error}</p>}
    </Section>
@@ -44,4 +45,4 @@ export function RunConsole({operatorAction,initialization,refreshSession,confirm
     {logEntry?.state==='incomplete'&&<p className="wc-message is-error">该次运行没有正常结束摘要，可能是进程中断；已写入的记录仍可下载。</p>}
     {logTail&&<details className="wc-details" open><summary>最近 {logTail.records.length} 条记录{logTail.partial?'（读取窗口有限）':''}</summary><pre>{logTail.records.map(row=>JSON.stringify(row)).join('\n')}</pre></details>}
    </Section>
-  </>}</>}
+  </>}

@@ -1,5 +1,13 @@
 # Changelog（MORLA）
 
+## 2026-11-10 — 修复工作站「仿真显示」选不动与折叠面板空白
+
+- 「完整运行控制、工作位、配对与诊断」面板去掉运行阶段门控：`RunConsole` 只在运行概览页挂载，原先的 `stage==='run'` 判断会让它展开后内容为空；现在只要挂载就渲染，并在没有会话时说明启动工作站后才有控制、配对与诊断内容。
+- 「仿真显示」的值改为只在工作站运行中读会话快照，结束后读草稿配置；此前结束后 `sim` 仍优先取已停止会话的旧值，选择后立即弹回。非运行分支写回时只保留 `mode`/`display`。
+- 保存与另存为时剥离 `metadata.simulation` 里的 `viewer`/`render_error` 等运行态字段；本机 `mmk2_quest_whole_sim` revision 2/3 已带这些字段，属同一缺陷产物。
+- 验证：`npm run build` 与前端 47 项测试通过；真实 Chromium（隔离打桩 API）复现“结束后选不动”，修复后可选并保持，活动会话仍走 `POST /sessions/{id}/simulation`。改动页面在运行设置下补充“已结束的修改重新启动后生效”提示。
+- 详见[缺陷记录](docs/integrations/CHANGE_LOG_WORKSTATION_SIM_OPTIONS_2026-11-10.md)。
+
 ## 2026-11-10 — MMK2 整机 MuJoCo 移植与 Quest3 Web 全流程验证
 
 - 新增 `mmk2_description` 和 `mmk2_mujoco_sim`：从用户提供的完整 URDF 生成可独立安装的整机 MJCF，保留模型来源、MIT/Apache-2.0 许可及逐文件 SHA-256；SDK XML 因缺少网格且模型约定不同，仅作为参考保存。
