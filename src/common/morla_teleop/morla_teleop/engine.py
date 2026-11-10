@@ -82,6 +82,12 @@ class BindingEngine:
     def _targets(self, frame):
         trace_input=getattr(self.runtime,'trace_input',None)
         if trace_input is not None: trace_input(frame)
+        # Judge freshness against the moment the frame entered the pipeline. A
+        # binding that lazily builds its controller (a MuJoCo model, a URDF
+        # solver) can take hundreds of ms on the first frame; reading the clock
+        # per binding would then age the same frame into staleness and drop the
+        # remaining arms for no reason the operator can act on.
+        now = self.clock()
         targets = []
         for binding in self.runtime.resolved.get('bindings', []):
             if binding['source'].split('.', 1)[0] != frame.source_id:
@@ -95,12 +101,12 @@ class BindingEngine:
             if not self._input_basis_matches(binding, frame):
                 self._trace('control_gate', {'reason':'input_basis_mismatch','input_sequence':frame.sequence}, binding_id=binding['id'])
                 continue
-            if not self._deadman_held(binding, frame):
+            if not self._deadman_held(binding, frame, now):
                 self._trace('control_gate', {'reason':'deadman_released_or_stale','input_sequence':frame.sequence}, binding_id=binding['id'])
                 continue
             key = binding['target'].split('.', 1)[0]
             instance = self.runtime.instances[key]
-            feedback = self.runtime.adapters[key].health(self.clock())
+            feedback = self.runtime.adapters[key].health(now)
             measured = feedback.get('values')
             if measured is None:
                 raise ValueError('adapter does not expose measured positions: ' + key)
@@ -121,7 +127,7 @@ class BindingEngine:
                     except Exception: pass
             began=time.perf_counter_ns()
             try:
-                values = controller.step(frame, measured)
+                values = controller.step(frame, measured, now)
             except Exception as exc:
                 self._trace('control_error', {'reason':str(exc),'input_sequence':frame.sequence,
                             'feedback':feedback,'reports':self._reports(controller)},
@@ -171,13 +177,16 @@ class BindingEngine:
             controller.reset()
         return False
 
-    def _deadman_held(self, binding, frame):
+    def _deadman_held(self, binding, frame, now=None):
         """Hold-to-move gate declared by ``deadman``; absent means free-running.
 
         Absent or stale deadman samples count as released: a dropped grip event
         must stop the arm, not leave it following an old hand pose. Releasing
         also drops the controller anchor, because the hand drifts while the
         grip is open and keeping the old anchor would jump the arm on re-press.
+
+        ``now`` is the frame's entry time; the caller passes it so all bindings
+        in one frame agree about how old that frame is.
         """
         source = binding.get('deadman')
         if source is None or source == '':
@@ -190,7 +199,8 @@ class BindingEngine:
                                      and not isinstance(value, bool) and value > .5)
             if held:
                 stamp = (frame.port_metadata or {}).get(port, {}).get('received_ns', frame.received_ns)
-                held = 0 <= self.clock() - stamp <= binding.get('max_age_ms', 250) * 1_000_000
+                now = self.clock() if now is None else now
+                held = 0 <= now - stamp <= binding.get('max_age_ms', 250) * 1_000_000
         previous = self.deadman.get(binding['id'], False)
         if self.operator_hold is not None:
             held = held or bool(self.operator_hold())

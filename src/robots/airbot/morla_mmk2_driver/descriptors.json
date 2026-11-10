@@ -277,6 +277,36 @@
           "type": "number",
           "minimum": 0.05,
           "maximum": 1
+        },
+        "position_lead_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.25,
+          "title": "每拍平移目标允许超前 / m"
+        },
+        "rotation_lead_rad": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1.0,
+          "title": "每拍旋转目标允许超前 / rad"
+        },
+        "damping_min": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1.0,
+          "title": "奇异点外 DLS 阻尼"
+        },
+        "damping_max": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1.0,
+          "title": "奇异点处 DLS 阻尼"
+        },
+        "singularity_threshold": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1.0,
+          "title": "阻尼起作用的 σ_min 阈值"
         }
       }
     },
@@ -328,7 +358,12 @@
       ],
       "max_velocity": 0.1,
       "max_command_lead": 0.15,
-      "command_timeout_s": 0.25
+      "command_timeout_s": 0.25,
+      "position_lead_m": 0.02,
+      "rotation_lead_rad": 0.15,
+      "damping_min": 0.005,
+      "damping_max": 0.145,
+      "singularity_threshold": 0.05
     },
     "source": {
       "package": "morla_mmk2_driver",
@@ -662,6 +697,36 @@
           "type": "number",
           "minimum": 0.05,
           "maximum": 1
+        },
+        "position_lead_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.25,
+          "title": "每拍平移目标允许超前 / m"
+        },
+        "rotation_lead_rad": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1.0,
+          "title": "每拍旋转目标允许超前 / rad"
+        },
+        "damping_min": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1.0,
+          "title": "奇异点外 DLS 阻尼"
+        },
+        "damping_max": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1.0,
+          "title": "奇异点处 DLS 阻尼"
+        },
+        "singularity_threshold": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1.0,
+          "title": "阻尼起作用的 σ_min 阈值"
         }
       }
     },
@@ -713,7 +778,12 @@
       ],
       "max_velocity": 0.1,
       "max_command_lead": 0.15,
-      "command_timeout_s": 0.25
+      "command_timeout_s": 0.25,
+      "position_lead_m": 0.02,
+      "rotation_lead_rad": 0.15,
+      "damping_min": 0.005,
+      "damping_max": 0.145,
+      "singularity_threshold": 0.05
     },
     "source": {
       "package": "morla_mmk2_driver",

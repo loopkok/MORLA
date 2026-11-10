@@ -145,6 +145,55 @@ def test_fk_ik_and_urdf_frames(side):
     assert np.allclose(target,T@A,atol=1e-9)
 
 
+def test_absorbing_lead_bounds_goal_and_reversal_is_immediate():
+    from mmk2_mujoco_sim.kinematics import create_kinematics
+    from scipy.spatial.transform import Rotation
+    solver=create_kinematics({'plugin_id':'morla.airbot.mmk2.left_arm'})
+    q0=np.array([0,-.8,.8,1.64,.8,0.]);solver.sync_state(q0);start=solver.fk(q0)
+    # Two metres of demand collapse to the declared lead; the excess is dropped.
+    far=start.copy();far[0,3]+=2
+    first=np.asarray(solver.solve(far))
+    assert np.linalg.norm(solver.goal[:3,3]-start[:3,3])<=.02+1e-9
+    assert solver.last_report['raw_position_error_m']>1.9
+    # Reversing the hand acts on the next tick instead of unwinding that excess.
+    back=np.asarray(solver.solve(start))
+    assert solver.fk(back)[0,3]<solver.fk(first)[0,3]
+    # A one-radian wrist demand collapses to the rotation lead the same way.
+    solver=create_kinematics({'plugin_id':'morla.airbot.mmk2.left_arm'});solver.sync_state(q0)
+    turned=start.copy();turned[:3,:3]=Rotation.from_rotvec([0,0,1.]).as_matrix()@start[:3,:3]
+    solver.solve(turned)
+    assert Rotation.from_matrix(solver.goal[:3,:3]@start[:3,:3].T).magnitude()<=.15+1e-9
+
+
+@pytest.mark.parametrize('side',['left','right'])
+def test_wrist_stop_holds_instead_of_returning_none(side):
+    """Keep turning a saturated wrist: the arm holds, it never drops the tick.
+
+    The old sim solver iterated to a pose tolerance, hard-clipped to the joint
+    range and returned None when the budget expired, so a sustained turn at a
+    stop froze the arm for up to 1.9 s. Every tick of this sequence must return
+    a feasible command, the bounded goal must stay at the rotation lead, and the
+    excess demand must not accumulate into a runaway.
+    """
+    from mmk2_mujoco_sim.kinematics import create_kinematics
+    from scipy.spatial.transform import Rotation
+    solver=create_kinematics({'plugin_id':'morla.airbot.mmk2.'+side+'_arm'})
+    sign=1 if side=='left' else -1
+    q0=np.array([0,-.8,.8,1.64*sign,.8*sign,0.]);solver.sync_state(q0)
+    target=solver.fk(q0);held=0
+    for _ in range(400):
+        target[:3,:3]=Rotation.from_rotvec([.02,0,.03]).as_matrix()@target[:3,:3]
+        command=solver.solve(target)
+        assert command is not None and len(command)==6 and np.isfinite(command).all()
+        assert np.all(np.asarray(command)>=solver.bounds[:,0]-1e-9)
+        assert np.all(np.asarray(command)<=solver.bounds[:,1]+1e-9)
+        held+=solver.last_report['reason'] in {'holding','deadline_hold'}
+    assert held,'the wrist never saturated; this sequence stopped exercising the limit'
+    assert solver.last_report['limit_pressure_rad']>0
+    assert solver.last_report['angle_error_rad']<=.15+1e-9
+    assert solver.last_report['raw_angle_error_rad']>1.
+
+
 def test_installed_provider_public_runtime(tmp_path):
     # This test requires the normal package installation, not injected adapters.
     from importlib.metadata import entry_points

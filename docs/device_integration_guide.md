@@ -352,6 +352,10 @@ CLI 见 [conformance.py](../src/common/morla_core/morla_core/plugins/conformance
 - 如果自己的 controller 已经在出口按 `max_joint_velocity·dt` 裁剪命令（FR3/CR5 的异步 controller 就是），构造 `CartesianController` 时传 `step_cap=False`。同一条命令被裁两次会把实际速率砍半：内层种子是上一拍已裁过的命令，CR5 的集成种子回归用例复现为 0.28 而不是 0.3。
 - 只有记录意义的字段（`calibration_verified` 等）要在模板注释里写明“不构成运行门禁”，避免被当成已校验。
 
+**求解器在关节限位处要返回可行命令，不要返回 `None`。** 迭代到某个位姿容差、每轮硬夹关节范围、超时返回空的 solver，在腕部贴限位时残差不再下降，只会空转到超时，controller 丢弃该拍，操作员看到的是冻结（MMK2 整机仿真实测最长 1.86 s）。贴限位是遥操作的正常状态，正确回答是“保持当前关节并说明压力”，CR5/FR3/MMK2 实机的微分 solver 都这么做：每拍一次带阻尼的 DLS、把需求吸收在 `position_lead_*` 之内、alpha 回溯找能降低代价的步长、没有候选就保持并报告 `limit_pressure_rad`。
+
+同理，判断输入新鲜度要用**帧到达的时间**，不是处理到该绑定时的时钟：第一帧惰性构建控制器（MuJoCo 模型约 0.34 s）会让同一帧里后面的绑定全部被判过期。`BindingEngine` 在帧进入时取一次时间传给 deadman 与 `controller.step(..., now=...)`；自带 controller 的移植如果绕过它，需要复现同样的语义。
+
 MORLA 的笛卡尔遥操采用相对位移：首次有效输入将人手位姿与机器人实测 TCP 建锚；之后映射位移/旋转增量。松开、断连、frame/epoch 改变后重新建锚，不能把远端绝对世界位姿直接作为机器人目标。
 
 同一控制板上的双臂、头、腰必须说明 HOME/disable/stop 的板级作用范围。只选左臂时，不得误使能或回位右臂/头/腰；未选择关节是 disabled 还是 held 需要实际证明。

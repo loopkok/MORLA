@@ -118,7 +118,7 @@
           "type": "number",
           "minimum": 0.05,
           "maximum": 1,
-          "title": "\u8f6e\u901f\u547d\u4ee4\u8d85\u65f6 / s"
+          "title": "轮速命令超时 / s"
         }
       }
     },
@@ -142,19 +142,19 @@
       "templates": [
         {
           "id": "mmk2-sim",
-          "title": "AIRBOT MMK2 \u6574\u673a\uff08MuJoCo \u4eff\u771f\uff09",
+          "title": "AIRBOT MMK2 整机（MuJoCo 仿真）",
           "package": "mmk2_mujoco_sim",
           "path": "config/composable.sim.yaml"
         },
         {
           "id": "mmk2-quest-sim",
-          "title": "AIRBOT MMK2 \u53cc\u81c2 / Quest\uff08\u4eff\u771f\uff09",
+          "title": "AIRBOT MMK2 双臂 / Quest（仿真）",
           "package": "mmk2_mujoco_sim",
           "path": "config/quest.sim.yaml"
         },
         {
           "id": "mmk2-quest-whole-sim",
-          "title": "AIRBOT MMK2 \u6574\u673a\u4e03\u7ec4 / Quest\uff08\u4eff\u771f\uff09",
+          "title": "AIRBOT MMK2 整机七组 / Quest（仿真）",
           "package": "mmk2_mujoco_sim",
           "path": "config/quest.whole.sim.yaml"
         }
@@ -588,6 +588,36 @@
           },
           "minItems": 6,
           "maxItems": 6
+        },
+        "position_lead_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.25,
+          "title": "每拍平移目标允许超前 / m"
+        },
+        "rotation_lead_rad": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1.0,
+          "title": "每拍旋转目标允许超前 / rad"
+        },
+        "damping_min": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1.0,
+          "title": "奇异点外 DLS 阻尼"
+        },
+        "damping_max": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1.0,
+          "title": "奇异点处 DLS 阻尼"
+        },
+        "singularity_threshold": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1.0,
+          "title": "阻尼起作用的 σ_min 阈值"
         }
       }
     },
@@ -599,7 +629,12 @@
         0,
         0.3,
         0
-      ]
+      ],
+      "position_lead_m": 0.02,
+      "rotation_lead_rad": 0.15,
+      "damping_min": 0.005,
+      "damping_max": 0.145,
+      "singularity_threshold": 0.05
     },
     "source": {
       "package": "mmk2_mujoco_sim",
@@ -905,6 +940,36 @@
           },
           "minItems": 6,
           "maxItems": 6
+        },
+        "position_lead_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.25,
+          "title": "每拍平移目标允许超前 / m"
+        },
+        "rotation_lead_rad": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1.0,
+          "title": "每拍旋转目标允许超前 / rad"
+        },
+        "damping_min": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1.0,
+          "title": "奇异点外 DLS 阻尼"
+        },
+        "damping_max": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1.0,
+          "title": "奇异点处 DLS 阻尼"
+        },
+        "singularity_threshold": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1.0,
+          "title": "阻尼起作用的 σ_min 阈值"
         }
       }
     },
@@ -916,7 +981,12 @@
         0,
         0.3,
         0
-      ]
+      ],
+      "position_lead_m": 0.02,
+      "rotation_lead_rad": 0.15,
+      "damping_min": 0.005,
+      "damping_max": 0.145,
+      "singularity_threshold": 0.05
     },
     "source": {
       "package": "mmk2_mujoco_sim",
@@ -1250,18 +1320,18 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 0.3,
-          "title": "\u5e95\u76d8\u524d\u8fdb\u901f\u5ea6 / m/s"
+          "title": "底盘前进速度 / m/s"
         },
         "angular_speed": {
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 1,
-          "title": "\u5e95\u76d8\u8f6c\u5411\u901f\u5ea6 / rad/s"
+          "title": "底盘转向速度 / rad/s"
         }
       }
     },
     "web": {
-      "label": "MMK2 \u5e95\u76d8\u5dee\u901f\u8f6e\u901f"
+      "label": "MMK2 底盘差速轮速"
     },
     "source": {
       "package": "mmk2_mujoco_sim",

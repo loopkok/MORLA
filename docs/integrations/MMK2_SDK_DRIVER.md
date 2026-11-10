@@ -22,6 +22,8 @@ ROS 入口仍使用公共 CommandEnvelope、authority、RuntimeOperation。Web/C
 
 2026-11-10 补：公共 `morla.cartesian_delta_ik` 此前不读绑定里的 `max_joint_step` / `max_joint_velocity`，MMK2 模板写的 0.02 rad 与 0.2 rad/s 实际没有生效；现在 controller 在 solver 返回后按 `min(max_joint_step, max_joint_velocity·dt)` 夹住命令，驱动自身的每帧 `max_step`（`min(.02, max_velocity/rate_hz, max_command_lead/2)`）仍是更紧的一层。工作位须避开 q5=0 的腕部奇异，仿真侧的实测与推荐姿态见 [MMK2_SIMULATION.md](MMK2_SIMULATION.md)。
 
+2026-11-10 晚补：微分 IK 的五个常数原先写死在代码里（`.02` 平移领先、`.15` 旋转领先、`.005`/`.145` 阻尼、`.05` 奇异阈值），现在提为实例参数 `position_lead_m`、`rotation_lead_rad`、`damping_min`、`damping_max`、`singularity_threshold`，默认值等于原字面量，descriptor 与仿真包逐项一致，仿真和实机因此跑同一套策略。语义与 CR5/FR3 相同：每拍一次带阻尼的 DLS 更新、需求吸收在领先范围内、alpha 回溯、无法改进时保持当前关节并报告 `limit_pressure_rad`；`solve()` 不再返回 `None`，腕部贴限位时手臂平滑饱和而不是丢帧冻结。这也意味着“到达目标”不是契约，`last_report` 用 `converged`（相对原始目标）与 `bounded_target_converged`（相对吸收后的目标）分别报告。
+
 ## 本地证据
 
 - 驱动、公共 core/runtime/teleop 与 FR3/CR5 联合回归 **309 passed、1 skipped**，跳过的是可选 Hypothesis。另有 Web/采集/策略回归 **37 passed**，原 MMK2 MuJoCo 回归 **21 passed**。共 367 个通过案例，驱动测试 18 项包含在联合回归内。

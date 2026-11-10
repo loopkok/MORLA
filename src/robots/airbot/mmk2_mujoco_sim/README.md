@@ -30,6 +30,8 @@ ros2 launch mmk2_mujoco_sim mmk2_mujoco_sim.launch.py sim_mode:=physics sim_disp
 
 双臂注册 `morla.kinematics`，可使用公共 `morla.cartesian_delta_ik`；FK/IK 均以各臂自身 `left_base_link/right_base_link` 为参考，以 gripper_center 为末端。`config/quest.sim.yaml` 提供双臂示例；`config/quest.whole.sim.yaml` 是从 Web 逐步配置得到的整机七组映射，预设名为 **AIRBOT MMK2 整机七组 / Quest（仿真）**。双臂 Unity 基变换包含 base→slide→arm 的完整固定旋转链，现场方向/工具偏置仍未标定。
 
+双臂微分 IK 与实机驱动同策略：每拍一次带阻尼的 DLS，把需求吸收在 `position_lead_m`（默认 0.02 m）/ `rotation_lead_rad`（默认 0.15 rad）之内，alpha 回溯找下降步长，无法改进时保持当前关节并报告 `limit_pressure_rad`，不返回 `None`。阻尼参数为 `damping_min` 0.005、`damping_max` 0.145，`singularity_threshold` 0.05；五个值都是实例参数，未配置时用 descriptor 默认值。腕部贴限位时会平滑停住直到反向，不是收敛到目标。
+
 Quest 测试后端本身不会主动生成动作。要复现本地 Web 验证，从仓库根目录运行 `python3 scripts/run_mmk2_web_acceptance.py --store /tmp/mmk2-web-demo`，在 Web 载入上述预设并逐步检查、保存、启动及激活。该独立测试宿主只向已经由页面创建的 MMK2 会话中的 fake Quest 注入 30 Hz 合成输入，不自动激活，不连接硬件。测试开关保存在该 store 下的 quest_fixture.json；hold=false 模拟松开 Grip，enabled=false 模拟输入停发。
 
 本地 Web 验证记录见 [逐步验收说明](../../../../docs/integrations/MMK2_WEB_ACCEPTANCE_2026-11-10.md)。普通启动入口不会隐式启用测试数据生成器。

@@ -134,8 +134,13 @@ class BindingController:
                                 metadata.get('sample_sequence'))
         return ack
 
-    def step(self, frame, measured):
-        now = self.clock()
+    def step(self, frame, measured, now=None):
+        # ``now`` is the frame's arrival-evaluation time from the caller. Left
+        # out, the clock is read here; either way staleness means "this sample
+        # was already old when the frame arrived", not "our own pipeline spent
+        # a while on it" (a first-frame controller build can take hundreds of
+        # ms and would otherwise discard that frame for every later binding).
+        now = self.clock() if now is None else now
         if frame is None or not frame.valid or not 0 <= now - frame.received_ns <= self.max_age_ns:
             self.reset()
             return None

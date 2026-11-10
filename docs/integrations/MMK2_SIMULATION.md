@@ -1,6 +1,6 @@
 # AIRBOT MMK2 整机仿真移植
 
-日期：2026-11-09；2026-11-10 补齐实际 Web 验收与整机七组控制。实现基于设备接入指南、PLUGIN_DRIVEN_PORTING、FR3_PORTING_TUTORIAL，以及 FR3/CR5 公共场景经验。新增 `src/robots/airbot/mmk2_description` 和 `mmk2_mujoco_sim`，提交与推送结果见 [发布日志](MMK2_PUBLISH_LOG_2026-11-10.md)。
+日期：2026-11-09；2026-11-10 补齐实际 Web 验收与整机七组控制，同日晚上统一仿真/实机的微分 IK 与限位保持策略。实现基于设备接入指南、PLUGIN_DRIVEN_PORTING、FR3_PORTING_TUTORIAL，以及 FR3/CR5 公共场景经验。新增 `src/robots/airbot/mmk2_description` 和 `mmk2_mujoco_sim`，提交与推送结果见 [发布日志](MMK2_PUBLISH_LOG_2026-11-10.md)。
 
 可运行入口与端口语义见 [仿真包 README](../../src/robots/airbot/mmk2_mujoco_sim/README.md)，模型来源见 [description README](../../src/robots/airbot/mmk2_description/README.md)。
 
@@ -31,6 +31,29 @@ URDF 的原包名 URI 在运行副本归一为 mmk2_description；原件保存�
 
 同期修复参数问题：MMK2 绑定里一直写着 `max_joint_step: 0.02`、`max_joint_velocity: 0.2`，但公共 `morla.cartesian_delta_ik` 从未读取，整位姿 DLS 因此没有被按拍限幅。现在 controller 在 solver 返回后把命令夹到 `min(0.02, 0.2·dt)`（50 Hz 下 0.004 rad/拍），并在报告里输出 `max_joint_step_rad` / `joint_step_clamped`。参数不会因为写在模板里就生效，这个问题和自查方法见[设备接入指南](../../device_integration_guide.md) §5.1。
 
+## 腕部到限位时的保持策略（2026-11-10 晚）
+
+第二轮整机录制里右臂仍有 137 拍（3.3%）被丢弃、最长一次冻结 1.86 s，q4/q5 贴住限位。原因不在坐标链，而在**仿真 solver 与实机驱动用了两套策略**：
+
+- 旧仿真 `mmk2_mujoco_sim.kinematics` 迭代到 `1e-4 m / 1e-3 rad` 容差，每轮把 q 硬夹到关节范围，35 ms 预算到期就返回 `None`。到限位后残差不再下降，循环空转到超时，公共 controller 把该拍记为 `held` 丢弃；操作员继续转手，目标继续积累，于是松手前一直冻结。
+- 实机驱动 `morla_mmk2_driver.kinematics` 与 CR5/FR3 的微分 solver 早已是另一套：每拍只做一次带阻尼的 DLS 更新，把有效目标吸收在 `position_lead_m` / `rotation_lead_rad` 之内，用 alpha 回溯（1、0.5、0.25、0.125）找能降低代价的步长，夹到关节范围；没有能改进的候选就**保持当前关节**并报告 `limit_pressure_rad`。它从不返回 `None`，因为“这一拍动不了”本来就是遥操作的有效答案。
+
+现在仿真与实机共用同一套策略，也共用同一组实例参数（descriptor 默认值与原字面量一致，行为不变）：
+
+| 参数 | 默认 | 含义 |
+| --- | --- | --- |
+| `position_lead_m` | 0.02 | 每拍有效平移目标相对当前 TCP 的最大超前 |
+| `rotation_lead_rad` | 0.15 | 每拍有效旋转目标相对当前姿态的最大超前 |
+| `damping_min` | 0.005 | 远离奇异时的 DLS 阻尼 |
+| `damping_max` | 0.145 | 奇异点的 DLS 阻尼 |
+| `singularity_threshold` | 0.05 | `σ_min` 低于该值时阻尼开始增加 |
+
+吸收式领先的另一个作用：超出的需求被丢弃而不是累积，`previous_raw` 仍保存操作员的原始目标，所以在限位处一反向，下一拍立刻见效，不需要先把多余的目标“退回去”。
+
+同轮排查发现公共 `BindingController` 的一个真实缺陷，与 IK 策略无关但会让双臂同时丢帧：新鲜度是用**处理到该绑定那一刻**的时钟判断的。第一帧要为左臂惰性构建 MuJoCo 模型（本机实测约 0.34 s），轮到右臂时同一帧已被判成超过 `max_age_ms: 250` 而过期，于是右臂整帧丢弃。`test_dual_quest_binding_uses_public_ik_and_units` 在 HEAD 上就稳定失败，与本次 solver 改动无关。现在 `BindingEngine._targets` 在帧进入时取一次时间，deadman 与 `controller.step` 都用它判断新鲜度：过期指“样本到达时就已过期”，不包含我们自己的构建/求解耗时。
+
+这是“平滑饱和并保持”，不是“到达目标”。工作位仍应避开限位，腕部到限位时会停住直到反向，这是设计内行为。
+
 ## 本机验证
 
 测试脚本：
@@ -41,7 +64,7 @@ MORLA_PYTHON=/path/to/python bash scripts/test_mmk2.sh
 
 本次使用 macOS / Python 3.13 / MuJoCo 3.12.0，使用本机现有 Python 入口安装仿真包 wheel，并使用已有官方 ament_index_python 1.4.1 读取真实索引。没有声称 ROS 2 已在 Mac 运行。已验证从 site-packages 加载 provider，并在按 CMake 安装规则暂存的 description share 中解析全部资产后启动 12 个实例、四路相机；这属于安装布局冒烟，不等于 colcon 构建。
 
-- MMK2 21 项：模型/19 维契约、同场景身份、生命周期、名称/单位/模式/有限数/限位拒绝、底盘移动和停止、模式门控与轮速清零、物理伺服、双指联动、传感器维度、左右 FK/IK 与独立 URDF 变换相符、真实安装工厂发现、Web 目录/模板/编译/保存/启动/HDF5 录制、四视角实际 JPEG/float32 深度渲染、双手 InputStream→公共 BindingEngine/IK→Runtime 命令、provider 缺失/冲突拒绝、初始化失败资源释放、轮速绑定/超时停止、完整坐标链及头部镜头位置。
+- MMK2 24 项：模型/19 维契约、同场景身份、生命周期、名称/单位/模式/有限数/限位拒绝、底盘移动和停止、模式门控与轮速清零、物理伺服、双指联动、传感器维度、左右 FK/IK 与独立 URDF 变换相符、吸收式领先与限位保持、真实安装工厂发现、Web 目录/模板/编译/保存/启动/HDF5 录制、四视角实际 JPEG/float32 深度渲染、双手 InputStream→公共 BindingEngine/IK→Runtime 命令、provider 缺失/冲突拒绝、初始化失败资源释放、轮速绑定/超时停止、完整坐标链及头部镜头位置。
 - FR3 70 项专项回归通过。
 - 新一轮联合回归涵盖 MMK2、FR3/CR5、公共 runtime/core/contracts/teleop、Web composable/operator/plugin：**355 passed、1 skipped**。跳过项缺少可选 Hypothesis。完整结果见 [Web 阶段回归日志](evidence/2026-11-09-mmk2-web/regression.log)，计数不能与专项结果相加。
 - 实际四相机 RGB 与深度图均有限且非空。macOS OpenGL 报告 ARB_clip_control 不可用，远端深度精度受限；这不是传感器标定证据。

@@ -29,6 +29,22 @@ def test_binding_dispatches_without_deadman_and_expires():
     assert binding.step(frame(0,True),[.2]) == [.7]
 
 
+def test_frame_arrival_time_decides_staleness_not_pipeline_time():
+    """A slow first tick must not age its own frame into staleness.
+
+    Building a controller on the first frame (a MuJoCo model, a URDF solver)
+    can take hundreds of milliseconds. Judged by the clock at that point the
+    frame is 'old' and every binding after the slow one is dropped, so the
+    caller passes the frame's arrival time instead.
+    """
+    clock=[10]; source=MobileAdapter("phone", clock=lambda:clock[0]); source.reconnect()
+    binding=BindingController(dict(source="phone.scalar", target="grip.closure", controller="morla.scalar_map"), ["g"], clock=lambda:clock[0])
+    frame=source.packet(dict(epoch=source.epoch, sequence=0, scalar=.7, hold_to_control=True))
+    arrived=clock[0]; clock[0]+=600_000_000
+    assert binding.step(frame,[.2],now=arrived) == [.7]
+    assert binding.step(source.latest,[.2]) is None
+
+
 def test_gamepad_layout_deadzone_and_disconnect():
     pad=GamepadAdapter("pad"); pad.reconnect()
     f=pad.joy([.01,.5,0,0,0,0], [0]*15)

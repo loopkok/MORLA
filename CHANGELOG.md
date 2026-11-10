@@ -1,5 +1,13 @@
 # Changelog（MORLA）
 
+## 2026-11-10 — MMK2 腕部到限位改为平滑饱和并保持；仿真与实机统一微分 IK
+
+- 第二轮整机仿真录制中右臂 137 拍（3.3%）被丢弃、最长冻结 1.86 s，q4/q5 贴住限位。根因是仿真 `mmk2_mujoco_sim.kinematics` 仍在用旧的严格式求解：迭代到 `1e-4 m / 1e-3 rad` 容差、每轮硬夹关节范围、35 ms 预算到期返回 `None`。贴限位后残差不再下降，循环空转到超时，公共 controller 把该拍记为 `held`；操作员继续转手、目标继续累积，于是松手前一直冻结。
+- 仿真改为与 `morla_mmk2_driver`、CR5/FR3 相同的策略：吸收式领先（`position_lead_m` / `rotation_lead_rad`）、每拍一次自适应阻尼 DLS、alpha 回溯（1/0.5/0.25/0.125）、无法改进时保持当前关节并报告 `limit_pressure_rad`。`solve()` 不再返回 `None`。超出领先的需求被丢弃，`previous_raw` 保留操作员原始目标，所以在限位处一反向下一拍立刻见效。
+- 五个常数提为实例参数并写进双侧 descriptor 与默认值（默认等于原字面量 `.02`/`.15`/`.005`/`.145`/`.05`）：`position_lead_m`、`rotation_lead_rad`、`damping_min`、`damping_max`、`singularity_threshold`。实机驱动的 `last_report` 补齐 `sigma_min`、`limit_pressure_rad`、`joint_step_rad`、位置/角度误差与 `converged` / `bounded_target_converged`，与仿真逐项一致。
+- 公共 `BindingController` 修复新鲜度判定：原先用“处理到该绑定那一刻”的时钟，第一帧为左臂惰性构建 MuJoCo 模型（实测约 0.34 s）后，右臂的同一帧已被判为超过 `max_age_ms: 250` 而过期并整帧丢弃。`BindingEngine._targets` 现在在帧进入时取一次时间，deadman 与 `controller.step(frame, measured, now)` 都用它——过期指样本到达时就已过期，不包含自身的构建/求解耗时。`test_dual_quest_binding_uses_public_ik_and_units` 在 HEAD 上稳定失败，与 solver 改动无关。
+- 测试：MMK2 仿真 24 项（新增吸收式领先/反向立即生效、左右腕部 400 拍连续转动全部返回可行命令且原始误差不累积）、驱动 18 项、`scripts/test_composable.sh --layer pure` 390 passed、`test_inputs.py` 新增“按到达时间判新鲜度”用例。语义仍是保持，不是到达目标：腕部贴限位时会停住直到反向，工作位仍应避开限位。
+
 ## 2026-11-10 — 公共笛卡尔控制器补上单拍关节限幅；MMK2 初始位姿奇异排查
 
 - `morla.cartesian_delta_ik` / `morla.gamepad_cartesian_jog` 此前从不读取绑定里的 `max_joint_step` / `max_joint_velocity`——只有 FR3/CR5 自己的 controller 读——MMK2 模板写的 0.02 rad、0.2 rad/s 实际没有任何约束。新增 `joint_step_cap()`，在 solver 返回后把命令夹到 `min(max_joint_step, max_joint_velocity·dt)`；一次解完整位姿的 solver（MMK2 URDF DLS 单拍最多 60 次迭代）不再能在一拍内跳到别的腕部分支。报告新增 `max_joint_step_rad`、`joint_step_clamped`。
