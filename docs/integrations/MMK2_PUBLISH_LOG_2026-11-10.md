@@ -25,4 +25,10 @@
 2. 将本日志、CHANGELOG、实现和验收证据作为实现提交；使用普通推送更新 `origin/main`，不改写既有历史。
 3. 推送完成后读取远端 ref 核验，并以单独文档提交记录实现提交号和实际推送结果，避免日志自引用。
 
-实际提交号与发布终态在下方追加；未执行的步骤不会记为已完成。
+## 实际发布结果
+
+- 实现与验收证据提交：`7a5aa55833004b494656cde100b53be689f66c0f`，标题 `feat(mmk2): integrate whole-body MuJoCo simulation and Web validation`。共 105 个文件；大量新增行来自约 30 MB 的文本 OBJ 模型资源，不是原始运行数据。
+- 首次 `git push origin HEAD:main` 因 HTTPS 终端缺少可用凭据失败：`could not read Username for 'https://github.com': Device not configured`，未因此修改用户 Git 配置。
+- 随后使用已有 SSH 认证执行普通推送 `git push git@github.com:loopkok/MORLA.git HEAD:main`，Git 返回 `f2166a5..7a5aa55 HEAD -> main`，成功更新同一个仓库的 main 分支。
+- HTTPS `git ls-remote origin refs/heads/main` 返回完整实现提交号 `7a5aa55833004b494656cde100b53be689f66c0f`；随后 `git fetch origin` 确认 origin/main 相同。
+- 本节作为独立文档收尾提交再次推送。它的最终提交号以 Git 历史及远端 main 为准，不在自身文件中自引用；最终远端核验结果在交付回复中报告。
