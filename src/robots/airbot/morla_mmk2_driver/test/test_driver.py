@@ -302,6 +302,27 @@ def test_differential_ik_singularity_and_large_hand_motion_are_bounded():
         assert solver.last_report['method']=='mmk2_urdf_differential'
 
 
+def test_differential_ik_follows_a_static_hand_to_the_target():
+    """A held hand must keep being followed, not frozen one lead away.
+
+    The effective goal was integrated from the previous raw target and the lead
+    clamp wrote the clamped pose back, so with a stationary hand the deltas
+    telescoped to zero and the arm kept the offset it had when the hand stopped
+    (0.59 m in the recorded MMK2 session). Re-deriving the goal from the raw
+    target every tick closes it.
+    """
+    import numpy as np
+    from morla_mmk2_driver.kinematics import create_kinematics
+    _,rows=resolve()
+    solver=create_kinematics(rows['left_arm'])
+    q=np.array([0,-.8,.8,1.64,.8,0.]);solver.sync_state(q);start=solver.fk(q)
+    target=start.copy();target[0,3]+=.05
+    for _ in range(400):
+        q=np.array(solver.solve(target));solver.sync_state(q)
+    assert solver.last_report['raw_position_error_m']<1e-3
+    assert solver.last_report['raw_angle_error_rad']<1e-3
+
+
 def test_fault_reason_is_logged_and_survives_dispatch_rejection():
     _,rows=resolve();events=[]
     s=DeviceSession(rows,diagnostics=lambda kind,data:events.append((kind,data)))

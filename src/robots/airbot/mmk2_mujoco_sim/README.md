@@ -30,9 +30,13 @@ ros2 launch mmk2_mujoco_sim mmk2_mujoco_sim.launch.py sim_mode:=physics sim_disp
 
 双臂注册 `morla.kinematics`，可使用公共 `morla.cartesian_delta_ik`；FK/IK 均以各臂自身 `left_base_link/right_base_link` 为参考，以 gripper_center 为末端。`config/quest.sim.yaml` 提供双臂示例；`config/quest.whole.sim.yaml` 是从 Web 逐步配置得到的整机七组映射，预设名为 **AIRBOT MMK2 整机七组 / Quest（仿真）**。双臂 Unity 基变换包含 base→slide→arm 的完整固定旋转链，现场方向/工具偏置仍未标定。
 
-双臂微分 IK 与实机驱动同策略：每拍一次带阻尼的 DLS，把需求吸收在 `position_lead_m`（默认 0.02 m）/ `rotation_lead_rad`（默认 0.35 rad，与 FR3/CR5 一致）之内，alpha 回溯找下降步长，无法改进时保持当前关节并报告 `limit_pressure_rad`，不返回 `None`。阻尼参数为 `damping_min` 0.005、`damping_max` 0.145，`singularity_threshold` 0.05；五个值都是实例参数，未配置时用 descriptor 默认值，其中 `rotation_lead_rad` 在设备页可改。绑定侧另有 `smoothing_alpha`（输入低通，1=关闭，模板 0.35）和 `rotation_scale`（旋转增量倍率，默认 1.0=1:1）。腕部贴限位时会平滑停住直到反向，不是收敛到目标。
+双臂微分 IK 与实机驱动同策略：每拍一次带阻尼的 DLS，把需求吸收在 `position_lead_m`（默认 0.02 m）/ `rotation_lead_rad`（默认 0.35 rad，与 FR3/CR5 一致）之内，alpha 回溯找下降步长，无法改进时保持当前关节并报告 `limit_pressure_rad`，不返回 `None`。阻尼参数为 `damping_min` 0.005、`damping_max` 0.145，`singularity_threshold` 0.05；五个值都是实例参数，未配置时用 descriptor 默认值，其中 `rotation_lead_rad` 在设备页可改。绑定侧另有 `smoothing_alpha`（输入低通，1=关闭，模板 0.35）和 `rotation_scale`（旋转增量倍率，默认 1.0=1:1）。
+有效目标每拍都从原始目标重新推导（`goal = raw` 后再做领先截断），从不跨拍积分：手不动时增量为零，积分写法会把目标冻在“上一拍手臂位置 + 领先距离”，手臂永久停在离手 2 cm / 0.35 rad 的偏置上，误差再也不回零。
+贴限位的关节用 active-set 处理：把仍在向外推的贴限位关节锁住重解，其余关节承担步长，被拒绝的向外需求记入 `limit_pressure_rad`；否则 DLS 把步长花在动不了的关节上，回溯全部失败而楔死。腕部贴限位时平滑停住直到反向，不是收敛到目标。
+单拍关节步长还受绑定参数 `max_joint_step` / `max_joint_velocity`（经 `joint_step_cap = min(max_joint_step, max_joint_velocity·dt)`）限制，模板为 0.05 rad / 2.0 rad/s；`max_joint_velocity` 按 30 Hz 换算后若只有 0.2 就是 0.0067 rad/拍，手一动臂就落后半米。
 
 整机模板的升降绑定用 `morla.scalar_anchored` 而不是 `morla.scalar_map`：扳机是相对量，按下 Grip 时锁存当前升降高度，只下发之后的行程。用绝对映射时，扳机静止为 0、映射起点为 `0.1 m`，deadman 一生效躯干就瞬降 10 cm（厂商 URDF 的 `slide_joint` 正值朝下），双臂看起来“先降一下”才开始遥操。夹爪仍是 `scalar_map`（开合是绝对状态）。
+锚定映射的 `output_range` 是**扳机满行程对应的位移**，不是绝对位置，所以必须显式给出：Web 切换控制器时会丢失未在 descriptor 里声明的参数，丢掉量程后默认 `[0,1]` 就是 1 m 行程，按住扳机直接把躯干开到底。现在两个 scalar 控制器都在 `controllers.json` 声明 `input_range`/`output_range`（切换时保留、编辑器始终显示），`AnchoredScalarController` 缺量程直接报错，编译器以 `ANCHORED_OUTPUT_RANGE` 拒绝。升降建议 `input_range [0,1]`、`output_range [0.1,0.2]`。
 
 Quest 测试后端本身不会主动生成动作。要复现本地 Web 验证，从仓库根目录运行 `python3 scripts/run_mmk2_web_acceptance.py --store /tmp/mmk2-web-demo`，在 Web 载入上述预设并逐步检查、保存、启动及激活。该独立测试宿主只向已经由页面创建的 MMK2 会话中的 fake Quest 注入 30 Hz 合成输入，不自动激活，不连接硬件。测试开关保存在该 store 下的 quest_fixture.json；hold=false 模拟松开 Grip，enabled=false 模拟输入停发。
 

@@ -64,7 +64,8 @@ class ArmKinematics:
         self.reset_teleop()
 
     def reset_teleop(self):
-        self.previous_raw = None
+        # Only the last effective goal is kept, for diagnostics. Nothing is
+        # carried into the next tick: the goal is derived from the raw target.
         self.goal = None
 
     def sync_state(self, q):
@@ -86,9 +87,18 @@ class ArmKinematics:
     def solve(self, target, seed=None):
         """One improving DLS step toward an absorbing, lead-bounded goal.
 
-        `seed` is the joint vector the step integrates from and defaults to the
-        last synced state. `previous_raw` keeps the unconsumed hand target so a
-        reversal at a boundary acts on the next tick instead of after unwind.
+        The effective goal is re-derived from `target` every tick rather than
+        integrated from the previous one. Integrating looked equivalent (the
+        increments telescope) but the lead clamp writes the clamped pose back,
+        so every tick the arm spent saturated or rate-limited *dropped* that
+        demand permanently: after one wrist saturation the arm kept a standing
+        offset of ~0.2 m / 1.1 rad from the hand pose for the rest of the
+        session, and the measured `raw_position_error_m` never returned to
+        zero even with the hand still. Re-deriving keeps the same per-tick
+        absorbing behaviour (excess demand beyond the lead is not commanded)
+        while making the map absolute again: the arm converges to the hand
+        whenever the pose is reachable, and a reversal still acts immediately
+        because the goal direction comes from the current raw error.
         """
         target = np.asarray(target,dtype=float)
         if target.shape!=(4,4) or not np.isfinite(target).all():
@@ -98,11 +108,7 @@ class ArmKinematics:
             raise ValueError('MMK2_IK_INVALID_SEED')
         began = time.monotonic()
         current = self.fk(q0)
-        goal = target.copy() if self.previous_raw is None else self.goal.copy()
-        if self.previous_raw is not None:
-            goal[:3,3]+=target[:3,3]-self.previous_raw[:3,3]
-            goal[:3,:3]=(target[:3,:3]@self.previous_raw[:3,:3].T)@goal[:3,:3]
-        self.previous_raw = target.copy()
+        goal = target.copy()
         translation = goal[:3,3]-current[:3,3]
         distance = float(np.linalg.norm(translation))
         if distance>self.position_lead_m:
@@ -121,10 +127,35 @@ class ArmKinematics:
         J = np.vstack((R.T@jp[:,self.dadr],.3*R.T@jr[:,self.dadr]))
         sigma = float(np.linalg.svd(J,compute_uv=False)[-1])
         damping = self.damping_min+(self.damping_max-self.damping_min)*max(0.,1-sigma/self.singularity_threshold)**2
-        dq = J.T@np.linalg.solve(J@J.T+damping**2*np.eye(6),residual)
+        # A joint resting on its stop cannot move outward, but the damped
+        # least-squares direction still spends part of the step on it. Sending
+        # that step means the clip cancels part of it, the trial no longer
+        # reduces the error and every backtracking alpha fails, so the arm
+        # wedged at the stop even when the hand came back. Solve again with the
+        # outward joints held (active set) so the remaining joints carry the
+        # step, and report the refused demand as limit pressure.
+        resting_low = q0 <= self.bounds[:,0]+1e-9
+        resting_high = q0 >= self.bounds[:,1]-1e-9
+        free = np.ones(6,bool)
+        dq = np.zeros(6)
+        unconstrained = None
+        blocked = np.zeros(6,bool)
+        for _ in range(6):
+            Jf = J[:,free]
+            dqf = Jf.T@np.linalg.solve(Jf@Jf.T+damping**2*np.eye(6),residual)
+            if unconstrained is None:
+                unconstrained = dqf.copy()
+            dq[:] = 0.
+            dq[free] = dqf
+            outward = (resting_low&(dq<0))|(resting_high&(dq>0))
+            if not outward.any():
+                break
+            blocked |= outward
+            free[outward] = False
         if not np.isfinite(dq).all():
             raise ValueError('MMK2_IK_NONFINITE_UPDATE')
-        result = q0.copy(); reason = 'holding'; limit_pressure = 0.
+        limit_pressure = float(np.linalg.norm(unconstrained[blocked])) if blocked.any() else 0.
+        result = q0.copy(); reason = 'holding'
         for alpha in (1.,.5,.25,.125):
             if time.monotonic()-began>.02:
                 reason = 'deadline_hold'; break

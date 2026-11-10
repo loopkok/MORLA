@@ -418,6 +418,28 @@
       ],
       "target_dim": 1
     },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input_range": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "output_range": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
     "backend_variants": {
       "fake": {
         "available": true
@@ -484,6 +506,28 @@
         "scalar"
       ],
       "target_dim": 1
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input_range": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "output_range": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
     },
     "backend_variants": {
       "fake": {

@@ -95,7 +95,18 @@ class AnchoredScalarController:
             raise ControllerError("anchored scalar requires one target")
         x = _vector([value], 1)[0]
         lo, hi = parameters.get("input_range", [0.0, 1.0])
-        out_lo, out_hi = parameters.get("output_range", [0.0, 1.0])
+        if "output_range" not in parameters:
+            # Defaulting to [0,1] means one metre of travel. On the MMK2 lift
+            # (slide_joint positive = down) that drove the body to the bottom
+            # stop as soon as the binding lost its range, so refuse instead.
+            raise ControllerError("anchored scalar requires an explicit output_range")
+        out = parameters["output_range"]
+        if (not isinstance(out, (list, tuple)) or len(out) != 2
+                or any(isinstance(v, bool) or not isinstance(v, (int, float))
+                       or not math.isfinite(v) for v in out)
+                or float(out[0]) == float(out[1])):
+            raise ControllerError("anchored scalar requires two differing finite output_range values")
+        out_lo, out_hi = float(out[0]), float(out[1])
         if not lo < hi or not lo <= x <= hi:
             raise ControllerError("scalar outside declared range")
         if self.origin is None:

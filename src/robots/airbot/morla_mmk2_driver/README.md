@@ -29,7 +29,9 @@
 底盘不支持位置偏移。连接断开后软件无法保证控制器停止，需现场验证控制器侧超时。
 故障不自动重连、不恢复旧目标；排除故障后重新启动会话。
 
-双臂默认使用受限微分 IK（同 FR3/CR5 策略）：每帧一次阻尼更新，关节步长由驱动限速/频率与领先距离共同限制，笛卡尔目标领先截断 2cm/0.35rad，不宣称每帧精确收敛。领先与阻尼是实例参数 `position_lead_m`、`rotation_lead_rad`、`damping_min`、`damping_max`、`singularity_threshold`（默认 0.02 / 0.35 / 0.005 / 0.145 / 0.05，与仿真包一致；`rotation_lead_rad` 在设备页可见）；绑定侧另有 `smoothing_alpha`（输入低通，1=关闭）和 `rotation_scale`（旋转倍率，默认 1.0）。腕部到限位时保持当前关节并报告 `limit_pressure_rad`，不返回空解，也不会冻结。
+双臂默认使用受限微分 IK（同 FR3/CR5 策略）：每帧一次阻尼更新，关节步长由驱动限速/频率与领先距离共同限制，笛卡尔目标领先截断 2cm/0.35rad，不宣称每帧精确收敛。领先与阻尼是实例参数 `position_lead_m`、`rotation_lead_rad`、`damping_min`、`damping_max`、`singularity_threshold`（默认 0.02 / 0.35 / 0.005 / 0.145 / 0.05，与仿真包一致；`rotation_lead_rad` 在设备页可见）；绑定侧另有 `smoothing_alpha`（输入低通，1=关闭）和 `rotation_scale`（旋转倍率，默认 1.0）。
+有效目标每拍从原始目标重新推导（做领先截断后即用），不跨拍积分；积分写法在手静止时会把目标冻结在“上一拍关节位置 + 领先距离”，留下永久偏置。贴限位的关节按 active-set 锁住重解，其余关节承担步长，被拒绝的向外需求记入 `limit_pressure_rad`。
+单拍关节步长同时受绑定参数 `max_joint_step` / `max_joint_velocity` 约束（`min(max_joint_step, max_joint_velocity·dt)`），模板 0.05 rad / 2.0 rad/s；低于这个量级时手一动臂就明显落后。
 默认 trajectory 请求，缩放 0.05，主机限速/目标领先距离额外约束；此接口不宣称高频伺服。
 `forward_position` 是显式可选 SDK 接口，需按固件验证后使用。底盘 250ms 主机命令超时会请求零速度，
 不是经过验证的控制器看门狗。
@@ -63,7 +65,7 @@ SDK 没有协方差，ROS 输出使用保守未知方差。裸 driver 不自动�
 3. 另建真实装配，选 “AIRBOT MMK2 SDK 整机（真实设备，默认只读）”。所有 SDK 组件使用同一 mmk2_sdk session_id。在部署中逐个填同一真实 device_id/resource_key/host/port/robot_name/domain_id。模板 deployment.real.example.yaml 展示结构；控制器地址已填 `172.25.14.1`，必须替换序列号占位符；本轮不连接该地址。
 4. 保持三项写入开关 false，仅编译、启动，观察具名反馈/时间戳/健康与相机。缺任何执行器反馈不允许准备/激活；需要子集时从装配移除相应组件并调整 capture。
 5. 完成现场核验后再配置 Quest：真实输入源双手、接收协议/端口/设备身份；不要同时运行测试数据注入器。quest.real.example.yaml 是完整双手绑定示例。
-6. 双手位姿 → 各臂公共 Cartesian IK；双手 scalar → 各 SDK 夹爪；左 scalar 同时 → 升降（`morla.scalar_anchored`，按下 Grip 时锁存当前高度，只下发之后行程；绝对映射会让躯干在 Grip 生效那一拍瞬跳）；左摇杆 → 头；右摇杆 → 原生底盘 Twist。每条绑定都有 hold deadman 和 250ms 输入新鲜度。升降与夹爪共用左 scalar 是示例，可在 Web 改绑定。
+6. 双手位姿 → 各臂公共 Cartesian IK；双手 scalar → 各 SDK 夹爪；左 scalar 同时 → 升降（`morla.scalar_anchored`，按下 Grip 时锁存当前高度，只下发之后行程；绝对映射会让躯干在 Grip 生效那一拍瞬跳；`output_range` 必须显式填写为扳机满行程的位移，缺失时编译报 `ANCHORED_OUTPUT_RANGE`，不要依赖默认 `[0,1]`——那是 1 m 行程，`slide_joint` 正值朝下，会直接到底）；左摇杆 → 头；右摇杆 → 原生底盘 Twist。每条绑定都有 hold deadman 和 250ms 输入新鲜度。升降与夹爪共用左 scalar 是示例，可在 Web 改绑定。
 7. 现场测量双臂输入坐标基、TCP 和方向；模板中的变换矩阵仅沿用模型参考，calibration_verified=false。夹爪 output_range=[0,1] 仅表示原始映射，确认极性后可反向。实机运动前，记录公共标定/停止 verified，并显式开启每个执行器组件的三项写入门禁。先单组低速，再整机。
 8. 通过 Web 准备、激活、获取控制权、按住 deadman，松开后检查保持/零速度及诊断；再验证停止、故障、断网、物理急停和长稳。采集只选 SDK 实际提供的端口。结束采集先点“暂停遥操”，再点“结束并保存”，最后结束工作站。
 

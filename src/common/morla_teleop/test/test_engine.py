@@ -264,3 +264,29 @@ def test_anchored_scalar_does_not_step_the_lift_when_grip_is_pressed():
     assert engine.targets(frame(4,1.,True))[0]['values']==[0.1]
     assert engine.targets(frame(5,0.,True))[0]['values']==pytest.approx([0.0])
     engine.close()
+
+
+def test_anchored_scalar_refuses_a_missing_output_range():
+    """A lost output_range must fail loudly, not mean one metre of travel.
+
+    Switching the MMK2 lift binding from ``morla.scalar_map`` to
+    ``morla.scalar_anchored`` in Web dropped both ranges: the new controller
+    declared no parameters, so the parameter-preserving merge discarded them.
+    The anchored default of [0,1] then commanded a full metre on a joint whose
+    positive direction points down, and holding the left trigger drove the
+    body straight to the bottom stop.
+    """
+    from morla_teleop.controllers import ControllerError
+    binding={'id':'lift','source':'input.scalar','target':'lift.position_target',
+             'deadman':'input.hold','controller':'morla.scalar_anchored',
+             'parameters':{'input_range':[0,1]}}
+    rt=SimpleNamespace(clock=lambda:100,
+        instances={'lift':{'plugin_id':'morla.airbot.mmk2.lift',
+                           'joints':[{'name':'slide_joint','unit':'m'}]}},
+        adapters={'lift':SimpleNamespace(health=lambda now:{'values':[.15]})},
+        resolved={'bindings':[binding]})
+    engine=BindingEngine(rt)
+    frame=InputFrame('input','epoch',1,100,'input',{'scalar':.5,'hold':1.})
+    with pytest.raises(ControllerError,match='output_range'):
+        engine.targets(frame)
+    engine.close()

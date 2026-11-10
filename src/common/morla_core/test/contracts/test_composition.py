@@ -61,6 +61,31 @@ def test_binding_capabilities_and_duplicate_writer():
     value['bindings'].append({**value['bindings'][0],'id':'second'})
     with pytest.raises(CompilationError,match='multiple input'): compile_system(value)
 
+def test_anchored_scalar_requires_an_output_range():
+    """The anchored lift map must state its travel, not default to a metre.
+
+    ``morla.scalar_anchored`` applies the change since the deadman engaged, so
+    ``output_range`` is the travel across the trigger rather than an absolute
+    position. Defaulting it to [0,1] meant one metre on the MMK2 lift, whose
+    slide joint points down, and the body went to the bottom stop when the
+    range was lost on a controller switch.
+    """
+    def anchored(parameters):
+        return {'assembly_version':1,'assembly_id':'workcell','revision':1,
+                'instances':{'g':{'plugin':'morla.astral.gripper'},
+                             'pad':{'plugin':'morla.input.gamepad'}},
+                'bindings':[{'id':'lift','source':'pad.scalar','target':'g.joint_target',
+                             'controller':'morla.scalar_anchored',
+                             'deadman':'pad.right_shoulder','parameters':parameters}]}
+    with pytest.raises(CompilationError) as missing:
+        compile_system(anchored({'input_range':[0,1]}))
+    assert missing.value.diagnostics[0]['error_code']=='ANCHORED_OUTPUT_RANGE'
+    with pytest.raises(CompilationError) as equal:
+        compile_system(anchored({'input_range':[0,1],'output_range':[.1,.1]}))
+    assert equal.value.diagnostics[0]['error_code']=='ANCHORED_OUTPUT_RANGE'
+    assert compile_system(anchored({'input_range':[0,1],'output_range':[.1,.2]}))['bindings']
+
+
 def test_mount_cycle_and_multiple_parent():
     value=assembly();value['mounts']=[{'child':'a.base','parent':'b.flange'},{'child':'b.base','parent':'a.flange'}]
     with pytest.raises(CompilationError,match='cycle'): compile_system(value)

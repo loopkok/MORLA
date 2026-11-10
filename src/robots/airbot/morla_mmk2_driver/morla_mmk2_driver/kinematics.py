@@ -72,7 +72,8 @@ class ArmKinematics:
         return T
 
     def reset_teleop(self):
-        self.previous_raw=None;self.goal=None
+        # Nothing is carried between ticks; the goal is re-derived from `raw`.
+        self.goal=None
 
     def solve(self,target,seed=None):
         """One improving DLS update; no exact-convergence claim or wrist jumps.
@@ -80,17 +81,17 @@ class ArmKinematics:
         Like FR3/CR5, absorb excess Cartesian demand into a bounded effective
         goal. Seed from measured joints, apply adaptive damping near a singular
         configuration, and cap one update to the driver dispatch rate/limits.
+        The goal is re-derived from `raw` every tick, never integrated: the
+        lead clamp writes the clamped pose back, so integrating dropped each
+        saturated tick's demand permanently and left a standing offset that
+        survived even with the hand held still.
         """
         from morla_core.coordinates import validate_transform
         raw=validate_transform(target)
         q0=self.q.copy() if seed is None else np.asarray(seed,dtype=float).copy()
         if q0.shape!=(6,) or not np.isfinite(q0).all():raise ValueError('MMK2_IK_INVALID_SEED')
         began=time.monotonic();current=self.fk(q0)
-        goal=raw.copy() if self.previous_raw is None else self.goal.copy()
-        if self.previous_raw is not None:
-            goal[:3,3]+=raw[:3,3]-self.previous_raw[:3,3]
-            goal[:3,:3]=(raw[:3,:3]@self.previous_raw[:3,:3].T)@goal[:3,:3]
-        self.previous_raw=raw.copy()
+        goal=raw.copy()
         delta=goal[:3,3]-current[:3,3];distance=np.linalg.norm(delta)
         if distance>self.position_lead_m:goal[:3,3]=current[:3,3]+delta*self.position_lead_m/distance
         rotation=Rotation.from_matrix(goal[:3,:3]@current[:3,:3].T).as_rotvec();angle=np.linalg.norm(rotation)
@@ -105,10 +106,26 @@ class ArmKinematics:
         J=np.vstack((R.T@jp[:,self.dadr],.3*R.T@jr[:,self.dadr]))
         sigma=np.linalg.svd(J,compute_uv=False)[-1]
         damping=self.damping_min+(self.damping_max-self.damping_min)*max(0.,1-sigma/self.singularity_threshold)**2
-        dq=J.T@np.linalg.solve(J@J.T+damping**2*np.eye(6),residual)
+        # A joint resting on its stop cannot move outward, but the damped
+        # least-squares direction still spends part of the step on it. Sending
+        # that step means the clip cancels part of it, the trial no longer
+        # reduces the error and every backtracking alpha fails, so the arm
+        # wedged at the stop even when the hand came back. Solve again with the
+        # outward joints held (active set) and report the refused demand.
+        resting_low=q0<=self.bounds[:,0]+1e-9;resting_high=q0>=self.bounds[:,1]-1e-9
+        free=np.ones(6,bool);dq=np.zeros(6);unconstrained=None;blocked=np.zeros(6,bool)
+        for _ in range(6):
+            Jf=J[:,free]
+            dqf=Jf.T@np.linalg.solve(Jf@Jf.T+damping**2*np.eye(6),residual)
+            if unconstrained is None:unconstrained=dqf.copy()
+            dq[:]=0.;dq[free]=dqf
+            outward=(resting_low&(dq<0))|(resting_high&(dq>0))
+            if not outward.any():break
+            blocked|=outward;free[outward]=False
         if not np.isfinite(dq).all():raise ValueError('MMK2_IK_NONFINITE_UPDATE')
+        limit_pressure=float(np.linalg.norm(unconstrained[blocked])) if blocked.any() else 0.
         dq*=min(1.,self.max_step/max(float(np.max(np.abs(dq))),1e-12))
-        result=q0.copy();reason='holding';limit_pressure=0.
+        result=q0.copy();reason='holding'
         for alpha in (1.,.5,.25,.125):
             trial_unclipped=q0+alpha*dq
             trial=np.clip(trial_unclipped,self.bounds[:,0],self.bounds[:,1])

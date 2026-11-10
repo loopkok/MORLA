@@ -167,7 +167,7 @@ def test_absorbing_lead_bounds_goal_and_reversal_is_immediate():
 
 @pytest.mark.parametrize('side',['left','right'])
 def test_wrist_stop_holds_instead_of_returning_none(side):
-    """Keep turning a saturated wrist: the arm holds, it never drops the tick.
+    """Ask past a wrist stop: the arm holds, it never drops the tick.
 
     The old sim solver iterated to a pose tolerance, hard-clipped to the joint
     range and returned None when the budget expired, so a sustained turn at a
@@ -179,19 +179,51 @@ def test_wrist_stop_holds_instead_of_returning_none(side):
     from scipy.spatial.transform import Rotation
     solver=create_kinematics({'plugin_id':'morla.airbot.mmk2.'+side+'_arm'})
     sign=1 if side=='left' else -1
-    q0=np.array([0,-.8,.8,1.64*sign,.8*sign,0.]);solver.sync_state(q0)
-    target=solver.fk(q0);held=0
-    for _ in range(400):
-        target[:3,:3]=Rotation.from_rotvec([.02,0,.03]).as_matrix()@target[:3,:3]
+    # Seed both wrists against the stop the requested turn pushes into.
+    q0=np.array([0,-.8,.8,1.64*sign,-1.74*sign,0.]);solver.sync_state(q0)
+    target=solver.fk(q0);target[:3,:3]=Rotation.from_rotvec([0,.4,0]).as_matrix()@target[:3,:3]
+    held=0;pressure=0.
+    for _ in range(200):
         command=solver.solve(target)
         assert command is not None and len(command)==6 and np.isfinite(command).all()
         assert np.all(np.asarray(command)>=solver.bounds[:,0]-1e-9)
         assert np.all(np.asarray(command)<=solver.bounds[:,1]+1e-9)
         held+=solver.last_report['reason'] in {'holding','deadline_hold'}
+        pressure=max(pressure,solver.last_report['limit_pressure_rad'])
     assert held,'the wrist never saturated; this sequence stopped exercising the limit'
-    assert solver.last_report['limit_pressure_rad']>0
+    assert pressure>.1
     assert solver.last_report['angle_error_rad']<=solver.rotation_lead_rad+1e-9
-    assert solver.last_report['raw_angle_error_rad']>1.
+
+
+def test_static_hand_keeps_closing_instead_of_keeping_a_standing_offset():
+    """A hand held still must keep being followed.
+
+    The effective goal used to be integrated from the previous raw target and
+    the lead clamp wrote the clamped pose back. With the hand stationary the
+    deltas telescope to zero, so the goal froze one lead away from wherever the
+    arm happened to be and the arm kept that offset for the rest of the session
+    -- the "this is not teleoperation any more" standing error. Re-deriving the
+    goal from the raw target every tick keeps closing the gap until the pose is
+    reached or the workspace runs out.
+    """
+    from mmk2_mujoco_sim.kinematics import create_kinematics
+    solver=create_kinematics({'plugin_id':'morla.airbot.mmk2.left_arm'})
+    q0=np.array([0,-.8,.8,1.64,.8,0.]);solver.sync_state(q0);start=solver.fk(q0)
+    far=start.copy();far[0,3]+=1.0
+    for _ in range(400):
+        solver.solve(far)
+    # A frozen goal stops after one 2 cm lead (~0.98 m still outstanding); the
+    # absolute goal keeps travelling toward the hand (0.65 m at the workspace
+    # edge for this posture).
+    assert solver.last_report['raw_position_error_m']<.9
+    # A reachable static hand pose is actually reached, not held one lead away.
+    solver=create_kinematics({'plugin_id':'morla.airbot.mmk2.left_arm'})
+    solver.sync_state(q0)
+    reachable=start.copy();reachable[0,3]+=.2
+    for _ in range(100):
+        solver.solve(reachable)
+    assert solver.last_report['raw_position_error_m']<1e-3
+    assert solver.last_report['raw_angle_error_rad']<1e-3
 
 
 def test_installed_provider_public_runtime(tmp_path):

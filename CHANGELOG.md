@@ -1,5 +1,15 @@
 # Changelog（MORLA）
 
+## 2026-11-11 — MMK2 遥操“完全不像遥操”：目标棘轮、单拍限速、升降扳机默认量程
+
+- 操作员第三轮测试：双臂遥操整体漂移、越跟越远，按住左扳机升降直接到底。用录制 `20261110T155230Z_…_d3cddb5`（2091 拍）逐拍复放定位到两个独立缺陷。
+- **目标棘轮（双臂）**：`mmk2_mujoco_sim` 与 `morla_mmk2_driver` 的微分 IK 把有效目标从上一拍原始目标积分（`goal += raw - previous_raw`），再把被领先截断后的 `goal` 存回去。手停住时增量为零，目标就冻结在“上一拍手臂位置 + 2 cm”，手臂永久停在离手 0.59 m / 1.23 rad 的地方；逐拍误差 `raw_position_error_m` 再也不回零。现在每拍从原始目标重新推导 `goal`（仍吸收超出领先的需求），映射重新变成绝对量：同一录制逐拍闭环复放，误差 p95 8 mm、末拍 0（旧实现末拍 0.585 m / 1.233 rad）。
+- **关节在限位时楔死**：DLS 步长仍把分量花在已贴限位的关节上，裁剪后该拍不再下降，alpha 回溯全部失败、永久保持。改为 active-set：把向外推的贴限位关节锁住重解，剩下的关节承担步长；被拒绝的向外需求记入 `limit_pressure_rad`（此前被裁掉后记 0）。
+- **单拍限速过紧**：`joint_step_cap = min(max_joint_step, max_joint_velocity·dt)` 对 MMK2 生效（FR3/CR5 自己的 controller 传 `step_cap=False`，同名参数对它们是空参数），30 Hz 下 `max_joint_velocity: 0.2` 只剩 0.0067 rad/拍。四份 MMK2 Quest 模板（`quest.sim.yaml`、`quest.whole.sim.yaml`、`quest.fake.yaml`、`quest.real.example.yaml`）改为 `max_joint_step: 0.05`、`max_joint_velocity: 2.0`；逐拍复放实测：无上限误差 0、`max_joint_step` 0.05 误差 0、0.35 rad/s 上限 0.52 m、0.2 rad/s 上限更大。
+- **升降扳机直接到底**：`morla.scalar_anchored` 在 Web 切换 controller 时丢掉了 `input_range`/`output_range`（新 controller 的 descriptor 没有 `configuration_schema`，`preserveBindingParameters` 把它们过滤掉），锚定映射的 `output_range` 默认 `[0,1]` 就是 1 m 行程，`slide_joint` 正值朝下，按住扳机立刻到底。现在：`morla.scalar_map`/`morla.scalar_anchored` 在 `controllers.json` 声明 `input_range`/`output_range`（切换控制器时参数被保留、Web 也总显示这两个字段）；`AnchoredScalarController` 缺 `output_range` 直接报 `ControllerError`，编译期以 `ANCHORED_OUTPUT_RANGE` 拒绝（已保存但缺量的 revision 启动时明确失败，而不是把躯干开到底）。
+- 测试：MMK2 仿真新增“手不动也持续逼近目标、可达目标误差 <1e-3”，改写腕部限位用例为 active-set 语义；驱动新增“静态手跟到目标”；`morla_teleop` 新增“缺 output_range 必须报错”；`morla_core` 新增编译期 `ANCHORED_OUTPUT_RANGE`。结果：MMK2 仿真 25 passed、驱动 19 passed、`scripts/test_composable.sh --layer pure` **406 passed**。
+- 文档：MMK2 仿真/驱动 README 同步。
+
 ## 2026-11-10 — MMK2 旋转手感三旋钮：输入滤波、旋转倍率、旋转领先（均上 Web）
 
 - 对照 FR3/CR5 后确认三台机器人**都没有"旋转增益"**：相对位姿的旋转增量一直是 1:1（`target_R = U·ΔR·Uᵀ·R_anchor`），`position_scale` 只作用于平移；姿态权重也都是 solver 里硬编码的 `.3`（位置 `1.0`，同时作用于误差、Jacobian 和 alpha 回溯残差）。MMK2 缺的是 FR3/CR5 已有的输入滤波，以及 `rotation_lead_rad` 默认值：FR3/CR5 为 0.35，MMK2 只有 0.15。

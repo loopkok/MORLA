@@ -185,6 +185,24 @@ def compile_system(assembly, deployment=None, registry=None):
         if sport['semantic'] not in accepted[0] or tport['semantic'] not in accepted[1]: raise CompilationError('incompatible input/controller/target capability',bid,code='PORT_MISMATCH')
         if controller in {'morla.scalar_map','morla.scalar_anchored'} and (sport['dim']!=1 or tport['dim']!=1 or len(target['joints'])!=1):
             raise CompilationError('scalar mapping requires one scalar input and one target joint',bid,code='PORT_MISMATCH')
+        if controller=='morla.scalar_anchored':
+            # The anchored map applies only the change since engage, so
+            # output_range is the travel across the trigger, not a position.
+            # Defaulting it to [0,1] means one metre of travel and drove the
+            # MMK2 lift to the bottom stop when the range was lost on a
+            # controller switch; require the operator to state it.
+            out=(binding.get('parameters') or {}).get('output_range')
+            if not isinstance(out,(list,tuple)) or len(out)!=2:
+                raise CompilationError('anchored scalar requires a two-value output_range',
+                                       bid,code='ANCHORED_OUTPUT_RANGE')
+            try:
+                low,high=(float(v) for v in out)
+            except (TypeError,ValueError) as exc:
+                raise CompilationError('anchored scalar output_range must be numeric',
+                                       bid,code='ANCHORED_OUTPUT_RANGE') from exc
+            if isinstance(out[0],bool) or isinstance(out[1],bool) or not np.isfinite([low,high]).all() or low==high:
+                raise CompilationError('anchored scalar requires two differing finite '
+                                       'output_range values',bid,code='ANCHORED_OUTPUT_RANGE')
         if controller=='morla.identity' and (sport['dim']!=tport['dim'] or sport['unit']!=tport['unit']): raise CompilationError('identity mapping requires equal dimensions and units',bid)
         target_identity=(target['instance_id'], 'command')
         if target_identity in target_writers: raise CompilationError('multiple input bindings write same component',bid)
