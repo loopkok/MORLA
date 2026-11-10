@@ -183,7 +183,7 @@ def compile_system(assembly, deployment=None, registry=None):
         if not desc['backend_variants'].get(target['backend'],{}).get('available',False):
             raise CompilationError('controller backend unavailable',bid,code='BACKEND_UNAVAILABLE')
         if sport['semantic'] not in accepted[0] or tport['semantic'] not in accepted[1]: raise CompilationError('incompatible input/controller/target capability',bid,code='PORT_MISMATCH')
-        if controller=='morla.scalar_map' and (sport['dim']!=1 or tport['dim']!=1 or len(target['joints'])!=1):
+        if controller in {'morla.scalar_map','morla.scalar_anchored'} and (sport['dim']!=1 or tport['dim']!=1 or len(target['joints'])!=1):
             raise CompilationError('scalar mapping requires one scalar input and one target joint',bid,code='PORT_MISMATCH')
         if controller=='morla.identity' and (sport['dim']!=tport['dim'] or sport['unit']!=tport['unit']): raise CompilationError('identity mapping requires equal dimensions and units',bid)
         target_identity=(target['instance_id'], 'command')

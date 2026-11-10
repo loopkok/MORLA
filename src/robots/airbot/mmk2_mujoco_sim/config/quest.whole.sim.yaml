@@ -137,7 +137,7 @@
       "target": "right_gripper.position_target"
     },
     {
-      "controller": "morla.scalar_map",
+      "controller": "morla.scalar_anchored",
       "deadman": "quest.left_hold",
       "id": "control_3",
       "max_age_ms": 250,

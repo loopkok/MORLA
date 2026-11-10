@@ -233,3 +233,34 @@ def test_headless_host_can_delegate_unified_actions_to_operator_coordinator():
     frame=SimpleNamespace(source_epoch='epoch',sequence=2)
     host.event('quest',frame,['teleop_start','record_or_release','record_stop','record_discard','workpos'])
     assert [action for action,_ in calls]==['teleop_start','record_or_release','record_stop','record_discard','workpos']
+
+
+def test_anchored_scalar_does_not_step_the_lift_when_grip_is_pressed():
+    """Pressing grip must not move a trigger-shaped lift.
+
+    ``morla.scalar_map`` sent the absolute position the trigger named, so the
+    MMK2 whole-body lift snapped 0 -> 0.1 m the moment the hold deadman
+    engaged and both arms dropped 10 cm before any hand motion. The anchored
+    controller latches measured and trigger at engage and applies only the
+    change since then; releasing the grip re-anchors at the new position.
+    """
+    measured={'lift':0.0}
+    binding={'id':'lift','source':'input.scalar','target':'lift.position_target',
+             'deadman':'input.hold','controller':'morla.scalar_anchored',
+             'parameters':{'input_range':[0,1],'output_range':[0.1,0.2]}}
+    rt=SimpleNamespace(clock=lambda:100,
+        instances={'lift':{'plugin_id':'morla.airbot.mmk2.lift',
+                           'joints':[{'name':'slide_joint','unit':'m'}]}},
+        adapters={'lift':SimpleNamespace(health=lambda now:{'values':[measured['lift']]})},
+        resolved={'bindings':[binding]})
+    engine=BindingEngine(rt)
+    def frame(sequence,trigger,grip):
+        return InputFrame('input','epoch',sequence,100,'input',{'scalar':trigger,'hold':grip})
+    assert engine.targets(frame(0,0.,False))==[]
+    assert engine.targets(frame(1,0.,True))[0]['values']==[0.0]
+    assert engine.targets(frame(2,1.,True))[0]['values']==pytest.approx([0.1])
+    assert engine.targets(frame(3,1.,False))==[]
+    measured['lift']=0.1
+    assert engine.targets(frame(4,1.,True))[0]['values']==[0.1]
+    assert engine.targets(frame(5,0.,True))[0]['values']==pytest.approx([0.0])
+    engine.close()

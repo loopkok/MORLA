@@ -32,6 +32,8 @@ ros2 launch mmk2_mujoco_sim mmk2_mujoco_sim.launch.py sim_mode:=physics sim_disp
 
 双臂微分 IK 与实机驱动同策略：每拍一次带阻尼的 DLS，把需求吸收在 `position_lead_m`（默认 0.02 m）/ `rotation_lead_rad`（默认 0.15 rad）之内，alpha 回溯找下降步长，无法改进时保持当前关节并报告 `limit_pressure_rad`，不返回 `None`。阻尼参数为 `damping_min` 0.005、`damping_max` 0.145，`singularity_threshold` 0.05；五个值都是实例参数，未配置时用 descriptor 默认值。腕部贴限位时会平滑停住直到反向，不是收敛到目标。
 
+整机模板的升降绑定用 `morla.scalar_anchored` 而不是 `morla.scalar_map`：扳机是相对量，按下 Grip 时锁存当前升降高度，只下发之后的行程。用绝对映射时，扳机静止为 0、映射起点为 `0.1 m`，deadman 一生效躯干就瞬降 10 cm（厂商 URDF 的 `slide_joint` 正值朝下），双臂看起来“先降一下”才开始遥操。夹爪仍是 `scalar_map`（开合是绝对状态）。
+
 Quest 测试后端本身不会主动生成动作。要复现本地 Web 验证，从仓库根目录运行 `python3 scripts/run_mmk2_web_acceptance.py --store /tmp/mmk2-web-demo`，在 Web 载入上述预设并逐步检查、保存、启动及激活。该独立测试宿主只向已经由页面创建的 MMK2 会话中的 fake Quest 注入 30 Hz 合成输入，不自动激活，不连接硬件。测试开关保存在该 store 下的 quest_fixture.json；hold=false 模拟松开 Grip，enabled=false 模拟输入停发。
 
 本地 Web 验证记录见 [逐步验收说明](../../../../docs/integrations/MMK2_WEB_ACCEPTANCE_2026-11-10.md)。普通启动入口不会隐式启用测试数据生成器。

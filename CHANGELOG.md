@@ -1,5 +1,14 @@
 # Changelog（MORLA）
 
+## 2026-11-10 — 按下 Grip 时 MMK2 双臂先“降一下”：扳机→升降改为锚定相对映射
+
+- 操作员报告：工作站启动、恢复发送后按住两个手柄的 Grip，仿真的两个臂先整体降一下才开始遥操；FR3/CR5 没有这个突变。追踪录制 `20261110T145258Z_…_a2f7885`：`handoff` 在 55.51 s，55.552 s 第一拍升降命令就是 `[0.1]`，55.573 s 升降反馈从 `0.0` 变成 `0.1`；同一时刻 `left_arm` 的目标 TCP 与实测只差 0.1 mm，0.6 s 内关节变化 ≤0.05 rad。**跳变在升降，不在双臂 IK。**
+- 根因：整机模板把 `quest.left_scalar`（扳机）同时接到夹爪（`[0.04, 0]`）和升降（`[0.1, 0.2]`），`morla.scalar_map` 写的是绝对位置；扳机静止为 0，deadman 一生效升降目标就是 `0.1 m`。厂商 URDF `slide_joint` 为 `origin rpy="3.1416 0 1.5708"`、`axis 0 0 1`，世界方向是 −z，正值向下；实测 `slide=0.1` 使 `slide_link` 与左右 gripper_center 的世界 z 下降 0.10 m，所以操作员看到的是躯干整体下移 10 cm。
+- 新增公共 controller `morla.scalar_anchored`（Web 标签“线性映射（锚定）”）：engage 时锁存实测位置与输入值，只下发之后的变化量，松开再按重新锁存；`input_range`/`output_range` 语义不变，但 `output_range` 表示整段输入对应的相对行程。编译器对它的 1 维限制与 `scalar_map` 相同。
+- 配置：`mmk2_mujoco_sim/config/quest.whole.sim.yaml`、`morla_mmk2_driver/config/quest.fake.yaml`、`quest.real.example.yaml` 的升降绑定改用 `morla.scalar_anchored`；夹爪保留 `scalar_map`（开合是绝对状态）。已保存的装配不自动迁移，需在 Web 改该绑定的 controller 并保存新 revision，或删除该绑定。
+- 测试：`test_engine.py` 新增“按下 Grip 不动、扳机行程相对生效、松开重锚”用例；`morla_teleop` + `morla_core` 127 passed、MMK2 仿真与驱动 42 passed、`scripts/test_composable.sh --layer pure` 通过。
+- 文档：设备接入指南 §5.1 增加“扳机/摇杆驱动位置执行器要用相对量”、MMK2 仿真记录新增该节、两份 README 同步。
+
 ## 2026-11-10 — MMK2 腕部到限位改为平滑饱和并保持；仿真与实机统一微分 IK
 
 - 第二轮整机仿真录制中右臂 137 拍（3.3%）被丢弃、最长冻结 1.86 s，q4/q5 贴住限位。根因是仿真 `mmk2_mujoco_sim.kinematics` 仍在用旧的严格式求解：迭代到 `1e-4 m / 1e-3 rad` 容差、每轮硬夹关节范围、35 ms 预算到期返回 `None`。贴限位后残差不再下降，循环空转到超时，公共 controller 把该拍记为 `held`；操作员继续转手、目标继续累积，于是松手前一直冻结。

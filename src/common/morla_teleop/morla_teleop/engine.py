@@ -54,6 +54,9 @@ class BindingEngine:
         elif binding['controller'] in {'morla.xhand.retarget','morla.wuji.retarget'}:
             from morla_teleop.retargeting import install_retargeting
             install_retargeting(registry,instance)
+        elif binding['controller']=='morla.scalar_anchored':
+            from .controllers import AnchoredScalarController
+            registry.register(binding['controller'],AnchoredScalarController())
         elif binding['controller'] not in {'morla.joint_jog','morla.scalar_map','morla.identity','morla.pinch_scalar'}:
             from morla_teleop.retargeting import install_controller_plugin
             install_controller_plugin(registry,binding['controller'],context={

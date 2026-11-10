@@ -65,6 +65,48 @@ class ControllerRegistry:
         raise ControllerError(f"controller {plugin_id!r} requires an installed mapping/IK plugin")
 
 
+class AnchoredScalarController:
+    """Scalar mapping that never steps the joint when the deadman engages.
+
+    ``morla.scalar_map`` writes the absolute position the trigger currently
+    names, so with a hold deadman every grip press snaps the joint to whatever
+    the trigger carried at that instant. On the MMK2 whole-body preset the
+    left trigger rests at 0, that map starts at 0.1 m, and the vendor URDF
+    slide joint points +z *down* (origin rpy 3.1416 0 1.5708): both arms
+    dropped 10 cm the moment grip was pressed, before any hand motion.
+
+    This controller latches the measured position and the trigger value on the
+    first frame after engage and applies only the change since then, so
+    pressing grip moves nothing and pulling the trigger moves the joint
+    relative to where it was left. ``input_range``/``output_range`` keep the
+    scalar_map meaning; ``output_range`` is now the travel across the whole
+    input range rather than an absolute position.
+    """
+    synchronous_reanchor = True
+
+    def __init__(self):
+        self.origin = None
+
+    def reset(self):
+        self.origin = None
+
+    def __call__(self, value, measured, dt, parameters):
+        if len(measured) != 1:
+            raise ControllerError("anchored scalar requires one target")
+        x = _vector([value], 1)[0]
+        lo, hi = parameters.get("input_range", [0.0, 1.0])
+        out_lo, out_hi = parameters.get("output_range", [0.0, 1.0])
+        if not lo < hi or not lo <= x <= hi:
+            raise ControllerError("scalar outside declared range")
+        if self.origin is None:
+            origin = float(measured[0])
+            if not math.isfinite(origin):
+                raise ControllerError("invalid measured scalar target")
+            self.origin = (origin, x)
+        origin, x0 = self.origin
+        return [origin + (x - x0) / (hi - lo) * (out_hi - out_lo)]
+
+
 class BindingController:
     """Applies one bound input source when its frame is fresh and in sequence."""
     def __init__(self, binding, names, *, registry=None, max_age_ns=250_000_000, clock=time.monotonic_ns):

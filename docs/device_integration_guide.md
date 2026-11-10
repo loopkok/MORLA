@@ -358,6 +358,8 @@ CLI 见 [conformance.py](../src/common/morla_core/morla_core/plugins/conformance
 
 MORLA 的笛卡尔遥操采用相对位移：首次有效输入将人手位姿与机器人实测 TCP 建锚；之后映射位移/旋转增量。松开、断连、frame/epoch 改变后重新建锚，不能把远端绝对世界位姿直接作为机器人目标。
 
+**同理，用扳机/摇杆驱动位置执行器时也要用相对量。** `morla.scalar_map` 写的是“扳机当前指的那个绝对位置”，配上 hold deadman 后每次按下 grip 都会把关节瞬移到扳机当时的值。MMK2 整机模板的左扳机静止为 0，升降映射是 `[0.1, 0.2]`：按下 grip 后 20 ms 内升降目标就是 `0.1 m`，而厂商 URDF 的 slide 关节（origin rpy `3.1416 0 1.5708`、axis `0 0 1`）在世界里朝下，于是双臂连同躯干瞬降 10 cm，之后才开始遥操；FR3/CR5 不会突变，因为它们的位置输入走相对位移。同类输入用 `morla.scalar_anchored`：engage 时锁存实测位置与扳机值，只下发之后的变化量，松开再按重新锁存；`input_range`/`output_range` 含义不变，但 `output_range` 变成相对行程而不是绝对位置。夹爪可以继续用 `scalar_map`——开合本来就是绝对状态，按下瞬间张开几厘米是预期行为。
+
 同一控制板上的双臂、头、腰必须说明 HOME/disable/stop 的板级作用范围。只选左臂时，不得误使能或回位右臂/头/腰；未选择关节是 disabled 还是 held 需要实际证明。
 
 ### 5.2 夹爪
