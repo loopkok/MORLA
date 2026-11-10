@@ -61,7 +61,10 @@ class AsyncCartesianController:
         self.device_command_lead=device_command_lead
         self.device_joint_velocity=device_joint_velocity
         self.jog=jog
-        self.controller = CartesianController(solver, jog=jog, max_solve_ns=250_000_000)
+        # This wrapper already bounds the outgoing step (max_joint_velocity·dt
+        # against last_output) and the differential solver bounds max_joint_step,
+        # so the shared controller must not clip the same command again.
+        self.controller = CartesianController(solver, jog=jog, max_solve_ns=250_000_000, step_cap=False)
         self.condition = threading.Condition()
         self.generation = 0
         self.worker_generation = -1

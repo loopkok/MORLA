@@ -178,3 +178,69 @@ def test_independent_position_mapping_preserves_orientation(matrix,expected_per_
         target=np.asarray(controller.diagnostics()['target_tcp'])
         np.testing.assert_allclose(target[:3,3],expected,atol=1e-12)
         np.testing.assert_allclose(target[:3,:3],rotation@delta.as_matrix()@rotation.T,atol=1e-12)
+
+
+class FarBranchSolver(Solver):
+    """Solver that answers the whole pose in one call, like MMK2's URDF DLS."""
+    def solve(self,target):
+        result=self.seed.copy();result[:3]=target[:3,3];result[3:]=2.0;return result
+
+
+def _far_request(controller,parameters,seed):
+    controller.reanchor({'position':[0,0,0],'quaternion':[0,0,0,1]},seed,parameters)
+    return controller({'position':[1.,0.,0.],'quaternion':[0,0,0,1]},seed,.05,parameters)
+
+
+def test_max_joint_step_bounds_a_single_tick():
+    # MMK2's wrist flipped ~1.5 rad in one tick at q5=0. The binding already
+    # declared max_joint_step=0.02, but the generic controller never read it.
+    seed=[0.]*6
+    out=_far_request(CartesianController(FarBranchSolver()),{'max_joint_step':.02},seed)
+    assert np.max(np.abs(np.asarray(out)-seed))<=.02+1e-12
+
+
+def test_max_joint_velocity_bounds_a_single_tick_by_dt():
+    seed=[0.]*6
+    out=_far_request(CartesianController(FarBranchSolver()),{'max_joint_velocity':.2},seed)
+    assert np.max(np.abs(np.asarray(out)-seed))<=.2*.05+1e-12
+
+
+def test_both_limits_take_the_tighter_one():
+    seed=[0.]*6
+    parameters={'max_joint_step':.5,'max_joint_velocity':.2}
+    out=_far_request(CartesianController(FarBranchSolver()),parameters,seed)
+    assert np.max(np.abs(np.asarray(out)-seed))<=.2*.05+1e-12
+
+
+def test_without_the_parameters_the_solver_result_is_unchanged():
+    seed=[0.]*6
+    out=_far_request(CartesianController(FarBranchSolver()),{},seed)
+    np.testing.assert_allclose(out,[1.,0.,0.,2.,2.,2.])
+
+
+def test_joint_step_cap_applies_to_jog_too():
+    seed=[0.]*6
+    controller=CartesianController(FarBranchSolver(),jog=True)
+    parameters={'axes_map':{'x':'x','y':'y'},'linear_speed':.1,'max_joint_step':.02}
+    out=controller({'x':1,'y':0},seed,.02,parameters)
+    assert np.max(np.abs(np.asarray(out)-seed))<=.02+1e-12
+
+
+def test_wrappers_that_clip_themselves_opt_out_of_the_shared_cap():
+    # FR3/CR5 async controllers already clip each outgoing command against the
+    # last one (max_joint_velocity·dt) and let their differential solver bound
+    # max_joint_step. Clipping here as well halved the commanded rate, because
+    # the inner seed is itself a clipped command one tick old.
+    seed=[0.]*6
+    parameters={'max_joint_velocity':1.}
+    out=_far_request(CartesianController(FarBranchSolver(),step_cap=False),parameters,seed)
+    np.testing.assert_allclose(out,[1.,0.,0.,2.,2.,2.])
+
+
+@pytest.mark.parametrize('bad',[0,-1,float('nan'),'fast'])
+def test_invalid_joint_step_limits_are_rejected(bad):
+    seed=[0.]*6
+    with pytest.raises(ControllerError):
+        _far_request(CartesianController(FarBranchSolver()),{'max_joint_step':bad},seed)
+    with pytest.raises(ControllerError):
+        _far_request(CartesianController(FarBranchSolver()),{'max_joint_velocity':bad},seed)

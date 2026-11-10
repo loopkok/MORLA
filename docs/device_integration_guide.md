@@ -344,6 +344,14 @@ CLI 见 [conformance.py](../src/common/morla_core/morla_core/plugins/conformance
 
 当前 `solver_for()` 按已安装的 `morla.kinematics` entry point 选择 provider；FR3 即通过此方式复用公共控制器，并非只有 Nero/Astral 的内置分支。新机械臂也可提供自己的受信 controller 插件；若复用 `CartesianController`，solver 至少实现 `sync_state(q)`、`fk(q)`、`solve(T_target)`，并保证种子、FK、IK 的关节顺序/单位与 canonical 一致。详见 [kinematics.py](../src/common/morla_teleop/morla_teleop/kinematics.py)。
 
+**绑定参数必须真的被 controller 读取，一次解完整位姿的 solver 必须按拍限幅。** 2026-11-10 发现 MMK2 的 Quest 绑定声明了 `max_joint_step: 0.02`、`max_joint_velocity: 0.2`，但公共 `morla.cartesian_delta_ik` 从未读取这两个值——FR3/CR5 用自己的 controller 消费它们，公共 controller 只是把整个目标转交 solver，于是“模板里配了限幅，运行时没有任何限幅”，MMK2 的整位姿 DLS 能在单拍把腕部关节跳到另一个分支（实测单拍 1.5 rad）。现在公共 controller 在 solver 返回后调用 `joint_step_cap()`，把命令夹到 `min(max_joint_step, max_joint_velocity·dt)`，并在报告里给出 `max_joint_step_rad` / `joint_step_clamped`。移植时按以下几条自查：
+
+- 新增的每个 binding 参数都要能用 `grep` 找到唯一消费者。没有消费者就删掉，或在 controller 里实现；留在模板里等于谎报已生效。同期清理的 `morla.scalar_map` 上的 `max_velocity`（[epg.fake.yaml](../src/common/morla_vader5_input/config/epg.fake.yaml)）属于前者。
+- 只在 solver 内部限制单次迭代步长（例如“每次 ±0.1 rad”）不够：一次 `solve()` 可以迭代几十次，终点照样能跨分支。限幅必须作用在最终返回的关节向量上。
+- 限幅是安全下限，不是手感参数。持续出现 `joint_step_clamped` 说明目标不可达或 `position_scale` 过大，应修目标或增益，不能靠放宽限幅掩盖。
+- 如果自己的 controller 已经在出口按 `max_joint_velocity·dt` 裁剪命令（FR3/CR5 的异步 controller 就是），构造 `CartesianController` 时传 `step_cap=False`。同一条命令被裁两次会把实际速率砍半：内层种子是上一拍已裁过的命令，CR5 的集成种子回归用例复现为 0.28 而不是 0.3。
+- 只有记录意义的字段（`calibration_verified` 等）要在模板注释里写明“不构成运行门禁”，避免被当成已校验。
+
 MORLA 的笛卡尔遥操采用相对位移：首次有效输入将人手位姿与机器人实测 TCP 建锚；之后映射位移/旋转增量。松开、断连、frame/epoch 改变后重新建锚，不能把远端绝对世界位姿直接作为机器人目标。
 
 同一控制板上的双臂、头、腰必须说明 HOME/disable/stop 的板级作用范围。只选左臂时，不得误使能或回位右臂/头/腰；未选择关节是 disabled 还是 held 需要实际证明。
@@ -748,6 +756,7 @@ metadata:
 - 两个实例占同一物理资源；新旧入口同时启动；SDK 子进程退出后锁/设备是否仍占有。
 - 重复组件 ID、装配外组件、只到一半的多组件写入、急停锁存期间提交、reset 后未激活即提交。旧 session/token/epoch、重复序号、过期/未来命令已不再是拒绝路径，记 NOT_APPLICABLE，不要当作通过项。
 - 关节乱序/漏项/重复、单位错误、NaN/Inf、超范围、目标突变、错误模式。
+- 绑定参数声明了却没有消费者（`max_joint_step`、`max_joint_velocity`，或 `morla.scalar_map` 上的 `max_velocity`），以及整位姿 solver 单拍跳到别的关节分支；用 `joint_step_clamped` 和相邻两拍的关节差核对，而不是只看模板里的数值。
 - health 不更新、源时间倒退、设备时钟重置、SDK 长阻塞、stop 未确认、迟到 enable。
 - 启动时按钮已经按下、deadman 释放丢失、pose 冻结但按钮持续更新、重连复用旧锚点。
 - 手柄切模式、Joy-Con 一半断开、手套掉关键点、VR recenter、手机退后台。

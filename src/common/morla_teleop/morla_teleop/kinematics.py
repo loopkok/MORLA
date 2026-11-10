@@ -7,6 +7,31 @@ import numpy as np
 from .controllers import ControllerError
 
 
+def joint_step_cap(parameters,dt):
+    """Per-tick joint step ceiling from max_joint_step and max_joint_velocity.
+
+    FR3/CR5 bound their own differential solvers with these two parameters. The
+    generic controller hands the whole target to a solver and cannot see how
+    many internal iterations it runs, so the same bound is applied to the
+    returned command instead: a solver that resolves the whole pose in one call
+    (MMK2's URDF DLS) must not be able to jump a wrist branch in a single tick.
+    """
+    caps=[]
+    for key,value in (('max_joint_step',parameters.get('max_joint_step')),
+                      ('max_joint_velocity',parameters.get('max_joint_velocity'))):
+        if value is None:continue
+        try:value=float(value)
+        except (TypeError,ValueError):raise ControllerError('invalid '+key)
+        if not np.isfinite(value) or value<=0:raise ControllerError(key+' must be positive')
+        if key=='max_joint_velocity':
+            # A rate only bounds a tick that has a duration.
+            if dt<=0:continue
+            caps.append(value*float(dt))
+        else:
+            caps.append(value)
+    return min(caps) if caps else None
+
+
 def solver_for(instance):
     """Trusted built-in registration; assembly cannot supply Python import paths."""
     plugin=instance['plugin_id']; parameters=instance.get('parameters',{})
@@ -18,8 +43,14 @@ def solver_for(instance):
 
 
 class CartesianController:
-    def __init__(self,solver,*,jog=False,clock=time.monotonic_ns,max_solve_ns=50_000_000):
+    def __init__(self,solver,*,jog=False,clock=time.monotonic_ns,max_solve_ns=50_000_000,step_cap=True):
         self.solver,self.jog,self.clock,self.max_solve_ns=solver,jog,clock,max_solve_ns
+        # Wrappers that clip their own output (FR3/CR5 async controllers bound
+        # the step against the last command and the measured lead) must pass
+        # step_cap=False. Applying the same cap twice halves the commanded rate:
+        # the inner clip starts from a seed that is already a clipped command
+        # one tick old, so each wrapper tick only advances half the bound.
+        self.step_cap=step_cap
         # Nero/Astral analytic solvers keep a continuity branch across solves.
         # Resetting it every tick turns each frame into a full cold search
         # (~100 ms) and makes the 50 Hz input queue go stale. Only reset the
@@ -193,6 +224,15 @@ class CartesianController:
             return None
         result=np.asarray(result,dtype=float)
         if result.shape!=start.shape or not np.isfinite(result).all(): raise ControllerError('invalid IK result')
+        # A full-pose solver can land on a distant branch (and did: MMK2's
+        # wrist rolled ~1.5 rad in one tick at q5=0). Keep the command inside
+        # the binding's advertised per-tick bound so a jump becomes a slew.
+        cap=joint_step_cap(parameters,dt) if self.step_cap else None
+        if cap is not None:
+            step=np.clip(result-start,-cap,cap)
+            self.last_report.update(max_joint_step_rad=cap,joint_step_clamped=not np.array_equal(step,result-start))
+            result=start+step
+            self.last_report['target_values']=result.tolist()
         if self.jog: self.jog_target=target
         return result.tolist()
 

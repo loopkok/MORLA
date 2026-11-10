@@ -23,7 +23,6 @@ bindings:
     output_range:
     - 0.05
     - 0
-    max_velocity: 0.05
 capture:
   state:
   - gripper.position

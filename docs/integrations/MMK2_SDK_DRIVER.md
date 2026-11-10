@@ -20,6 +20,8 @@
 
 ROS 入口仍使用公共 CommandEnvelope、authority、RuntimeOperation。Web/ControlHost 才托管输入映射，裸 ROS driver 不自动运行 Quest 接收与 bindings；两条路径不可同时占用同一台机器人。
 
+2026-11-10 补：公共 `morla.cartesian_delta_ik` 此前不读绑定里的 `max_joint_step` / `max_joint_velocity`，MMK2 模板写的 0.02 rad 与 0.2 rad/s 实际没有生效；现在 controller 在 solver 返回后按 `min(max_joint_step, max_joint_velocity·dt)` 夹住命令，驱动自身的每帧 `max_step`（`min(.02, max_velocity/rate_hz, max_command_lead/2)`）仍是更紧的一层。工作位须避开 q5=0 的腕部奇异，仿真侧的实测与推荐姿态见 [MMK2_SIMULATION.md](MMK2_SIMULATION.md)。
+
 ## 本地证据
 
 - 驱动、公共 core/runtime/teleop 与 FR3/CR5 联合回归 **309 passed、1 skipped**，跳过的是可选 Hypothesis。另有 Web/采集/策略回归 **37 passed**，原 MMK2 MuJoCo 回归 **21 passed**。共 367 个通过案例，驱动测试 18 项包含在联合回归内。

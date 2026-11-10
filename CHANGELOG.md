@@ -1,5 +1,14 @@
 # Changelog（MORLA）
 
+## 2026-11-10 — 公共笛卡尔控制器补上单拍关节限幅；MMK2 初始位姿奇异排查
+
+- `morla.cartesian_delta_ik` / `morla.gamepad_cartesian_jog` 此前从不读取绑定里的 `max_joint_step` / `max_joint_velocity`——只有 FR3/CR5 自己的 controller 读——MMK2 模板写的 0.02 rad、0.2 rad/s 实际没有任何约束。新增 `joint_step_cap()`，在 solver 返回后把命令夹到 `min(max_joint_step, max_joint_velocity·dt)`；一次解完整位姿的 solver（MMK2 URDF DLS 单拍最多 60 次迭代）不再能在一拍内跳到别的腕部分支。报告新增 `max_joint_step_rad`、`joint_step_clamped`。
+- FR3/CR5 的 `AsyncCartesianController` 自己就在出口按 `max_joint_velocity·dt` 裁剪、并由微分 solver 限制 `max_joint_step`，若再经公共 controller 裁剪会变成双重限幅、把指令速率砍半（CR5 集成种子回归用例复现为 0.28 而非 0.3）。`CartesianController` 增加 `step_cap` 开关，这两个 wrapper 传 `step_cap=False`；MMK2/Astral/XNero 走默认 `True`。
+- 参数审计：删除 `morla_vader5_input/config/epg.fake.yaml` 中 `morla.scalar_map` 绑定上无人读取的 `max_velocity`；Astral/XNero/MMK2/Nero 其余绑定参数均有消费者，`calibration_verified` 按设计只作记录、不构成门禁。
+- MMK2 遥操“平移移不动、一动就撞限位”定位：平移链路正确（拟合残差 ~1e-16，增益 0.25），故障在初始工作位 q5=0 造成腕部奇异（σ_min≈1e-6、条件数约 1.6e6），DLS 在等效分支间切换并把左臂 q4 顶在限位。推荐工作位左右 `[0,-0.8,0.8,∓1.64,∓0.8,0]`：按求解器同样的 0.3 旋转权重，σ_min 0.057、条件数 16，距各限位至少 0.887 rad，不奇异。
+- 测试：`test_kinematics.py` 新增 7 项限幅/双重限幅用例并全通过（21 项）；`scripts/test_composable.sh --layer pure` **389 passed**。单独跑 `src/common/morla_teleop/test` 时有 1 项既有失败（`test_frames_in_a_different_basis_are_dropped_with_a_throttled_warning` 的 caplog 捕获问题，在 HEAD 上同样失败，与本次改动无关）。
+- 文档：设备接入指南 §5.1/§11.2、FR3 移植教程 §3.8/§6、MMK2 仿真与 SDK 接入记录、遥操参数核对表同步记录“绑定参数必须被 controller 消费、整位姿 solver 必须按拍限幅”的教训。
+
 ## 2026-11-10 — 本地同步 MMK2 SDK 驱动（远端 95fa56d、27e83ab）
 
 - 本地 `main` 快进到 `27e83ab`，无冲突、工作树干净；同步后按远端 README 安装运行时依赖：`grpcio 1.85.1`、`protobuf 6.33.6`（原 4.25.8，`/usr/bin/python3` 用户级安装；生成代码要求 protobuf≥6.31）。`mediapipe 0.10.21` 与 `mediapipe.tasks.python.vision` 在升级后仍可导入。

@@ -235,6 +235,8 @@ q_target = solver.solve(T_base_from_flange_target)  # 失败返回 None
 
 此次 FR3 已按 CR5 移植 Pinocchio/URDF 连续微分 IK、目标吸收、奇异性相关阻尼、指令积分连续性和异步调度，同时保留严格模式。算法同策略不等于真机遥操质量相同：FR3 的模型、SDK、反馈率和硬件约束仍分别验证。具体资产提取、坐标/限位、插件与 Web 接线、验证方法见 [URDF/IK 迁移实例](FR3_URDF_IK_MIGRATION.md)。
 
+**`max_joint_step` / `max_joint_velocity` 是 controller 要自己消费的参数，写进绑定不等于生效。** FR3/CR5 的专用 controller 用它们约束微分 IK 的单步和下发速度；公共 `morla.cartesian_delta_ik` 在 2026-11-10 之前完全不读这两个值。MMK2 照抄 FR3 的参数表接上公共 controller 后，整位姿 DLS 一拍最多迭代 60 次、单拍关节跳 1.5 rad，直接撞限位。现在公共 controller 在 solver 返回后统一按 `min(max_joint_step, max_joint_velocity·dt)` 夹住输出，并记录 `joint_step_clamped`。移植时确认所选 controller 读了参数表里的每一项：一次解完整位姿的 solver 必须依赖这一层限幅，不能只靠 solver 内部的单步上限。反过来，如果你的 controller 已经像 FR3 的 `AsyncCartesianController` 那样在出口按 `max_joint_velocity·dt` 裁剪，就让内层 `CartesianController` 用 `step_cap=False`，否则同一命令被裁两次、速率减半。
+
 ### 3.9 用 Assembly 表达组合，用 Deployment 表达具体设备
 
 先编译 [assembly.fake.yaml](../../src/robots/fairino/morla_fr3_driver/config/assembly.fake.yaml)，再使用 [quest.fake.yaml](../../src/robots/fairino/morla_fr3_driver/config/quest.fake.yaml) 加入输入和绑定。前者只有执行器和六维 state/action；后者加入右侧 Quest、公共 controller、deadman、输入时效、坐标变换和辅助采集通道。
@@ -378,6 +380,7 @@ FR3 本轮六维状态 1183 条、六维动作 2450 条，说明两类流写入�
 - **SDK 每次 read 都成功却断流不报错**：检查实际帧时间是否变化；缓存读取的当前时间不能充当采样时间。
 - **有解但页面显示等待目标**：检查诊断结构。FR3 公共 controller 是嵌套 solver_report，CR5 历史报告为扁平；先统一公共展示，不复制品牌特例。
 - **Ctrl+C 出现 shutdown 错误**：区分功能异常、context 关闭竞态与后台 shell 的信号行为。保留退出码/日志，验证资源释放和再次启动，不能只删除 traceback。
+- **参数写了却没生效**：绑定参数只有在被 controller 读取时才存在。MMK2 复制 FR3 的 `max_joint_step`/`max_joint_velocity` 到 `morla.cartesian_delta_ik` 绑定，但公共 controller 当时不读，整位姿 DLS 因此能在单拍跳腕部分支并直接撞限位。逐个 `grep` 参数名，没有消费者就删除或在 controller 里实现，不要靠“模板里有”判断已配置。
 - **脚本测通就宣称支持仿真/实机**：按第 1 节逐能力登记，sim 未提供就 unavailable，不把 fake 或 FK 数学模型当成物理仿真。
 
 ## 7. 从“这次接通”到“方便别人移植”，框架还应改进什么
