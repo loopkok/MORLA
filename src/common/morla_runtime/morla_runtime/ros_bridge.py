@@ -8,6 +8,13 @@ from pathlib import Path
 from .session import RuntimeSession
 
 
+def has_si_joint_position(instance):
+    """JointState positions are radians/metres, never raw SDK scalars or speeds."""
+    port=instance.get('ports',{}).get('position',{})
+    return (instance.get('kind')=='actuator' and port.get('semantic')=='joint_state'
+            and port.get('unit') in {'rad','m'})
+
+
 def main(args=None, *, node_name='morla_runtime', required_plugin=None,
          publish_joint_states=False):
     import rclpy
@@ -37,8 +44,26 @@ def main(args=None, *, node_name='morla_runtime', required_plugin=None,
                 self.joint_publishers = {
                     key: self.create_publisher(JointState, '~/' + key + '/joint_states', 10)
                     for key, instance in self.runtime.instances.items()
-                    if instance['kind'] == 'actuator'
+                    if has_si_joint_position(instance)
                 }
+            self.twist_publishers = {}
+            self.odom_publishers = {}
+            if publish_joint_states:
+                from geometry_msgs.msg import TwistStamped
+                from nav_msgs.msg import Odometry
+                for key, instance in self.runtime.instances.items():
+                    ports=instance.get('ports',{})
+                    if ports.get('velocity',{}).get('unit')=='m_rad/s' and ports['velocity'].get('dim')==2:
+                        self.twist_publishers[key]=self.create_publisher(TwistStamped,'~/'+key+'/velocity',10)
+                        if ports.get('odometry',{}).get('dim')==7:
+                            self.odom_publishers[key]=self.create_publisher(Odometry,'~/'+key+'/odometry',10)
+            self.image_publishers = {}
+            if publish_joint_states:
+                from sensor_msgs.msg import CompressedImage
+                for key, instance in self.runtime.instances.items():
+                    for port, definition in instance.get('ports',{}).items():
+                        if definition.get('direction')=='output' and definition.get('semantic')=='image':
+                            self.image_publishers[(key,port)]=self.create_publisher(CompressedImage,'~/'+key+'/'+port+'/compressed',1)
             self.state_pub = self.create_publisher(String, '~/state', 10)
             self.receipts = self.create_publisher(CommandReceipt, '~/receipts', 10)
             self.health_pub = self.create_publisher(ComponentHealth, '~/health', 10)
@@ -105,6 +130,23 @@ def main(args=None, *, node_name='morla_runtime', required_plugin=None,
             state = self.runtime.tick()
             if self.host is not None and self.host.inputs is not None:
                 state['input_processes']=self.host.inputs.supervisor.state()
+            # Image bytes stay out of the JSON health state. Read only cached
+            # adapter samples; capture/encoding belongs to the device worker.
+            for key in {key for key,port in self.image_publishers}:
+                sample=self.runtime.adapters[key].read(self.runtime.clock())
+                for port, value in sample.get('ports',{}).items():
+                    publisher=self.image_publishers.get((key,port))
+                    stamp=value.get('sample_ns',sample.get('sample_ns',0))
+                    if publisher is None or not value.get('valid') or not value.get('data') or value.get('encoding') not in ('jpeg','png'):
+                        continue
+                    if stamp<=self.last_samples.get((key,port),-1):continue
+                    from sensor_msgs.msg import CompressedImage
+                    image=CompressedImage();image.format=value['encoding'];image.data=bytes(value['data'])
+                    ros_stamp=self.get_clock().now().nanoseconds-(self.runtime.clock()-stamp)
+                    image.header.stamp.sec=ros_stamp//1_000_000_000
+                    image.header.stamp.nanosec=ros_stamp%1_000_000_000
+                    image.header.frame_id=key+'_optical'
+                    publisher.publish(image);self.last_samples[(key,port)]=stamp
             message = String()
             message.data = json.dumps(state)
             self.state_pub.publish(message)
@@ -116,6 +158,33 @@ def main(args=None, *, node_name='morla_runtime', required_plugin=None,
                 health.source, health.sample_ns = value.get('source', 'unknown'), value.get('sample_ns', 0)
                 health.values = value.get('values', [])
                 self.health_pub.publish(health)
+                if key in self.twist_publishers and value.get('ready'):
+                    velocity=value.get('ports',{}).get('velocity',{})
+                    stamp=velocity.get('sample_ns',value.get('sample_ns',0))
+                    if velocity.get('valid') and stamp>self.last_samples.get(key,-1):
+                        from geometry_msgs.msg import TwistStamped
+                        message=TwistStamped()
+                        ros_stamp=self.get_clock().now().nanoseconds-(self.runtime.clock()-stamp)
+                        message.header.stamp.sec=ros_stamp//1_000_000_000
+                        message.header.stamp.nanosec=ros_stamp%1_000_000_000
+                        message.header.frame_id=key+'_base'
+                        message.twist.linear.x,message.twist.angular.z=velocity['values']
+                        self.twist_publishers[key].publish(message)
+                        pose=value.get('ports',{}).get('odometry',{})
+                        if key in self.odom_publishers and pose.get('valid'):
+                            from nav_msgs.msg import Odometry
+                            odometry=Odometry();odometry.header=message.header
+                            odometry.header.frame_id=key+'_odom';odometry.child_frame_id=key+'_base'
+                            q=pose['values'];position=odometry.pose.pose.position;orientation=odometry.pose.pose.orientation
+                            position.x,position.y,position.z=q[:3]
+                            orientation.x,orientation.y,orientation.z,orientation.w=q[3:]
+                            odometry.twist.twist=message.twist
+                            # SDK gives no covariance: explicitly mark unknown.
+                            for axis in range(6):
+                                odometry.pose.covariance[axis*7]=1e6
+                                odometry.twist.covariance[axis*7]=1e6
+                            self.odom_publishers[key].publish(odometry)
+                        self.last_samples[key]=stamp
                 if key in self.joint_publishers and value.get('ready') and value.get('values'):
                     stamp = value['sample_ns']
                     if stamp <= self.last_samples.get(key, -1):
@@ -127,7 +196,7 @@ def main(args=None, *, node_name='morla_runtime', required_plugin=None,
                     message.header.stamp.nanosec = ros_stamp % 1_000_000_000
                     message.header.frame_id = key + '_base'
                     message.name = [joint['name'] for joint in self.runtime.instances[key]['joints']]
-                    message.position = value['values']
+                    message.position = value.get('ports',{}).get('position',{}).get('values',value['values'])
                     self.joint_publishers[key].publish(message)
                     self.last_samples[key] = stamp
 

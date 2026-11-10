@@ -1,0 +1,2404 @@
+[
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2_sdk.left_arm",
+    "plugin_version": "1.0.0",
+    "kind": "actuator",
+    "ports": {
+      "position": {
+        "direction": "output",
+        "semantic": "joint_state",
+        "dim": 6,
+        "unit": "rad",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "position_target": {
+        "direction": "input",
+        "semantic": "joint_targets",
+        "dim": 6,
+        "unit": "rad",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "velocity": {
+        "direction": "output",
+        "semantic": "joint_velocity",
+        "dim": 6,
+        "unit": "rad/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      }
+    },
+    "joints": [
+      {
+        "name": "left_arm_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "lower": -3.14,
+        "upper": 2.06,
+        "limits": [
+          -3.14,
+          2.06
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      },
+      {
+        "name": "left_arm_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "lower": -2.8,
+        "upper": 0.17,
+        "limits": [
+          -2.8,
+          0.17
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      },
+      {
+        "name": "left_arm_joint3",
+        "unit": "rad",
+        "type": "revolute",
+        "lower": -0.087,
+        "upper": 3.14,
+        "limits": [
+          -0.087,
+          3.14
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      },
+      {
+        "name": "left_arm_joint4",
+        "unit": "rad",
+        "type": "revolute",
+        "lower": -2.96,
+        "upper": 2.96,
+        "limits": [
+          -2.96,
+          2.96
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      },
+      {
+        "name": "left_arm_joint5",
+        "unit": "rad",
+        "type": "revolute",
+        "lower": -1.74,
+        "upper": 1.74,
+        "limits": [
+          -1.74,
+          1.74
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      },
+      {
+        "name": "left_arm_joint6",
+        "unit": "rad",
+        "type": "revolute",
+        "lower": -3.0,
+        "upper": 3.0,
+        "limits": [
+          -3.0,
+          3.0
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      }
+    ],
+    "command_modes": [
+      "position"
+    ],
+    "backend_variants": {
+      "fake": {
+        "available": true,
+        "validation_level": "synthetic_sdk_protocol"
+      },
+      "real": {
+        "available": true,
+        "requires": [
+          "grpcio>=1.73.1",
+          "protobuf>=6.31,<7",
+          "MMK2 gRPC service"
+        ],
+        "validation_level": "NOT_RUN_hardware_readonly_default"
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_sdk",
+      "sharing": "session",
+      "stop_policy": "hold_and_zero_base"
+    },
+    "operations": {
+      "prepare": {
+        "moves": false,
+        "scope": "device_session"
+      },
+      "enable": {
+        "moves": false,
+        "scope": "device_session"
+      },
+      "stop": {
+        "moves": false,
+        "scope": "device_session"
+      }
+    },
+    "geometry": {
+      "frames": [
+        "base",
+        "flange",
+        "mount"
+      ],
+      "sdk_component": "left_arm",
+      "calibration_required": true,
+      "collision_verified": false,
+      "controller_capabilities": [
+        "cartesian_ik"
+      ],
+      "solver_base_frame": "left_base_link",
+      "solver_tip_frame": "left_gripper_center"
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "type": "string",
+          "title": "MMK2 gRPC 主机"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "title": "gRPC 端口"
+        },
+        "robot_name": {
+          "type": "string",
+          "title": "SDK 客户端注册名称"
+        },
+        "domain_id": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "rpc_timeout_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2
+        },
+        "startup_timeout_s": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 30
+        },
+        "feedback_timeout_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2
+        },
+        "rate_hz": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "allow_motion": {
+          "type": "boolean",
+          "title": "允许写入运动目标（默认只读）"
+        },
+        "mapping_verified": {
+          "type": "boolean",
+          "title": "已完成 SDK 名称/单位/方向核验（写入门禁）"
+        },
+        "hold_stop_accepted": {
+          "type": "boolean",
+          "title": "接受 SDK 保持目标/零底盘速度停止策略（非失能）"
+        },
+        "command_interface": {
+          "type": "string",
+          "enum": [
+            "trajectory",
+            "forward_position"
+          ],
+          "title": "SDK 目标接口"
+        },
+        "trajectory_scale": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.2,
+          "title": "SDK 轨迹速度与加速度缩放"
+        },
+        "joint_lower": {
+          "type": "array",
+          "title": "目标下限 / rad",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "joint_upper": {
+          "type": "array",
+          "title": "目标上限 / rad",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "joint_signs": {
+          "type": "array",
+          "title": "SDK 到逻辑关节方向（±1）",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "joint_offsets": {
+          "type": "array",
+          "title": "SDK 到逻辑关节偏置 / rad",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "max_velocity": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "目标限速 / rad/s"
+        },
+        "max_command_lead": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "目标领先上限 / rad"
+        },
+        "command_timeout_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1
+        }
+      }
+    },
+    "defaults": {
+      "host": "",
+      "port": 50055,
+      "robot_name": "morla_mmk2",
+      "domain_id": -1,
+      "rpc_timeout_s": 0.25,
+      "startup_timeout_s": 5.0,
+      "feedback_timeout_s": 0.3,
+      "rate_hz": 20.0,
+      "allow_motion": false,
+      "mapping_verified": false,
+      "hold_stop_accepted": false,
+      "command_interface": "trajectory",
+      "trajectory_scale": 0.05,
+      "joint_lower": [
+        -3.14,
+        -2.8,
+        -0.087,
+        -2.96,
+        -1.74,
+        -3.0
+      ],
+      "joint_upper": [
+        2.06,
+        0.17,
+        3.14,
+        2.96,
+        1.74,
+        3.0
+      ],
+      "joint_signs": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "joint_offsets": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "max_velocity": 0.1,
+      "max_command_lead": 0.15,
+      "command_timeout_s": 0.25
+    },
+    "source": {
+      "package": "morla_mmk2_driver",
+      "version": "0.1.0"
+    },
+    "web": {
+      "device_category": "arm",
+      "label": "MMK2 SDK 左臂",
+      "connection_fields": [
+        "host",
+        "port",
+        "robot_name",
+        "domain_id"
+      ],
+      "fields": [
+        "host",
+        "port",
+        "robot_name",
+        "domain_id",
+        "rpc_timeout_s",
+        "startup_timeout_s",
+        "feedback_timeout_s",
+        "rate_hz",
+        "allow_motion",
+        "mapping_verified",
+        "hold_stop_accepted",
+        "command_interface",
+        "trajectory_scale",
+        "joint_lower",
+        "joint_upper",
+        "joint_signs",
+        "joint_offsets",
+        "max_velocity",
+        "max_command_lead",
+        "command_timeout_s"
+      ],
+      "preferred_controllers": {
+        "pose6d": "morla.cartesian_delta_ik"
+      },
+      "templates": [
+        {
+          "id": "mmk2-sdk-fake",
+          "title": "AIRBOT MMK2 SDK 整机 / Quest（协议测试）",
+          "package": "morla_mmk2_driver",
+          "path": "config/quest.fake.yaml"
+        },
+        {
+          "id": "mmk2-sdk-real",
+          "title": "AIRBOT MMK2 SDK 整机（真实设备，默认只读）",
+          "package": "morla_mmk2_driver",
+          "path": "config/assembly.real.yaml"
+        }
+      ]
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2_sdk.right_arm",
+    "plugin_version": "1.0.0",
+    "kind": "actuator",
+    "ports": {
+      "position": {
+        "direction": "output",
+        "semantic": "joint_state",
+        "dim": 6,
+        "unit": "rad",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "position_target": {
+        "direction": "input",
+        "semantic": "joint_targets",
+        "dim": 6,
+        "unit": "rad",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "velocity": {
+        "direction": "output",
+        "semantic": "joint_velocity",
+        "dim": 6,
+        "unit": "rad/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      }
+    },
+    "joints": [
+      {
+        "name": "right_arm_joint1",
+        "unit": "rad",
+        "type": "revolute",
+        "lower": -3.14,
+        "upper": 2.06,
+        "limits": [
+          -3.14,
+          2.06
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      },
+      {
+        "name": "right_arm_joint2",
+        "unit": "rad",
+        "type": "revolute",
+        "lower": -2.8,
+        "upper": 0.17,
+        "limits": [
+          -2.8,
+          0.17
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      },
+      {
+        "name": "right_arm_joint3",
+        "unit": "rad",
+        "type": "revolute",
+        "lower": -0.087,
+        "upper": 3.14,
+        "limits": [
+          -0.087,
+          3.14
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      },
+      {
+        "name": "right_arm_joint4",
+        "unit": "rad",
+        "type": "revolute",
+        "lower": -2.96,
+        "upper": 2.96,
+        "limits": [
+          -2.96,
+          2.96
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      },
+      {
+        "name": "right_arm_joint5",
+        "unit": "rad",
+        "type": "revolute",
+        "lower": -1.74,
+        "upper": 1.74,
+        "limits": [
+          -1.74,
+          1.74
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      },
+      {
+        "name": "right_arm_joint6",
+        "unit": "rad",
+        "type": "revolute",
+        "lower": -3.0,
+        "upper": 3.0,
+        "limits": [
+          -3.0,
+          3.0
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      }
+    ],
+    "command_modes": [
+      "position"
+    ],
+    "backend_variants": {
+      "fake": {
+        "available": true,
+        "validation_level": "synthetic_sdk_protocol"
+      },
+      "real": {
+        "available": true,
+        "requires": [
+          "grpcio>=1.73.1",
+          "protobuf>=6.31,<7",
+          "MMK2 gRPC service"
+        ],
+        "validation_level": "NOT_RUN_hardware_readonly_default"
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_sdk",
+      "sharing": "session",
+      "stop_policy": "hold_and_zero_base"
+    },
+    "operations": {
+      "prepare": {
+        "moves": false,
+        "scope": "device_session"
+      },
+      "enable": {
+        "moves": false,
+        "scope": "device_session"
+      },
+      "stop": {
+        "moves": false,
+        "scope": "device_session"
+      }
+    },
+    "geometry": {
+      "frames": [
+        "base",
+        "flange",
+        "mount"
+      ],
+      "sdk_component": "right_arm",
+      "calibration_required": true,
+      "collision_verified": false,
+      "controller_capabilities": [
+        "cartesian_ik"
+      ],
+      "solver_base_frame": "right_base_link",
+      "solver_tip_frame": "right_gripper_center"
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "type": "string",
+          "title": "MMK2 gRPC 主机"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "title": "gRPC 端口"
+        },
+        "robot_name": {
+          "type": "string",
+          "title": "SDK 客户端注册名称"
+        },
+        "domain_id": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "rpc_timeout_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2
+        },
+        "startup_timeout_s": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 30
+        },
+        "feedback_timeout_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2
+        },
+        "rate_hz": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "allow_motion": {
+          "type": "boolean",
+          "title": "允许写入运动目标（默认只读）"
+        },
+        "mapping_verified": {
+          "type": "boolean",
+          "title": "已完成 SDK 名称/单位/方向核验（写入门禁）"
+        },
+        "hold_stop_accepted": {
+          "type": "boolean",
+          "title": "接受 SDK 保持目标/零底盘速度停止策略（非失能）"
+        },
+        "command_interface": {
+          "type": "string",
+          "enum": [
+            "trajectory",
+            "forward_position"
+          ],
+          "title": "SDK 目标接口"
+        },
+        "trajectory_scale": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.2,
+          "title": "SDK 轨迹速度与加速度缩放"
+        },
+        "joint_lower": {
+          "type": "array",
+          "title": "目标下限 / rad",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "joint_upper": {
+          "type": "array",
+          "title": "目标上限 / rad",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "joint_signs": {
+          "type": "array",
+          "title": "SDK 到逻辑关节方向（±1）",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "joint_offsets": {
+          "type": "array",
+          "title": "SDK 到逻辑关节偏置 / rad",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "max_velocity": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "目标限速 / rad/s"
+        },
+        "max_command_lead": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "目标领先上限 / rad"
+        },
+        "command_timeout_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1
+        }
+      }
+    },
+    "defaults": {
+      "host": "",
+      "port": 50055,
+      "robot_name": "morla_mmk2",
+      "domain_id": -1,
+      "rpc_timeout_s": 0.25,
+      "startup_timeout_s": 5.0,
+      "feedback_timeout_s": 0.3,
+      "rate_hz": 20.0,
+      "allow_motion": false,
+      "mapping_verified": false,
+      "hold_stop_accepted": false,
+      "command_interface": "trajectory",
+      "trajectory_scale": 0.05,
+      "joint_lower": [
+        -3.14,
+        -2.8,
+        -0.087,
+        -2.96,
+        -1.74,
+        -3.0
+      ],
+      "joint_upper": [
+        2.06,
+        0.17,
+        3.14,
+        2.96,
+        1.74,
+        3.0
+      ],
+      "joint_signs": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "joint_offsets": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "max_velocity": 0.1,
+      "max_command_lead": 0.15,
+      "command_timeout_s": 0.25
+    },
+    "source": {
+      "package": "morla_mmk2_driver",
+      "version": "0.1.0"
+    },
+    "web": {
+      "device_category": "arm",
+      "label": "MMK2 SDK 右臂",
+      "connection_fields": [
+        "host",
+        "port",
+        "robot_name",
+        "domain_id"
+      ],
+      "fields": [
+        "host",
+        "port",
+        "robot_name",
+        "domain_id",
+        "rpc_timeout_s",
+        "startup_timeout_s",
+        "feedback_timeout_s",
+        "rate_hz",
+        "allow_motion",
+        "mapping_verified",
+        "hold_stop_accepted",
+        "command_interface",
+        "trajectory_scale",
+        "joint_lower",
+        "joint_upper",
+        "joint_signs",
+        "joint_offsets",
+        "max_velocity",
+        "max_command_lead",
+        "command_timeout_s"
+      ],
+      "preferred_controllers": {
+        "pose6d": "morla.cartesian_delta_ik"
+      }
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2_sdk.left_gripper",
+    "plugin_version": "1.0.0",
+    "kind": "actuator",
+    "ports": {
+      "position": {
+        "direction": "output",
+        "semantic": "joint_state",
+        "dim": 1,
+        "unit": "sdk_gripper",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "position_target": {
+        "direction": "input",
+        "semantic": "joint_targets",
+        "dim": 1,
+        "unit": "sdk_gripper",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "velocity": {
+        "direction": "output",
+        "semantic": "joint_velocity",
+        "dim": 1,
+        "unit": "sdk_gripper/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      }
+    },
+    "joints": [
+      {
+        "name": "left_arm_eef_gripper_joint",
+        "unit": "sdk_gripper",
+        "type": "scalar",
+        "lower": 0.0,
+        "upper": 1.0,
+        "limits": [
+          0.0,
+          1.0
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      }
+    ],
+    "command_modes": [
+      "position"
+    ],
+    "backend_variants": {
+      "fake": {
+        "available": true,
+        "validation_level": "synthetic_sdk_protocol"
+      },
+      "real": {
+        "available": true,
+        "requires": [
+          "grpcio>=1.73.1",
+          "protobuf>=6.31,<7",
+          "MMK2 gRPC service"
+        ],
+        "validation_level": "NOT_RUN_hardware_readonly_default"
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_sdk",
+      "sharing": "session",
+      "stop_policy": "hold_and_zero_base"
+    },
+    "operations": {
+      "prepare": {
+        "moves": false,
+        "scope": "device_session"
+      },
+      "enable": {
+        "moves": false,
+        "scope": "device_session"
+      },
+      "stop": {
+        "moves": false,
+        "scope": "device_session"
+      }
+    },
+    "geometry": {
+      "frames": [
+        "base",
+        "flange",
+        "mount"
+      ],
+      "sdk_component": "left_arm_eef",
+      "calibration_required": true,
+      "collision_verified": false
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "type": "string",
+          "title": "MMK2 gRPC 主机"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "title": "gRPC 端口"
+        },
+        "robot_name": {
+          "type": "string",
+          "title": "SDK 客户端注册名称"
+        },
+        "domain_id": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "rpc_timeout_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2
+        },
+        "startup_timeout_s": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 30
+        },
+        "feedback_timeout_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2
+        },
+        "rate_hz": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "allow_motion": {
+          "type": "boolean",
+          "title": "允许写入运动目标（默认只读）"
+        },
+        "mapping_verified": {
+          "type": "boolean",
+          "title": "已完成 SDK 名称/单位/方向核验（写入门禁）"
+        },
+        "hold_stop_accepted": {
+          "type": "boolean",
+          "title": "接受 SDK 保持目标/零底盘速度停止策略（非失能）"
+        },
+        "command_interface": {
+          "type": "string",
+          "enum": [
+            "trajectory",
+            "forward_position"
+          ],
+          "title": "SDK 目标接口"
+        },
+        "trajectory_scale": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.2,
+          "title": "SDK 轨迹速度与加速度缩放"
+        },
+        "joint_lower": {
+          "type": "array",
+          "title": "目标下限 / SDK 原始量",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "joint_upper": {
+          "type": "array",
+          "title": "目标上限 / SDK 原始量",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "joint_signs": {
+          "type": "array",
+          "title": "SDK 到逻辑关节方向（±1）",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "joint_offsets": {
+          "type": "array",
+          "title": "SDK 到逻辑关节偏置 / SDK 原始量",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "max_velocity": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "目标限速 / SDK 原始量/s"
+        },
+        "max_command_lead": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "目标领先上限 / SDK 原始量"
+        },
+        "command_timeout_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1
+        }
+      }
+    },
+    "defaults": {
+      "host": "",
+      "port": 50055,
+      "robot_name": "morla_mmk2",
+      "domain_id": -1,
+      "rpc_timeout_s": 0.25,
+      "startup_timeout_s": 5.0,
+      "feedback_timeout_s": 0.3,
+      "rate_hz": 20.0,
+      "allow_motion": false,
+      "mapping_verified": false,
+      "hold_stop_accepted": false,
+      "command_interface": "trajectory",
+      "trajectory_scale": 0.05,
+      "joint_lower": [
+        0.0
+      ],
+      "joint_upper": [
+        1.0
+      ],
+      "joint_signs": [
+        1
+      ],
+      "joint_offsets": [
+        0
+      ],
+      "max_velocity": 0.2,
+      "max_command_lead": 1.0,
+      "command_timeout_s": 0.25
+    },
+    "source": {
+      "package": "morla_mmk2_driver",
+      "version": "0.1.0"
+    },
+    "web": {
+      "device_category": "end",
+      "label": "MMK2 SDK 左夹爪",
+      "connection_fields": [
+        "host",
+        "port",
+        "robot_name",
+        "domain_id"
+      ],
+      "fields": [
+        "host",
+        "port",
+        "robot_name",
+        "domain_id",
+        "rpc_timeout_s",
+        "startup_timeout_s",
+        "feedback_timeout_s",
+        "rate_hz",
+        "allow_motion",
+        "mapping_verified",
+        "hold_stop_accepted",
+        "command_interface",
+        "trajectory_scale",
+        "joint_lower",
+        "joint_upper",
+        "joint_signs",
+        "joint_offsets",
+        "max_velocity",
+        "max_command_lead",
+        "command_timeout_s"
+      ],
+      "preferred_controllers": {}
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2_sdk.right_gripper",
+    "plugin_version": "1.0.0",
+    "kind": "actuator",
+    "ports": {
+      "position": {
+        "direction": "output",
+        "semantic": "joint_state",
+        "dim": 1,
+        "unit": "sdk_gripper",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "position_target": {
+        "direction": "input",
+        "semantic": "joint_targets",
+        "dim": 1,
+        "unit": "sdk_gripper",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "velocity": {
+        "direction": "output",
+        "semantic": "joint_velocity",
+        "dim": 1,
+        "unit": "sdk_gripper/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      }
+    },
+    "joints": [
+      {
+        "name": "right_arm_eef_gripper_joint",
+        "unit": "sdk_gripper",
+        "type": "scalar",
+        "lower": 0.0,
+        "upper": 1.0,
+        "limits": [
+          0.0,
+          1.0
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      }
+    ],
+    "command_modes": [
+      "position"
+    ],
+    "backend_variants": {
+      "fake": {
+        "available": true,
+        "validation_level": "synthetic_sdk_protocol"
+      },
+      "real": {
+        "available": true,
+        "requires": [
+          "grpcio>=1.73.1",
+          "protobuf>=6.31,<7",
+          "MMK2 gRPC service"
+        ],
+        "validation_level": "NOT_RUN_hardware_readonly_default"
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_sdk",
+      "sharing": "session",
+      "stop_policy": "hold_and_zero_base"
+    },
+    "operations": {
+      "prepare": {
+        "moves": false,
+        "scope": "device_session"
+      },
+      "enable": {
+        "moves": false,
+        "scope": "device_session"
+      },
+      "stop": {
+        "moves": false,
+        "scope": "device_session"
+      }
+    },
+    "geometry": {
+      "frames": [
+        "base",
+        "flange",
+        "mount"
+      ],
+      "sdk_component": "right_arm_eef",
+      "calibration_required": true,
+      "collision_verified": false
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "type": "string",
+          "title": "MMK2 gRPC 主机"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "title": "gRPC 端口"
+        },
+        "robot_name": {
+          "type": "string",
+          "title": "SDK 客户端注册名称"
+        },
+        "domain_id": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "rpc_timeout_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2
+        },
+        "startup_timeout_s": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 30
+        },
+        "feedback_timeout_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2
+        },
+        "rate_hz": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "allow_motion": {
+          "type": "boolean",
+          "title": "允许写入运动目标（默认只读）"
+        },
+        "mapping_verified": {
+          "type": "boolean",
+          "title": "已完成 SDK 名称/单位/方向核验（写入门禁）"
+        },
+        "hold_stop_accepted": {
+          "type": "boolean",
+          "title": "接受 SDK 保持目标/零底盘速度停止策略（非失能）"
+        },
+        "command_interface": {
+          "type": "string",
+          "enum": [
+            "trajectory",
+            "forward_position"
+          ],
+          "title": "SDK 目标接口"
+        },
+        "trajectory_scale": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.2,
+          "title": "SDK 轨迹速度与加速度缩放"
+        },
+        "joint_lower": {
+          "type": "array",
+          "title": "目标下限 / SDK 原始量",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "joint_upper": {
+          "type": "array",
+          "title": "目标上限 / SDK 原始量",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "joint_signs": {
+          "type": "array",
+          "title": "SDK 到逻辑关节方向（±1）",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "joint_offsets": {
+          "type": "array",
+          "title": "SDK 到逻辑关节偏置 / SDK 原始量",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "max_velocity": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "目标限速 / SDK 原始量/s"
+        },
+        "max_command_lead": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "目标领先上限 / SDK 原始量"
+        },
+        "command_timeout_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1
+        }
+      }
+    },
+    "defaults": {
+      "host": "",
+      "port": 50055,
+      "robot_name": "morla_mmk2",
+      "domain_id": -1,
+      "rpc_timeout_s": 0.25,
+      "startup_timeout_s": 5.0,
+      "feedback_timeout_s": 0.3,
+      "rate_hz": 20.0,
+      "allow_motion": false,
+      "mapping_verified": false,
+      "hold_stop_accepted": false,
+      "command_interface": "trajectory",
+      "trajectory_scale": 0.05,
+      "joint_lower": [
+        0.0
+      ],
+      "joint_upper": [
+        1.0
+      ],
+      "joint_signs": [
+        1
+      ],
+      "joint_offsets": [
+        0
+      ],
+      "max_velocity": 0.2,
+      "max_command_lead": 1.0,
+      "command_timeout_s": 0.25
+    },
+    "source": {
+      "package": "morla_mmk2_driver",
+      "version": "0.1.0"
+    },
+    "web": {
+      "device_category": "end",
+      "label": "MMK2 SDK 右夹爪",
+      "connection_fields": [
+        "host",
+        "port",
+        "robot_name",
+        "domain_id"
+      ],
+      "fields": [
+        "host",
+        "port",
+        "robot_name",
+        "domain_id",
+        "rpc_timeout_s",
+        "startup_timeout_s",
+        "feedback_timeout_s",
+        "rate_hz",
+        "allow_motion",
+        "mapping_verified",
+        "hold_stop_accepted",
+        "command_interface",
+        "trajectory_scale",
+        "joint_lower",
+        "joint_upper",
+        "joint_signs",
+        "joint_offsets",
+        "max_velocity",
+        "max_command_lead",
+        "command_timeout_s"
+      ],
+      "preferred_controllers": {}
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2_sdk.lift",
+    "plugin_version": "1.0.0",
+    "kind": "actuator",
+    "ports": {
+      "position": {
+        "direction": "output",
+        "semantic": "joint_state",
+        "dim": 1,
+        "unit": "m",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "position_target": {
+        "direction": "input",
+        "semantic": "joint_targets",
+        "dim": 1,
+        "unit": "m",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "velocity": {
+        "direction": "output",
+        "semantic": "joint_velocity",
+        "dim": 1,
+        "unit": "m/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      }
+    },
+    "joints": [
+      {
+        "name": "slide_joint",
+        "unit": "m",
+        "type": "prismatic",
+        "lower": -0.04,
+        "upper": 0.87,
+        "limits": [
+          -0.04,
+          0.87
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      }
+    ],
+    "command_modes": [
+      "position"
+    ],
+    "backend_variants": {
+      "fake": {
+        "available": true,
+        "validation_level": "synthetic_sdk_protocol"
+      },
+      "real": {
+        "available": true,
+        "requires": [
+          "grpcio>=1.73.1",
+          "protobuf>=6.31,<7",
+          "MMK2 gRPC service"
+        ],
+        "validation_level": "NOT_RUN_hardware_readonly_default"
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_sdk",
+      "sharing": "session",
+      "stop_policy": "hold_and_zero_base"
+    },
+    "operations": {
+      "prepare": {
+        "moves": false,
+        "scope": "device_session"
+      },
+      "enable": {
+        "moves": false,
+        "scope": "device_session"
+      },
+      "stop": {
+        "moves": false,
+        "scope": "device_session"
+      }
+    },
+    "geometry": {
+      "frames": [
+        "base",
+        "flange",
+        "mount"
+      ],
+      "sdk_component": "spine",
+      "calibration_required": true,
+      "collision_verified": false
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "type": "string",
+          "title": "MMK2 gRPC 主机"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "title": "gRPC 端口"
+        },
+        "robot_name": {
+          "type": "string",
+          "title": "SDK 客户端注册名称"
+        },
+        "domain_id": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "rpc_timeout_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2
+        },
+        "startup_timeout_s": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 30
+        },
+        "feedback_timeout_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2
+        },
+        "rate_hz": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "allow_motion": {
+          "type": "boolean",
+          "title": "允许写入运动目标（默认只读）"
+        },
+        "mapping_verified": {
+          "type": "boolean",
+          "title": "已完成 SDK 名称/单位/方向核验（写入门禁）"
+        },
+        "hold_stop_accepted": {
+          "type": "boolean",
+          "title": "接受 SDK 保持目标/零底盘速度停止策略（非失能）"
+        },
+        "command_interface": {
+          "type": "string",
+          "enum": [
+            "trajectory",
+            "forward_position"
+          ],
+          "title": "SDK 目标接口"
+        },
+        "trajectory_scale": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.2,
+          "title": "SDK 轨迹速度与加速度缩放"
+        },
+        "joint_lower": {
+          "type": "array",
+          "title": "目标下限 / m",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "joint_upper": {
+          "type": "array",
+          "title": "目标上限 / m",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "joint_signs": {
+          "type": "array",
+          "title": "SDK 到逻辑关节方向（±1）",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "joint_offsets": {
+          "type": "array",
+          "title": "SDK 到逻辑关节偏置 / m",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "max_velocity": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "目标限速 / m/s"
+        },
+        "max_command_lead": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "目标领先上限 / m"
+        },
+        "command_timeout_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1
+        }
+      }
+    },
+    "defaults": {
+      "host": "",
+      "port": 50055,
+      "robot_name": "morla_mmk2",
+      "domain_id": -1,
+      "rpc_timeout_s": 0.25,
+      "startup_timeout_s": 5.0,
+      "feedback_timeout_s": 0.3,
+      "rate_hz": 20.0,
+      "allow_motion": false,
+      "mapping_verified": false,
+      "hold_stop_accepted": false,
+      "command_interface": "trajectory",
+      "trajectory_scale": 0.05,
+      "joint_lower": [
+        -0.04
+      ],
+      "joint_upper": [
+        0.87
+      ],
+      "joint_signs": [
+        1
+      ],
+      "joint_offsets": [
+        0
+      ],
+      "max_velocity": 0.02,
+      "max_command_lead": 0.03,
+      "command_timeout_s": 0.25
+    },
+    "source": {
+      "package": "morla_mmk2_driver",
+      "version": "0.1.0"
+    },
+    "web": {
+      "device_category": "whole",
+      "label": "MMK2 SDK 升降",
+      "connection_fields": [
+        "host",
+        "port",
+        "robot_name",
+        "domain_id"
+      ],
+      "fields": [
+        "host",
+        "port",
+        "robot_name",
+        "domain_id",
+        "rpc_timeout_s",
+        "startup_timeout_s",
+        "feedback_timeout_s",
+        "rate_hz",
+        "allow_motion",
+        "mapping_verified",
+        "hold_stop_accepted",
+        "command_interface",
+        "trajectory_scale",
+        "joint_lower",
+        "joint_upper",
+        "joint_signs",
+        "joint_offsets",
+        "max_velocity",
+        "max_command_lead",
+        "command_timeout_s"
+      ],
+      "preferred_controllers": {}
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2_sdk.head",
+    "plugin_version": "1.0.0",
+    "kind": "actuator",
+    "ports": {
+      "position": {
+        "direction": "output",
+        "semantic": "joint_state",
+        "dim": 2,
+        "unit": "rad",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "position_target": {
+        "direction": "input",
+        "semantic": "joint_targets",
+        "dim": 2,
+        "unit": "rad",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "velocity": {
+        "direction": "output",
+        "semantic": "joint_velocity",
+        "dim": 2,
+        "unit": "rad/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      }
+    },
+    "joints": [
+      {
+        "name": "head_yaw_joint",
+        "unit": "rad",
+        "type": "revolute",
+        "lower": -0.47,
+        "upper": 0.47,
+        "limits": [
+          -0.47,
+          0.47
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      },
+      {
+        "name": "head_pitch_joint",
+        "unit": "rad",
+        "type": "revolute",
+        "lower": -0.98,
+        "upper": 0.32,
+        "limits": [
+          -0.98,
+          0.32
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      }
+    ],
+    "command_modes": [
+      "position"
+    ],
+    "backend_variants": {
+      "fake": {
+        "available": true,
+        "validation_level": "synthetic_sdk_protocol"
+      },
+      "real": {
+        "available": true,
+        "requires": [
+          "grpcio>=1.73.1",
+          "protobuf>=6.31,<7",
+          "MMK2 gRPC service"
+        ],
+        "validation_level": "NOT_RUN_hardware_readonly_default"
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_sdk",
+      "sharing": "session",
+      "stop_policy": "hold_and_zero_base"
+    },
+    "operations": {
+      "prepare": {
+        "moves": false,
+        "scope": "device_session"
+      },
+      "enable": {
+        "moves": false,
+        "scope": "device_session"
+      },
+      "stop": {
+        "moves": false,
+        "scope": "device_session"
+      }
+    },
+    "geometry": {
+      "frames": [
+        "base",
+        "flange",
+        "mount"
+      ],
+      "sdk_component": "head",
+      "calibration_required": true,
+      "collision_verified": false
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "type": "string",
+          "title": "MMK2 gRPC 主机"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "title": "gRPC 端口"
+        },
+        "robot_name": {
+          "type": "string",
+          "title": "SDK 客户端注册名称"
+        },
+        "domain_id": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "rpc_timeout_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2
+        },
+        "startup_timeout_s": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 30
+        },
+        "feedback_timeout_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2
+        },
+        "rate_hz": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "allow_motion": {
+          "type": "boolean",
+          "title": "允许写入运动目标（默认只读）"
+        },
+        "mapping_verified": {
+          "type": "boolean",
+          "title": "已完成 SDK 名称/单位/方向核验（写入门禁）"
+        },
+        "hold_stop_accepted": {
+          "type": "boolean",
+          "title": "接受 SDK 保持目标/零底盘速度停止策略（非失能）"
+        },
+        "command_interface": {
+          "type": "string",
+          "enum": [
+            "trajectory",
+            "forward_position"
+          ],
+          "title": "SDK 目标接口"
+        },
+        "trajectory_scale": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.2,
+          "title": "SDK 轨迹速度与加速度缩放"
+        },
+        "joint_lower": {
+          "type": "array",
+          "title": "目标下限 / rad",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "joint_upper": {
+          "type": "array",
+          "title": "目标上限 / rad",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "joint_signs": {
+          "type": "array",
+          "title": "SDK 到逻辑关节方向（±1）",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "joint_offsets": {
+          "type": "array",
+          "title": "SDK 到逻辑关节偏置 / rad",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "max_velocity": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "目标限速 / rad/s"
+        },
+        "max_command_lead": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "目标领先上限 / rad"
+        },
+        "command_timeout_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1
+        }
+      }
+    },
+    "defaults": {
+      "host": "",
+      "port": 50055,
+      "robot_name": "morla_mmk2",
+      "domain_id": -1,
+      "rpc_timeout_s": 0.25,
+      "startup_timeout_s": 5.0,
+      "feedback_timeout_s": 0.3,
+      "rate_hz": 20.0,
+      "allow_motion": false,
+      "mapping_verified": false,
+      "hold_stop_accepted": false,
+      "command_interface": "trajectory",
+      "trajectory_scale": 0.05,
+      "joint_lower": [
+        -0.47,
+        -0.98
+      ],
+      "joint_upper": [
+        0.47,
+        0.32
+      ],
+      "joint_signs": [
+        1,
+        1
+      ],
+      "joint_offsets": [
+        0,
+        0
+      ],
+      "max_velocity": 0.1,
+      "max_command_lead": 0.15,
+      "command_timeout_s": 0.25
+    },
+    "source": {
+      "package": "morla_mmk2_driver",
+      "version": "0.1.0"
+    },
+    "web": {
+      "device_category": "whole",
+      "label": "MMK2 SDK 头部",
+      "connection_fields": [
+        "host",
+        "port",
+        "robot_name",
+        "domain_id"
+      ],
+      "fields": [
+        "host",
+        "port",
+        "robot_name",
+        "domain_id",
+        "rpc_timeout_s",
+        "startup_timeout_s",
+        "feedback_timeout_s",
+        "rate_hz",
+        "allow_motion",
+        "mapping_verified",
+        "hold_stop_accepted",
+        "command_interface",
+        "trajectory_scale",
+        "joint_lower",
+        "joint_upper",
+        "joint_signs",
+        "joint_offsets",
+        "max_velocity",
+        "max_command_lead",
+        "command_timeout_s"
+      ],
+      "preferred_controllers": {}
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2_sdk.base",
+    "plugin_version": "1.0.0",
+    "kind": "actuator",
+    "ports": {
+      "velocity": {
+        "direction": "output",
+        "semantic": "joint_velocity",
+        "dim": 2,
+        "unit": "m_rad/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "velocity_target": {
+        "direction": "input",
+        "semantic": "joint_targets",
+        "dim": 2,
+        "unit": "m_rad/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "odometry": {
+        "direction": "output",
+        "semantic": "pose6d",
+        "dim": 7,
+        "unit": "m_rad",
+        "codec": "numeric",
+        "dtype": "float64"
+      }
+    },
+    "joints": [
+      {
+        "name": "linear_x",
+        "unit": "m/s",
+        "type": "scalar",
+        "lower": -0.15,
+        "upper": 0.15,
+        "limits": [
+          -0.15,
+          0.15
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      },
+      {
+        "name": "angular_z",
+        "unit": "rad/s",
+        "type": "scalar",
+        "lower": -0.3,
+        "upper": 0.3,
+        "limits": [
+          -0.3,
+          0.3
+        ],
+        "limit_source": "MMK2 SDK JointLimits; base deployment speed envelope"
+      }
+    ],
+    "command_modes": [
+      "velocity"
+    ],
+    "backend_variants": {
+      "fake": {
+        "available": true,
+        "validation_level": "synthetic_sdk_protocol"
+      },
+      "real": {
+        "available": true,
+        "requires": [
+          "grpcio>=1.73.1",
+          "protobuf>=6.31,<7",
+          "MMK2 gRPC service"
+        ],
+        "validation_level": "NOT_RUN_hardware_readonly_default"
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_sdk",
+      "sharing": "session",
+      "stop_policy": "hold_and_zero_base"
+    },
+    "operations": {
+      "prepare": {
+        "moves": false,
+        "scope": "device_session"
+      },
+      "enable": {
+        "moves": false,
+        "scope": "device_session"
+      },
+      "stop": {
+        "moves": false,
+        "scope": "device_session"
+      }
+    },
+    "geometry": {
+      "frames": [
+        "base",
+        "flange",
+        "mount"
+      ],
+      "sdk_component": "base",
+      "calibration_required": true,
+      "collision_verified": false
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "type": "string",
+          "title": "MMK2 gRPC 主机"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "title": "gRPC 端口"
+        },
+        "robot_name": {
+          "type": "string",
+          "title": "SDK 客户端注册名称"
+        },
+        "domain_id": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "rpc_timeout_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2
+        },
+        "startup_timeout_s": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 30
+        },
+        "feedback_timeout_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2
+        },
+        "rate_hz": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "allow_motion": {
+          "type": "boolean",
+          "title": "允许写入运动目标（默认只读）"
+        },
+        "mapping_verified": {
+          "type": "boolean",
+          "title": "已完成 SDK 名称/单位/方向核验（写入门禁）"
+        },
+        "hold_stop_accepted": {
+          "type": "boolean",
+          "title": "接受 SDK 保持目标/零底盘速度停止策略（非失能）"
+        },
+        "command_interface": {
+          "type": "string",
+          "enum": [
+            "trajectory",
+            "forward_position"
+          ],
+          "title": "SDK 目标接口"
+        },
+        "trajectory_scale": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.2,
+          "title": "SDK 轨迹速度与加速度缩放"
+        },
+        "joint_lower": {
+          "type": "array",
+          "title": "目标下限 / 通道 1 m/s、通道 2 rad/s",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "joint_upper": {
+          "type": "array",
+          "title": "目标上限 / 通道 1 m/s、通道 2 rad/s",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "joint_signs": {
+          "type": "array",
+          "title": "SDK 到逻辑关节方向（±1）",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "joint_offsets": {
+          "type": "array",
+          "title": "SDK 到逻辑关节偏置 / 通道 1 m/s、通道 2 rad/s",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "command_timeout_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1
+        }
+      }
+    },
+    "defaults": {
+      "host": "",
+      "port": 50055,
+      "robot_name": "morla_mmk2",
+      "domain_id": -1,
+      "rpc_timeout_s": 0.25,
+      "startup_timeout_s": 5.0,
+      "feedback_timeout_s": 0.3,
+      "rate_hz": 20.0,
+      "allow_motion": false,
+      "mapping_verified": false,
+      "hold_stop_accepted": false,
+      "command_interface": "trajectory",
+      "trajectory_scale": 0.05,
+      "joint_lower": [
+        -0.15,
+        -0.3
+      ],
+      "joint_upper": [
+        0.15,
+        0.3
+      ],
+      "joint_signs": [
+        1,
+        1
+      ],
+      "joint_offsets": [
+        0,
+        0
+      ],
+      "command_timeout_s": 0.25
+    },
+    "source": {
+      "package": "morla_mmk2_driver",
+      "version": "0.1.0"
+    },
+    "web": {
+      "device_category": "whole",
+      "label": "MMK2 SDK 底盘原生速度",
+      "connection_fields": [
+        "host",
+        "port",
+        "robot_name",
+        "domain_id"
+      ],
+      "fields": [
+        "host",
+        "port",
+        "robot_name",
+        "domain_id",
+        "rpc_timeout_s",
+        "startup_timeout_s",
+        "feedback_timeout_s",
+        "rate_hz",
+        "allow_motion",
+        "mapping_verified",
+        "hold_stop_accepted",
+        "command_interface",
+        "trajectory_scale",
+        "joint_lower",
+        "joint_upper",
+        "joint_signs",
+        "joint_offsets",
+        "command_timeout_s"
+      ],
+      "preferred_controllers": {
+        "axes_buttons": "morla.mmk2_sdk.base_twist"
+      }
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2_sdk.camera",
+    "plugin_version": "1.0.0",
+    "kind": "sensor",
+    "ports": {
+      "rgb": {
+        "direction": "output",
+        "semantic": "image",
+        "dim": 3,
+        "unit": "rgb",
+        "codec": "image",
+        "dtype": "uint8"
+      },
+      "depth": {
+        "direction": "output",
+        "semantic": "image",
+        "dim": 1,
+        "unit": "sdk_depth",
+        "codec": "image",
+        "dtype": "uint16"
+      }
+    },
+    "joints": [],
+    "backend_variants": {
+      "fake": {
+        "available": true
+      },
+      "real": {
+        "available": true,
+        "requires": [
+          "grpcio",
+          "protobuf",
+          "Pillow"
+        ]
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_sdk",
+      "sharing": "session"
+    },
+    "geometry": {
+      "frames": [
+        "optical"
+      ],
+      "calibration_required": true
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "type": "string",
+          "title": "MMK2 gRPC 主机"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "title": "gRPC 端口"
+        },
+        "robot_name": {
+          "type": "string",
+          "title": "SDK 客户端注册名称"
+        },
+        "domain_id": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "rpc_timeout_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2
+        },
+        "startup_timeout_s": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 30
+        },
+        "feedback_timeout_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2
+        },
+        "rate_hz": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "command_interface": {
+          "type": "string",
+          "enum": [
+            "trajectory",
+            "forward_position"
+          ],
+          "title": "SDK 目标接口"
+        },
+        "trajectory_scale": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.2,
+          "title": "SDK 轨迹速度与加速度缩放"
+        },
+        "camera": {
+          "type": "string",
+          "enum": [
+            "head_camera",
+            "left_camera",
+            "right_camera"
+          ]
+        },
+        "fps": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 30
+        },
+        "depth_scale_m": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "defaults": {
+      "host": "",
+      "port": 50055,
+      "robot_name": "morla_mmk2",
+      "domain_id": -1,
+      "rpc_timeout_s": 0.25,
+      "startup_timeout_s": 5.0,
+      "feedback_timeout_s": 0.3,
+      "rate_hz": 20.0,
+      "command_interface": "trajectory",
+      "trajectory_scale": 0.05,
+      "camera": "head_camera",
+      "fps": 10.0,
+      "depth_scale_m": 0.0
+    },
+    "source": {
+      "package": "morla_mmk2_driver",
+      "version": "0.1.0"
+    },
+    "web": {
+      "label": "MMK2 SDK 相机",
+      "connection_fields": [
+        "host",
+        "port",
+        "robot_name",
+        "domain_id"
+      ]
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.mmk2_sdk.base_twist",
+    "plugin_version": "1.0.0",
+    "kind": "controller",
+    "ports": {},
+    "controller_types": {
+      "inputs": [
+        "axes_buttons"
+      ],
+      "outputs": [
+        "joint_targets"
+      ],
+      "target_plugins": [
+        "morla.airbot.mmk2_sdk.base"
+      ],
+      "target_dim": 2
+    },
+    "backend_variants": {
+      "fake": {
+        "available": true
+      },
+      "real": {
+        "available": true
+      }
+    },
+    "defaults": {
+      "linear_speed": 0.05,
+      "angular_speed": 0.15
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "linear_speed": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.15
+        },
+        "angular_speed": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.3
+        }
+      }
+    },
+    "source": {
+      "package": "morla_mmk2_driver",
+      "version": "0.1.0"
+    },
+    "web": {
+      "label": "MMK2 SDK 底盘速度"
+    }
+  }
+]

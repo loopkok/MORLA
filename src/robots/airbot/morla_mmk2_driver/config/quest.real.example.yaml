@@ -1,0 +1,351 @@
+{
+  "assembly_id": "mmk2_sdk_quest_real",
+  "assembly_version": 1,
+  "bindings": [
+    {
+      "controller": "morla.cartesian_delta_ik",
+      "deadman": "quest.left_hold",
+      "id": "left_vr",
+      "input_basis_id": "unity_left_handed_v1",
+      "max_age_ms": 250,
+      "parameters": {
+        "calibration_verified": false,
+        "input_position_rotation": [
+          [
+            0.70710418383354,
+            -5.194696474495747e-06,
+            0.7071093785109335
+          ],
+          [
+            -2.2393737829194882e-09,
+            -0.9999999999730317,
+            -7.344143864630878e-06
+          ],
+          [
+            -0.7071093785300147,
+            -5.19149137121583e-06,
+            0.7071041838144823
+          ]
+        ],
+        "input_rotation": [
+          [
+            0.70710418383354,
+            -5.194696474495747e-06,
+            0.7071093785109335
+          ],
+          [
+            -2.2393737829194882e-09,
+            -0.9999999999730317,
+            -7.344143864630878e-06
+          ],
+          [
+            -0.7071093785300147,
+            -5.19149137121583e-06,
+            0.7071041838144823
+          ]
+        ],
+        "max_joint_step": 0.02,
+        "max_joint_velocity": 0.2,
+        "position_scale": 0.25
+      },
+      "source": "quest.left_pose",
+      "target": "left_arm.position_target"
+    },
+    {
+      "controller": "morla.cartesian_delta_ik",
+      "deadman": "quest.right_hold",
+      "id": "right_vr",
+      "input_basis_id": "unity_left_handed_v1",
+      "max_age_ms": 250,
+      "parameters": {
+        "calibration_verified": false,
+        "input_position_rotation": [
+          [
+            -0.7071093785300145,
+            -5.194696474551256e-06,
+            0.7071041838144586
+          ],
+          [
+            -2.2933269318153047e-09,
+            0.9999999999730317,
+            7.344143847939706e-06
+          ],
+          [
+            0.7071041838335399,
+            -5.191491371201954e-06,
+            0.707109378510957
+          ]
+        ],
+        "input_rotation": [
+          [
+            -0.7071093785300145,
+            -5.194696474551256e-06,
+            0.7071041838144586
+          ],
+          [
+            -2.2933269318153047e-09,
+            0.9999999999730317,
+            7.344143847939706e-06
+          ],
+          [
+            0.7071041838335399,
+            -5.191491371201954e-06,
+            0.707109378510957
+          ]
+        ],
+        "max_joint_step": 0.02,
+        "max_joint_velocity": 0.2,
+        "position_scale": 0.25
+      },
+      "source": "quest.right_pose",
+      "target": "right_arm.position_target"
+    },
+    {
+      "controller": "morla.scalar_map",
+      "deadman": "quest.left_hold",
+      "id": "control_1",
+      "max_age_ms": 250,
+      "parameters": {
+        "input_range": [
+          0,
+          1
+        ],
+        "output_range": [
+          0.0,
+          1.0
+        ]
+      },
+      "source": "quest.left_scalar",
+      "target": "left_gripper.position_target"
+    },
+    {
+      "controller": "morla.scalar_map",
+      "deadman": "quest.right_hold",
+      "id": "control_2",
+      "max_age_ms": 250,
+      "parameters": {
+        "input_range": [
+          0,
+          1
+        ],
+        "output_range": [
+          0.0,
+          1.0
+        ]
+      },
+      "source": "quest.right_scalar",
+      "target": "right_gripper.position_target"
+    },
+    {
+      "controller": "morla.scalar_map",
+      "deadman": "quest.left_hold",
+      "id": "control_3",
+      "max_age_ms": 250,
+      "parameters": {
+        "input_range": [
+          0,
+          1
+        ],
+        "output_range": [
+          0.0,
+          0.02
+        ]
+      },
+      "source": "quest.left_scalar",
+      "target": "lift.position_target"
+    },
+    {
+      "controller": "morla.joint_jog",
+      "deadman": "quest.left_hold",
+      "id": "control_4",
+      "max_age_ms": 250,
+      "parameters": {
+        "axes_map": [
+          "x",
+          "y"
+        ],
+        "speed": 0.1
+      },
+      "source": "quest.left_axes",
+      "target": "head.position_target"
+    },
+    {
+      "controller": "morla.mmk2_sdk.base_twist",
+      "deadman": "quest.right_hold",
+      "id": "control_5",
+      "max_age_ms": 250,
+      "parameters": {
+        "linear_speed": 0.05,
+        "angular_speed": 0.15
+      },
+      "source": "quest.right_axes",
+      "target": "base.velocity_target"
+    }
+  ],
+  "capture": {
+    "action": [
+      "base.velocity_target",
+      "lift.position_target",
+      "head.position_target",
+      "left_arm.position_target",
+      "left_gripper.position_target",
+      "right_arm.position_target",
+      "right_gripper.position_target"
+    ],
+    "action_source": "command",
+    "auxiliary": [
+      "base.odometry",
+      "quest.left_pose",
+      "quest.left_hold",
+      "quest.right_pose",
+      "quest.right_hold"
+    ],
+    "dataset_fps": 15,
+    "hold_frames": 0,
+    "images": {
+      "head": "head_camera.rgb",
+      "left_wrist": "left_wrist_camera.rgb",
+      "right_wrist": "right_wrist_camera.rgb"
+    },
+    "state": [
+      "base.velocity",
+      "lift.position",
+      "head.position",
+      "left_arm.position",
+      "left_gripper.position",
+      "right_arm.position",
+      "right_gripper.position"
+    ]
+  },
+  "control_groups": {},
+  "instances": {
+    "base": {
+      "backend": "real",
+      "plugin": "morla.airbot.mmk2_sdk.base",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0",
+      "parameters": {
+        "host": "172.25.14.1",
+        "allow_motion": false,
+        "mapping_verified": false,
+        "hold_stop_accepted": false
+      }
+    },
+    "head": {
+      "backend": "real",
+      "plugin": "morla.airbot.mmk2_sdk.head",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0",
+      "parameters": {
+        "host": "172.25.14.1",
+        "allow_motion": false,
+        "mapping_verified": false,
+        "hold_stop_accepted": false
+      }
+    },
+    "head_camera": {
+      "backend": "real",
+      "parameters": {
+        "camera": "head_camera",
+        "host": "172.25.14.1"
+      },
+      "plugin": "morla.airbot.mmk2_sdk.camera",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0"
+    },
+    "left_arm": {
+      "backend": "real",
+      "plugin": "morla.airbot.mmk2_sdk.left_arm",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0",
+      "parameters": {
+        "host": "172.25.14.1",
+        "allow_motion": false,
+        "mapping_verified": false,
+        "hold_stop_accepted": false
+      }
+    },
+    "left_gripper": {
+      "backend": "real",
+      "plugin": "morla.airbot.mmk2_sdk.left_gripper",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0",
+      "parameters": {
+        "host": "172.25.14.1",
+        "allow_motion": false,
+        "mapping_verified": false,
+        "hold_stop_accepted": false
+      }
+    },
+    "left_wrist_camera": {
+      "backend": "real",
+      "parameters": {
+        "camera": "left_camera",
+        "host": "172.25.14.1"
+      },
+      "plugin": "morla.airbot.mmk2_sdk.camera",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0"
+    },
+    "lift": {
+      "backend": "real",
+      "plugin": "morla.airbot.mmk2_sdk.lift",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0",
+      "parameters": {
+        "host": "172.25.14.1",
+        "allow_motion": false,
+        "mapping_verified": false,
+        "hold_stop_accepted": false
+      }
+    },
+    "quest": {
+      "backend": "real",
+      "parameters": {
+        "side": "both"
+      },
+      "plugin": "morla.input.quest",
+      "version": "1.0.0"
+    },
+    "right_arm": {
+      "backend": "real",
+      "plugin": "morla.airbot.mmk2_sdk.right_arm",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0",
+      "parameters": {
+        "host": "172.25.14.1",
+        "allow_motion": false,
+        "mapping_verified": false,
+        "hold_stop_accepted": false
+      }
+    },
+    "right_gripper": {
+      "backend": "real",
+      "plugin": "morla.airbot.mmk2_sdk.right_gripper",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0",
+      "parameters": {
+        "host": "172.25.14.1",
+        "allow_motion": false,
+        "mapping_verified": false,
+        "hold_stop_accepted": false
+      }
+    },
+    "right_wrist_camera": {
+      "backend": "real",
+      "parameters": {
+        "camera": "right_camera",
+        "host": "172.25.14.1"
+      },
+      "plugin": "morla.airbot.mmk2_sdk.camera",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0"
+    }
+  },
+  "metadata": {
+    "validation": "NOT_RUN_hardware_default_readonly",
+    "notes": "Confirm gripper polarity and all SDK mapping before enabling motion."
+  },
+  "mounts": [],
+  "revision": 1
+}

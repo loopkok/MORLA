@@ -1,5 +1,7 @@
 # MORLA 设备移植与接入指南
 
+2026-11-10：新增 [MMK2 原生 SDK / ROS 2 / Web 驱动接入](integrations/MMK2_SDK_DRIVER.md)，默认只读，实体与 ROS/DDS 待现场验收。
+
 FR3 当前 SDK 已在本地切换为 V2.1.5 / Robot V3.8.5（20003 + 20004），详见 [SDK 迁移说明](integrations/FR3_SDK_2_1_5_MIGRATION.md)。本轮尚未同步主机。
 
 2026-11-06 更新：Web 预设、表单、控制器兼容性/默认值和共享仿真资源改为 descriptor 驱动，参见 [接入声明规范](integrations/PLUGIN_DRIVEN_PORTING.md)。新机器人无需修改前后端品牌列表；实际工厂、模型和现场标定仍须验收。

@@ -34,7 +34,7 @@ def _endpoint(reference,instances,direction=None):
     return instance,port_id,port
 
 def _action_semantics(port):
-    if port.get('unit') in {'rad/s','m/s','ratio/s'}:
+    if port.get('unit') in {'rad/s','m/s','ratio/s','m_rad/s','sdk_gripper/s'}:
         return 'velocity'
     return 'closure_ratio' if port.get('unit')=='ratio' else 'absolute_position'
 

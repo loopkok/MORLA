@@ -1,0 +1,151 @@
+{
+  "assembly_id": "mmk2_sdk_readonly",
+  "assembly_version": 1,
+  "bindings": [],
+  "capture": {
+    "action": [],
+    "action_source": "command",
+    "auxiliary": [
+      "base.odometry"
+    ],
+    "dataset_fps": 15,
+    "hold_frames": 0,
+    "images": {
+      "head": "head_camera.rgb",
+      "left_wrist": "left_wrist_camera.rgb",
+      "right_wrist": "right_wrist_camera.rgb"
+    },
+    "state": [
+      "base.velocity",
+      "lift.position",
+      "head.position",
+      "left_arm.position",
+      "left_gripper.position",
+      "right_arm.position",
+      "right_gripper.position"
+    ]
+  },
+  "control_groups": {},
+  "instances": {
+    "base": {
+      "backend": "real",
+      "plugin": "morla.airbot.mmk2_sdk.base",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0",
+      "parameters": {
+        "host": "172.25.14.1",
+        "allow_motion": false,
+        "mapping_verified": false,
+        "hold_stop_accepted": false
+      }
+    },
+    "head": {
+      "backend": "real",
+      "plugin": "morla.airbot.mmk2_sdk.head",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0",
+      "parameters": {
+        "host": "172.25.14.1",
+        "allow_motion": false,
+        "mapping_verified": false,
+        "hold_stop_accepted": false
+      }
+    },
+    "head_camera": {
+      "backend": "real",
+      "parameters": {
+        "camera": "head_camera",
+        "host": "172.25.14.1"
+      },
+      "plugin": "morla.airbot.mmk2_sdk.camera",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0"
+    },
+    "left_arm": {
+      "backend": "real",
+      "plugin": "morla.airbot.mmk2_sdk.left_arm",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0",
+      "parameters": {
+        "host": "172.25.14.1",
+        "allow_motion": false,
+        "mapping_verified": false,
+        "hold_stop_accepted": false
+      }
+    },
+    "left_gripper": {
+      "backend": "real",
+      "plugin": "morla.airbot.mmk2_sdk.left_gripper",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0",
+      "parameters": {
+        "host": "172.25.14.1",
+        "allow_motion": false,
+        "mapping_verified": false,
+        "hold_stop_accepted": false
+      }
+    },
+    "left_wrist_camera": {
+      "backend": "real",
+      "parameters": {
+        "camera": "left_camera",
+        "host": "172.25.14.1"
+      },
+      "plugin": "morla.airbot.mmk2_sdk.camera",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0"
+    },
+    "lift": {
+      "backend": "real",
+      "plugin": "morla.airbot.mmk2_sdk.lift",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0",
+      "parameters": {
+        "host": "172.25.14.1",
+        "allow_motion": false,
+        "mapping_verified": false,
+        "hold_stop_accepted": false
+      }
+    },
+    "right_arm": {
+      "backend": "real",
+      "plugin": "morla.airbot.mmk2_sdk.right_arm",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0",
+      "parameters": {
+        "host": "172.25.14.1",
+        "allow_motion": false,
+        "mapping_verified": false,
+        "hold_stop_accepted": false
+      }
+    },
+    "right_gripper": {
+      "backend": "real",
+      "plugin": "morla.airbot.mmk2_sdk.right_gripper",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0",
+      "parameters": {
+        "host": "172.25.14.1",
+        "allow_motion": false,
+        "mapping_verified": false,
+        "hold_stop_accepted": false
+      }
+    },
+    "right_wrist_camera": {
+      "backend": "real",
+      "parameters": {
+        "camera": "right_camera",
+        "host": "172.25.14.1"
+      },
+      "plugin": "morla.airbot.mmk2_sdk.camera",
+      "session_id": "mmk2_sdk",
+      "version": "1.0.0"
+    }
+  },
+  "metadata": {
+    "validation": "NOT_RUN_hardware_default_readonly",
+    "notes": "Confirm gripper polarity and all SDK mapping before enabling motion."
+  },
+  "mounts": [],
+  "revision": 1
+}

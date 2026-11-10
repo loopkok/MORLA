@@ -1,0 +1,16 @@
+{
+  "source": "User supplied mmk2_sdk_src / mmk2-sdk-0.0.4.dev5.dist-info",
+  "sdk_distribution_version": "0.0.4.dev5",
+  "sdk_module_version": "0.0.1.dev1",
+  "license": "Apache-2.0 from distribution LICENSE; source pyproject says MIT, discrepancy retained",
+  "strategy": "Vendor unmodified protobuf/gRPC protocol only; replace unbounded high-level transport, zero-padded feedback and no-op stop_all",
+  "files_sha256": {
+    "morla_mmk2_driver/vendor/common_pb2.py": "60e9477b5fc313b6dc4ed54066964fd7f5d4e508186d936d4e29b21c3ae9b586",
+    "morla_mmk2_driver/vendor/mmk2_pb2.py": "dda1b1c22a665da221b444a77889ba3470487c33fe563697bdb5948df6e6a96b",
+    "morla_mmk2_driver/vendor/mmk2_pb2_grpc.py": "e5b637a54f7f579103aec3de9bcfb52bd182fc0e2910191ad0aafbace89a5485",
+    "morla_mmk2_driver/vendor/proto/common.proto": "8919ad0576b89a5f073ac7b761217f29811d54de7a9b15e29ea40e3826683977",
+    "morla_mmk2_driver/vendor/proto/mmk2.proto": "701e660f7cb2e0a0ebdabf3da6027a86478a3d04af6fad485ccf235839c3c2c3"
+  },
+  "hardware_validation": "NOT_RUN",
+  "ros_dds_validation": "NOT_RUN on macOS without rclpy"
+}

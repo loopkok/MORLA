@@ -1,0 +1,140 @@
+{
+  "validation": "synthetic SDK protocol only; no MMK2 or Quest hardware / ROS DDS",
+  "episodes": [
+    {
+      "episode": "/tmp/morla-mmk2-sdk-web-20261110/recordings/85141f042c204fbd81179784b5636112/episode000000",
+      "status": "complete",
+      "duration_s": 48.102059841156006,
+      "state_dim": 19,
+      "action_dim": 19,
+      "groups": {
+        "base": {
+          "state_samples": 584,
+          "action_samples": 1171,
+          "native_value_peak_to_peak": 0.044996634125709534
+        },
+        "head": {
+          "state_samples": 584,
+          "action_samples": 1171,
+          "native_value_peak_to_peak": 0.04656542092561722
+        },
+        "lift": {
+          "state_samples": 584,
+          "action_samples": 1171,
+          "native_value_peak_to_peak": 0.007999973371624947
+        },
+        "left_arm": {
+          "state_samples": 584,
+          "action_samples": 1171,
+          "native_value_peak_to_peak": 0.043741799890995026
+        },
+        "right_arm": {
+          "state_samples": 584,
+          "action_samples": 1171,
+          "native_value_peak_to_peak": 0.04324750602245331
+        },
+        "left_gripper": {
+          "state_samples": 584,
+          "action_samples": 1171,
+          "native_value_peak_to_peak": 0.3999986946582794
+        },
+        "right_gripper": {
+          "state_samples": 584,
+          "action_samples": 1171,
+          "native_value_peak_to_peak": 0.3999986946582794
+        }
+      },
+      "camera_jpeg_frames": {
+        "head": 463,
+        "left_wrist": 463,
+        "right_wrist": 463
+      },
+      "synthetic": true,
+      "measured": false
+    },
+    {
+      "episode": "/tmp/morla-mmk2-sdk-web-20261110/recordings/a9f8dc184d3144e4950239bc48086a89/episode000000",
+      "status": "complete",
+      "duration_s": 16.48418402671814,
+      "state_dim": 19,
+      "action_dim": 19,
+      "groups": {
+        "base": {
+          "state_samples": 205,
+          "action_samples": 300,
+          "native_value_peak_to_peak": 0.04499730467796326
+        },
+        "head": {
+          "state_samples": 205,
+          "action_samples": 300,
+          "native_value_peak_to_peak": 0.04748057201504707
+        },
+        "lift": {
+          "state_samples": 205,
+          "action_samples": 300,
+          "native_value_peak_to_peak": 0.007999448105692863
+        },
+        "left_arm": {
+          "state_samples": 205,
+          "action_samples": 300,
+          "native_value_peak_to_peak": 0.044754091650247574
+        },
+        "right_arm": {
+          "state_samples": 205,
+          "action_samples": 300,
+          "native_value_peak_to_peak": 0.0457773432135582
+        },
+        "left_gripper": {
+          "state_samples": 205,
+          "action_samples": 300,
+          "native_value_peak_to_peak": 0.3999723792076111
+        },
+        "right_gripper": {
+          "state_samples": 205,
+          "action_samples": 300,
+          "native_value_peak_to_peak": 0.3999723792076111
+        }
+      },
+      "camera_jpeg_frames": {
+        "head": 159,
+        "left_wrist": 159,
+        "right_wrist": 158
+      },
+      "synthetic": true,
+      "measured": false
+    }
+  ],
+  "runs": [
+    {
+      "session": "20261110T073909Z_mmk2_sdk_quest_fake_5f77dc0fc2a8436f95070ba3d7320c82",
+      "final_status": "STOPPED",
+      "accepted_all_seven": 2,
+      "rejected": [
+        "MMK2_COMMAND_LEAD_EXCEEDED"
+      ],
+      "device_faults": [],
+      "cleanup_errors": [],
+      "dropped": {}
+    },
+    {
+      "session": "20261110T074253Z_mmk2_sdk_quest_fake_85141f042c204fbd81179784b5636112",
+      "final_status": "STOPPED",
+      "accepted_all_seven": 1545,
+      "rejected": [
+        "ADAPTER_DISARMED"
+      ],
+      "device_faults": [],
+      "cleanup_errors": [],
+      "dropped": {}
+    },
+    {
+      "session": "20261110T074633Z_mmk2_sdk_quest_fake_a9f8dc184d3144e4950239bc48086a89",
+      "final_status": "STOPPED",
+      "accepted_all_seven": 365,
+      "rejected": [],
+      "device_faults": [],
+      "cleanup_errors": [],
+      "dropped": {}
+    }
+  ]
+}

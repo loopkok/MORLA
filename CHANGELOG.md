@@ -1,5 +1,13 @@
 # Changelog（MORLA）
 
+## 2026-11-10 — MMK2 原生 SDK 驱动、公共层与 Web 接入
+
+- 新增独立 `morla_mmk2_driver` ROS 2 包：七组执行器、三路原生 RGB-D、共享 gRPC 会话、严格具名反馈、有界 RPC、最新目标与停止处理；静态 descriptor、factory、launch、只读检查和部署/Quest 模板接入公共 Runtime 与 Web。控制器示例 IP 为 172.25.14.1，本轮未连接。
+- 真实底盘使用原生线速度/角速度，夹爪保留 SDK 原始量；扩展公共速度语义及 ROS 的 SI JointState、Twist/Odometry 和缓存图像发布。双臂采用受限微分 IK，修复零位附近大幅腕部解跳变。
+- SDK 未实现电机使能/停止；默认只读并显式配置写入门禁，保持/零速度请求不冒充电机失能或物理急停。保留 SDK 来源、许可和版本/依赖差异。
+- 本地联合回归 309 passed、1 skipped，Web/采集相关 37 passed，原 MMK2 仿真 21 passed；实际浏览器两段录制完整，19/19 维、七组变化及三路 JPEG 已审计。直接保存期间曾出现授权撤销故障，补原始故障诊断并验证先暂停后保存的流程；Linux ROS/DDS、真实 Quest/MMK2 和停止长稳待用户现场测试。
+- 详见[接入记录](docs/integrations/MMK2_SDK_DRIVER.md)、[操作说明](src/robots/airbot/morla_mmk2_driver/README.md)、[本地证据](docs/integrations/evidence/2026-11-10-mmk2-sdk/README.md)与[提交及发布日志](docs/integrations/MMK2_SDK_PUBLISH_LOG_2026-11-10.md)。
+
 ## 2026-11-10 — 修复工作站「仿真显示」选不动与折叠面板空白
 
 - 「完整运行控制、工作位、配对与诊断」面板去掉运行阶段门控：`RunConsole` 只在运行概览页挂载，原先的 `stage==='run'` 判断会让它展开后内容为空；现在只要挂载就渲染，并在没有会话时说明启动工作站后才有控制、配对与诊断内容。

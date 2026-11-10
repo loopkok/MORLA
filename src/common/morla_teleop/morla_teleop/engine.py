@@ -143,7 +143,7 @@ class BindingEngine:
                          else [j.get('unit', 'rad') for j in instance['joints']])
                 targets.append({'component_id': key,
                     'names': [j['name'] for j in instance['joints']], 'values': values,
-                    'mode': binding.get('mode', 'velocity' if all(u in {'rad/s','m/s','ratio/s'} for u in units) else 'position'),
+                    'mode': binding.get('mode', 'velocity' if all(u in {'rad/s','m/s','ratio/s','m_rad/s','sdk_gripper/s'} for u in units) else 'position'),
                     'units': units})
         return targets
 

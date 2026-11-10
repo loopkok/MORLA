@@ -1,0 +1,118 @@
+{
+  "deployment_version": 1,
+  "deployment_id": "mmk2_sdk_bench",
+  "instances": {
+    "base": {
+      "backend": "real",
+      "device_id": "REPLACE_MMK2_SERIAL",
+      "resource_key": "mmk2:REPLACE_MMK2_SERIAL",
+      "parameters": {
+        "host": "172.25.14.1"
+      },
+      "verified": false,
+      "stop_verified": false
+    },
+    "head": {
+      "backend": "real",
+      "device_id": "REPLACE_MMK2_SERIAL",
+      "resource_key": "mmk2:REPLACE_MMK2_SERIAL",
+      "parameters": {
+        "host": "172.25.14.1"
+      },
+      "verified": false,
+      "stop_verified": false
+    },
+    "head_camera": {
+      "backend": "real",
+      "device_id": "REPLACE_MMK2_SERIAL",
+      "resource_key": "mmk2:REPLACE_MMK2_SERIAL",
+      "parameters": {
+        "host": "172.25.14.1"
+      },
+      "verified": false,
+      "stop_verified": false
+    },
+    "left_arm": {
+      "backend": "real",
+      "device_id": "REPLACE_MMK2_SERIAL",
+      "resource_key": "mmk2:REPLACE_MMK2_SERIAL",
+      "parameters": {
+        "host": "172.25.14.1"
+      },
+      "verified": false,
+      "stop_verified": false
+    },
+    "left_gripper": {
+      "backend": "real",
+      "device_id": "REPLACE_MMK2_SERIAL",
+      "resource_key": "mmk2:REPLACE_MMK2_SERIAL",
+      "parameters": {
+        "host": "172.25.14.1"
+      },
+      "verified": false,
+      "stop_verified": false
+    },
+    "left_wrist_camera": {
+      "backend": "real",
+      "device_id": "REPLACE_MMK2_SERIAL",
+      "resource_key": "mmk2:REPLACE_MMK2_SERIAL",
+      "parameters": {
+        "host": "172.25.14.1"
+      },
+      "verified": false,
+      "stop_verified": false
+    },
+    "lift": {
+      "backend": "real",
+      "device_id": "REPLACE_MMK2_SERIAL",
+      "resource_key": "mmk2:REPLACE_MMK2_SERIAL",
+      "parameters": {
+        "host": "172.25.14.1"
+      },
+      "verified": false,
+      "stop_verified": false
+    },
+    "quest": {
+      "backend": "real",
+      "device_id": "REPLACE_QUEST_SERIAL",
+      "parameters": {
+        "side": "both",
+        "process_mode": "managed",
+        "protocol": "tcp_wired",
+        "tcp_port": 8000
+      },
+      "verified": false
+    },
+    "right_arm": {
+      "backend": "real",
+      "device_id": "REPLACE_MMK2_SERIAL",
+      "resource_key": "mmk2:REPLACE_MMK2_SERIAL",
+      "parameters": {
+        "host": "172.25.14.1"
+      },
+      "verified": false,
+      "stop_verified": false
+    },
+    "right_gripper": {
+      "backend": "real",
+      "device_id": "REPLACE_MMK2_SERIAL",
+      "resource_key": "mmk2:REPLACE_MMK2_SERIAL",
+      "parameters": {
+        "host": "172.25.14.1"
+      },
+      "verified": false,
+      "stop_verified": false
+    },
+    "right_wrist_camera": {
+      "backend": "real",
+      "device_id": "REPLACE_MMK2_SERIAL",
+      "resource_key": "mmk2:REPLACE_MMK2_SERIAL",
+      "parameters": {
+        "host": "172.25.14.1"
+      },
+      "verified": false,
+      "stop_verified": false
+    }
+  },
+  "calibrations": {}
+}

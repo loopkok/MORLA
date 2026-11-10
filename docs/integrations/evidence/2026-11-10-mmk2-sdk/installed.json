@@ -1,0 +1,10 @@
+{
+  "module": "/opt/anaconda3/lib/python3.13/site-packages/morla_mmk2_driver/adapter.py",
+  "instances": 11,
+  "sdk_shared_sessions": 1,
+  "state_dim": 19,
+  "action_dim": 19,
+  "status": "READY_DISARMED",
+  "real_endpoints_contacted": [],
+  "final_status": "STOPPED"
+}

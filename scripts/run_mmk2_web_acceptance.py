@@ -26,6 +26,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--store',default='/tmp/morla-mmk2-web-20261109')
     parser.add_argument('--port',type=int,default=8080)
+    parser.add_argument('--target',choices=['simulation','sdk-fake'],default='simulation',help='SDK fixture refuses every real MMK2 component')
     args=parser.parse_args()
     os.environ.setdefault('AMENT_PREFIX_PATH',sys.prefix)
     from morla_input.adapters.normalized import InputStream
@@ -46,9 +47,15 @@ def main():
                 if not settings.get('enabled',True):continue
                 with service.lock:
                     session=service.session
+                    if session is not None and session.status=='FAULTED':
+                        (store/'fault_details.json').write_text(json.dumps({k:a.health(service.clock()) for k,a in session.adapters.items()}))
                     if session is None or session.status in ('STOPPED','STOPPING','FAULTED','ESTOP_LATCHED'):
                         continue
-                    if not any(r['plugin_id'].startswith('morla.airbot.mmk2.') for r in session.instances.values()):continue
+                    prefix='morla.airbot.mmk2_sdk.' if args.target=='sdk-fake' else 'morla.airbot.mmk2.'
+                    robot_rows=[r for r in session.instances.values() if r['plugin_id'].startswith(prefix)]
+                    if not robot_rows:continue
+                    required_backend='fake' if args.target=='sdk-fake' else 'sim'
+                    if any(r['backend']!=required_backend for r in robot_rows):continue
                     for key,row in session.instances.items():
                         if row['plugin_id']!='morla.input.quest' or row['backend']!='fake':continue
                         current=(session.session_id,key)
@@ -74,7 +81,7 @@ def main():
             except Exception as exc:
                 (store/'quest_error.txt').write_text(repr(exc))
     thread=threading.Thread(target=feed,name='mmk2-synthetic-quest',daemon=True);thread.start()
-    print(json.dumps(dict(url=f'http://127.0.0.1:{args.port}',store=str(store),input='synthetic Quest, 30 Hz; no auto activation')),flush=True)
+    print(json.dumps(dict(url=f'http://127.0.0.1:{args.port}',store=str(store),input='synthetic Quest, 30 Hz; no auto activation',target=args.target)),flush=True)
     try:uvicorn.run(app,host='127.0.0.1',port=args.port,log_level='warning')
     finally:stop.set();thread.join(timeout=2)
 
