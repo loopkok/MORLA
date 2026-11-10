@@ -137,10 +137,14 @@ class BindingEngine:
             if values is not None:
                 if len(values)!=len(instance['joints']):
                     raise ValueError('controller output dimension differs from target: '+key)
+                target_port = instance.get('ports', {}).get(binding['target'].split('.', 1)[1], {})
+                unit = target_port.get('unit')
+                units = ([unit] * len(instance['joints']) if unit and unit != 'mixed'
+                         else [j.get('unit', 'rad') for j in instance['joints']])
                 targets.append({'component_id': key,
                     'names': [j['name'] for j in instance['joints']], 'values': values,
-                    'mode': binding.get('mode', 'position'),
-                    'units': [j.get('unit', 'rad') for j in instance['joints']]})
+                    'mode': binding.get('mode', 'velocity' if all(u in {'rad/s','m/s','ratio/s'} for u in units) else 'position'),
+                    'units': units})
         return targets
 
     def _input_basis_matches(self, binding, frame):

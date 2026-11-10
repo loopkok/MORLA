@@ -192,7 +192,10 @@ class RuntimeSession:
             missing = []
             if backend == 'sim':
                 if module_missing('mujoco'): missing.append('mujoco')
-                if plugin.startswith('morla.camera') and module_missing('PIL'): missing.append('Pillow')
+                if (instance.get('kind') == 'sensor' and
+                        instance.get('ports', {}).get('rgb', {}).get('semantic') == 'image'
+                        and module_missing('PIL')):
+                    missing.append('Pillow')
             elif backend == 'real' and plugin.startswith('morla.camera'):
                 params = instance.get('parameters', {})
                 kind = 'uvc' if plugin.endswith('.uvc') else 'ros_image' if plugin.endswith('.ros_image') else params.get('camera_backend')

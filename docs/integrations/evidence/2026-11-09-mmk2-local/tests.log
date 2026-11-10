@@ -1,0 +1,14 @@
+........................................................................ [ 24%]
+........................................................................ [ 48%]
+........................................................................ [ 72%]
+........................................................................ [ 96%]
+............                                                             [100%]
+=============================== warnings summary ===============================
+../../../../opt/anaconda3/lib/python3.13/site-packages/fastapi/testclient.py:1
+  /opt/anaconda3/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] src/common/morla_core/test/contracts/test_parser_properties.py:6: could not import 'hypothesis': No module named 'hypothesis'
+300 passed, 1 skipped, 1 warning in 28.51s

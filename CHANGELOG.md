@@ -1,5 +1,16 @@
 # Changelog（MORLA）
 
+## 2026-11-10 — MMK2 整机 MuJoCo 移植与 Quest3 Web 全流程验证
+
+- 新增 `mmk2_description` 和 `mmk2_mujoco_sim`：从用户提供的完整 URDF 生成可独立安装的整机 MJCF，保留模型来源、MIT/Apache-2.0 许可及逐文件 SHA-256；SDK XML 因缺少网格且模型约定不同，仅作为参考保存。
+- 七组执行组件覆盖底盘、升降、头部、双臂与双夹爪，状态/动作各 19 维；四路 RGB-D 视角、IMU、里程计和激光共用一个场景。提供双臂 FK/IK、底盘差速控制器、Grip 门控和默认 .25 s 轮速刷新超时；MMK2 只声明 sim 后端。
+- 公共层增加 descriptor 驱动的 `morla.simulation_scenes` 工厂扩展；修正速度动作的 SchemaV3 语义、目标端口命令单位/模式及独立传感器采样时间，保留旧控制器夹具缺少端口元数据时的兼容行为。
+- 提供三个 Web 预设，其中整机七组配置由页面逐条接线形成；修正 base→slide→arm 完整坐标链和头部相机落在外壳内的问题，模型摘要进入 geometry。
+- 实际浏览器走通配置、检查保存、启动、Quest3 合成输入遥操、运动学/动力学录制、Grip 释放、暂停、急停复位、停用后模式切换和停止释放。两段录制均完整，七组状态有实际变化；19 维状态/动作、三路 JPEG 与辅助传感器已核验。
+- 验证：联合回归 **355 passed、1 skipped**（缺少可选 Hypothesis），包含 MMK2 21 项与 FR3/CR5、公共 runtime/core/teleop/Web 相关回归。新增可复现 Web 测试宿主与只读录制核验脚本。
+- 边界：合成 Quest 输入不等于真实头显验收；本机图像录制约 6–8 fps，未达到配置 15 fps；未完成 ROS 主机 colcon/DDS、实机/碰撞/轮地接触标定，深度数据集导出与整机速度动作策略/回放仍未支持。
+- 详见 [移植说明](docs/integrations/MMK2_SIMULATION.md)、[Web 验收记录](docs/integrations/MMK2_WEB_ACCEPTANCE_2026-11-10.md) 与 [提交发布日志](docs/integrations/MMK2_PUBLISH_LOG_2026-11-10.md)。
+
 ## 2026-11-09 — 参考图 Web UI 重构与测试数据全流程闭环
 
 - 采用浅色工作站外壳、统一 SVG 侧栏图标和卡片字号；各页内容铺满侧栏右侧，画面/画布增加纵向空间，窄屏字段自适应换行。

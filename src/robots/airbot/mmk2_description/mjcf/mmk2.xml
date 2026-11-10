@@ -1,0 +1,222 @@
+<mujoco model="mmk2_urdf_planar_reference">
+  <compiler angle="radian" autolimits="true" meshdir="../meshes" />
+  <option timestep="0.002" integrator="implicitfast" />
+  <visual>
+    <global offwidth="1280" offheight="960" />
+    <headlight ambient=".4 .4 .4" diffuse=".6 .6 .6" specular="0 0 0" />
+  </visual>
+  <asset>
+    <mesh name="base_link_visual_0" file="base_link.obj" />
+    <mesh name="lft_wheel_link_visual_0" file="drive_wheel.obj" />
+    <mesh name="rgt_wheel_link_visual_0" file="drive_wheel.obj" />
+    <mesh name="rgt_behind_wheel_link_visual_0" file="support_wheel.obj" />
+    <mesh name="lft_behind_wheel_link_visual_0" file="support_wheel.obj" />
+    <mesh name="rgt_front_wheel_link_visual_0" file="support_wheel.obj" />
+    <mesh name="lft_front_wheel_link_visual_0" file="support_wheel.obj" />
+    <mesh name="slide_link_visual_0" file="slide.obj" />
+    <mesh name="head_yaw_link_visual_0" file="head_yaw.obj" />
+    <mesh name="head_pitch_link_visual_0" file="head_pitch.obj" />
+    <mesh name="left_base_link_visual_0" file="visual/arm_base.obj" />
+    <mesh name="left_link1_visual_0" file="visual/link1.obj" />
+    <mesh name="left_link2_visual_0" file="visual/link2.obj" />
+    <mesh name="left_link3_visual_0" file="visual/link3.obj" />
+    <mesh name="left_link4_visual_0" file="visual/link4.obj" />
+    <mesh name="left_link5_visual_0" file="visual/link5.obj" />
+    <mesh name="left_link6_visual_0" file="visual/link6.obj" />
+    <mesh name="left_left_visual_0" file="visual/gripper.obj" />
+    <mesh name="left_right_visual_0" file="visual/gripper.obj" />
+    <mesh name="right_base_link_visual_0" file="visual/arm_base.obj" />
+    <mesh name="right_link1_visual_0" file="visual/link1.obj" />
+    <mesh name="right_link2_visual_0" file="visual/link2.obj" />
+    <mesh name="right_link3_visual_0" file="visual/link3.obj" />
+    <mesh name="right_link4_visual_0" file="visual/link4.obj" />
+    <mesh name="right_link5_visual_0" file="visual/link5.obj" />
+    <mesh name="right_link6_visual_0" file="visual/link6.obj" />
+    <mesh name="right_left_visual_0" file="visual/gripper.obj" />
+    <mesh name="right_right_visual_0" file="visual/gripper.obj" />
+  </asset>
+  <worldbody>
+    <light pos="0 0 4" dir="0 0 -1" />
+    <geom name="floor" type="plane" size="10 10 .01" rgba=".25 .3 .35 1" />
+    <geom name="reference_obstacle" type="box" pos="2 0 .35" size=".15 .4 .35" rgba=".8 .4 .15 1" />
+    <camera name="scene" pos="2.8 -2.8 2.2" xyaxes=".707 .707 0 -.3 .3 .906" />
+    <body name="base_link">
+      <inertial mass="33.0267456398628" pos="-0.0400313721989715 -0.0226608008968248 0.756257223317173" fullinertia="3.44838378637062 3.49493780774117 0.21980548376876 -0.00207943141138886 -0.0103091786755565 -0.00146679448998739" />
+      <joint name="base_x" type="slide" axis="1 0 0" limited="false" damping="10" />
+      <joint name="base_y" type="slide" axis="0 1 0" limited="false" damping="10" />
+      <joint name="base_yaw" type="hinge" axis="0 0 1" limited="false" damping="10" />
+      <site name="imu" pos="0 0 .25" size=".005" />
+      <geom mesh="base_link_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+      <body name="lft_wheel_link" pos="0 0.16325 0.08401" quat="0.4999981633974483 0.49999999999662686 0.49999999999662686 -0.5000018366025516">
+        <inertial mass="1.1566" pos="2.9309E-07 5.2077E-06 -0.029871" fullinertia="0.0021045 0.0021045 0.0035528 6.963E-10 -1.9831E-08 -3.5159E-07" />
+        <joint name="lft_wheel_joint" type="hinge" axis="0 0 -1" damping="2" armature=".02" limited="false" />
+        <geom mesh="lft_wheel_link_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+      </body>
+      <body name="rgt_wheel_link" pos="0 -0.16325 0.08401" quat="0.4999981633974483 0.49999999999662686 0.49999999999662686 -0.5000018366025516">
+        <inertial mass="1.1566" pos="2.9312E-07 5.2196E-06 0.029871" fullinertia="0.0021045 0.0021045 0.0035528 -8.6762E-11 1.9824E-08 3.5159E-07" />
+        <joint name="rgt_wheel_joint" type="hinge" axis="0 0 1" damping="2" armature=".02" limited="false" />
+        <geom mesh="rgt_wheel_link_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+      </body>
+      <body name="rgt_behind_wheel_link" pos="-0.1315 0.1 0.097" quat="1.0 0.0 0.0 0.0">
+        <inertial mass="0.15002" pos="0.0098797 -0.26998 -0.044087" fullinertia="0.00016534 0.00014609 9.3638E-05 1.4827E-07 -2.9264E-07 4.0633E-05" />
+        <geom mesh="rgt_behind_wheel_link_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+      </body>
+      <body name="lft_behind_wheel_link" pos="-0.1315 -0.1 0.097" quat="1.0 0.0 0.0 0.0">
+        <inertial mass="0.15002" pos="-0.01012 -0.26998 -0.044087" fullinertia="0.00016534 0.00014609 9.3638E-05 1.4827E-07 -2.9264E-07 4.0633E-05" />
+        <geom mesh="lft_behind_wheel_link_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+      </body>
+      <body name="rgt_front_wheel_link" pos="0.15482 -0.0895 0.097" quat="1.0 0.0 0.0 0.0">
+        <inertial mass="0.15002" pos="-0.01012 0.30602 -0.044087" fullinertia="0.00016534 0.00014609 9.3637E-05 1.4827E-07 -2.9264E-07 4.0633E-05" />
+        <geom mesh="rgt_front_wheel_link_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+      </body>
+      <body name="lft_front_wheel_link" pos="0.15482 0.0895 0.097" quat="1.0 0.0 0.0 0.0">
+        <inertial mass="0.15002" pos="0.0098797 0.30602 -0.044087" fullinertia="0.00016534 0.00014609 9.3637E-05 1.4827E-07 -2.9264E-07 4.0633E-05" />
+        <geom mesh="lft_front_wheel_link_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+      </body>
+      <body name="slide_link" pos="0.033942 -0.00025 1.406" quat="-2.5973434669646147e-06 0.707105482506466 0.7071080798547033 -2.597353007557415e-06">
+        <inertial mass="2.87043102920673" pos="-7.90494393625066E-05 0.067355217450789 0.10519083626064" fullinertia="0.00899755064402379 0.0119634133355932 0.00864817587777869 6.09937870252811E-07 2.90775161414524E-06 -0.000250919444280722" />
+        <joint name="slide_joint" type="slide" axis="0 0 1" damping="2" armature=".02" range="-0.04 0.87" />
+        <geom mesh="slide_link_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+        <body name="head_yaw_link" pos="0 0.1735 0.07242" quat="-3.673205103346574e-06 0.9999999999932537 0.0 -0.0">
+          <inertial mass="0.263127360420809" pos="0.0118490941462296 0.000491254783341499 0.0390231494943873" fullinertia="0.000185798854547827 0.000173833362201622 9.38655776831082E-05 2.64309797822853E-07 -2.93582511724902E-05 -2.8054841555532E-06" />
+          <joint name="head_yaw_joint" type="hinge" axis="0 0 1" damping="2" armature=".02" range="-0.5 0.5" />
+          <geom mesh="head_yaw_link_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+          <body name="head_pitch_link" pos="0.00099952 3.1059E-05 0.058" quat="0.5077124008805705 -0.5077142658157775 0.49216670030559523 -0.4921648924796802">
+            <inertial mass="0.500765947013434" pos="0.0244659096221799 -0.108421751901101 -0.00311687659834824" fullinertia="0.00157924187002826 0.000804096450222595 0.00113048749298996 2.16781765858799E-05 -1.02638171835218E-06 1.48815549401623E-05" />
+            <joint name="head_pitch_joint" type="hinge" axis="0 0 1" damping="2" armature=".02" range="-0.16 1.18" />
+            <geom mesh="head_pitch_link_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+            <camera name="head" pos=".11 -.1855 0" xyaxes="0 0 -1 .295520206661 -.955336489126 0" fovy="60" />
+          </body>
+        </body>
+        <body name="left_base_link" pos="0.10174 0.02283 0.09475" quat="0.27059804963945117 0.2705980505067459 0.6532814834851056 0.653281481391271">
+          <inertial mass="0.77705" pos="-0.010729 -0.00017015 0.041712" fullinertia="0.0008454 0.0011821 0.0012443 -7.5E-06 2.06E-05 -6.4E-06" />
+          <geom mesh="left_base_link_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+          <body name="left_link1" pos="0 0 0.1172" quat="1.0 0.0 0.0 0.0">
+            <inertial mass="0.54639" pos="7.9126E-05 -0.002527 -0.0041359" fullinertia="0.0003462 0.0002863 0.0003255 0 -1.4E-06 -1.1E-06" />
+            <joint name="left_joint1" type="hinge" axis="0 0 1" damping="2" armature=".02" range="-3.14 2.09" />
+            <geom mesh="left_link1_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+            <body name="left_link2" pos="0 0 0" quat="0.13586603235699254 0.13586653142171254 -0.6939298124803523 0.6939323614315623">
+              <inertial mass="0.64621" pos="0.22493 0.0047721 0.008023" fullinertia="0.0004901 0.0050391 0.0051052 0.0005229 -0.0002434 -2.95E-05" />
+              <joint name="left_joint2" type="hinge" axis="0 0 1" damping="2" armature=".02" range="-2.96 0.17" />
+              <geom mesh="left_link2_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+              <body name="left_link3" pos="0.27009 0 0" quat="0.19214393851745246 0.0 0.0 -0.9813667545270736">
+                <inertial mass="0.26829" pos="0.16813 -5.5576E-05 0.0031184" fullinertia="0.000245 0.0031527 0.0030895 -4E-07 -0.0001263 -1E-07" />
+                <joint name="left_joint3" type="hinge" axis="0 0 1" damping="2" armature=".02" range="-0.087 3.14" />
+                <geom mesh="left_link3_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+                <body name="left_link4" pos="0.29015 0 0" quat="-2.5973434669646147e-06 0.707105482506466 2.597353007557415e-06 0.7071080798547033">
+                  <inertial mass="0.34876" pos="5.2436E-06 0.00040412 -0.03228" fullinertia="0.0004235 0.000412 0.0001269 0 4.7E-06 -1E-07" />
+                  <joint name="left_joint4" type="hinge" axis="0 0 1" damping="2" armature=".02" range="-2.96 2.96" />
+                  <geom mesh="left_link4_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+                  <body name="left_link5" pos="0 0 0" quat="0.7071054825112363 0.7071080798594735 0.0 0.0">
+                    <inertial mass="0.36132" pos="8.3328E-06 0.026148 0.002525" fullinertia="0.0001825 0.0004677 0.0004286 0 -3.29E-05 0" />
+                    <joint name="left_joint5" type="hinge" axis="0 0 1" damping="2" armature=".02" range="-1.74 1.74" />
+                    <geom mesh="left_link5_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+                    <body name="left_link6" pos="0 0.23645 0" quat="0.4999981633974483 -0.49999999999662686 0.49999999999662686 0.5000018366025516">
+                      <inertial mass="0.53855" pos="-0.0047053 7.3857E-05 -0.12293" fullinertia="5E-05 5E-05 3.85E-05 0 0 0" />
+                      <joint name="left_joint6" type="hinge" axis="0 0 1" damping="2" armature=".02" range="-3.14 3.14" />
+                      <geom mesh="left_link6_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+                      <body name="left_left" pos="0 0 0" quat="0.7071054825112363 0.0 -0.7071080798594735 0.0">
+                        <inertial mass="0.061803" pos="-0.049039 -0.0096764 0.00038868" fullinertia="1.8946E-05 2.7277E-05 1.1981E-05 -1.3168E-06 -6.5528E-07 -2.0801E-07" />
+                        <joint name="left_gripper_joint" type="slide" axis="0 1 0" damping="2" armature=".02" range="0 0.04" />
+                        <geom mesh="left_left_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+                      </body>
+                      <body name="left_right" pos="0 0 0" quat="0.7071054825112363 0.0 -0.7071080798594735 0.0">
+                        <inertial mass="0.0626" pos="-0.048742 0.0096369 0.00044322" fullinertia="1.915E-05 2.7722E-05 1.2248E-05 1.343E-06 -6.8259E-07 2.0748E-07" />
+                        <joint name="left_gripper_joint1" type="slide" axis="0 -1 0" damping="2" armature=".02" range="0 0.04" />
+                        <geom mesh="left_right_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+                      </body>
+                      <body name="left_gripper_center" pos="0 0 0.02" quat="0.7071054825112363 0.0 -0.7071080798594735 0.0" />
+                      <body name="left_camera_link" pos="-0.105 0 -0.111" quat="0.8663246363166986 0.0 -0.4994813555186418 0.0">
+                        <camera name="left_wrist" pos=".06 0 0" xyaxes="0 -1 0 0 0 1" fovy="60" />
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+        <body name="right_base_link" pos="-0.10174 0.02283 0.09475" quat="0.653281481391271 -0.6532814834851056 -0.27059805050674585 0.2705980496394511">
+          <inertial mass="0.77705" pos="-0.010729 -0.00017015 0.041712" fullinertia="0.0008454 0.0011821 0.0012443 -7.5E-06 2.06E-05 -6.4E-06" />
+          <geom mesh="right_base_link_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+          <body name="right_link1" pos="0 0 0.1172" quat="1.0 0.0 0.0 0.0">
+            <inertial mass="0.54639" pos="7.9126E-05 -0.002527 -0.0041359" fullinertia="0.0003462 0.0002863 0.0003255 0 -1.4E-06 -1.1E-06" />
+            <joint name="right_joint1" type="hinge" axis="0 0 1" damping="2" armature=".02" range="-3.14 2.09" />
+            <geom mesh="right_link1_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+            <body name="right_link2" pos="0 0 0" quat="0.13586603235699254 0.13586653142171254 -0.6939298124803523 0.6939323614315623">
+              <inertial mass="0.64621" pos="0.22493 0.0047721 0.008023" fullinertia="0.0004901 0.0050391 0.0051052 0.0005229 -0.0002434 -2.95E-05" />
+              <joint name="right_joint2" type="hinge" axis="0 0 1" damping="2" armature=".02" range="-2.96 0.17" />
+              <geom mesh="right_link2_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+              <body name="right_link3" pos="0.27009 0 0" quat="0.19214393851745246 0.0 0.0 -0.9813667545270736">
+                <inertial mass="0.26829" pos="0.16813 -5.5576E-05 0.0031184" fullinertia="0.000245 0.0031527 0.0030895 -4E-07 -0.0001263 -1E-07" />
+                <joint name="right_joint3" type="hinge" axis="0 0 1" damping="2" armature=".02" range="-0.087 3.14" />
+                <geom mesh="right_link3_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+                <body name="right_link4" pos="0.29015 0 0" quat="-2.5973434669646147e-06 0.707105482506466 2.597353007557415e-06 0.7071080798547033">
+                  <inertial mass="0.34876" pos="5.2436E-06 0.00040412 -0.03228" fullinertia="0.0004235 0.000412 0.0001269 0 4.7E-06 -1E-07" />
+                  <joint name="right_joint4" type="hinge" axis="0 0 1" damping="2" armature=".02" range="-2.96 2.96" />
+                  <geom mesh="right_link4_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+                  <body name="right_link5" pos="0 0 0" quat="0.7071054825112363 0.7071080798594735 0.0 0.0">
+                    <inertial mass="0.36132" pos="8.3328E-06 0.026148 0.002525" fullinertia="0.0001825 0.0004677 0.0004286 0 -3.29E-05 0" />
+                    <joint name="right_joint5" type="hinge" axis="0 0 1" damping="2" armature=".02" range="-1.74 1.74" />
+                    <geom mesh="right_link5_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+                    <body name="right_link6" pos="0 0.23645 0" quat="0.4999981633974483 -0.49999999999662686 0.49999999999662686 0.5000018366025516">
+                      <inertial mass="0.53855" pos="-0.0047053 7.3857E-05 -0.12293" fullinertia="5E-05 5E-05 3.85E-05 0 0 0" />
+                      <joint name="right_joint6" type="hinge" axis="0 0 1" damping="2" armature=".02" range="-3.14 3.14" />
+                      <geom mesh="right_link6_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+                      <body name="right_left" pos="0 0 0" quat="0.7071054825112363 0.0 -0.7071080798594735 0.0">
+                        <inertial mass="0.061803" pos="-0.049039 -0.0096764 0.00038868" fullinertia="1.8946E-05 2.7277E-05 1.1981E-05 -1.3168E-06 -6.5528E-07 -2.0801E-07" />
+                        <joint name="right_gripper_joint" type="slide" axis="0 1 0" damping="2" armature=".02" range="0 0.04" />
+                        <geom mesh="right_left_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+                      </body>
+                      <body name="right_right" pos="0 0 0" quat="0.7071054825112363 0.0 -0.7071080798594735 0.0">
+                        <inertial mass="0.0626" pos="-0.048742 0.0096369 0.00044322" fullinertia="1.915E-05 2.7722E-05 1.2248E-05 1.343E-06 -6.8259E-07 2.0748E-07" />
+                        <joint name="right_gripper_joint1" type="slide" axis="0 -1 0" damping="2" armature=".02" range="0 0.04" />
+                        <geom mesh="right_right_visual_0" type="mesh" group="2" contype="0" conaffinity="0" rgba=".7 .75 .8 1" />
+                      </body>
+                      <body name="right_gripper_center" pos="0 0 0.02" quat="0.7071054825112363 0.0 -0.7071080798594735 0.0" />
+                      <body name="right_camera_link" pos="-0.105 0 -0.111" quat="0.8663246363166986 0.0 -0.4994813555186418 0.0">
+                        <camera name="right_wrist" pos=".06 0 0" xyaxes="0 -1 0 0 0 1" fovy="60" />
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <velocity name="base_x_drive" joint="base_x" kv="10000" />
+    <velocity name="base_y_drive" joint="base_y" kv="10000" />
+    <velocity name="base_yaw_drive" joint="base_yaw" kv="10000" />
+    <velocity name="lft_wheel_joint_drive" joint="lft_wheel_joint" kv="20" ctrlrange="-8 8" />
+    <velocity name="rgt_wheel_joint_drive" joint="rgt_wheel_joint" kv="20" ctrlrange="-8 8" />
+    <position name="slide_joint_servo" joint="slide_joint" kp="50000" kv="1000" ctrlrange="-0.04 0.87" forcerange="-2000 2000" />
+    <position name="head_yaw_joint_servo" joint="head_yaw_joint" kp="1000" kv="60" ctrlrange="-0.5 0.5" forcerange="-2000 2000" />
+    <position name="head_pitch_joint_servo" joint="head_pitch_joint" kp="1000" kv="60" ctrlrange="-0.16 1.18" forcerange="-2000 2000" />
+    <position name="left_joint1_servo" joint="left_joint1" kp="1000" kv="60" ctrlrange="-3.14 2.09" forcerange="-2000 2000" />
+    <position name="left_joint2_servo" joint="left_joint2" kp="1000" kv="60" ctrlrange="-2.96 0.17" forcerange="-2000 2000" />
+    <position name="left_joint3_servo" joint="left_joint3" kp="1000" kv="60" ctrlrange="-0.087 3.14" forcerange="-2000 2000" />
+    <position name="left_joint4_servo" joint="left_joint4" kp="1000" kv="60" ctrlrange="-2.96 2.96" forcerange="-2000 2000" />
+    <position name="left_joint5_servo" joint="left_joint5" kp="1000" kv="60" ctrlrange="-1.74 1.74" forcerange="-2000 2000" />
+    <position name="left_joint6_servo" joint="left_joint6" kp="1000" kv="60" ctrlrange="-3.14 3.14" forcerange="-2000 2000" />
+    <position name="left_gripper_joint_servo" joint="left_gripper_joint" kp="1000" kv="60" ctrlrange="0 0.04" forcerange="-2000 2000" />
+    <position name="right_joint1_servo" joint="right_joint1" kp="1000" kv="60" ctrlrange="-3.14 2.09" forcerange="-2000 2000" />
+    <position name="right_joint2_servo" joint="right_joint2" kp="1000" kv="60" ctrlrange="-2.96 0.17" forcerange="-2000 2000" />
+    <position name="right_joint3_servo" joint="right_joint3" kp="1000" kv="60" ctrlrange="-0.087 3.14" forcerange="-2000 2000" />
+    <position name="right_joint4_servo" joint="right_joint4" kp="1000" kv="60" ctrlrange="-2.96 2.96" forcerange="-2000 2000" />
+    <position name="right_joint5_servo" joint="right_joint5" kp="1000" kv="60" ctrlrange="-1.74 1.74" forcerange="-2000 2000" />
+    <position name="right_joint6_servo" joint="right_joint6" kp="1000" kv="60" ctrlrange="-3.14 3.14" forcerange="-2000 2000" />
+    <position name="right_gripper_joint_servo" joint="right_gripper_joint" kp="1000" kv="60" ctrlrange="0 0.04" forcerange="-2000 2000" />
+  </actuator>
+  <equality>
+    <joint joint1="left_gripper_joint1" joint2="left_gripper_joint" polycoef="0 1 0 0 0" />
+    <joint joint1="right_gripper_joint1" joint2="right_gripper_joint" polycoef="0 1 0 0 0" />
+  </equality>
+  <sensor>
+    <gyro name="imu_gyro" site="imu" />
+    <accelerometer name="imu_acc" site="imu" />
+  </sensor>
+</mujoco>

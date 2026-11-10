@@ -129,3 +129,10 @@ GitHub API 以 `loopkok` 身份重新生成提交对象，因此下表远端 SHA
 - 通过已有 SSH 认证普通推送至 `loopkok/MORLA:main`，返回 `8878a7a..b4c78bf HEAD -> main`；随后 ls-remote 核验远端实现提交一致。
 - 前端 47 项、后端 61 项通过，TypeScript/Vite 构建通过；浏览器测试数据主流程完成，3 段完整数据共 1336 帧图像且丢样 0。临时服务与原始 HDF5 不提交，未部署真机。
 - 详细范围、现场边界与发布结果见 [本轮日志](integrations/CHANGE_LOG_WEB_UI_REFERENCE_2026-11-09.md)。本结果记录以单独文档提交同步。
+
+## 2026-11-10 — MMK2 整机 MuJoCo 与 Quest3 Web 验收发布
+
+- 本轮起点为 `main` / `f2166a5`，fetch 后与 origin/main 一致；用户授权将本地 MMK2 移植及公共层改动提交并推送。
+- 范围包括整机 description/仿真包、公共场景工厂与速度/时间语义修正、Web 七组控制预设、测试宿主/核验脚本、CHANGELOG 和精简验收证据。
+- 联合回归 355 项通过、1 项可选依赖测试跳过；实际浏览器录制两段完整数据，最终仿真会话已停止，无资源清理错误。本机录制约 6–8 fps，未完成真实硬件或 ROS 主机验收。
+- 详细发布过程与实际提交/远端结果见 [MMK2 发布日志](integrations/MMK2_PUBLISH_LOG_2026-11-10.md)。原始 HDF5 与大体积运行日志留在本地，不纳入发布。

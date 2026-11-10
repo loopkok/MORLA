@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.8)
+project(mmk2_description)
+find_package(ament_cmake REQUIRED)
+install(DIRECTORY urdf meshes mjcf scripts sdk_reference_mjcf DESTINATION share/${PROJECT_NAME})
+install(FILES LICENSE LICENSE-SDK PROVENANCE.json README.md DESTINATION share/${PROJECT_NAME})
+ament_package()

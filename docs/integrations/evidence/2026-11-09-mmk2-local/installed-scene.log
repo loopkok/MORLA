@@ -1,0 +1,11 @@
+WARNING: ARB_clip_control unavailable while mjDEPTH_ZEROFAR requested, depth accuracy will be limited
+
+{
+  "installed_module": "/opt/anaconda3/lib/python3.13/site-packages/mmk2_mujoco_sim/scene.py",
+  "description_share": "/var/folders/p5/r7py6pbn6xndz56xl9n_c3vc0000gn/T/mmk2-assets-install-hpjzbqh9/share/mmk2_description",
+  "runtime_status": "READY_DISARMED",
+  "instances": 12,
+  "cameras": 4,
+  "state_dim": 19,
+  "action_dim": 19
+}

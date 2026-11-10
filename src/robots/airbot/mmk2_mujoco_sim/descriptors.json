@@ -1,0 +1,1271 @@
+[
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2.base",
+    "plugin_version": "1.0.0",
+    "kind": "actuator",
+    "joints": [
+      {
+        "name": "lft_wheel_joint",
+        "type": "continuous",
+        "unit": "rad",
+        "lower": -8,
+        "upper": 8,
+        "limits": [
+          -8,
+          8
+        ],
+        "mjcf_name": "lft_wheel_joint",
+        "limit_source": "URDF; base velocity deployment bound"
+      },
+      {
+        "name": "rgt_wheel_joint",
+        "type": "continuous",
+        "unit": "rad",
+        "lower": -8,
+        "upper": 8,
+        "limits": [
+          -8,
+          8
+        ],
+        "mjcf_name": "rgt_wheel_joint",
+        "limit_source": "URDF; base velocity deployment bound"
+      }
+    ],
+    "ports": {
+      "position": {
+        "direction": "output",
+        "semantic": "joint_state",
+        "dim": 2,
+        "unit": "rad",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "velocity": {
+        "direction": "output",
+        "semantic": "joint_velocity",
+        "dim": 2,
+        "unit": "rad/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "velocity_target": {
+        "direction": "input",
+        "semantic": "joint_targets",
+        "dim": 2,
+        "unit": "rad/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      }
+    },
+    "command_modes": [
+      "velocity"
+    ],
+    "backend_variants": {
+      "sim": {
+        "available": true,
+        "requires": [
+          "mujoco>=3.2,<4",
+          "mmk2_description"
+        ],
+        "validation_level": "urdf_planar_reference_contact_unverified"
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_scene",
+      "sharing": "session",
+      "stop_policy": "zero_velocity"
+    },
+    "operations": {
+      "prepare": {
+        "moves": false
+      },
+      "enable": {
+        "moves": false
+      },
+      "stop": {
+        "moves": false
+      }
+    },
+    "geometry": {
+      "frames": [
+        "base",
+        "flange",
+        "mount"
+      ],
+      "controller_capabilities": [],
+      "collision_verified": false,
+      "simulation": {
+        "provider": "morla.airbot.mmk2"
+      },
+      "model_id": "mmk2_urdf_planar_reference",
+      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "initial_positions": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "command_timeout_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1,
+          "title": "\u8f6e\u901f\u547d\u4ee4\u8d85\u65f6 / s"
+        }
+      }
+    },
+    "defaults": {
+      "initial_positions": [
+        0,
+        0
+      ],
+      "command_timeout_s": 0.25
+    },
+    "source": {
+      "package": "mmk2_mujoco_sim",
+      "version": "0.1.0"
+    },
+    "web": {
+      "label": "MMK2 base",
+      "fields": [
+        "initial_positions",
+        "command_timeout_s"
+      ],
+      "templates": [
+        {
+          "id": "mmk2-sim",
+          "title": "AIRBOT MMK2 \u6574\u673a\uff08MuJoCo \u4eff\u771f\uff09",
+          "package": "mmk2_mujoco_sim",
+          "path": "config/composable.sim.yaml"
+        },
+        {
+          "id": "mmk2-quest-sim",
+          "title": "AIRBOT MMK2 \u53cc\u81c2 / Quest\uff08\u4eff\u771f\uff09",
+          "package": "mmk2_mujoco_sim",
+          "path": "config/quest.sim.yaml"
+        },
+        {
+          "id": "mmk2-quest-whole-sim",
+          "title": "AIRBOT MMK2 \u6574\u673a\u4e03\u7ec4 / Quest\uff08\u4eff\u771f\uff09",
+          "package": "mmk2_mujoco_sim",
+          "path": "config/quest.whole.sim.yaml"
+        }
+      ],
+      "preferred_controllers": {
+        "axes_buttons": "morla.mmk2.differential_drive"
+      }
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2.lift",
+    "plugin_version": "1.0.0",
+    "kind": "actuator",
+    "joints": [
+      {
+        "name": "slide_joint",
+        "type": "prismatic",
+        "unit": "m",
+        "lower": -0.04,
+        "upper": 0.87,
+        "limits": [
+          -0.04,
+          0.87
+        ],
+        "mjcf_name": "slide_joint",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      }
+    ],
+    "ports": {
+      "position": {
+        "direction": "output",
+        "semantic": "joint_state",
+        "dim": 1,
+        "unit": "m",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "velocity": {
+        "direction": "output",
+        "semantic": "joint_velocity",
+        "dim": 1,
+        "unit": "m/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "position_target": {
+        "direction": "input",
+        "semantic": "joint_targets",
+        "dim": 1,
+        "unit": "m",
+        "codec": "numeric",
+        "dtype": "float64"
+      }
+    },
+    "command_modes": [
+      "position"
+    ],
+    "backend_variants": {
+      "sim": {
+        "available": true,
+        "requires": [
+          "mujoco>=3.2,<4",
+          "mmk2_description"
+        ],
+        "validation_level": "urdf_planar_reference_contact_unverified"
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_scene",
+      "sharing": "session",
+      "stop_policy": "hold"
+    },
+    "operations": {
+      "prepare": {
+        "moves": false
+      },
+      "enable": {
+        "moves": false
+      },
+      "stop": {
+        "moves": false
+      }
+    },
+    "geometry": {
+      "frames": [
+        "base",
+        "flange",
+        "mount"
+      ],
+      "controller_capabilities": [],
+      "collision_verified": false,
+      "simulation": {
+        "provider": "morla.airbot.mmk2"
+      },
+      "model_id": "mmk2_urdf_planar_reference",
+      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "initial_positions": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        }
+      }
+    },
+    "defaults": {
+      "initial_positions": [
+        0
+      ]
+    },
+    "source": {
+      "package": "mmk2_mujoco_sim",
+      "version": "0.1.0"
+    },
+    "web": {
+      "label": "MMK2 lift",
+      "fields": [
+        "initial_positions"
+      ]
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2.head",
+    "plugin_version": "1.0.0",
+    "kind": "actuator",
+    "joints": [
+      {
+        "name": "head_yaw_joint",
+        "type": "revolute",
+        "unit": "rad",
+        "lower": -0.5,
+        "upper": 0.5,
+        "limits": [
+          -0.5,
+          0.5
+        ],
+        "mjcf_name": "head_yaw_joint",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      },
+      {
+        "name": "head_pitch_joint",
+        "type": "revolute",
+        "unit": "rad",
+        "lower": -0.16,
+        "upper": 1.18,
+        "limits": [
+          -0.16,
+          1.18
+        ],
+        "mjcf_name": "head_pitch_joint",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      }
+    ],
+    "ports": {
+      "position": {
+        "direction": "output",
+        "semantic": "joint_state",
+        "dim": 2,
+        "unit": "rad",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "velocity": {
+        "direction": "output",
+        "semantic": "joint_velocity",
+        "dim": 2,
+        "unit": "rad/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "position_target": {
+        "direction": "input",
+        "semantic": "joint_targets",
+        "dim": 2,
+        "unit": "rad",
+        "codec": "numeric",
+        "dtype": "float64"
+      }
+    },
+    "command_modes": [
+      "position"
+    ],
+    "backend_variants": {
+      "sim": {
+        "available": true,
+        "requires": [
+          "mujoco>=3.2,<4",
+          "mmk2_description"
+        ],
+        "validation_level": "urdf_planar_reference_contact_unverified"
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_scene",
+      "sharing": "session",
+      "stop_policy": "hold"
+    },
+    "operations": {
+      "prepare": {
+        "moves": false
+      },
+      "enable": {
+        "moves": false
+      },
+      "stop": {
+        "moves": false
+      }
+    },
+    "geometry": {
+      "frames": [
+        "base",
+        "flange",
+        "mount"
+      ],
+      "controller_capabilities": [],
+      "collision_verified": false,
+      "simulation": {
+        "provider": "morla.airbot.mmk2"
+      },
+      "model_id": "mmk2_urdf_planar_reference",
+      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "initial_positions": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "defaults": {
+      "initial_positions": [
+        0,
+        0
+      ]
+    },
+    "source": {
+      "package": "mmk2_mujoco_sim",
+      "version": "0.1.0"
+    },
+    "web": {
+      "label": "MMK2 head",
+      "fields": [
+        "initial_positions"
+      ]
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2.left_arm",
+    "plugin_version": "1.0.0",
+    "kind": "actuator",
+    "joints": [
+      {
+        "name": "left_joint1",
+        "type": "revolute",
+        "unit": "rad",
+        "lower": -3.14,
+        "upper": 2.09,
+        "limits": [
+          -3.14,
+          2.09
+        ],
+        "mjcf_name": "left_joint1",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      },
+      {
+        "name": "left_joint2",
+        "type": "revolute",
+        "unit": "rad",
+        "lower": -2.96,
+        "upper": 0.17,
+        "limits": [
+          -2.96,
+          0.17
+        ],
+        "mjcf_name": "left_joint2",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      },
+      {
+        "name": "left_joint3",
+        "type": "revolute",
+        "unit": "rad",
+        "lower": -0.087,
+        "upper": 3.14,
+        "limits": [
+          -0.087,
+          3.14
+        ],
+        "mjcf_name": "left_joint3",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      },
+      {
+        "name": "left_joint4",
+        "type": "revolute",
+        "unit": "rad",
+        "lower": -2.96,
+        "upper": 2.96,
+        "limits": [
+          -2.96,
+          2.96
+        ],
+        "mjcf_name": "left_joint4",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      },
+      {
+        "name": "left_joint5",
+        "type": "revolute",
+        "unit": "rad",
+        "lower": -1.74,
+        "upper": 1.74,
+        "limits": [
+          -1.74,
+          1.74
+        ],
+        "mjcf_name": "left_joint5",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      },
+      {
+        "name": "left_joint6",
+        "type": "revolute",
+        "unit": "rad",
+        "lower": -3.14,
+        "upper": 3.14,
+        "limits": [
+          -3.14,
+          3.14
+        ],
+        "mjcf_name": "left_joint6",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      }
+    ],
+    "ports": {
+      "position": {
+        "direction": "output",
+        "semantic": "joint_state",
+        "dim": 6,
+        "unit": "rad",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "velocity": {
+        "direction": "output",
+        "semantic": "joint_velocity",
+        "dim": 6,
+        "unit": "rad/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "position_target": {
+        "direction": "input",
+        "semantic": "joint_targets",
+        "dim": 6,
+        "unit": "rad",
+        "codec": "numeric",
+        "dtype": "float64"
+      }
+    },
+    "command_modes": [
+      "position"
+    ],
+    "backend_variants": {
+      "sim": {
+        "available": true,
+        "requires": [
+          "mujoco>=3.2,<4",
+          "mmk2_description"
+        ],
+        "validation_level": "urdf_planar_reference_contact_unverified"
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_scene",
+      "sharing": "session",
+      "stop_policy": "hold"
+    },
+    "operations": {
+      "prepare": {
+        "moves": false
+      },
+      "enable": {
+        "moves": false
+      },
+      "stop": {
+        "moves": false
+      }
+    },
+    "geometry": {
+      "frames": [
+        "base",
+        "flange",
+        "mount"
+      ],
+      "controller_capabilities": [
+        "cartesian_ik"
+      ],
+      "collision_verified": false,
+      "simulation": {
+        "provider": "morla.airbot.mmk2"
+      },
+      "solver_base_frame": "left_base_link",
+      "solver_tip_frame": "left_gripper_center",
+      "model_id": "mmk2_urdf_planar_reference",
+      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "initial_positions": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 6,
+          "maxItems": 6
+        }
+      }
+    },
+    "defaults": {
+      "initial_positions": [
+        0,
+        -0.6,
+        1.2,
+        0,
+        0.3,
+        0
+      ]
+    },
+    "source": {
+      "package": "mmk2_mujoco_sim",
+      "version": "0.1.0"
+    },
+    "web": {
+      "label": "MMK2 left_arm",
+      "fields": [
+        "initial_positions"
+      ],
+      "preferred_controllers": {
+        "pose6d": "morla.cartesian_delta_ik"
+      }
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2.left_gripper",
+    "plugin_version": "1.0.0",
+    "kind": "actuator",
+    "joints": [
+      {
+        "name": "left_gripper_joint",
+        "type": "prismatic",
+        "unit": "m",
+        "lower": 0.0,
+        "upper": 0.04,
+        "limits": [
+          0.0,
+          0.04
+        ],
+        "mjcf_name": "left_gripper_joint",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      }
+    ],
+    "ports": {
+      "position": {
+        "direction": "output",
+        "semantic": "joint_state",
+        "dim": 1,
+        "unit": "m",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "velocity": {
+        "direction": "output",
+        "semantic": "joint_velocity",
+        "dim": 1,
+        "unit": "m/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "position_target": {
+        "direction": "input",
+        "semantic": "joint_targets",
+        "dim": 1,
+        "unit": "m",
+        "codec": "numeric",
+        "dtype": "float64"
+      }
+    },
+    "command_modes": [
+      "position"
+    ],
+    "backend_variants": {
+      "sim": {
+        "available": true,
+        "requires": [
+          "mujoco>=3.2,<4",
+          "mmk2_description"
+        ],
+        "validation_level": "urdf_planar_reference_contact_unverified"
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_scene",
+      "sharing": "session",
+      "stop_policy": "hold"
+    },
+    "operations": {
+      "prepare": {
+        "moves": false
+      },
+      "enable": {
+        "moves": false
+      },
+      "stop": {
+        "moves": false
+      }
+    },
+    "geometry": {
+      "frames": [
+        "base",
+        "flange",
+        "mount"
+      ],
+      "controller_capabilities": [],
+      "collision_verified": false,
+      "simulation": {
+        "provider": "morla.airbot.mmk2"
+      },
+      "model_id": "mmk2_urdf_planar_reference",
+      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "initial_positions": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        }
+      }
+    },
+    "defaults": {
+      "initial_positions": [
+        0
+      ]
+    },
+    "source": {
+      "package": "mmk2_mujoco_sim",
+      "version": "0.1.0"
+    },
+    "web": {
+      "label": "MMK2 left_gripper",
+      "fields": [
+        "initial_positions"
+      ]
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2.right_arm",
+    "plugin_version": "1.0.0",
+    "kind": "actuator",
+    "joints": [
+      {
+        "name": "right_joint1",
+        "type": "revolute",
+        "unit": "rad",
+        "lower": -3.14,
+        "upper": 2.09,
+        "limits": [
+          -3.14,
+          2.09
+        ],
+        "mjcf_name": "right_joint1",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      },
+      {
+        "name": "right_joint2",
+        "type": "revolute",
+        "unit": "rad",
+        "lower": -2.96,
+        "upper": 0.17,
+        "limits": [
+          -2.96,
+          0.17
+        ],
+        "mjcf_name": "right_joint2",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      },
+      {
+        "name": "right_joint3",
+        "type": "revolute",
+        "unit": "rad",
+        "lower": -0.087,
+        "upper": 3.14,
+        "limits": [
+          -0.087,
+          3.14
+        ],
+        "mjcf_name": "right_joint3",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      },
+      {
+        "name": "right_joint4",
+        "type": "revolute",
+        "unit": "rad",
+        "lower": -2.96,
+        "upper": 2.96,
+        "limits": [
+          -2.96,
+          2.96
+        ],
+        "mjcf_name": "right_joint4",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      },
+      {
+        "name": "right_joint5",
+        "type": "revolute",
+        "unit": "rad",
+        "lower": -1.74,
+        "upper": 1.74,
+        "limits": [
+          -1.74,
+          1.74
+        ],
+        "mjcf_name": "right_joint5",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      },
+      {
+        "name": "right_joint6",
+        "type": "revolute",
+        "unit": "rad",
+        "lower": -3.14,
+        "upper": 3.14,
+        "limits": [
+          -3.14,
+          3.14
+        ],
+        "mjcf_name": "right_joint6",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      }
+    ],
+    "ports": {
+      "position": {
+        "direction": "output",
+        "semantic": "joint_state",
+        "dim": 6,
+        "unit": "rad",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "velocity": {
+        "direction": "output",
+        "semantic": "joint_velocity",
+        "dim": 6,
+        "unit": "rad/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "position_target": {
+        "direction": "input",
+        "semantic": "joint_targets",
+        "dim": 6,
+        "unit": "rad",
+        "codec": "numeric",
+        "dtype": "float64"
+      }
+    },
+    "command_modes": [
+      "position"
+    ],
+    "backend_variants": {
+      "sim": {
+        "available": true,
+        "requires": [
+          "mujoco>=3.2,<4",
+          "mmk2_description"
+        ],
+        "validation_level": "urdf_planar_reference_contact_unverified"
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_scene",
+      "sharing": "session",
+      "stop_policy": "hold"
+    },
+    "operations": {
+      "prepare": {
+        "moves": false
+      },
+      "enable": {
+        "moves": false
+      },
+      "stop": {
+        "moves": false
+      }
+    },
+    "geometry": {
+      "frames": [
+        "base",
+        "flange",
+        "mount"
+      ],
+      "controller_capabilities": [
+        "cartesian_ik"
+      ],
+      "collision_verified": false,
+      "simulation": {
+        "provider": "morla.airbot.mmk2"
+      },
+      "solver_base_frame": "right_base_link",
+      "solver_tip_frame": "right_gripper_center",
+      "model_id": "mmk2_urdf_planar_reference",
+      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "initial_positions": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 6,
+          "maxItems": 6
+        }
+      }
+    },
+    "defaults": {
+      "initial_positions": [
+        0,
+        -0.6,
+        1.2,
+        0,
+        0.3,
+        0
+      ]
+    },
+    "source": {
+      "package": "mmk2_mujoco_sim",
+      "version": "0.1.0"
+    },
+    "web": {
+      "label": "MMK2 right_arm",
+      "fields": [
+        "initial_positions"
+      ],
+      "preferred_controllers": {
+        "pose6d": "morla.cartesian_delta_ik"
+      }
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2.right_gripper",
+    "plugin_version": "1.0.0",
+    "kind": "actuator",
+    "joints": [
+      {
+        "name": "right_gripper_joint",
+        "type": "prismatic",
+        "unit": "m",
+        "lower": 0.0,
+        "upper": 0.04,
+        "limits": [
+          0.0,
+          0.04
+        ],
+        "mjcf_name": "right_gripper_joint",
+        "limit_source": "supplied airbot_mmk2 URDF"
+      }
+    ],
+    "ports": {
+      "position": {
+        "direction": "output",
+        "semantic": "joint_state",
+        "dim": 1,
+        "unit": "m",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "velocity": {
+        "direction": "output",
+        "semantic": "joint_velocity",
+        "dim": 1,
+        "unit": "m/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "position_target": {
+        "direction": "input",
+        "semantic": "joint_targets",
+        "dim": 1,
+        "unit": "m",
+        "codec": "numeric",
+        "dtype": "float64"
+      }
+    },
+    "command_modes": [
+      "position"
+    ],
+    "backend_variants": {
+      "sim": {
+        "available": true,
+        "requires": [
+          "mujoco>=3.2,<4",
+          "mmk2_description"
+        ],
+        "validation_level": "urdf_planar_reference_contact_unverified"
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_scene",
+      "sharing": "session",
+      "stop_policy": "hold"
+    },
+    "operations": {
+      "prepare": {
+        "moves": false
+      },
+      "enable": {
+        "moves": false
+      },
+      "stop": {
+        "moves": false
+      }
+    },
+    "geometry": {
+      "frames": [
+        "base",
+        "flange",
+        "mount"
+      ],
+      "controller_capabilities": [],
+      "collision_verified": false,
+      "simulation": {
+        "provider": "morla.airbot.mmk2"
+      },
+      "model_id": "mmk2_urdf_planar_reference",
+      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "initial_positions": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        }
+      }
+    },
+    "defaults": {
+      "initial_positions": [
+        0
+      ]
+    },
+    "source": {
+      "package": "mmk2_mujoco_sim",
+      "version": "0.1.0"
+    },
+    "web": {
+      "label": "MMK2 right_gripper",
+      "fields": [
+        "initial_positions"
+      ]
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2.camera",
+    "plugin_version": "1.0.0",
+    "kind": "sensor",
+    "ports": {
+      "rgb": {
+        "direction": "output",
+        "semantic": "image",
+        "dim": 3,
+        "unit": "rgb",
+        "codec": "image",
+        "dtype": "uint8"
+      },
+      "depth": {
+        "direction": "output",
+        "semantic": "image",
+        "dim": 1,
+        "unit": "m",
+        "codec": "image",
+        "dtype": "float32"
+      }
+    },
+    "joints": [],
+    "backend_variants": {
+      "sim": {
+        "available": true
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_scene",
+      "sharing": "session"
+    },
+    "geometry": {
+      "frames": [
+        "optical"
+      ],
+      "simulation": {
+        "provider": "morla.airbot.mmk2"
+      },
+      "model_id": "mmk2_urdf_planar_reference",
+      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "camera": {
+          "type": "string",
+          "enum": [
+            "scene",
+            "head",
+            "left_wrist",
+            "right_wrist"
+          ]
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 1280
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 960
+        },
+        "fps": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 60
+        }
+      }
+    },
+    "defaults": {
+      "camera": "head",
+      "width": 320,
+      "height": 240,
+      "fps": 15
+    },
+    "source": {
+      "package": "mmk2_mujoco_sim",
+      "version": "0.1.0"
+    },
+    "web": {
+      "label": "MMK2 camera"
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.airbot.mmk2.sensors",
+    "plugin_version": "1.0.0",
+    "kind": "sensor",
+    "ports": {
+      "odometry": {
+        "direction": "output",
+        "semantic": "pose6d",
+        "dim": 7,
+        "unit": "m_rad",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "gyro": {
+        "direction": "output",
+        "semantic": "numeric",
+        "dim": 3,
+        "unit": "rad/s",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "acceleration": {
+        "direction": "output",
+        "semantic": "numeric",
+        "dim": 3,
+        "unit": "m/s^2",
+        "codec": "numeric",
+        "dtype": "float64"
+      },
+      "lidar": {
+        "direction": "output",
+        "semantic": "numeric",
+        "dim": 180,
+        "unit": "m",
+        "codec": "numeric",
+        "dtype": "float64"
+      }
+    },
+    "joints": [],
+    "backend_variants": {
+      "sim": {
+        "available": true
+      }
+    },
+    "resources": {
+      "session_family": "mmk2_scene",
+      "sharing": "session"
+    },
+    "geometry": {
+      "frames": [
+        "base"
+      ],
+      "simulation": {
+        "provider": "morla.airbot.mmk2"
+      },
+      "model_id": "mmk2_urdf_planar_reference",
+      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "defaults": {},
+    "source": {
+      "package": "mmk2_mujoco_sim",
+      "version": "0.1.0"
+    },
+    "web": {
+      "label": "MMK2 sensors"
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.mmk2.differential_drive",
+    "plugin_version": "1.0.0",
+    "kind": "controller",
+    "ports": {},
+    "controller_types": {
+      "inputs": [
+        "axes_buttons"
+      ],
+      "outputs": [
+        "joint_targets"
+      ],
+      "target_plugins": [
+        "morla.airbot.mmk2.base"
+      ],
+      "target_dim": 2
+    },
+    "backend_variants": {
+      "sim": {
+        "available": true
+      }
+    },
+    "defaults": {
+      "linear_speed": 0.08,
+      "angular_speed": 0.3
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "linear_speed": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.3,
+          "title": "\u5e95\u76d8\u524d\u8fdb\u901f\u5ea6 / m/s"
+        },
+        "angular_speed": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "\u5e95\u76d8\u8f6c\u5411\u901f\u5ea6 / rad/s"
+        }
+      }
+    },
+    "web": {
+      "label": "MMK2 \u5e95\u76d8\u5dee\u901f\u8f6e\u901f"
+    },
+    "source": {
+      "package": "mmk2_mujoco_sim",
+      "version": "0.1.0"
+    }
+  }
+]

@@ -33,6 +33,11 @@ def _endpoint(reference,instances,direction=None):
     if direction and port['direction']!=direction: raise CompilationError('port direction mismatch',reference)
     return instance,port_id,port
 
+def _action_semantics(port):
+    if port.get('unit') in {'rad/s','m/s','ratio/s'}:
+        return 'velocity'
+    return 'closure_ratio' if port.get('unit')=='ratio' else 'absolute_position'
+
 def compile_system(assembly, deployment=None, registry=None):
     """Return a self-contained JSON snapshot; caller input and catalog remain untouched.
 
@@ -236,11 +241,11 @@ def _compile_capture(assembly,instances):
                 for name in locals_:
                     matches=[idx for idx,f in enumerate(features['state']) if f['instance_id']==instance['instance_id'] and f['local_name']==name and f['port_id']=='position']
                     if len(matches)==1: state_indexes.append(matches[0])
-                source_indices=tuple(state_indexes) if len(state_indexes)==dim else ()
-                semantics='closure_ratio' if port['unit']=='ratio' else 'absolute_position'
+                semantics=_action_semantics(port)
+                source_indices=tuple(state_indexes) if len(state_indexes)==dim and semantics!='velocity' else ()
                 blocks[side].append(ActionBlockV3(reference,dim,tuple(names),port['unit'],tuple(range(offset,offset+dim)),semantics,True,stream_key,instance['instance_id'],(),source_indices,tuple(range(dim))))
             for name,local in zip(names,locals_):
-                features[side].append({'feature_id':name,'name':name,'instance_id':instance['instance_id'],'port_id':pid,'local_name':local,'unit':port['unit'],'semantic':('closure_ratio' if port['unit']=='ratio' else 'absolute_position') if side=='action' else port['semantic']})
+                features[side].append({'feature_id':name,'name':name,'instance_id':instance['instance_id'],'port_id':pid,'local_name':local,'unit':port['unit'],'semantic':_action_semantics(port) if side=='action' else port['semantic']})
             offset+=dim
     images=capture.get('images',{})
     if not isinstance(images,dict): raise CompilationError('capture images must map dataset keys to instance ports')

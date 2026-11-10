@@ -1,0 +1,127 @@
+{
+  "enabled": true,
+  "state": "closed",
+  "directory": "/private/tmp/morla-mmk2-web-20261109/logs/20261110T045412Z_mmk2_quest_whole_sim_db3a181995864b5e8c7dab82fb1dfc61",
+  "files": [
+    "trace-00000.jsonl",
+    "trace-00001.jsonl",
+    "trace-00002.jsonl",
+    "trace-00003.jsonl",
+    "trace-00004.jsonl",
+    "trace-00005.jsonl"
+  ],
+  "written": {
+    "run_started": 1,
+    "event": 1576,
+    "feedback": 59603,
+    "operator_hold": 2,
+    "input": 3594,
+    "input_gate": 1599,
+    "operator_request": 1,
+    "handoff": 9,
+    "operator_result": 1,
+    "control": 10920,
+    "command_request": 1560,
+    "command_receipt": 1560,
+    "control_gate": 2793,
+    "run_ended": 1
+  },
+  "dropped": {},
+  "queued": 0,
+  "queued_bytes_estimate": 0,
+  "queue_byte_limit": 16777216,
+  "bytes_written": 89065015,
+  "error": null,
+  "feedback_hz": 50,
+  "outcome": {
+    "status": "STOPPED",
+    "operation": {
+      "request_id": "8425e88d-7224-4e4f-82d1-1942f89dc9fb",
+      "action": "stop",
+      "status": "SUCCEEDED",
+      "result": {
+        "errors": []
+      }
+    },
+    "pending_operation": null,
+    "operations": [
+      {
+        "request_id": "68ef23c7-b4e4-48fc-8f11-40b9b83a5bec-prepare",
+        "action": "prepare",
+        "signature": [
+          "prepare",
+          [
+            "base",
+            "head",
+            "left_arm",
+            "left_gripper",
+            "lift",
+            "right_arm",
+            "right_gripper"
+          ]
+        ],
+        "status": "SUCCEEDED",
+        "result": {
+          "completed": [
+            "base",
+            "head",
+            "left_arm",
+            "left_gripper",
+            "lift",
+            "right_arm",
+            "right_gripper"
+          ],
+          "pending_confirmation": []
+        }
+      },
+      {
+        "request_id": "1f480544-a11e-4b3c-b205-30645dbb6fc5-handoff-enable",
+        "action": "activate",
+        "signature": [
+          "activate",
+          [
+            "base",
+            "head",
+            "left_arm",
+            "left_gripper",
+            "lift",
+            "right_arm",
+            "right_gripper"
+          ]
+        ],
+        "status": "SUCCEEDED",
+        "result": {
+          "completed": [
+            "base",
+            "head",
+            "left_arm",
+            "left_gripper",
+            "lift",
+            "right_arm",
+            "right_gripper"
+          ],
+          "pending_confirmation": []
+        }
+      },
+      {
+        "request_id": "b2f1b9a2-cb09-4aef-a5f2-2b5d6d4a9593",
+        "action": "reset",
+        "status": "SUCCEEDED",
+        "result": {
+          "reset": true,
+          "errors": []
+        }
+      },
+      {
+        "request_id": "8425e88d-7224-4e4f-82d1-1942f89dc9fb",
+        "action": "stop",
+        "status": "SUCCEEDED",
+        "result": {
+          "errors": []
+        }
+      }
+    ]
+  },
+  "ended_at_utc": "2026-11-10T04:56:54.763907+00:00",
+  "clean_shutdown": true
+}

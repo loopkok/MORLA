@@ -95,3 +95,14 @@ Nero/XHand 的旧组合模型需要抽取/排除子树，使用 `exclude_body_co
 5. fake/sim/ROS/真实硬件分别记录结果；本次不做真机测试。
 
 新增回归 `test_plugin_discovery.py` 使用未出现在品牌表里的 `example.new_arm`，验证目录、动态模板、编译、共享模型构建、错误绑定拒绝、重复模板和路径越界。前端另测 `example.arm/example.follow` 的显示、参数、兼容性和默认控制器。历史机器人使用原回归；本轮执行记录见 [验证日志](PLUGIN_PORTING_VALIDATION_2026-11-06.md)。
+
+## 整机耦合仿真扩展（2026-11-09）
+
+对于移动底盘、混合位置/速度控制、mimic/传动及非图像传感器，固定子树 builder 并不足够。
+设备 descriptor 可声明 `geometry.simulation.provider`，例如 `morla.airbot.mmk2`；
+设备包在 `morla.simulation_scenes` 注册同名可信工厂 `factory(runtime) -> {instance_id: adapter}`。
+公共 runtime 要求整个场景只能选择一个 provider，并要求工厂覆盖全部 sim 实例；未安装、重复入口、provider 冲突、缺少实例均拒绝。
+该字段来自静态 descriptor，不接受 Assembly 参数指定 Python 导入路径。工厂自行核对混合后端、组件范围与模型映射，持有一个共享场景，仍通过 RuntimeSession 网关接受命令。
+普通固定机器人未声明 provider 时继续走原公共 builder，不改变 FR3/CR5 的组织方式。
+
+MMK2 的完整实例见 [MMK2 仿真移植](MMK2_SIMULATION.md)。速度动作在公共 SchemaV3 中标为 velocity，不能当作 absolute_position，也不将轮角索引冒充速度目标的 next-state 映射。当前公共策略执行器尚不支持速度动作，整机默认模板不能直接用于现有位置策略/回放。

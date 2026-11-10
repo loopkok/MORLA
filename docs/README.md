@@ -1,3 +1,5 @@
+[MMK2 整机仿真移植](integrations/MMK2_SIMULATION.md)：整机模型、公共场景工厂、双臂 IK、RGB-D/IMU/激光与录制验证。
+
 当前组件与绑定统一重构见 [实施计划](architecture_refactor/UNIFIED_COMPOSITION_PLAN.md) 和 [组合示例](../examples/unified_composition/README.md)。
 
 FR3 当前 SDK 已在本地切换为 V2.1.5 / Robot V3.8.5（20003 + 20004），详见 [SDK 迁移说明](integrations/FR3_SDK_2_1_5_MIGRATION.md)。本轮尚未同步主机。

@@ -1,0 +1,117 @@
+{
+  "enabled": true,
+  "state": "closed",
+  "directory": "/private/tmp/morla-mmk2-web-20261109/logs/20261109T155135Z_mmk2_quest_sim_889014771dc445b981206d5f8bc37130",
+  "files": [
+    "trace-00000.jsonl",
+    "trace-00001.jsonl",
+    "trace-00002.jsonl",
+    "trace-00003.jsonl",
+    "trace-00004.jsonl",
+    "trace-00005.jsonl"
+  ],
+  "written": {
+    "run_started": 1,
+    "event": 2475,
+    "feedback": 54279,
+    "operator_hold": 2,
+    "input": 3227,
+    "input_gate": 732,
+    "operator_request": 1,
+    "handoff": 9,
+    "operator_result": 1,
+    "control": 17241,
+    "command_request": 2463,
+    "command_receipt": 2463,
+    "run_ended": 1
+  },
+  "dropped": {},
+  "queued": 0,
+  "queued_bytes_estimate": 0,
+  "queue_byte_limit": 16777216,
+  "bytes_written": 93912280,
+  "error": null,
+  "feedback_hz": 50,
+  "outcome": {
+    "status": "STOPPED",
+    "operation": {
+      "request_id": "6dca6c48-ec76-4f61-afb1-0a8946918907",
+      "action": "stop",
+      "status": "SUCCEEDED",
+      "result": {
+        "errors": []
+      }
+    },
+    "pending_operation": null,
+    "operations": [
+      {
+        "request_id": "a5f7b2f7-fc21-4c2e-babf-0a2eb646e591-prepare",
+        "action": "prepare",
+        "signature": [
+          "prepare",
+          [
+            "base",
+            "head",
+            "left_arm",
+            "left_gripper",
+            "lift",
+            "right_arm",
+            "right_gripper"
+          ]
+        ],
+        "status": "SUCCEEDED",
+        "result": {
+          "completed": [
+            "base",
+            "head",
+            "left_arm",
+            "left_gripper",
+            "lift",
+            "right_arm",
+            "right_gripper"
+          ],
+          "pending_confirmation": []
+        }
+      },
+      {
+        "request_id": "e9a178ca-eee3-45c3-b4c5-2a788080be04-handoff-enable",
+        "action": "activate",
+        "signature": [
+          "activate",
+          [
+            "base",
+            "head",
+            "left_arm",
+            "left_gripper",
+            "lift",
+            "right_arm",
+            "right_gripper"
+          ]
+        ],
+        "status": "SUCCEEDED",
+        "result": {
+          "completed": [
+            "base",
+            "head",
+            "left_arm",
+            "left_gripper",
+            "lift",
+            "right_arm",
+            "right_gripper"
+          ],
+          "pending_confirmation": []
+        }
+      },
+      {
+        "request_id": "6dca6c48-ec76-4f61-afb1-0a8946918907",
+        "action": "stop",
+        "status": "SUCCEEDED",
+        "result": {
+          "errors": []
+        }
+      }
+    ]
+  },
+  "ended_at_utc": "2026-11-09T15:53:53.118357+00:00",
+  "clean_shutdown": true
+}

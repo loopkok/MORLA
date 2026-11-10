@@ -1,0 +1,16 @@
+Processing ./src/robots/airbot/mmk2_mujoco_sim
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Building wheels for collected packages: mmk2_mujoco_sim
+  DEPRECATION: Building 'mmk2_mujoco_sim' using the legacy setup.py bdist_wheel mechanism, which will be removed in a future version. pip 25.3 will enforce this behaviour change. A possible replacement is to use the standardized build interface by setting the `--use-pep517` option, (possibly combined with `--no-build-isolation`), or adding a `pyproject.toml` file to the source tree of 'mmk2_mujoco_sim'. Discussion can be found at https://github.com/pypa/pip/issues/6334
+  Building wheel for mmk2_mujoco_sim (setup.py): started
+  Building wheel for mmk2_mujoco_sim (setup.py): finished with status 'done'
+  Created wheel for mmk2_mujoco_sim: filename=mmk2_mujoco_sim-0.1.0-py3-none-any.whl size=16916 sha256=6fc0203a64ba7f45cbf69a3672ded88d1a0050652bd97a7325d2c81b443c08fa
+  Stored in directory: /private/var/folders/p5/r7py6pbn6xndz56xl9n_c3vc0000gn/T/pip-ephem-wheel-cache-q15vp45x/wheels/d5/f6/d1/246b2464112808866cc90057d89b984d6f7c3cc20c428afe13
+Successfully built mmk2_mujoco_sim
+Installing collected packages: mmk2_mujoco_sim
+  Attempting uninstall: mmk2_mujoco_sim
+    Found existing installation: mmk2_mujoco_sim 0.1.0
+    Uninstalling mmk2_mujoco_sim-0.1.0:
+      Successfully uninstalled mmk2_mujoco_sim-0.1.0
+Successfully installed mmk2_mujoco_sim-0.1.0

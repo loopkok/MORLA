@@ -565,7 +565,7 @@ class ComposableService:
             if adapter is None: continue
             sample=adapter.read(self.clock()) if hasattr(adapter,"read") else adapter.health(self.clock())
             port=sample.get("ports",{}).get(port_id,{})
-            source_ns=port.get('received_ns',sample.get('sample_ns'))
+            source_ns=port.get('received_ns',port.get('sample_ns',sample.get('sample_ns')))
             if type(source_ns) is not int or not 0<=self.clock()-source_ns<=self.session.max_age_ns: continue
             if source_ns<=self.capture_source_ns.get(key,-1): continue
             timestamp=(self.wall_offset_ns+source_ns)/1e9

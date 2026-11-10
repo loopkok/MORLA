@@ -1,0 +1,243 @@
+{
+  "assembly_version": 1,
+  "assembly_id": "mmk2_quest_sim",
+  "revision": 1,
+  "instances": {
+    "base": {
+      "plugin": "morla.airbot.mmk2.base",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2"
+    },
+    "lift": {
+      "plugin": "morla.airbot.mmk2.lift",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2"
+    },
+    "head": {
+      "plugin": "morla.airbot.mmk2.head",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2"
+    },
+    "left_arm": {
+      "plugin": "morla.airbot.mmk2.left_arm",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2"
+    },
+    "left_gripper": {
+      "plugin": "morla.airbot.mmk2.left_gripper",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2"
+    },
+    "right_arm": {
+      "plugin": "morla.airbot.mmk2.right_arm",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2"
+    },
+    "right_gripper": {
+      "plugin": "morla.airbot.mmk2.right_gripper",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2"
+    },
+    "sensors": {
+      "plugin": "morla.airbot.mmk2.sensors",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2"
+    },
+    "scene_camera": {
+      "plugin": "morla.airbot.mmk2.camera",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2",
+      "parameters": {
+        "camera": "scene"
+      }
+    },
+    "head_camera": {
+      "plugin": "morla.airbot.mmk2.camera",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2",
+      "parameters": {
+        "camera": "head"
+      }
+    },
+    "left_wrist_camera": {
+      "plugin": "morla.airbot.mmk2.camera",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2",
+      "parameters": {
+        "camera": "left_wrist"
+      }
+    },
+    "right_wrist_camera": {
+      "plugin": "morla.airbot.mmk2.camera",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2",
+      "parameters": {
+        "camera": "right_wrist"
+      }
+    },
+    "quest": {
+      "plugin": "morla.input.quest",
+      "version": "1.0.0",
+      "backend": "fake",
+      "parameters": {
+        "side": "both"
+      }
+    }
+  },
+  "bindings": [
+    {
+      "id": "left_vr",
+      "source": "quest.left_pose",
+      "target": "left_arm.position_target",
+      "controller": "morla.cartesian_delta_ik",
+      "deadman": "quest.left_hold",
+      "max_age_ms": 250,
+      "input_basis_id": "unity_left_handed_v1",
+      "parameters": {
+        "position_scale": 0.25,
+        "input_rotation": [
+          [
+            0.70710418383354,
+            -5.194696474495747e-06,
+            0.7071093785109335
+          ],
+          [
+            -2.2393737829194882e-09,
+            -0.9999999999730317,
+            -7.344143864630878e-06
+          ],
+          [
+            -0.7071093785300147,
+            -5.19149137121583e-06,
+            0.7071041838144823
+          ]
+        ],
+        "input_position_rotation": [
+          [
+            0.70710418383354,
+            -5.194696474495747e-06,
+            0.7071093785109335
+          ],
+          [
+            -2.2393737829194882e-09,
+            -0.9999999999730317,
+            -7.344143864630878e-06
+          ],
+          [
+            -0.7071093785300147,
+            -5.19149137121583e-06,
+            0.7071041838144823
+          ]
+        ],
+        "max_joint_velocity": 0.2,
+        "max_joint_step": 0.02,
+        "calibration_verified": false
+      }
+    },
+    {
+      "id": "right_vr",
+      "source": "quest.right_pose",
+      "target": "right_arm.position_target",
+      "controller": "morla.cartesian_delta_ik",
+      "deadman": "quest.right_hold",
+      "max_age_ms": 250,
+      "input_basis_id": "unity_left_handed_v1",
+      "parameters": {
+        "position_scale": 0.25,
+        "input_rotation": [
+          [
+            -0.7071093785300145,
+            -5.194696474551256e-06,
+            0.7071041838144586
+          ],
+          [
+            -2.2933269318153047e-09,
+            0.9999999999730317,
+            7.344143847939706e-06
+          ],
+          [
+            0.7071041838335399,
+            -5.191491371201954e-06,
+            0.707109378510957
+          ]
+        ],
+        "input_position_rotation": [
+          [
+            -0.7071093785300145,
+            -5.194696474551256e-06,
+            0.7071041838144586
+          ],
+          [
+            -2.2933269318153047e-09,
+            0.9999999999730317,
+            7.344143847939706e-06
+          ],
+          [
+            0.7071041838335399,
+            -5.191491371201954e-06,
+            0.707109378510957
+          ]
+        ],
+        "max_joint_velocity": 0.2,
+        "max_joint_step": 0.02,
+        "calibration_verified": false
+      }
+    }
+  ],
+  "capture": {
+    "state": [
+      "base.position",
+      "lift.position",
+      "head.position",
+      "left_arm.position",
+      "left_gripper.position",
+      "right_arm.position",
+      "right_gripper.position"
+    ],
+    "action": [
+      "base.velocity_target",
+      "lift.position_target",
+      "head.position_target",
+      "left_arm.position_target",
+      "left_gripper.position_target",
+      "right_arm.position_target",
+      "right_gripper.position_target"
+    ],
+    "images": {
+      "head": "head_camera.rgb",
+      "left_wrist": "left_wrist_camera.rgb",
+      "right_wrist": "right_wrist_camera.rgb"
+    },
+    "auxiliary": [
+      "sensors.odometry",
+      "sensors.gyro",
+      "sensors.acceleration",
+      "sensors.lidar",
+      "quest.left_pose",
+      "quest.left_hold",
+      "quest.right_pose",
+      "quest.right_hold"
+    ],
+    "dataset_fps": 15,
+    "action_source": "command",
+    "hold_frames": 0
+  },
+  "metadata": {
+    "simulation": {
+      "mode": "kinematic",
+      "display": "web"
+    }
+  }
+}

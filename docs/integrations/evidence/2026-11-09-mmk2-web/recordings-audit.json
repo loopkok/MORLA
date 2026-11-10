@@ -1,0 +1,199 @@
+{
+  "episodes": [
+    {
+      "episode": "/tmp/morla-mmk2-web-20261109/recordings/889014771dc445b981206d5f8bc37130/episode000000",
+      "task": "MMK2_Quest3_Web_kinematic_fullbody",
+      "status": "complete",
+      "duration_s": 26.44474196434021,
+      "state_dim": 19,
+      "action_dim": 19,
+      "groups": {
+        "base": {
+          "state_samples": 342,
+          "action_samples": 579,
+          "max_joint_peak_to_peak": 0.7350908517837524
+        },
+        "head": {
+          "state_samples": 342,
+          "action_samples": 579,
+          "max_joint_peak_to_peak": 0.07301048934459686
+        },
+        "lift": {
+          "state_samples": 342,
+          "action_samples": 579,
+          "max_joint_peak_to_peak": 0.03999888896942139
+        },
+        "left_arm": {
+          "state_samples": 342,
+          "action_samples": 579,
+          "max_joint_peak_to_peak": 0.05344773828983307
+        },
+        "right_arm": {
+          "state_samples": 342,
+          "action_samples": 579,
+          "max_joint_peak_to_peak": 0.052845247089862823
+        },
+        "left_gripper": {
+          "state_samples": 342,
+          "action_samples": 579,
+          "max_joint_peak_to_peak": 0.015998903661966324
+        },
+        "right_gripper": {
+          "state_samples": 342,
+          "action_samples": 579,
+          "max_joint_peak_to_peak": 0.015998903661966324
+        }
+      },
+      "sensors": {
+        "odometry": {
+          "samples": 342,
+          "dim": 7
+        },
+        "gyro": {
+          "samples": 342,
+          "dim": 3
+        },
+        "acceleration": {
+          "samples": 342,
+          "dim": 3
+        },
+        "lidar": {
+          "samples": 182,
+          "dim": 180
+        }
+      },
+      "cameras": {
+        "head": {
+          "jpeg_frames": 159,
+          "observed_fps": 6.175462195862113
+        },
+        "left_wrist": {
+          "jpeg_frames": 160,
+          "observed_fps": 6.155495051286998
+        },
+        "right_wrist": {
+          "jpeg_frames": 159,
+          "observed_fps": 6.1739081301459775
+        }
+      }
+    },
+    {
+      "episode": "/tmp/morla-mmk2-web-20261109/recordings/db3a181995864b5e8c7dab82fb1dfc61/episode000000",
+      "task": "MMK2_Quest3_Web_physics_fullbody",
+      "status": "complete",
+      "duration_s": 46.66899609565735,
+      "state_dim": 19,
+      "action_dim": 19,
+      "groups": {
+        "base": {
+          "state_samples": 595,
+          "action_samples": 987,
+          "max_joint_peak_to_peak": 0.6701279878616333
+        },
+        "head": {
+          "state_samples": 595,
+          "action_samples": 987,
+          "max_joint_peak_to_peak": 0.06441967934370041
+        },
+        "lift": {
+          "state_samples": 595,
+          "action_samples": 987,
+          "max_joint_peak_to_peak": 0.040012016892433167
+        },
+        "left_arm": {
+          "state_samples": 595,
+          "action_samples": 987,
+          "max_joint_peak_to_peak": 0.051445022225379944
+        },
+        "right_arm": {
+          "state_samples": 595,
+          "action_samples": 987,
+          "max_joint_peak_to_peak": 0.05908915027976036
+        },
+        "left_gripper": {
+          "state_samples": 595,
+          "action_samples": 987,
+          "max_joint_peak_to_peak": 0.01597960852086544
+        },
+        "right_gripper": {
+          "state_samples": 595,
+          "action_samples": 987,
+          "max_joint_peak_to_peak": 0.01597907394170761
+        }
+      },
+      "sensors": {
+        "odometry": {
+          "samples": 595,
+          "dim": 7
+        },
+        "gyro": {
+          "samples": 595,
+          "dim": 3
+        },
+        "acceleration": {
+          "samples": 595,
+          "dim": 3
+        },
+        "lidar": {
+          "samples": 299,
+          "dim": 180
+        }
+      },
+      "cameras": {
+        "head": {
+          "jpeg_frames": 364,
+          "observed_fps": 7.7455741864692325
+        },
+        "left_wrist": {
+          "jpeg_frames": 364,
+          "observed_fps": 7.7515359526672
+        },
+        "right_wrist": {
+          "jpeg_frames": 365,
+          "observed_fps": 7.787843166156607
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "session_id": "889014771dc445b981206d5f8bc37130",
+      "status": "STOPPED",
+      "accepted_commands": 2463,
+      "accepted_all_seven_commands": 2462,
+      "command_receipts_by_component": {
+        "head": 2463,
+        "lift": 2463,
+        "right_arm": 2462,
+        "base": 2463,
+        "right_gripper": 2463,
+        "left_gripper": 2463,
+        "left_arm": 2463
+      },
+      "dropped": {},
+      "mode_changes": [],
+      "cleanup_errors": []
+    },
+    {
+      "session_id": "db3a181995864b5e8c7dab82fb1dfc61",
+      "status": "STOPPED",
+      "accepted_commands": 1560,
+      "accepted_all_seven_commands": 1560,
+      "command_receipts_by_component": {
+        "head": 1560,
+        "lift": 1560,
+        "right_arm": 1560,
+        "base": 1560,
+        "right_gripper": 1560,
+        "left_gripper": 1560,
+        "left_arm": 1560
+      },
+      "dropped": {},
+      "mode_changes": [
+        "kinematic"
+      ],
+      "cleanup_errors": [],
+      "grip_release_wheel_max_rad_s_after_600ms": 2.666103093193378e-06
+    }
+  ]
+}

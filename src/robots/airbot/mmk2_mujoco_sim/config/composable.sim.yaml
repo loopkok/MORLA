@@ -1,0 +1,132 @@
+{
+  "assembly_version": 1,
+  "assembly_id": "mmk2_whole_sim",
+  "revision": 1,
+  "instances": {
+    "base": {
+      "plugin": "morla.airbot.mmk2.base",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2"
+    },
+    "lift": {
+      "plugin": "morla.airbot.mmk2.lift",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2"
+    },
+    "head": {
+      "plugin": "morla.airbot.mmk2.head",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2"
+    },
+    "left_arm": {
+      "plugin": "morla.airbot.mmk2.left_arm",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2"
+    },
+    "left_gripper": {
+      "plugin": "morla.airbot.mmk2.left_gripper",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2"
+    },
+    "right_arm": {
+      "plugin": "morla.airbot.mmk2.right_arm",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2"
+    },
+    "right_gripper": {
+      "plugin": "morla.airbot.mmk2.right_gripper",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2"
+    },
+    "sensors": {
+      "plugin": "morla.airbot.mmk2.sensors",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2"
+    },
+    "scene_camera": {
+      "plugin": "morla.airbot.mmk2.camera",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2",
+      "parameters": {
+        "camera": "scene"
+      }
+    },
+    "head_camera": {
+      "plugin": "morla.airbot.mmk2.camera",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2",
+      "parameters": {
+        "camera": "head"
+      }
+    },
+    "left_wrist_camera": {
+      "plugin": "morla.airbot.mmk2.camera",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2",
+      "parameters": {
+        "camera": "left_wrist"
+      }
+    },
+    "right_wrist_camera": {
+      "plugin": "morla.airbot.mmk2.camera",
+      "version": "1.0.0",
+      "backend": "sim",
+      "session_id": "mmk2",
+      "parameters": {
+        "camera": "right_wrist"
+      }
+    }
+  },
+  "bindings": [],
+  "capture": {
+    "state": [
+      "base.position",
+      "lift.position",
+      "head.position",
+      "left_arm.position",
+      "left_gripper.position",
+      "right_arm.position",
+      "right_gripper.position"
+    ],
+    "action": [
+      "base.velocity_target",
+      "lift.position_target",
+      "head.position_target",
+      "left_arm.position_target",
+      "left_gripper.position_target",
+      "right_arm.position_target",
+      "right_gripper.position_target"
+    ],
+    "images": {
+      "head": "head_camera.rgb",
+      "left_wrist": "left_wrist_camera.rgb",
+      "right_wrist": "right_wrist_camera.rgb"
+    },
+    "auxiliary": [
+      "sensors.odometry",
+      "sensors.gyro",
+      "sensors.acceleration",
+      "sensors.lidar"
+    ],
+    "dataset_fps": 15,
+    "action_source": "command",
+    "hold_frames": 0
+  },
+  "metadata": {
+    "simulation": {
+      "mode": "kinematic",
+      "display": "web"
+    }
+  }
+}

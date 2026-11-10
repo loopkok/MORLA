@@ -390,6 +390,24 @@ class MujocoAdapter:
 def make_sim_adapters(runtime):
     selected = [row for row in runtime.instances.values() if row.get('backend') == 'sim']
     if not selected: return {}
+    # Complex whole robots may require coupled transmissions, mobile bases and
+    # non-image sensors. Select trusted installed factories from static geometry
+    # metadata; assembly parameters cannot supply an import path.
+    providers = {row.get('geometry', {}).get('simulation', {}).get('provider') for row in selected}
+    providers.discard(None)
+    if providers:
+        if len(providers) != 1:
+            raise ValueError('SIM_SCENE_PROVIDER_CONFLICT')
+        from importlib import metadata
+        name = next(iter(providers))
+        entries = list(metadata.entry_points(group='morla.simulation_scenes'))
+        matches = [entry for entry in entries if entry.name == name]
+        if len(matches) != 1:
+            raise ValueError('SIM_SCENE_PROVIDER_UNAVAILABLE_OR_AMBIGUOUS: ' + name)
+        adapters = matches[0].load()(runtime)
+        if set(adapters) != {row['instance_id'] for row in selected}:
+            raise ValueError('SIM_SCENE_PROVIDER_INCOMPLETE')
+        return adapters
     if any(row.get('kind') != 'actuator' and not (row.get('kind')=='sensor' and row.get('ports',{}).get('rgb',{}).get('semantic')=='image') for row in selected):
         raise ValueError('SIM_SENSOR_PROVIDER_UNAVAILABLE')
     session = MujocoDeviceSession(runtime)
