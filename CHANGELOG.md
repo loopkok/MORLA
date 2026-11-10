@@ -1,5 +1,12 @@
 # Changelog（MORLA）
 
+## 2026-11-10 — 本地同步 MMK2 SDK 驱动（远端 95fa56d、27e83ab）
+
+- 本地 `main` 快进到 `27e83ab`，无冲突、工作树干净；同步后按远端 README 安装运行时依赖：`grpcio 1.85.1`、`protobuf 6.33.6`（原 4.25.8，`/usr/bin/python3` 用户级安装；生成代码要求 protobuf≥6.31）。`mediapipe 0.10.21` 与 `mediapipe.tasks.python.vision` 在升级后仍可导入。
+- `colcon build --symlink-install --packages-select morla_mmk2_driver morla_runtime` 通过；16 个 `morla.adapters` 入口点、`morla.kinematics` 双臂入口点均可发现，Web 目录（`catalog_hash 6b8360e0…`）含 9 个 `mmk2_sdk` 组件，模板 `mmk2-sdk-fake`（11 实例）与 `mmk2-sdk-real`（10 实例）可解析。
+- 回归：`scripts/test_mmk2_driver.sh` 18 passed；`scripts/test_composable.sh --layer pure` 379 passed。本轮提交不含 `web/src` 改动，`web/dist` 无需重建，未启动或重启 Web 服务。
+- 证据：[local-sync.log](docs/integrations/evidence/2026-11-10-mmk2-sdk/local-sync.log)。
+
 ## 2026-11-10 — MMK2 原生 SDK 驱动、公共层与 Web 接入
 
 - 新增独立 `morla_mmk2_driver` ROS 2 包：七组执行器、三路原生 RGB-D、共享 gRPC 会话、严格具名反馈、有界 RPC、最新目标与停止处理；静态 descriptor、factory、launch、只读检查和部署/Quest 模板接入公共 Runtime 与 Web。控制器示例 IP 为 172.25.14.1，本轮未连接。

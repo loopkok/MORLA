@@ -1,0 +1,25 @@
+# local sync 2026-11-10T16:20:18+08:00
+$ git log --oneline -2
+27e83ab docs: record MMK2 SDK release and remote verification
+95fa56d feat(mmk2): integrate native SDK driver with ROS 2 and Web
+
+$ colcon build --symlink-install --packages-select morla_mmk2_driver morla_runtime
+Summary: 2 packages finished (4.25s)
+
+$ python -c "entry points / catalog / templates"
+adapter entry points (mmk2_sdk): 16
+catalog components: 59 | mmk2_sdk: 9
+catalog hash: 6b8360e0f597df21a250e2f27d0514085d0477dbea09d820644409c04b505c0c
+template mmk2-sdk-fake | AIRBOT MMK2 SDK 整机 / Quest（协议测试） | instances 11
+template mmk2-sdk-real | AIRBOT MMK2 SDK 整机（真实设备，默认只读） | instances 10
+grpcio 1.85.1 | protobuf 6.33.6
+
+$ MORLA_PYTHON=/usr/bin/python3 bash scripts/test_mmk2_driver.sh
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+18 passed, 1 warning in 13.10s
+
+$ bash scripts/test_composable.sh --layer pure
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+379 passed, 1 warning in 133.87s (0:02:13)
