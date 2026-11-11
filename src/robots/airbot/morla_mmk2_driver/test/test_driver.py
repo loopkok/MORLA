@@ -119,12 +119,12 @@ def test_sdk_goals_hold_zero_and_watchdog(endpoint):
     try:
         s.start()
         for key in s.rows:s.activate(key)
-        s.submit('left_arm',command(s.rows['left_arm'],[.02,0,0,0,0,0]))
+        s.submit('left_arm',command(s.rows['left_arm'],[.02,-.01,0,0,0,0]))
         s.submit('base',command(s.rows['base'],[.03,-.04]))
         wait(lambda:any('base' in r.goals_map and abs(r.goals_map['base'].goal.twist3d.x)>.02 for r in service.requests))
         wait(lambda:service.requests[-1].goals_map['base'].goal.twist3d.x==0,seconds=1)
         goal=next(r.goals_map['left_arm'] for r in service.requests if 'left_arm' in r.goals_map)
-        assert list(goal.goal.joint_state.position)==pytest.approx([.005,0,0,0,0,0])
+        assert list(goal.goal.joint_state.position)==pytest.approx([.005,-.0025,0,0,0,0])
         assert goal.param.trajectory.max_velocity_scaling_factor==.05
         s.stop();count=len(service.requests);time.sleep(.1)
         assert len(service.requests)==count

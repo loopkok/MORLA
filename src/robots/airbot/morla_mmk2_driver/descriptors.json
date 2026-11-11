@@ -402,7 +402,7 @@
         "rotation_lead_rad"
       ],
       "preferred_controllers": {
-        "pose6d": "morla.cartesian_delta_ik"
+        "pose6d": "morla.mmk2.cartesian_delta"
       },
       "templates": [
         {
@@ -416,6 +416,54 @@
           "title": "AIRBOT MMK2 SDK 整机（真实设备，默认只读）",
           "package": "morla_mmk2_driver",
           "path": "config/assembly.real.yaml"
+        }
+      ],
+      "binding_presets": [
+        {
+          "controller": "morla.mmk2.cartesian_delta",
+          "source_plugin": "morla.input.quest",
+          "defaults": {
+            "calibration_verified": false,
+            "input_position_rotation": [
+              [
+                0.70710418383354,
+                -5.194696474495747e-06,
+                0.7071093785109335
+              ],
+              [
+                -2.2393737829194882e-09,
+                -0.9999999999730317,
+                -7.344143864630878e-06
+              ],
+              [
+                -0.7071093785300147,
+                -5.19149137121583e-06,
+                0.7071041838144823
+              ]
+            ],
+            "input_rotation": [
+              [
+                0.70710418383354,
+                -5.194696474495747e-06,
+                0.7071093785109335
+              ],
+              [
+                -2.2393737829194882e-09,
+                -0.9999999999730317,
+                -7.344143864630878e-06
+              ],
+              [
+                -0.7071093785300147,
+                -5.19149137121583e-06,
+                0.7071041838144823
+              ]
+            ],
+            "max_joint_step": 0.05,
+            "max_joint_velocity": 2.0,
+            "position_scale": 0.25,
+            "rotation_scale": 1.0,
+            "smoothing_alpha": 0.35
+          }
         }
       ]
     }
@@ -823,8 +871,56 @@
         "rotation_lead_rad"
       ],
       "preferred_controllers": {
-        "pose6d": "morla.cartesian_delta_ik"
-      }
+        "pose6d": "morla.mmk2.cartesian_delta"
+      },
+      "binding_presets": [
+        {
+          "controller": "morla.mmk2.cartesian_delta",
+          "source_plugin": "morla.input.quest",
+          "defaults": {
+            "calibration_verified": false,
+            "input_position_rotation": [
+              [
+                -0.7071093785300145,
+                -5.194696474551256e-06,
+                0.7071041838144586
+              ],
+              [
+                -2.2933269318153047e-09,
+                0.9999999999730317,
+                7.344143847939706e-06
+              ],
+              [
+                0.7071041838335399,
+                -5.191491371201954e-06,
+                0.707109378510957
+              ]
+            ],
+            "input_rotation": [
+              [
+                -0.7071093785300145,
+                -5.194696474551256e-06,
+                0.7071041838144586
+              ],
+              [
+                -2.2933269318153047e-09,
+                0.9999999999730317,
+                7.344143847939706e-06
+              ],
+              [
+                0.7071041838335399,
+                -5.191491371201954e-06,
+                0.707109378510957
+              ]
+            ],
+            "max_joint_step": 0.05,
+            "max_joint_velocity": 2.0,
+            "position_scale": 0.25,
+            "rotation_scale": 1.0,
+            "smoothing_alpha": 0.35
+          }
+        }
+      ]
     }
   },
   {

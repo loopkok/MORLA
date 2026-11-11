@@ -72,6 +72,54 @@ def test_complete_model_and_schema():
     assert sum(len(x['joints']) for x in r['instances'] if x['kind']=='actuator')==19
 
 
+def test_urdf_mirrored_meshes_match_compiled_geometry():
+    import xml.etree.ElementTree as ET
+    import mujoco
+    from scipy.spatial import cKDTree
+    from scipy.spatial.transform import Rotation
+
+    description = PACKAGE.parent / 'mmk2_description'
+    urdf = ET.parse(description / 'urdf/airbot_mmk2.urdf').getroot()
+    model = mujoco.MjModel.from_xml_string(model_xml())
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    checked = set()
+    for link in urdf.findall('link'):
+        for index, visual in enumerate(link.findall('visual')):
+            mesh = visual.find('geometry/mesh')
+            if mesh is None or mesh.get('scale') is None:
+                continue
+            relative_path = mesh.get('filename').split('/meshes/', 1)[1]
+            vertices = np.array([
+                [float(value) for value in line.split()[1:4]]
+                for line in (description / 'meshes' / relative_path).read_text().splitlines()
+                if line.startswith('v ')
+            ])
+            vertices *= np.fromstring(mesh.get('scale'), sep=' ')
+            origin = visual.find('origin')
+            position = np.zeros(3) if origin is None else np.fromstring(origin.get('xyz', '0 0 0'), sep=' ')
+            rpy = np.zeros(3) if origin is None else np.fromstring(origin.get('rpy', '0 0 0'), sep=' ')
+            body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, link.get('name'))
+            mesh_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_MESH, f'{link.get("name")}_visual_{index}')
+            geometry_id = next(
+                candidate for candidate in range(model.ngeom)
+                if model.geom_bodyid[candidate] == body_id
+                and model.geom_type[candidate] == mujoco.mjtGeom.mjGEOM_MESH
+                and model.geom_dataid[candidate] == mesh_id
+            )
+            expected_body = vertices @ Rotation.from_euler('xyz', rpy).as_matrix().T + position
+            expected_world = expected_body @ data.xmat[body_id].reshape(3, 3).T + data.xpos[body_id]
+            first_vertex = model.mesh_vertadr[mesh_id]
+            compiled_vertices = model.mesh_vert[first_vertex:first_vertex + model.mesh_vertnum[mesh_id]]
+            actual_world = compiled_vertices @ data.geom_xmat[geometry_id].reshape(3, 3).T + data.geom_xpos[geometry_id]
+            # MuJoCo recentres and rotates mesh vertices during compilation.
+            # Compare both complete point sets in world coordinates after that processing.
+            assert cKDTree(actual_world).query(expected_world)[0].max() < 1e-6
+            assert cKDTree(expected_world).query(actual_world)[0].max() < 1e-6
+            checked.add(link.get('name'))
+    assert checked == {'rgt_wheel_link', 'left_left', 'right_left'}
+
+
 def test_lifecycle_motion_stop_and_sensors(running):
     r=running;s=r.adapters['base'].session
     assert r.status=='READY_DISARMED'
@@ -284,7 +332,12 @@ def test_web_discovery_compile_record_and_stop(tmp_path):
             assert all(f['streams/sensors__lidar/synthetic'][:])
         quest=client.get('/api/v2/templates/mmk2-quest-sim')
         assert quest.status_code==200,quest.text
-        compile_system(quest.json(),registry=catalog)
+        compiled=compile_system(quest.json(),registry=catalog)
+        assert {b['controller'] for b in compiled['bindings'] if b['target'] in
+                ('left_arm.position_target','right_arm.position_target')}=={'morla.mmk2.cartesian_delta'}
+        for side in ('left','right'):
+            descriptor=next(d for d in catalog.list() if d['plugin_id']==f'morla.airbot.mmk2.{side}_arm')
+            assert descriptor['web']['preferred_controllers']['pose6d']=='morla.mmk2.cartesian_delta'
 
 
 def test_rgb_depth_thread_and_sensor_clock(tmp_path):
@@ -318,8 +371,9 @@ def test_dual_quest_binding_uses_public_ik_and_units(tmp_path):
     a['capture']['images']={}
     r=RuntimeSession(compile_system(a,registry=catalog),resource_root=tmp_path/'locks')
     r.start()
+    engine=BindingEngine(r)
     try:
-        activate(r);engine=BindingEngine(r);source=InputStream('quest');source.reconnect()
+        activate(r);source=InputStream('quest');source.reconnect()
         before=np.asarray(r.adapters['left_arm'].read(r.clock())['values'])
         for i in range(4):
             time.sleep(.025)
@@ -334,7 +388,9 @@ def test_dual_quest_binding_uses_public_ik_and_units(tmp_path):
         time.sleep(.02)
         assert np.linalg.norm(np.asarray(r.adapters['left_arm'].read(r.clock())['values'])-before)>1e-5
         assert all(np.isfinite(r.adapters[key].read(r.clock())['values']).all() for key in ('left_arm','right_arm'))
-    finally:r.stop('cleanup')
+    finally:
+        engine.close()
+        r.stop('cleanup')
 
 
 def test_uninstalled_or_conflicting_scene_provider_rejected(tmp_path,monkeypatch):

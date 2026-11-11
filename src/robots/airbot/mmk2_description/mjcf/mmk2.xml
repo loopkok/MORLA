@@ -8,7 +8,7 @@
   <asset>
     <mesh name="base_link_visual_0" file="base_link.obj" />
     <mesh name="lft_wheel_link_visual_0" file="drive_wheel.obj" />
-    <mesh name="rgt_wheel_link_visual_0" file="drive_wheel.obj" />
+    <mesh name="rgt_wheel_link_visual_0" file="drive_wheel.obj" scale="1 1 -1" />
     <mesh name="rgt_behind_wheel_link_visual_0" file="support_wheel.obj" />
     <mesh name="lft_behind_wheel_link_visual_0" file="support_wheel.obj" />
     <mesh name="rgt_front_wheel_link_visual_0" file="support_wheel.obj" />
@@ -23,7 +23,7 @@
     <mesh name="left_link4_visual_0" file="visual/link4.obj" />
     <mesh name="left_link5_visual_0" file="visual/link5.obj" />
     <mesh name="left_link6_visual_0" file="visual/link6.obj" />
-    <mesh name="left_left_visual_0" file="visual/gripper.obj" />
+    <mesh name="left_left_visual_0" file="visual/gripper.obj" scale="1 -1 1" />
     <mesh name="left_right_visual_0" file="visual/gripper.obj" />
     <mesh name="right_base_link_visual_0" file="visual/arm_base.obj" />
     <mesh name="right_link1_visual_0" file="visual/link1.obj" />
@@ -32,7 +32,7 @@
     <mesh name="right_link4_visual_0" file="visual/link4.obj" />
     <mesh name="right_link5_visual_0" file="visual/link5.obj" />
     <mesh name="right_link6_visual_0" file="visual/link6.obj" />
-    <mesh name="right_left_visual_0" file="visual/gripper.obj" />
+    <mesh name="right_left_visual_0" file="visual/gripper.obj" scale="1 -1 1" />
     <mesh name="right_right_visual_0" file="visual/gripper.obj" />
   </asset>
   <worldbody>

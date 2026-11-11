@@ -4,6 +4,8 @@
 
 可运行入口与端口语义见 [仿真包 README](../../src/robots/airbot/mmk2_mujoco_sim/README.md)，模型来源见 [description README](../../src/robots/airbot/mmk2_description/README.md)。
 
+2026-11-11 更新：Quest 双臂现使用 [MMK2 专属异步控制器](../../src/robots/airbot/morla_mmk2_teleop/README.md)。仿真和 SDK 共用实际 URDF 的差分 IK；旧公共绑定可继续使用，建议在 Web 切换为专属控制器并保存新版本。下文 2026-11-10 的求解及限步描述为历史记录。
+
 ## 资源选择
 
 用户提供的 airbot_mmk2_description 有完整 URDF、视觉和碰撞网格。SDK 0.0.4.dev5 的 MuJoCo XML 引用 `models/meshes`，但所供源码没有此目录；SDK 的 head_pitch 符号、arm 命名、夹爪 tendon 和底盘参数也与 URDF 不同。因此运行模型从 URDF 确定性生成，SDK XML 原样保留作为参考，绝不把缺失资源静默换成别的型号。

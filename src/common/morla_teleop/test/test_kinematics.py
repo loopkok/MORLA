@@ -299,3 +299,28 @@ def test_invalid_rotation_scale_is_rejected(bad):
 def test_invalid_smoothing_alpha_is_rejected(bad):
     with pytest.raises(ControllerError):
         _pose_tick(CartesianController(Solver()),{'smoothing_alpha':bad})
+
+
+def test_fallback_joint_limit_preserves_coordinated_direction():
+    controller = CartesianController(FarBranchSolver())
+    output = _far_request(controller, {'max_joint_step': .02}, [0.] * 6)
+    np.testing.assert_allclose(output, [.01, 0., 0., .02, .02, .02])
+    report = controller.diagnostics()
+    assert report['final_fk_verified']
+    assert report['post_limit_cost_after'] < report['post_limit_cost_before']
+
+
+def test_fallback_holds_if_limiting_a_branch_increases_cartesian_error():
+    class FoldedBranch(Solver):
+        def fk(self, seed):
+            pose = np.eye(4)
+            pose[0, 3] = seed[0] * (seed[0] - 1.)
+            return pose
+
+        def solve(self, target):
+            return [2., 0., 0., 0., 0., 0.]
+
+    controller = CartesianController(FoldedBranch())
+    output = _far_request(controller, {'max_joint_step': .02}, [0.] * 6)
+    assert output == [0.] * 6
+    assert controller.diagnostics()['joint_step_scale'] == 0.

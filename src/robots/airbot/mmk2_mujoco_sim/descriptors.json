@@ -100,7 +100,7 @@
         "provider": "morla.airbot.mmk2"
       },
       "model_id": "mmk2_urdf_planar_reference",
-      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+      "model_sha256": "983ef6144af54fecb7977aed0649c3a86d99c7ce27955c00ca7dde7182515bc3"
     },
     "configuration_schema": {
       "type": "object",
@@ -252,7 +252,7 @@
         "provider": "morla.airbot.mmk2"
       },
       "model_id": "mmk2_urdf_planar_reference",
-      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+      "model_sha256": "983ef6144af54fecb7977aed0649c3a86d99c7ce27955c00ca7dde7182515bc3"
     },
     "configuration_schema": {
       "type": "object",
@@ -385,7 +385,7 @@
         "provider": "morla.airbot.mmk2"
       },
       "model_id": "mmk2_urdf_planar_reference",
-      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+      "model_sha256": "983ef6144af54fecb7977aed0649c3a86d99c7ce27955c00ca7dde7182515bc3"
     },
     "configuration_schema": {
       "type": "object",
@@ -575,7 +575,7 @@
       "solver_base_frame": "left_base_link",
       "solver_tip_frame": "left_gripper_center",
       "model_id": "mmk2_urdf_planar_reference",
-      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+      "model_sha256": "983ef6144af54fecb7977aed0649c3a86d99c7ce27955c00ca7dde7182515bc3"
     },
     "configuration_schema": {
       "type": "object",
@@ -647,8 +647,56 @@
         "rotation_lead_rad"
       ],
       "preferred_controllers": {
-        "pose6d": "morla.cartesian_delta_ik"
-      }
+        "pose6d": "morla.mmk2.cartesian_delta"
+      },
+      "binding_presets": [
+        {
+          "controller": "morla.mmk2.cartesian_delta",
+          "source_plugin": "morla.input.quest",
+          "defaults": {
+            "calibration_verified": false,
+            "input_position_rotation": [
+              [
+                0.70710418383354,
+                -5.194696474495747e-06,
+                0.7071093785109335
+              ],
+              [
+                -2.2393737829194882e-09,
+                -0.9999999999730317,
+                -7.344143864630878e-06
+              ],
+              [
+                -0.7071093785300147,
+                -5.19149137121583e-06,
+                0.7071041838144823
+              ]
+            ],
+            "input_rotation": [
+              [
+                0.70710418383354,
+                -5.194696474495747e-06,
+                0.7071093785109335
+              ],
+              [
+                -2.2393737829194882e-09,
+                -0.9999999999730317,
+                -7.344143864630878e-06
+              ],
+              [
+                -0.7071093785300147,
+                -5.19149137121583e-06,
+                0.7071041838144823
+              ]
+            ],
+            "max_joint_step": 0.05,
+            "max_joint_velocity": 2.0,
+            "position_scale": 0.25,
+            "rotation_scale": 1.0,
+            "smoothing_alpha": 0.35
+          }
+        }
+      ]
     }
   },
   {
@@ -739,7 +787,7 @@
         "provider": "morla.airbot.mmk2"
       },
       "model_id": "mmk2_urdf_planar_reference",
-      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+      "model_sha256": "983ef6144af54fecb7977aed0649c3a86d99c7ce27955c00ca7dde7182515bc3"
     },
     "configuration_schema": {
       "type": "object",
@@ -928,7 +976,7 @@
       "solver_base_frame": "right_base_link",
       "solver_tip_frame": "right_gripper_center",
       "model_id": "mmk2_urdf_planar_reference",
-      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+      "model_sha256": "983ef6144af54fecb7977aed0649c3a86d99c7ce27955c00ca7dde7182515bc3"
     },
     "configuration_schema": {
       "type": "object",
@@ -1000,8 +1048,56 @@
         "rotation_lead_rad"
       ],
       "preferred_controllers": {
-        "pose6d": "morla.cartesian_delta_ik"
-      }
+        "pose6d": "morla.mmk2.cartesian_delta"
+      },
+      "binding_presets": [
+        {
+          "controller": "morla.mmk2.cartesian_delta",
+          "source_plugin": "morla.input.quest",
+          "defaults": {
+            "calibration_verified": false,
+            "input_position_rotation": [
+              [
+                -0.7071093785300145,
+                -5.194696474551256e-06,
+                0.7071041838144586
+              ],
+              [
+                -2.2933269318153047e-09,
+                0.9999999999730317,
+                7.344143847939706e-06
+              ],
+              [
+                0.7071041838335399,
+                -5.191491371201954e-06,
+                0.707109378510957
+              ]
+            ],
+            "input_rotation": [
+              [
+                -0.7071093785300145,
+                -5.194696474551256e-06,
+                0.7071041838144586
+              ],
+              [
+                -2.2933269318153047e-09,
+                0.9999999999730317,
+                7.344143847939706e-06
+              ],
+              [
+                0.7071041838335399,
+                -5.191491371201954e-06,
+                0.707109378510957
+              ]
+            ],
+            "max_joint_step": 0.05,
+            "max_joint_velocity": 2.0,
+            "position_scale": 0.25,
+            "rotation_scale": 1.0,
+            "smoothing_alpha": 0.35
+          }
+        }
+      ]
     }
   },
   {
@@ -1092,7 +1188,7 @@
         "provider": "morla.airbot.mmk2"
       },
       "model_id": "mmk2_urdf_planar_reference",
-      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+      "model_sha256": "983ef6144af54fecb7977aed0649c3a86d99c7ce27955c00ca7dde7182515bc3"
     },
     "configuration_schema": {
       "type": "object",
@@ -1166,7 +1262,7 @@
         "provider": "morla.airbot.mmk2"
       },
       "model_id": "mmk2_urdf_planar_reference",
-      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+      "model_sha256": "983ef6144af54fecb7977aed0649c3a86d99c7ce27955c00ca7dde7182515bc3"
     },
     "configuration_schema": {
       "type": "object",
@@ -1270,7 +1366,7 @@
         "provider": "morla.airbot.mmk2"
       },
       "model_id": "mmk2_urdf_planar_reference",
-      "model_sha256": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069"
+      "model_sha256": "983ef6144af54fecb7977aed0649c3a86d99c7ce27955c00ca7dde7182515bc3"
     },
     "configuration_schema": {
       "type": "object",

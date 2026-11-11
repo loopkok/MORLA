@@ -7,7 +7,7 @@
     "CMakeLists.txt": "a40ceb78dbde65ecd28f316fd9fac71a04d5eed269b9efc1bce6c8d14bacecb1",
     "LICENSE": "1ea6b7eb8deddd0e2b175d7e6b8f16a667b7065c4bce2e16d04014ac3aef0bff",
     "LICENSE-SDK": "5be110ee497d2a61a9d1247010066117f525e633ee1bdea71949236faa7d03f0",
-    "README.md": "7044df31ac3324ac5eec4904a6dbc3f8f05c63f2f782610737acd220422d3e5a",
+    "README.md": "11038236f903ce120a8360a47335fe531934f4e80a4ab2e9ffa7b25a9896eaaf",
     "meshes/base_link.mtl": "79d7c0b1ba533ea96f5d771c1d71bccb058b3e56da252eea4b096c8df6087064",
     "meshes/base_link.obj": "346aa39b2502e9102a1ec78bf6871af60898be71ba3ceff5095de30a23d5c8ac",
     "meshes/collision/arm_base.stl": "457378ed68da0541fe67f0cf913169cf8c5923de285361846c1a6d854417969e",
@@ -45,9 +45,9 @@
     "meshes/visual/link5.obj": "315738f1660b903f0705267236e1b5671a108d934bca566c9bc5f76a7d279915",
     "meshes/visual/link6.obj": "04e496fb42903d4ba7b7de4f063df595d6e983211430de369f564fac53942619",
     "meshes/visual/materials.mtl": "1663916c548a51ff6bdc68b5d36d731a7daab23d72d6155bfe7cb57ff94b7c9e",
-    "mjcf/mmk2.xml": "48675427238660fe5b8662a0487087694922a0310ed0fdb5eb8a98e814530069",
+    "mjcf/mmk2.xml": "983ef6144af54fecb7977aed0649c3a86d99c7ce27955c00ca7dde7182515bc3",
     "package.xml": "10d0fc8c8c8da5159d3c3090a8ec5b0afd77e732a9e35bcc55ab12acd55eb1eb",
-    "scripts/make_mmk2_mjcf.py": "d9ed1ea2178d86533c908a3c105a7abd0e0ef801dba68308f8e235c512a00c50",
+    "scripts/make_mmk2_mjcf.py": "abd8e49ecfe2d7a414b109dd0d2fc691bd5aa5c50ba946cf3ba6e17f5e1caae7",
     "sdk_reference_mjcf/airbot_play/airbot_play-simple_collision.xml": "c6c85478216f646cf6d40c458f1b0c356ea0560a7b10128d6122787c1a0138c9",
     "sdk_reference_mjcf/airbot_play/airbot_play.xml": "4a3cec4ffdb67d9295badf9b09cab80a87be9c924f2573a4078c4debcf9d0c24",
     "sdk_reference_mjcf/airbot_play/airbot_play_control.xml": "dfa7417e944c122ea4fb5530dbaf915204c551cdd2c9bcada489e268c31d982d",
@@ -67,5 +67,11 @@
     "urdf/airbot_mmk2.urdf": "7391378b012b2d46e8a6fd8072c50404f11b312bad527a0460c0543a1103cab3"
   },
   "source_description_license": "MIT; Copyright (c) 2025 Yufei Jia",
-  "source_urdf_sha256": "b6b7bd09a372fee71b437ad463b79f3d5f27e133c51de2c156bb31f1e0ff38b7"
+  "source_urdf_sha256": "b6b7bd09a372fee71b437ad463b79f3d5f27e133c51de2c156bb31f1e0ff38b7",
+  "audit_2026_11_11": {
+    "source_urdf_sha256": "b6b7bd09a372fee71b437ad463b79f3d5f27e133c51de2c156bb31f1e0ff38b7",
+    "source_urdf_identical": true,
+    "source_mesh_files_identical": 37,
+    "mjcf_conversion_fix": "Preserve URDF visual mesh.scale, including mirrored right wheel and two gripper fingers."
+  }
 }

@@ -74,7 +74,10 @@ def generate():
                 continue
             key = name+'_visual_'+str(i)
             filename = mesh.get('filename').split('/meshes/',1)[1]
-            E.SubElement(assets, 'mesh', name=key, file=filename)
+            mesh_attributes = dict(name=key, file=filename)
+            if mesh.get('scale') is not None:
+                mesh_attributes['scale'] = mesh.get('scale')
+            E.SubElement(assets, 'mesh', **mesh_attributes)
             color = v.find('material/color')
             E.SubElement(node, 'geom', mesh=key, type='mesh', group='2', contype='0', conaffinity='0',
                          rgba=color.get('rgba') if color is not None else '.7 .75 .8 1', **pose(v.find('origin')))

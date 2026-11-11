@@ -7,25 +7,31 @@ import numpy as np
 from .controllers import ControllerError
 
 
+def limit_joint_step(origin, target, maximum):
+    """Bound a joint-space segment while preserving its direction."""
+    delta = np.asarray(target, dtype=float) - np.asarray(origin, dtype=float)
+    largest = float(np.max(np.abs(delta), initial=0.))
+    scale = 1. if largest <= maximum else maximum / largest
+    return np.asarray(origin, dtype=float) + scale * delta, scale
+
+
 def joint_step_cap(parameters,dt):
     """Per-tick joint step ceiling from max_joint_step and max_joint_velocity.
 
-    FR3/CR5 bound their own differential solvers with these two parameters. The
-    generic controller hands the whole target to a solver and cannot see how
-    many internal iterations it runs, so the same bound is applied to the
-    returned command instead: a solver that resolves the whole pose in one call
-    (MMK2's URDF DLS) must not be able to jump a wrist branch in a single tick.
+    Pass the bound to solvers that accept it and apply it to the returned
+    command for solvers that resolve a whole pose in one call.
     """
     caps=[]
     for key,value in (('max_joint_step',parameters.get('max_joint_step')),
                       ('max_joint_velocity',parameters.get('max_joint_velocity'))):
         if value is None:continue
+        if isinstance(value, bool):raise ControllerError('invalid '+key)
         try:value=float(value)
         except (TypeError,ValueError):raise ControllerError('invalid '+key)
         if not np.isfinite(value) or value<=0:raise ControllerError(key+' must be positive')
         if key=='max_joint_velocity':
-            # A rate only bounds a tick that has a duration.
-            if dt<=0:continue
+            if not np.isfinite(dt) or dt < 0:
+                raise ControllerError('invalid control dt')
             caps.append(value*float(dt))
         else:
             caps.append(value)
@@ -71,6 +77,10 @@ class CartesianController:
             self._seed_aware='seed' in inspect.signature(solver.solve).parameters
         except (TypeError,ValueError):
             self._seed_aware=False
+        try:
+            self._step_aware='max_joint_step' in inspect.signature(solver.solve).parameters
+        except (TypeError,ValueError):
+            self._step_aware=False
         self.reset()
 
     def reset(self):
@@ -131,7 +141,7 @@ class CartesianController:
                           'input':copy.deepcopy(value),'reanchor_acknowledged':True}
         return {'acknowledged':True,'kind':'cartesian','current_tcp':current.tolist()}
 
-    def __call__(self,value,measured,dt,parameters,seed=None):
+    def __call__(self,value,measured,dt,parameters,seed=None,max_joint_step=None):
         """Map one input tick to joint commands.
 
         `seed` is the joint vector the solver integrates from. Callers that
@@ -245,7 +255,11 @@ class CartesianController:
         # Tool offsets must already be resolved and versioned by the compiler.
         target_tip=target@np.linalg.inv(tool)
         self.last_report.update(stage='solving',target_tcp=target.tolist(),target_tip=target_tip.tolist())
+        cap=joint_step_cap(parameters,dt) if self.step_cap else None
         solve_arguments={'seed':start} if (seed is not None and self._seed_aware) else {}
+        solver_cap = cap if max_joint_step is None else max_joint_step
+        if self._step_aware and solver_cap is not None:
+            solve_arguments['max_joint_step'] = solver_cap
         result=self.solver.solve(target_tip,**solve_arguments)
         self.last_report.update(stage='held' if result is None else 'solved',
                                 target_values=None if result is None else np.asarray(result).tolist(),
@@ -263,11 +277,34 @@ class CartesianController:
         # A full-pose solver can land on a distant branch (and did: MMK2's
         # wrist rolled ~1.5 rad in one tick at q5=0). Keep the command inside
         # the binding's advertised per-tick bound so a jump becomes a slew.
-        cap=joint_step_cap(parameters,dt) if self.step_cap else None
         if cap is not None:
-            step=np.clip(result-start,-cap,cap)
-            self.last_report.update(max_joint_step_rad=cap,joint_step_clamped=not np.array_equal(step,result-start))
-            result=start+step
+            raw_result=result.copy()
+            result, scale=limit_joint_step(start,result,cap)
+            self.last_report.update(max_joint_step_rad=cap,joint_step_clamped=scale<1.,
+                                    raw_target_values=raw_result.tolist(),joint_step_scale=scale)
+            if scale < 1.:
+                # The final command must still improve the Cartesian target.
+                # A full-pose branch solution need not improve along the segment.
+                def residual(q):
+                    transform=validate_transform(self.solver.fk(q))
+                    position=target_tip[:3,3]-transform[:3,3]
+                    angle=Rotation.from_matrix(target_tip[:3,:3]@transform[:3,:3].T).magnitude()
+                    return float(position@position+.09*angle*angle),float(np.linalg.norm(position)),float(angle)
+                before=residual(start)
+                accepted=start.copy()
+                after=before
+                for _ in range(10):
+                    candidate=start+scale*(raw_result-start)
+                    error=residual(candidate)
+                    if error[0] <= before[0]+1e-14:
+                        accepted,after=candidate,error
+                        break
+                    scale*=.5
+                result=accepted
+                if np.array_equal(accepted,start):scale=0.
+                self.last_report.update(final_fk_verified=True,post_limit_cost_before=before[0],
+                                        post_limit_cost_after=after[0],post_limit_position_error_m=after[1],
+                                        post_limit_angle_error_rad=after[2],joint_step_scale=scale)
             self.last_report['target_values']=result.tolist()
         if self.jog: self.jog_target=target
         return result.tolist()

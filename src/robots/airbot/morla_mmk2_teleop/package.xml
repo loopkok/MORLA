@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>morla_mmk2_teleop</name><version>0.1.0</version>
+  <description>MMK2 URDF differential IK and asynchronous Cartesian controller</description>
+  <maintainer email="maintainers@morla.dev">MORLA</maintainer><license>Apache-2.0</license>
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>morla_core</exec_depend><exec_depend>morla_teleop</exec_depend>
+  <exec_depend>mmk2_description</exec_depend><exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-scipy</exec_depend><test_depend>python3-pytest</test_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

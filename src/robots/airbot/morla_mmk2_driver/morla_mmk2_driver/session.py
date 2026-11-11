@@ -2,6 +2,7 @@
 import copy
 import threading
 import time
+from morla_teleop.kinematics import limit_joint_step
 from .contract import CONNECTION_FIELDS, ROLES, role_of, validate_configuration, validate_target, limits
 from .feedback import decode
 
@@ -145,7 +146,8 @@ class DeviceSession:
                                 q=goal
                             else:
                                 measured=self.samples[key]['values'];start=self.last_sent.get(key,measured);step=p['max_velocity']*period
-                                q=[a+max(-step,min(step,b-a)) for a,b in zip(start,goal)]
+                                limited,_=limit_joint_step(start,goal,step)
+                                q=limited.tolist()
                                 if max(abs(v-m) for v,m in zip(q,measured))>p['max_command_lead']:raise RuntimeError('MMK2_COMMAND_LEAD_EXCEEDED')
                             # Validate mapped hardware limits before sending too.
                             validate_target(row,{'names':[j['name'] for j in row['joints']],'mode':'velocity' if role_of(row)=='base' else 'position','units':ROLES[role_of(row)][2],'values':q})

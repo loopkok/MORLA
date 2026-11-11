@@ -1,0 +1,168 @@
+{
+  "descriptor_version": 1,
+  "api_version": "1.0",
+  "plugin_id": "morla.mmk2.cartesian_delta",
+  "plugin_version": "1.0.0",
+  "kind": "controller",
+  "ports": {},
+  "controller_types": {
+    "inputs": [
+      "pose6d"
+    ],
+    "outputs": [
+      "joint_targets"
+    ],
+    "target_plugins": [
+      "morla.airbot.mmk2.left_arm",
+      "morla.airbot.mmk2.right_arm",
+      "morla.airbot.mmk2_sdk.left_arm",
+      "morla.airbot.mmk2_sdk.right_arm"
+    ],
+    "target_dim": 6
+  },
+  "backend_variants": {
+    "fake": {
+      "available": true
+    },
+    "sim": {
+      "available": true
+    },
+    "real": {
+      "available": true
+    }
+  },
+  "source": {
+    "package": "morla_mmk2_teleop",
+    "version": "0.1.0"
+  },
+  "web": {
+    "label": "末端位姿跟随 · MMK2",
+    "control_family": "cartesian_pose",
+    "ik_modes": [
+      "differential"
+    ]
+  },
+  "defaults": {
+    "ik_mode": "differential",
+    "max_joint_velocity": 0.2,
+    "smoothing_alpha": 0.35,
+    "command_lead_rad": 0.08,
+    "max_joint_step": 0.02,
+    "position_scale": 0.25,
+    "rotation_scale": 1.0
+  },
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "position_scale": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 2
+      },
+      "rotation_scale": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 2
+      },
+      "smoothing_alpha": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 1
+      },
+      "max_joint_step": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 0.3
+      },
+      "max_joint_velocity": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 3.14
+      },
+      "command_lead_rad": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 1
+      },
+      "differential_step_rad": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 0.15
+      },
+      "position_lead_m": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 0.25
+      },
+      "rotation_lead_rad": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 1
+      },
+      "damping_min": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 1
+      },
+      "damping_max": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 1
+      },
+      "singularity_threshold": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 1
+      },
+      "input_rotation": {
+        "type": "array",
+        "minItems": 3,
+        "maxItems": 3,
+        "items": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "input_position_rotation": {
+        "type": "array",
+        "minItems": 3,
+        "maxItems": 3,
+        "items": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "solver_tip_from_tool": {
+        "type": "array",
+        "minItems": 4,
+        "maxItems": 4,
+        "items": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "calibration_verified": {
+        "type": "boolean"
+      },
+      "ik_mode": {
+        "type": "string",
+        "enum": [
+          "differential"
+        ]
+      }
+    }
+  }
+}

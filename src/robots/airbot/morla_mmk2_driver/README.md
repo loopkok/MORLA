@@ -31,7 +31,7 @@
 
 双臂默认使用受限微分 IK（同 FR3/CR5 策略）：每帧一次阻尼更新，关节步长由驱动限速/频率与领先距离共同限制，笛卡尔目标领先截断 2cm/0.35rad，不宣称每帧精确收敛。领先与阻尼是实例参数 `position_lead_m`、`rotation_lead_rad`、`damping_min`、`damping_max`、`singularity_threshold`（默认 0.02 / 0.35 / 0.005 / 0.145 / 0.05，与仿真包一致；`rotation_lead_rad` 在设备页可见）；绑定侧另有 `smoothing_alpha`（输入低通，1=关闭）和 `rotation_scale`（旋转倍率，默认 1.0）。
 有效目标每拍从原始目标重新推导（做领先截断后即用），不跨拍积分；积分写法在手静止时会把目标冻结在“上一拍关节位置 + 领先距离”，留下永久偏置。贴限位的关节按 active-set 锁住重解，其余关节承担步长，被拒绝的向外需求记入 `limit_pressure_rad`。
-单拍关节步长同时受绑定参数 `max_joint_step` / `max_joint_velocity` 约束（`min(max_joint_step, max_joint_velocity·dt)`），模板 0.05 rad / 2.0 rad/s；低于这个量级时手一动臂就明显落后。
+Quest 模板选用 `morla.mmk2.cartesian_delta`。输出上限为 0.05 rad / 2.0 rad/s，实际步长还受绑定的差分步长和 SDK 部署限速、下发频率及反馈领先距离约束。
 默认 trajectory 请求，缩放 0.05，主机限速/目标领先距离额外约束；此接口不宣称高频伺服。
 `forward_position` 是显式可选 SDK 接口，需按固件验证后使用。底盘 250ms 主机命令超时会请求零速度，
 不是经过验证的控制器看门狗。

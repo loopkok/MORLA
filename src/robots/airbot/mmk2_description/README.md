@@ -10,3 +10,5 @@
 
 `sdk_reference_mjcf/` 原样保留 SDK 0.0.4.dev5 的 XML（Apache-2.0，见 LICENSE-SDK），仅作为对照。SDK 缺失 meshes，且 head_pitch、臂/夹爪命名和传动与所供 URDF 不一致，因此未作为运行模型。SDK 的 .0838/.189 底盘参数未套用于此 URDF 模型。
 来源与逐文件 SHA-256 见 PROVENANCE.json。
+
+2026-11-11 核对：原始 URDF 与用户提供的 airbot_mmk2_description 逐字节相同，37 个网格文件的 SHA-256 全部一致。MJCF 转换补齐 URDF 的 mesh scale，保留右驱动轮及左右各一片手指的负缩放镜像。

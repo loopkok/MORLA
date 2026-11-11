@@ -3,7 +3,7 @@
 <description>MMK2 native SDK whole robot driver through MORLA shared Runtime and Web</description>
 <maintainer email="maintainers@morla.dev">MORLA</maintainer><license>Apache-2.0</license>
 <buildtool_depend>ament_python</buildtool_depend>
-<exec_depend>morla_core</exec_depend><exec_depend>morla_runtime</exec_depend><exec_depend>morla_teleop</exec_depend><exec_depend>mmk2_description</exec_depend>
+<exec_depend>morla_core</exec_depend><exec_depend>morla_runtime</exec_depend><exec_depend>morla_teleop</exec_depend><exec_depend>mmk2_description</exec_depend><exec_depend>morla_mmk2_teleop</exec_depend>
 <exec_depend>rclpy</exec_depend><exec_depend>sensor_msgs</exec_depend><exec_depend>geometry_msgs</exec_depend><exec_depend>nav_msgs</exec_depend>
 <exec_depend>python3-numpy</exec_depend><exec_depend>python3-scipy</exec_depend><exec_depend>python3-pil</exec_depend><exec_depend>python3-grpcio</exec_depend><exec_depend>python3-protobuf</exec_depend>
 <exec_depend>launch</exec_depend><exec_depend>launch_ros</exec_depend><test_depend>python3-pytest</test_depend>

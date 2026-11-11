@@ -3,7 +3,7 @@
   "assembly_version": 1,
   "bindings": [
     {
-      "controller": "morla.cartesian_delta_ik",
+      "controller": "morla.mmk2.cartesian_delta",
       "deadman": "quest.left_hold",
       "id": "left_vr",
       "input_basis_id": "unity_left_handed_v1",
@@ -54,7 +54,7 @@
       "target": "left_arm.position_target"
     },
     {
-      "controller": "morla.cartesian_delta_ik",
+      "controller": "morla.mmk2.cartesian_delta",
       "deadman": "quest.right_hold",
       "id": "right_vr",
       "input_basis_id": "unity_left_handed_v1",

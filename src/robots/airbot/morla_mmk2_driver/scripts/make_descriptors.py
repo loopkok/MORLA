@@ -41,17 +41,35 @@ def generate():
         fields['max_command_lead']['title']='目标领先上限 / '+label_unit
         fields['command_interface']['title']='SDK 目标接口'
         fields['trajectory_scale']['title']='SDK 轨迹速度与加速度缩放'
+        if role.endswith('_arm'):
+            for name, default, maximum, title in (
+                ('position_lead_m', .02, .25, '每拍平移目标允许超前 / m'),
+                ('rotation_lead_rad', .35, 1., '每拍旋转目标允许超前 / rad'),
+                ('damping_min', .005, 1., '奇异点外 DLS 阻尼'),
+                ('damping_max', .145, 1., '奇异点处 DLS 阻尼'),
+                ('singularity_threshold', .05, 1., '阻尼起作用的 σ_min 阈值'),
+            ):
+                fields[name] = dict(type='number', exclusiveMinimum=0, maximum=maximum, title=title)
+                params[name] = default
         if role=='base':
             for name in ('max_velocity','max_command_lead'):
                 fields.pop(name);params.pop(name)
         geometry={'frames':['base','flange','mount'],'sdk_component':sdk,'calibration_required':True,'collision_verified':False}
         if role.endswith('_arm'):geometry.update(controller_capabilities=['cartesian_ik'],solver_base_frame=role.split('_')[0]+'_base_link',solver_tip_frame=role.split('_')[0]+'_gripper_center')
         label={'left_arm':'左臂','right_arm':'右臂','left_gripper':'左夹爪','right_gripper':'右夹爪','head':'头部','lift':'升降','base':'底盘原生速度'}[role]
-        descriptors.append(dict(descriptor_version=1,api_version='1.0',plugin_id=PREFIX+role,plugin_version='1.0.0',kind='actuator',ports=ports,joints=joints,command_modes=['velocity' if role=='base' else 'position'],backend_variants={'fake':{'available':True,'validation_level':'synthetic_sdk_protocol'},'real':{'available':True,'requires':['grpcio>=1.73.1','protobuf>=6.31,<7','MMK2 gRPC service'],'validation_level':'NOT_RUN_hardware_readonly_default'}},resources={'session_family':'mmk2_sdk','sharing':'session','stop_policy':'hold_and_zero_base'},operations={x:{'moves':False,'scope':'device_session'} for x in ('prepare','enable','stop')},geometry=geometry,configuration_schema={'type':'object','additionalProperties':False,'properties':fields},defaults=params,source={'package':'morla_mmk2_driver','version':'0.1.0'},web={'device_category':'arm' if role.endswith('_arm') else 'end' if 'gripper' in role else 'whole','label':'MMK2 SDK '+label,'connection_fields':['host','port','robot_name','domain_id'],'fields':list(fields),'preferred_controllers':{'axes_buttons':'morla.mmk2_sdk.base_twist'} if role=='base' else {'pose6d':'morla.cartesian_delta_ik'} if role.endswith('_arm') else {}}))
+        descriptors.append(dict(descriptor_version=1,api_version='1.0',plugin_id=PREFIX+role,plugin_version='1.0.0',kind='actuator',ports=ports,joints=joints,command_modes=['velocity' if role=='base' else 'position'],backend_variants={'fake':{'available':True,'validation_level':'synthetic_sdk_protocol'},'real':{'available':True,'requires':['grpcio>=1.73.1','protobuf>=6.31,<7','MMK2 gRPC service'],'validation_level':'NOT_RUN_hardware_readonly_default'}},resources={'session_family':'mmk2_sdk','sharing':'session','stop_policy':'hold_and_zero_base'},operations={x:{'moves':False,'scope':'device_session'} for x in ('prepare','enable','stop')},geometry=geometry,configuration_schema={'type':'object','additionalProperties':False,'properties':fields},defaults=params,source={'package':'morla_mmk2_driver','version':'0.1.0'},web={'device_category':'arm' if role.endswith('_arm') else 'end' if 'gripper' in role else 'whole','label':'MMK2 SDK '+label,'connection_fields':['host','port','robot_name','domain_id'],'fields':[name for name in fields if name not in ('position_lead_m','damping_min','damping_max','singularity_threshold')],'preferred_controllers':{'axes_buttons':'morla.mmk2_sdk.base_twist'} if role=='base' else {'pose6d':'morla.mmk2.cartesian_delta'} if role.endswith('_arm') else {}}))
     camera_connection={k:v for k,v in connection.items() if k not in ('allow_motion','mapping_verified','hold_stop_accepted')}
     camera_defaults={k:v for k,v in defaults.items() if k in camera_connection}
     descriptors.append(dict(descriptor_version=1,api_version='1.0',plugin_id=PREFIX+'camera',plugin_version='1.0.0',kind='sensor',ports={'rgb':port('output','image',3,'rgb',codec='image',dtype='uint8'),'depth':port('output','image',1,'sdk_depth',codec='image',dtype='uint16')},joints=[],backend_variants={'fake':{'available':True},'real':{'available':True,'requires':['grpcio','protobuf','Pillow']}},resources={'session_family':'mmk2_sdk','sharing':'session'},geometry={'frames':['optical'],'calibration_required':True},configuration_schema={'type':'object','additionalProperties':False,'properties':dict(camera_connection,camera={'type':'string','enum':['head_camera','left_camera','right_camera']},fps={'type':'number','minimum':1,'maximum':30},depth_scale_m={'type':'number','minimum':0,'maximum':1})},defaults=dict(camera_defaults,camera='head_camera',fps=10.,depth_scale_m=0.),source={'package':'morla_mmk2_driver','version':'0.1.0'},web={'label':'MMK2 SDK 相机','connection_fields':['host','port','robot_name','domain_id']}))
     descriptors.append(dict(descriptor_version=1,api_version='1.0',plugin_id='morla.mmk2_sdk.base_twist',plugin_version='1.0.0',kind='controller',ports={},controller_types={'inputs':['axes_buttons'],'outputs':['joint_targets'],'target_plugins':[PREFIX+'base'],'target_dim':2},backend_variants={'fake':{'available':True},'real':{'available':True}},defaults={'linear_speed':.05,'angular_speed':.15},configuration_schema={'type':'object','additionalProperties':False,'properties':{'linear_speed':{'type':'number','exclusiveMinimum':0,'maximum':.15},'angular_speed':{'type':'number','exclusiveMinimum':0,'maximum':.3}}},source={'package':'morla_mmk2_driver','version':'0.1.0'},web={'label':'MMK2 SDK 底盘速度'}))
+    quest = json.loads((ROOT / 'config/quest.fake.yaml').read_text())
+    for binding in quest['bindings']:
+        if binding['controller'] == 'morla.mmk2.cartesian_delta':
+            role = binding['target'].split('.')[0]
+            descriptor = next(d for d in descriptors if d['plugin_id'] == PREFIX + role)
+            descriptor['web']['binding_presets'] = [
+                dict(controller=binding['controller'], source_plugin='morla.input.quest', defaults=binding['parameters'])
+            ]
     descriptors[0]['web']['templates']=[{'id':'mmk2-sdk-fake','title':'AIRBOT MMK2 SDK 整机 / Quest（协议测试）','package':'morla_mmk2_driver','path':'config/quest.fake.yaml'},{'id':'mmk2-sdk-real','title':'AIRBOT MMK2 SDK 整机（真实设备，默认只读）','package':'morla_mmk2_driver','path':'config/assembly.real.yaml'}]
     return descriptors
 

@@ -2,6 +2,8 @@
 
 2026-11-10。本轮基于用户提供的 `mmk2_sdk_src`，参考设备接入总指南、FR3 移植教程与 CR5/FR3 的 Adapter、SDK 边界、ROS 网关、微分 IK、descriptor/Web 接入经验。用户确认 SDK 没有实现使能/停止接口，控制器 IP 为 **172.25.14.1**，实体测试由用户后续完成；本轮没有连接该地址。
 
+2026-11-11 更新：Quest 双臂现使用 [MMK2 专属异步控制器](../../src/robots/airbot/morla_mmk2_teleop/README.md)。仿真和 SDK 共用实际 URDF 的差分 IK；旧公共绑定可继续使用，建议在 Web 切换为专属控制器并保存新版本。下文 2026-11-10 的求解及限步描述为历史记录。
+
 ## 实现
 
 新包 `src/robots/airbot/morla_mmk2_driver` 提供独立 ament_python/ROS 2 入口、launch、静态描述、fake/real 工厂、只读检查 CLI、真实部署与双手 Quest 模板。完整安装与 Web 操作步骤见[包说明](../../src/robots/airbot/morla_mmk2_driver/README.md)。Web 从已安装 descriptor 发现，不增加前后端品牌分支。
