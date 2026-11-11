@@ -1,0 +1,32 @@
+20261111T052027Z_mmk2_quest_sim_7ef3737a672a4e589b26db511a4dc0dd
+  --- left_pose   3024 ticks   35.6 Hz
+      dt            p50  28.4  p95  45.4  max   87.0 ms   >40ms 13%
+      output step   p50 0.0149  p95 0.0321   ==cap 55%   zero  1%
+      solver step   p50 0.0226  p95 0.0400   saturated 37%   max_step p50 0.0400
+      candidate age p50  35.3  p95  55.8  max   90.6 ms
+      solve         p50  12.4  p95  24.4 ms
+      joint jump    p50 0.0149  p95 0.0321 rad
+      sigma         p50 0.0309  p05 0.0080      damping p50 0.025  p95 0.104
+      raw pos err   p50 0.0006  p95 0.0715 m
+      tcp jump      p50 2.3  p95 8.7  max 20.1 mm
+  --- right_pose   2480 ticks   29.3 Hz
+      dt            p50  33.9  p95  54.9  max  107.4 ms   >40ms 31%
+      output step   p50 0.0156  p95 0.0378   ==cap 50%   zero  5%
+      solver step   p50 0.0223  p95 0.0400   saturated 40%   max_step p50 0.0400
+      candidate age p50  39.6  p95  60.5  max  115.2 ms
+      solve         p50  13.4  p95  26.7 ms
+      joint jump    p50 0.0157  p95 0.0378 rad
+      sigma         p50 0.0316  p05 0.0057      damping p50 0.024  p95 0.115
+      raw pos err   p50 0.0014  p95 0.0779 m
+      tcp jump      p50 2.2  p95 9.9  max 20.1 mm
+
+20261106T090825Z_fr3_quest_real_27073bfb455d45aaa69c338c6520a879
+  --- right_pose   4995 ticks   89.9 Hz
+      dt            p50  11.1  p95  12.8  max   42.8 ms   >40ms  0%
+      solver step   p50 0.0300  p95 0.0300
+      candidate age p50  11.5  p95  13.2  max   46.9 ms
+      solve         p50   2.8  p95   3.6 ms
+      joint jump    p50 0.0070  p95 0.0082 rad
+      sigma         p50 0.1110  p05 0.0969      damping p50 0.005  p95 0.005
+      raw pos err   p50 0.0478  p95 0.0922 m
+

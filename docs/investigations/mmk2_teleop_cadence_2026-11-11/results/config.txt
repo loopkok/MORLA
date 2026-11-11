@@ -1,0 +1,39 @@
+20261111T052027Z_mmk2_quest_sim_7ef3737a672a4e589b26db511a4dc0dd
+  device   base               {'initial_positions': [0, 0], 'command_timeout_s': 0.25}
+  device   head               {'initial_positions': [0, 0]}
+  device   left_arm           {'initial_positions': [0, -0.6, 1, 1.6, -0.6, 0], 'position_lead_m': 0.02, 'rotation_lead_rad': 0.35, 'damping_min': 0.005, 'damping_max': 0.145, 'singularity_threshold': 0.05}
+  device   left_gripper       {'initial_positions': [0]}
+  device   lift               {'initial_positions': [0]}
+  quest    {'rate_hz': 100, 'protocol': 'tcp_wired', 'process_mode': 'managed', 'side': 'both', 'tcp_port': 8000}
+  device   right_arm          {'initial_positions': [0, -0.6, 1, -1.6, 0.6, 0], 'position_lead_m': 0.02, 'rotation_lead_rad': 0.35, 'damping_min': 0.005, 'damping_max': 0.145, 'singularity_threshold': 0.05}
+  device   right_gripper      {'initial_positions': [0]}
+  binding  quest.left_pose        -> left_arm.position_target morla.mmk2.cartesian_delta     {'calibration_verified': False, 'command_lead_rad': 0.15, 'input_position_rotation': '<3x3>', 'input_rotation': '<3x3>', 'max_joint_step': 0.15, 'max_joint_velocity': 0.8, 'position_scale': 0.8, 'rotation_scale': 1, 'smoothing_alpha': 0.6}
+  binding  quest.right_pose       -> right_arm.position_target morla.mmk2.cartesian_delta     {'calibration_verified': False, 'command_lead_rad': 0.15, 'input_position_rotation': '<3x3>', 'input_rotation': '<3x3>', 'max_joint_step': 0.15, 'max_joint_velocity': 0.8, 'position_scale': 0.8, 'rotation_scale': 1, 'smoothing_alpha': 0.6}
+  binding  quest.left_scalar      -> left_gripper.position_target morla.scalar_map               {'input_range': [0, 1], 'output_range': [0.04, 0]}
+  binding  quest.right_scalar     -> right_gripper.position_target morla.scalar_map               {'input_range': [0, 1], 'output_range': [0.04, 0]}
+  binding  quest.left_scalar      -> lift.position_target     morla.scalar_anchored          {'input_range': [0, 1], 'output_range': [0.04, 0]}
+  binding  quest.left_axes        -> head.position_target     morla.joint_jog                {'axes_map': ['x', 'y'], 'speed': 0.1}
+  binding  quest.right_axes       -> base.velocity_target     morla.mmk2.differential_drive  {'angular_speed': 0.3, 'linear_speed': 0.08}
+
+20261111T053601Z_mmk2_quest_sim_8f7f6c0e1c994fdda6739f1752b0a62d
+  device   base               {'initial_positions': [0, 0], 'command_timeout_s': 0.25}
+  device   head               {'initial_positions': [0, 0]}
+  device   left_arm           {'initial_positions': [0, -0.6, 1, 1.6, -0.6, 0], 'position_lead_m': 0.02, 'rotation_lead_rad': 0.35, 'damping_min': 0.005, 'damping_max': 0.145, 'singularity_threshold': 0.05}
+  device   left_gripper       {'initial_positions': [0]}
+  device   lift               {'initial_positions': [0]}
+  quest    {'rate_hz': 100, 'protocol': 'tcp_wired', 'process_mode': 'managed', 'side': 'right', 'tcp_port': 8000}
+  device   right_arm          {'initial_positions': [0, -0.6, 1, -1.6, 0.6, 0], 'position_lead_m': 0.02, 'rotation_lead_rad': 0.35, 'damping_min': 0.005, 'damping_max': 0.145, 'singularity_threshold': 0.05}
+  device   right_gripper      {'initial_positions': [0]}
+  binding  quest.left_pose        -> left_arm.position_target morla.mmk2.cartesian_delta     {'calibration_verified': False, 'command_lead_rad': 0.15, 'input_position_rotation': '<3x3>', 'input_rotation': '<3x3>', 'max_joint_step': 0.15, 'max_joint_velocity': 0.8, 'position_scale': 0.8, 'rotation_scale': 1, 'smoothing_alpha': 0.6}
+  binding  quest.right_pose       -> right_arm.position_target morla.mmk2.cartesian_delta     {'calibration_verified': False, 'command_lead_rad': 0.15, 'input_position_rotation': '<3x3>', 'input_rotation': '<3x3>', 'max_joint_step': 0.15, 'max_joint_velocity': 0.8, 'position_scale': 0.8, 'rotation_scale': 1, 'smoothing_alpha': 0.6}
+  binding  quest.left_scalar      -> left_gripper.position_target morla.scalar_map               {'input_range': [0, 1], 'output_range': [0.04, 0]}
+  binding  quest.right_scalar     -> right_gripper.position_target morla.scalar_map               {'input_range': [0, 1], 'output_range': [0.04, 0]}
+  binding  quest.left_scalar      -> lift.position_target     morla.scalar_anchored          {'input_range': [0, 1], 'output_range': [0.04, 0]}
+  binding  quest.left_axes        -> head.position_target     morla.joint_jog                {'axes_map': ['x', 'y'], 'speed': 0.1}
+  binding  quest.right_axes       -> base.velocity_target     morla.mmk2.differential_drive  {'angular_speed': 0.3, 'linear_speed': 0.08}
+
+20261106T090825Z_fr3_quest_real_27073bfb455d45aaa69c338c6520a879
+  device   arm                {'rate_hz': 125, 'rpc_timeout_s': 0.25, 'startup_timeout_s': 15, 'operation_timeout_s': 10, 'feedback_timeout_s': 0.2, 'joint_lower': [-3.0543, -4.6251, -2.618, -4.6251, -3.0543, -3.0543], 'joint_upper': [3.0543, 1.4835, 2.618, 1.4835, 3.0543, 3.0543], 'max_velocity_rad_s': 0.65, 'max_command_lead_rad': 0.3, 'kinematics_verified': False, 'initial_positions': [-1.5708, -1.5708, -1.5708, -1.5708, 1.5708, 0], 'urdf_joint_signs': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0], 'urdf_joint_offsets': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'host': '192.168.58.2'}
+  quest    {'rate_hz': 100, 'protocol': 'tcp_wired', 'process_mode': 'managed', 'side': 'right', 'tcp_port': 8000}
+  binding  quest.right_pose       -> arm.position_target      morla.fr3.cartesian_delta      {'calibration_verified': True, 'command_lead_rad': 0.08, 'ik_mode': 'differential', 'input_position_rotation': '<3x3>', 'input_rotation': '<3x3>', 'max_joint_step': 0.03, 'max_joint_velocity': 1, 'position_scale': 0.8, 'smoothing_alpha': 0.6, 'solver_tip_from_tool': '<4x4>'}
+

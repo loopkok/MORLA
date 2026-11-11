@@ -1,0 +1,33 @@
+{
+  "note": "本文件只记录本目录证据用到的运行；日志本体在 ~/.local/share/morla/logs，不在仓库里。",
+  "runs": [
+    {
+      "id": "20261111T052027Z_mmk2_quest_sim_7ef3737a672a4e589b26db511a4dc0dd",
+      "path": "~/.local/share/morla/logs/20261111T052027Z_mmk2_quest_sim_7ef3737a672a4e589b26db511a4dc0dd",
+      "what": "MMK2 双臂 Quest 遥操仿真，操作员报“一卡一卡”的那一轮（max_joint_velocity 0.8）",
+      "quest_side": "both",
+      "role": "主证据：双手同时在线时快照轮流装一只手"
+    },
+    {
+      "id": "20261111T053601Z_mmk2_quest_sim_8f7f6c0e1c994fdda6739f1752b0a62d",
+      "path": "~/.local/share/morla/logs/20261111T053601Z_mmk2_quest_sim_8f7f6c0e1c994fdda6739f1752b0a62d",
+      "what": "同一套 MMK2 仿真与接收器，Quest 实例改成 side: right，17 秒空跑（未按 deadman，无指令）",
+      "quest_side": "right",
+      "role": "对照：同一份代码单手时右手位姿回到 89.4 Hz，输入帧 233.9 Hz"
+    },
+    {
+      "id": "20261106T090825Z_fr3_quest_real_27073bfb455d45aaa69c338c6520a879",
+      "path": "~/.local/share/morla/logs/20261106T090825Z_fr3_quest_real_27073bfb455d45aaa69c338c6520a879",
+      "what": "FR3 真机 Quest 单臂遥操（side: right）",
+      "quest_side": "right",
+      "role": "对照：单手 89.9 Hz 的位姿/指令节奏与 11 ms 的 candidate age"
+    },
+    {
+      "id": "20261106T091451Z_fr3_quest_real_bdb268bc79d44e8f8c413e840b86d036",
+      "path": "~/.local/share/morla/logs/20261106T091451Z_fr3_quest_real_bdb268bc79d44e8f8c413e840b86d036",
+      "what": "FR3 真机同一配置的第二次运行",
+      "quest_side": "right",
+      "role": "复核：节奏可重复"
+    }
+  ]
+}
