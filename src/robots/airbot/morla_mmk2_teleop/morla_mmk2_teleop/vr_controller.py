@@ -108,7 +108,7 @@ class AsyncCartesianController:
                 raise RuntimeError('MMK2 controller closed')
             self.anchor_waiter = waiter
             self.pending = (self.generation, copy.deepcopy(value), vector6(measured), 0.,
-                            copy.deepcopy(parameters), self.clock(), dict(self.trace_context), waiter, None)
+                            copy.deepcopy(parameters), self.clock(), dict(self.trace_context), waiter, None, None)
             self.condition.notify()
         return waiter.result(timeout=2.5)
 
@@ -126,7 +126,7 @@ class AsyncCartesianController:
                     **copy.deepcopy(self.report), **copy.deepcopy(self.output_report),
                     'age_ms': max(0., (self.clock() - self.report['sample_ns']) / 1e6) if 'sample_ns' in self.report else None}
 
-    def _output(self, origin, candidate, measured, step, lead, goal, raw):
+    def _output(self, origin, candidate, measured, step, lead):
         """Shape the worker candidate in the FR3/CR5 output shape.
 
         Bound the candidate to the measured lead window, then clip the applied
@@ -147,12 +147,10 @@ class AsyncCartesianController:
         lower = np.minimum(self.solver.bounds[:, 0], origin)
         upper = np.maximum(self.solver.bounds[:, 1], origin)
         output = np.clip(shaped, lower, upper)
-        metrics = self.solver.command_metrics(output, goal, raw)
         return output, {
             'output_values': output.tolist(), 'output_step_rad': float(np.max(np.abs(output - origin))),
             'output_step_limit_rad': step, 'output_step_scale': fraction,
-            'output_position_error_m': metrics['raw_position_error_m'],
-            'output_angle_error_rad': metrics['raw_angle_error_rad'], 'output_fk_verified': False,
+            'output_fk_verified': False,
         }
 
     def __call__(self, value, measured, dt, parameters):
@@ -177,25 +175,26 @@ class AsyncCartesianController:
                 raise TimeoutError('MMK2 IK result expired')
             origin = measured.copy() if self.last_output is None else self.last_output.copy()
             seed = integration_seed(measured, self.last_output, lead)
-            self.pending = (self.generation, copy.deepcopy(value), measured.copy(), min(.05, dt),
-                            copy.deepcopy(parameters), now, dict(self.trace_context), None, seed)
-            self.condition.notify()
-            completed = copy.deepcopy(self.result)
+            completed = self.result
+            output_sample = None
             if completed is None or completed['goal'] is None:
-                self.last_output = origin
+                output = origin
                 self.output_report = {'output_values': origin.tolist(), 'output_step_rad': 0., 'output_reason': 'waiting_for_ik'}
-                return origin.tolist()
-            # The completed result is one request old, so its absolute value
-            # sits one applied step behind the current command. Apply the step
-            # the solver produced, relative to the seed it produced it from;
-            # subtracting from the current origin would cancel exactly that
-            # step and settle at half the commanded speed.
-            candidate = completed['values'] if completed['seed'] is None else origin + (completed['values'] - completed['seed'])
-            output, diagnostic = self._output(origin, candidate, measured, step, lead,
-                                              completed['goal'], completed['raw'])
+            else:
+                # Apply the previous solve's delta relative to the current
+                # output so asynchronous delivery does not cancel a step.
+                candidate = completed['values']
+                if completed['seed'] is not None:
+                    candidate = origin + (candidate - completed['seed'])
+                output, diagnostic = self._output(origin, candidate, measured, step, lead)
+                self.output_report = {**diagnostic, 'output_candidate_ns': completed['requested_ns'],
+                                      'output_generation': self.generation}
+                output_sample = (output.copy(), completed['goal'], completed['raw'])
             self.last_output = output.copy()
-            self.output_report = {**diagnostic, 'output_candidate_ns': completed['requested_ns'],
-                                  'output_generation': self.generation}
+            self.pending = (self.generation, copy.deepcopy(value), measured.copy(), min(.05, dt),
+                            copy.deepcopy(parameters), now, dict(self.trace_context), None, seed,
+                            output_sample)
+            self.condition.notify()
             return output.tolist()
 
     def _run(self):
@@ -204,8 +203,10 @@ class AsyncCartesianController:
                 self.condition.wait_for(lambda: self.closed or self.pending is not None)
                 if self.closed:
                     return
-                generation, value, measured, dt, parameters, requested, context, waiter, seed = self.pending
+                (generation, value, measured, dt, parameters, requested, context,
+                 waiter, seed, output_sample) = self.pending
                 self.pending = None
+            output_metrics = {}
             try:
                 if generation != self.worker_generation:
                     self.controller.reset()
@@ -223,6 +224,15 @@ class AsyncCartesianController:
                     result = self.controller(value, measured, dt, parameters, seed=seed)
                 if self.clock() - requested > 250_000_000:
                     raise TimeoutError('MMK2 FK/IK deadline exceeded')
+                if output_sample is not None:
+                    # The sample carries the exact output and target from the
+                    # callback that enqueued this task, even if IK has advanced.
+                    metrics = self.solver.command_metrics(*output_sample)
+                    output_metrics = {
+                        'output_metrics_sample_ns': requested,
+                        'output_position_error_m': metrics['raw_position_error_m'],
+                        'output_angle_error_rad': metrics['raw_angle_error_rad'],
+                    }
                 error = None
             except Exception as exc:
                 result, error = None, str(exc)
@@ -231,7 +241,7 @@ class AsyncCartesianController:
                 if current:
                     self.error = error
                     self.report = {
-                        **copy.deepcopy(self.solver.last_report), 'sample_ns': requested,
+                        **copy.deepcopy(self.solver.last_report), **output_metrics, 'sample_ns': requested,
                         'completed_ns': self.clock(), 'generation': generation, 'input_context': context,
                         'feedback_seed': measured.tolist(), 'command_seed': None if seed is None else seed.tolist(),
                         'candidate_values': None if result is None else list(result),

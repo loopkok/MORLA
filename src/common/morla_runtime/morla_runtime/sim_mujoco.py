@@ -32,6 +32,8 @@ class MujocoDeviceSession:
         self.builder = builder or _builder()
         self.configured = False
         self.command_lock = threading.Lock()
+        # Lock order: step_lock, command_lock, state_lock. Ingress only needs command_lock.
+        self.step_lock = threading.Lock()
         self.state_lock = threading.Lock()
         self.stop_event = threading.Event()
         self.pending = {}
@@ -137,11 +139,12 @@ class MujocoDeviceSession:
             period = float(self.model.opt.timestep)
             while not self.stop_event.is_set():
                 began = time.monotonic()
-                with self.command_lock:
-                    pending, self.pending = self.pending, {}
-                    for key, target in pending.items():
-                        self.targets[key] = self.np.asarray(target).copy()
-                        self.data.ctrl[self.indices[key]['ctrl']] = target
+                with self.step_lock:
+                    with self.command_lock:
+                        pending, self.pending = self.pending, {}
+                        for key, target in pending.items():
+                            self.targets[key] = self.np.asarray(target)
+                            self.data.ctrl[self.indices[key]['ctrl']] = target
                     if self.mode == 'kinematic':
                         for key, indices in self.indices.items():
                             self.data.qpos[indices['qpos']] = self.targets[key]
@@ -188,9 +191,10 @@ class MujocoDeviceSession:
             elif self.viewer is not None:
                 self.viewer.close()
                 self.viewer = None
-            with self.command_lock:
-                if mode != self.mode:
-                    self.pending.clear()
+            if mode != self.mode:
+                with self.step_lock:
+                    with self.command_lock:
+                        self.pending.clear()
                     for key, indices in self.indices.items():
                         current = self.data.qpos[indices['qpos']].copy()
                         self.targets[key] = current
@@ -198,7 +202,7 @@ class MujocoDeviceSession:
                     self.data.qvel[:] = 0
                     self.mode = mode
                     self._snapshot()
-                self.display = display
+            self.display = display
         return self.settings()
 
     def _render(self):

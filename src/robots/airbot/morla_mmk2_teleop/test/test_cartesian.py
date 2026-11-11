@@ -47,7 +47,7 @@ def test_recorded_wrist_branch_output_respects_step_lead_and_limits():
         # Feedback trailing at the edge of the lead window: the lead clip alone
         # shapes the step, and the contract is the bound, not cost descent.
         feedback = q - .078 * np.sign(candidate - q)
-        output, report = controller._output(q, candidate, feedback, .004, .08, goal, target)
+        output, report = controller._output(q, candidate, feedback, .004, .08)
         assert 0 < report['output_step_rad'] <= .004 + 1e-12
         assert np.max(np.abs(output - feedback)) <= .08 + 1e-12
         assert np.all(output >= solver.bounds[:, 0] - 1e-12)
@@ -55,7 +55,7 @@ def test_recorded_wrist_branch_output_respects_step_lead_and_limits():
         # Feedback on the command: the lead clip is inert, so the single
         # direction-preserving speed clip must keep the solver's descent
         # direction (the 20 mm -> 52 mm regression was a component-wise clip).
-        output, _ = controller._output(q, candidate, q, .004, .08, goal, target)
+        output, _ = controller._output(q, candidate, q, .004, .08)
         after = solver.command_metrics(output, goal, target)
         assert after['cost'] < before['cost']
         np.testing.assert_allclose(output - q, (candidate - q) * (.004 / np.max(np.abs(candidate - q))), atol=1e-12)

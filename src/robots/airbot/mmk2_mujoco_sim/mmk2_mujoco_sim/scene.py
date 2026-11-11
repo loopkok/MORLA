@@ -103,12 +103,13 @@ class MMK2Session(MujocoDeviceSession):
             dt = float(self.model.opt.timestep)
             while not self.stop_event.is_set():
                 began = time.monotonic()
-                with self.command_lock:
-                    self.targets.update({k:np.asarray(v) for k,v in self.pending.items()})
-                    self.pending.clear()
-                    base=self.roles.get('base')
-                    if base and self.runtime.clock()-self.last_base_command_ns>self.base_timeout_ns:
-                        self.targets[base]=np.zeros(2)
+                with self.step_lock:
+                    with self.command_lock:
+                        pending, self.pending = self.pending, {}
+                        self.targets.update({key: np.asarray(value) for key, value in pending.items()})
+                        base = self.roles.get('base')
+                        if base and self.runtime.clock() - self.last_base_command_ns > self.base_timeout_ns:
+                            self.targets[base] = np.zeros(2)
                     for key,indices in self.indices.items():
                         self.data.ctrl[indices['ctrl']] = self.targets[key]
                     wheel = self.targets.get(self.roles.get('base'),np.zeros(2))
@@ -198,13 +199,14 @@ class MMK2Session(MujocoDeviceSession):
             return result
 
     def stop(self, key):
-        with self.command_lock:
-            self.active.discard(key); self.pending.pop(key,None)
-            if key==self.roles.get('base'):
-                self.targets[key] = np.zeros(2)
-                self.data.ctrl[self.indices[key]['ctrl']] = 0
-                self.data.ctrl[self.base_ctrl] = 0
-            # Position groups hold the last accepted target, never zero joints.
+        if key != self.roles.get('base'):
+            return super().stop(key)
+        # Serialize zeroing the live controls with any in-flight physics step.
+        with self.step_lock, self.command_lock:
+            super().stop(key)
+            self.targets[key] = np.zeros(2)
+            self.data.ctrl[self.indices[key]['ctrl']] = 0
+            self.data.ctrl[self.base_ctrl] = 0
         return True
 
     def set_options(self, mode=None, display=None):
@@ -218,9 +220,10 @@ class MMK2Session(MujocoDeviceSession):
                 self._open_viewer()
             elif self.viewer is not None:
                 self.viewer.close(); self.viewer = None
-            with self.command_lock:
-                if mode != self.mode:
-                    self.pending.clear()
+            if mode != self.mode:
+                with self.step_lock:
+                    with self.command_lock:
+                        self.pending.clear()
                     for key,indices in self.indices.items():
                         target = np.zeros(2) if key==self.roles.get('base') else self.data.qpos[indices['qpos']].copy()
                         self.targets[key] = target
@@ -229,7 +232,7 @@ class MMK2Session(MujocoDeviceSession):
                     self.data.qvel[:] = 0
                     self.mode = mode
                     self._snapshot()
-                self.display = display
+            self.display = display
         return self.settings()
 
     def _render(self):

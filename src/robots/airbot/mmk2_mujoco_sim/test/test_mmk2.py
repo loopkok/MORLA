@@ -1,4 +1,5 @@
 import json
+import threading
 import time
 from pathlib import Path
 import numpy as np
@@ -52,6 +53,31 @@ def activate(runtime):
     runtime.activate('activate')
     wait_for(lambda:runtime.operations['activate']['status']!='RUNNING')
     assert runtime.operations['activate']['status']=='SUCCEEDED'
+
+
+def test_command_enqueue_does_not_wait_for_scene_snapshot(running, monkeypatch):
+    activate(running)
+    scene = running.adapters['left_arm'].session
+    snapshot = scene._snapshot
+    entered, release = threading.Event(), threading.Event()
+
+    def blocked_snapshot():
+        entered.set()
+        release.wait(5)
+        snapshot()
+
+    command_row = command(running, 'left_arm', scene.read('left_arm')['values'])
+    monkeypatch.setattr(scene, '_snapshot', blocked_snapshot)
+    try:
+        assert entered.wait(2)
+        assert scene.command_lock.acquire(timeout=1), 'snapshot holds the command lock'
+        scene.command_lock.release()
+        assert scene.submit('left_arm', command_row)['status'] == 'queued_latest'
+        assert entered.is_set() and not release.is_set()
+        scene.stop('left_arm')
+        assert 'left_arm' not in scene.pending
+    finally:
+        release.set()
 
 
 def test_complete_model_and_schema():
