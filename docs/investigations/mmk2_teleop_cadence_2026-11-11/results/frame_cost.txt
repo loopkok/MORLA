@@ -1,0 +1,19 @@
+20261111T052027Z_mmk2_quest_sim_7ef3737a672a4e589b26db511a4dc0dd
+  controller.step left_pose n= 3024  p50    1.23  p95    6.24  max    15.2 ms
+  controller.step right_pose n= 2480  p50    1.23  p95    5.86  max    19.2 ms
+  adapter submit           n= 5521  p50    6.15  p95   20.58  max    74.9 ms
+  帧间隔（该秒无指令）               n= 1398  p50    2.17  p95    9.99  max    15.6 ms
+  帧间隔（该秒有指令）               n= 5779  p50   15.11  p95   30.47  max    80.5 ms
+  整轮输入 7178 帧 78.5 Hz
+
+20261111T053601Z_mmk2_quest_sim_8f7f6c0e1c994fdda6739f1752b0a62d
+  帧间隔（该秒无指令）               n= 3941  p50    1.84  p95   10.69  max    64.2 ms
+  整轮输入 3942 帧 233.9 Hz
+
+20261106T090825Z_fr3_quest_real_27073bfb455d45aaa69c338c6520a879
+  controller.step right_pose n= 4995  p50    0.09  p95    0.11  max     0.3 ms
+  adapter submit           n= 5161  p50    0.10  p95    0.13  max     0.4 ms
+  帧间隔（该秒无指令）               n= 2366  p50    1.30  p95   10.39  max    32.1 ms
+  帧间隔（该秒有指令）               n=15024  p50    1.28  p95   10.24  max    38.9 ms
+  整轮输入 17391 帧 268.0 Hz
+

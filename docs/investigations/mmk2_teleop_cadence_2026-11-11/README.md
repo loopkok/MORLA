@@ -13,18 +13,42 @@
    `sequence` 加一（`src/common/morla_input/morla_input/quest_snapshot.py:131`）。
    四轮运行里，左/右手的 `sequence` 都稳定在 **180/s**，换算就是每只手
    **90 个位姿样本/秒**，卡顿那一轮也不例外。
-2. **卡住的是引擎摄取。** 每个新样本在 `_ingest_frame` 的锁内同步跑一次 IK
-   （`composable_service.py:424` → `engine.targets` → `controller.step`），
-   MMK2 的单次解算 p50 是 **12.4 / 13.4 ms**，串行起来上限约
-   **1 / 12.8 ms ≈ 78 条/秒**；两条流分摊后引擎只拿到 **39.5 / 33.5** 个位姿/秒。
-3. **丢掉的部分没人告警。** 订阅用 BEST_EFFORT + depth=1
-   （`builtin_sources.py:47`），处理不过来时 DDS 直接只留最新一条；
-   于是 `seq/pose` 从 2.00 涨到 **4.56 / 5.37**——每收到一个位姿，接收端其实已经更新过 4–5 次。
-4. **FR3 没有这个问题，因为它的 IK 快。** FR3 解算 p50 **2.8 ms**，
-   90 个样本/秒只占 0.25 s/s，`seq/pose` 保持 **2.00**，指令 89.9 Hz。
-5. 结果就是手感：MMK2 指令 35.6 / 29.3 Hz、每拍关节 0.015 rad；
-   FR3 89.9 Hz、每拍 0.0070 rad。两者平均速度接近（0.53 vs 0.63 rad/s），
-   **台阶粗 5–6 倍**，所以是"一格一格"，不是"慢"。
+2. **丢发生在摄取线程，不是头显、也不是 IK。** 同一轮运行里，没有指令的秒帧间隔
+   p50 **2.17 ms**（≈260 帧/秒），一有指令就变成 **15.11 ms**（≈66 帧/秒）。
+   订阅是 BEST_EFFORT + depth=1（`builtin_sources.py:47`），处理不过来的消息被
+   DDS 直接只留最新一条，于是每只手只拿到 **39.5 / 33.5** 个位姿/秒，
+   `seq/pose` 从 2.00 涨到 **4.56 / 5.37**。
+3. **每帧贵在两处，都在摄取线程的锁内。** 见证据二：
+   `controller.step` **1.23 ms**（MMK2 的输出整形里同步算了一次 FK 和误差指标，
+   FR3 0.09 ms）＋ `adapter submit` **6.15 ms / p95 20.6 ms**（要等 MMK2 仿真的
+   步进线程：场景线程整段持锁跑 `mj_step` 和 `_snapshot`，而命令只能排队，
+   FR3 真机 0.10 ms）。
+4. **IK 不在这一跳上，但也不便宜。** MMK2 的控制器是异步的
+   （`AsyncCartesianController`，求解在 worker 线程），所以摄取线程测到的是
+   1.23 ms 而不是 12 ms。求解本身单次 **12.4 / 13.4 ms**；每秒 65 次就占
+   **0.8 s/s**。它是纯 Python + numpy + scipy，**GIL 串行**——1/2/4 个线程的
+   总吞吐是 195/184/219 次/s，不随核数增长；而且 6×6 的小矩阵也让 OpenBLAS
+   拉满线程，每个求解线程白烧 **4 个核**（`OPENBLAS_NUM_THREADS=1` 后 1 个核，
+   吞吐不变）。
+5. **FR3 三项都小，所以一条不丢。** 解算 2.8 ms（Pinocchio/C++）、
+   摄取线程 `step` 0.09 ms、`submit` 0.10 ms，一帧 **1.28 ms**，
+   整轮 **268 帧/秒**，`seq/pose` 保持 **2.00**。
+6. 手感层面：MMK2 指令 35.6 / 29.3 Hz、每拍关节 0.015 rad；FR3 89.9 Hz、
+   每拍 0.0070 rad。两者平均速度接近（0.53 vs 0.63 rad/s），**台阶粗 5–6 倍**，
+   所以是"一格一格"，不是"慢"。
+
+## 责任怎么分
+
+| 层 | 问题 | 证据 |
+|---|---|---|
+| 仿真后端（`mmk2_mujoco_sim`） | 步进线程整段持有 `command_lock` 跑 `mj_step` + `_snapshot`，命令提交只能等它 | `submit` p50 6.15 ms，FR3 真机 0.10 ms |
+| MMK2 控制器 | 在调用线程（摄取线程）上做输出整形，含一次 FK 与 scipy 旋转 | `step` p50 1.23 ms，FR3 0.09 ms |
+| MMK2 求解器 | 单次 12.4 ms，纯 Python、GIL 串行、BLAS 空转 | 每拍 21 次 `log6`、8 次 `command_metrics`；1/2/4 线程总吞吐不变 |
+| MORLA 框架 | 命令节奏与输入样本 1:1；DDS depth=1 丢弃不计数、不告警 | `seq/pose` 只能反推丢弃率 |
+
+真机上第 1 项不存在（`mmk2_sdk` 走自己的会话），但第 2、3 项照旧；按实测，
+MMK2 两臂同时 90 Hz 需要每秒 180 次解算，而当前求解器在单进程里最多约 200 次/秒
+——真机即便不丢帧也只剩不到 10% 余量。
 
 ## 证据一：接收端交付 vs 引擎消费（`results/rates.txt`）
 
@@ -47,10 +71,45 @@
 | 6–89 s（正常遥操） | 36 / 29 | 与样本 1:1 |
 | 90–91 s（松手，指令归零） | 58 / 52 → 50 / 50，仍在回升 | 24 / 13 → 0 |
 
-不跑 IK 时能全速收（261 帧/s），一开始解算就掉到 ~78 帧/s，松手又回升——
-这与"摄取被解算耗时卡住"一致，而不是头显发得慢。
+不跑 IK 时能全速收（261 帧/s），一开始遥操就掉到 ~66 帧/s，松手又回升——
+丢发生在消息到达引擎之前，具体贵在哪见证据二。
 
-## 证据二：控制级手感（`results/control.txt`）
+## 证据二：一帧输入花在哪（`results/frame_cost.txt`）
+
+三段都在同一条摄取线程上，时间取自 trace 的 `monotonic_ns`：
+
+| 项 | MMK2 仿真（双手） | FR3 真机 |
+|---|---|---|
+| 帧间隔，该秒**无**指令 p50 | 2.17 ms（≈260 帧/s） | 1.30 ms |
+| 帧间隔，该秒**有**指令 p50 | **15.11 ms**（≈66 帧/s） | 1.28 ms |
+| `controller.step` p50 / p95 | **1.23 / 6.24 ms** | 0.09 / 0.11 ms |
+| `adapter submit` p50 / p95 | **6.15 / 20.58 ms** | 0.10 / 0.13 ms |
+| 整轮输入 | 78.5 Hz | 268 Hz |
+
+读法：
+
+- `controller.step` 是 engine 同步调用控制器的耗时（trace 里的 `elapsed_ns`）。
+  MMK2 的 IK 在 worker 线程，但输出整形 `_output` 在调用线程上又算了一次 FK
+  和误差指标（`command_metrics`，含 scipy 旋转），于是这一跳 1.23 ms。
+- `adapter submit` 是 `session.submit` 里 `command_request → command_receipt`
+  的间隔，即命令写进设备的那一跳。MMK2 仿真的场景线程在 `_step()` 里整段持锁
+  跑 `mj_step` + `_snapshot`（`mmk2_mujoco_sim/scene.py:106`），`submit` 只能
+  排队（`scene.py:194`），于是 6.15 ms、p95 20.6 ms。
+- 两项相加约 7.4 ms，实测帧间隔 15.1 ms：一帧里常有两条指令（左右手各一），
+  再加上 trace 与锁的固定开销。
+
+`scripts/ik_bench.py` 的对照（同一台机器，热身后固定目标；原文 `results/ik_bench.txt`）：
+
+| 求解线程数 | 总吞吐（默认 BLAS） | CPU/墙钟 | 总吞吐（`OPENBLAS_NUM_THREADS=1`） | CPU/墙钟 |
+|---|---|---|---|---|
+| 1 | 195 次/s | **4.00 核** | 214 次/s | **1.00 核** |
+| 2 | 184 次/s | 4.15 核 | 205 次/s | 1.13 核 |
+| 4 | 219 次/s | 4.16 核 | 232 次/s | 1.15 核 |
+
+两件事由此坐实：吞吐不随线程数增长（GIL 串行，多开 worker 不增加容量）；
+6×6 的小矩阵也让 OpenBLAS 拉满线程，白烧 3 个核，限制后吞吐不变。
+
+## 证据三：控制级手感（`results/control.txt`）
 
 | 指标 | MMK2 左 | MMK2 右 | FR3 |
 |---|---|---|---|
@@ -67,13 +126,14 @@
 
 - 每拍步长 ÷ 间隔 = 0.53 / 0.46 rad/s（MMK2）对 0.63 rad/s（FR3）：平均速度相当，
   台阶粗 5–6 倍。
-- 解算 12–13 ms 是整条链的节拍器：它既是丢弃率的来源（1/12.8 ms ≈ 78 条/s），
-  也是 candidate age 的来源（MMK2 35–40 ms，FR3 11.5 ms）。
+- 解算 12–13 ms 不是丢弃的直接原因（它不在摄取线程上），但它是 candidate age
+  35–40 ms 的主要来源，也把每个 worker 线程钉在 ~50% 的负载上：两臂同时 90 Hz
+  需要 180 次/s，而整套求解器在单进程里只有 ~200 次/s。
 - σ_min 0.031、阻尼 0.025：MMK2 的初值位形 `[0,-0.6,1,±1.6,∓0.6,0]` 在奇异附近，
   会让部分拍被回溯砍步，是叠加因素。FR3 的阻尼一直钉在 0.005 下限。
 - `raw pos err` 两边算法不同（不同 solver 的定义），**不要横向比较**。
 
-## 证据三：配置差异（`results/config.txt`）
+## 证据四：配置差异（`results/config.txt`）
 
 同一批 trace 对应的 manifest：
 
@@ -97,8 +157,9 @@
 - **不是头显降频/丢包**：接收端 `sequence` 四轮都是 180/s，与是否遥操无关。
 - **不是引擎在门控**：`control_gate` 只解释指令比样本少的那部分（deadman/来源缺席），
   不解释每拍之间丢掉的样本；丢发生在到达 `targets()` 之前。
-- **不是 CR5/FR3 的绑定参数更宽容**：两边的 position_scale / smoothing 相同，
-  差别在解算耗时。
+- **不是绑定参数更宽容**：MMK2/FR3 两边的 position_scale / smoothing 相同。
+- **不是 IK 在摄取线程上阻塞**：MMK2 的求解在 worker 线程，摄取线程测到的是
+  1.23 ms，不是 12 ms（见证据二）。IK 的成本体现在 CPU/GIL 与 candidate age 上。
 
 ## 证据边界
 
@@ -106,6 +167,10 @@
   不能证明 APK 内部有没有再丢采样（那需要头显侧日志）。本轮的结论只需要前者。
 - 丢弃率是由"发布速率 vs 摄取速率"推出来的；DDS 层没有计数接口，
   所以具体丢了多少条无法直接读出，只能由 `seq/pose` 反推。
+- `adapter submit` 的 6.15 ms 是**仿真后端**的锁等待；真机（`mmk2_sdk`）不共用
+  这把锁，但本轮没有真机 trace，真机的提交耗时未测。
+- 每帧的耗时分解是实测（`step` / `submit` / 帧间隔），但"哪一项占多少"在同一帧里
+  无法逐段对齐，所以表格给的是各自的 p50，不是逐帧相加。
 - `20261111T053601Z` 是 17 秒空跑（未按 deadman、无指令），只用它做"无解算负担"对照。
 - 本轮只覆盖仿真 + 上述几条运行；MMK2 真机（`mmk2_sdk`）不在其中。
 - 真实的操作手感仍需现场复测；本目录只解释节奏。
@@ -136,6 +201,11 @@ R4=$L/20261106T091451Z_fr3_quest_real_bdb268bc79d44e8f8c413e840b86d036
 /usr/bin/python3 $D/scripts/config.py $R1 $R2 $R3              # → results/config.txt
 PYTHONPATH=src/common/morla_core:src/common/morla_teleop:src/robots/airbot/morla_mmk2_teleop \
   /usr/bin/python3 $D/scripts/control.py --tcp $R1 $R3         # → results/control.txt
+/usr/bin/python3 $D/scripts/frame_cost.py $R1 $R2 $R3          # → results/frame_cost.txt
+
+# 求解器成本画像（不需要 trace，跑两遍对比 BLAS 线程数）
+/usr/bin/python3 $D/scripts/ik_bench.py                        # → results/ik_bench.txt（默认）
+OPENBLAS_NUM_THREADS=1 /usr/bin/python3 $D/scripts/ik_bench.py # → 追加对照组
 
 # 重新生成 data/（压缩证据）和 report.html
 for r in $R1 $R2 $R3 $R4; do /usr/bin/python3 $D/scripts/export.py $r $D/data/$(basename $r); done
@@ -156,7 +226,11 @@ scripts/control.py              指令间隔、每拍步长、IK 延迟、奇异
 scripts/config.py               从 manifest 取 side / 绑定参数 / 设备参数
 scripts/export.py               trace → data/（需要 trace）
 scripts/report.py               data/ → report.html（不需要 trace）
+scripts/frame_cost.py           trace → 一帧的 step / submit / 帧间隔（需要 trace）
+scripts/ik_bench.py             求解器单次耗时、线程扩展、CPU 占用（不需要 trace）
 results/rates.txt               本次 rates.py 输出原文
 results/control.txt             本次 control.py 输出原文
 results/config.txt              本次 config.py 输出原文
+results/frame_cost.txt          本次 frame_cost.py 输出原文
+results/ik_bench.txt            本次 ik_bench.py 输出原文（默认 / BLAS=1 两组）
 ```

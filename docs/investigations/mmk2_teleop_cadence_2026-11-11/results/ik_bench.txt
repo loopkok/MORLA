@@ -1,0 +1,13 @@
+== 默认 BLAS 线程
+OPENBLAS_NUM_THREADS=未设置  OMP_NUM_THREADS=未设置
+  solve（热身后，固定目标）p50 5.86 ms  p95 6.20 ms
+  1 线程：总  194.7 次/s   单线程 195   CPU/墙钟 4.00 核
+  2 线程：总  184.2 次/s   单线程 99 85   CPU/墙钟 4.15 核
+  4 线程：总  219.3 次/s   单线程 51 53 65 50   CPU/墙钟 4.16 核
+
+== OPENBLAS_NUM_THREADS=1
+OPENBLAS_NUM_THREADS=1  OMP_NUM_THREADS=未设置
+  solve（热身后，固定目标）p50 5.01 ms  p95 5.19 ms
+  1 线程：总  214.0 次/s   单线程 214   CPU/墙钟 1.00 核
+  2 线程：总  205.0 次/s   单线程 103 102   CPU/墙钟 1.13 核
+  4 线程：总  231.6 次/s   单线程 62 59 52 59   CPU/墙钟 1.15 核

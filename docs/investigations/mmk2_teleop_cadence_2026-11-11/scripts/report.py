@@ -231,12 +231,25 @@ def main():
 
     phase_rows = [
         [cell('0–4 s　未按 deadman', mono=False), cell('%s / %s' % (num(idle_l, 0), num(idle_r, 0))),
-         cell(num(idle_c, 0)), cell('引擎空转，能全速收 261 帧/秒', mono=False)],
+         cell(num(idle_c, 0)), cell('没有指令下发，一帧只要 2.2 ms', mono=False)],
         [cell('%d–%d s　遥操中' % (work_start, work_end), mono=False),
          cell('%s / %s' % (num(work_l, 0), num(work_r, 0))), cell(num(work_c, 0)),
-         cell('每拍同步解一次 IK，摄取与指令 1:1', mono=False)],
+         cell('每帧都要写设备，一帧 15.1 ms', mono=False)],
         [cell('90–91 s　松手', mono=False), cell('%s / %s' % (num(tail_l, 0), num(tail_r, 0))),
          cell(num(tail_c, 0)), cell('最后 1 秒指令为 0，摄取回升到 50', mono=False)],
+    ]
+
+    cost_rows = [
+        [cell('帧间隔 · 无指令', mono=False), cell('2.17 ms'), cell('1.30 ms'),
+         cell('同一秒没有命令要提交', mono=False)],
+        [cell('帧间隔 · 有指令', mono=False), cell('15.11 ms'), cell('1.28 ms'),
+         cell('≈66 帧/秒 对 268 帧/秒', mono=False)],
+        [cell('controller.step', mono=False), cell('1.23 ms'), cell('0.09 ms'),
+         cell('MMK2 在调用线程上算 FK 与误差指标', mono=False)],
+        [cell('adapter submit', mono=False), cell('6.15 ms'), cell('0.10 ms'),
+         cell('MMK2 等仿真步进线程的锁', mono=False)],
+        [cell('求解器单次（在 worker）', mono=False), cell('12.4 ms'), cell('2.8 ms'),
+         cell('不进摄取线程，但占 CPU 与 GIL', mono=False)],
     ]
 
     bars = svg_bars([
@@ -252,6 +265,7 @@ def main():
         chart=svg_timeseries(left_series, right_series, produced_l, produced_r),
         bars=bars,
         rate_table=table(['运行', '引擎拿到', '接收端 sequence', 'seq/pose', '下发指令'], rate_rows),
+        cost_table=table(['测量', 'MMK2 仿真（双手）', 'FR3 真机', '说明'], cost_rows),
         control_table=table(['', '指令率', '间隔 p50 / p95 ms', '每拍关节跳变 p50 / p95', '解算 ms',
                              'candidate age ms', 'σ_min / 阻尼 p50'], control_rows),
         phase_table=table(['时段', '引擎拿到 左 / 右（样本/秒）', '指令/秒', '含义'], phase_rows),
@@ -268,6 +282,9 @@ def main():
         step_mmk=num(left_port['joint_jump_p50'], 4),
         step_fr3=num(fr3_port['joint_jump_p50'], 4),
         frames_work=num(main_summary['frame_rate_hz']),
+        submit='6.15',
+        frame_busy='15.1',
+        frame_idle='2.2',
     )
     with open(OUT, 'w') as handle:
         handle.write(body)
@@ -358,16 +375,17 @@ PAGE = """<meta charset="utf-8">
 <div class="wrap">
   <p class="eyebrow">MORLA · 2026-11-11 · 证据包</p>
   <h1>MMK2 为什么“一卡一卡”</h1>
-  <p class="lead">头显一直在按每只手约 90 个位姿样本/秒交付。MORLA 的引擎每收到一个样本就同步解一次 IK，
-  而 MMK2 解一次要 {solve} ms——于是每秒最多只能吃下约 78 个，其余的在到达引擎之前被丢掉。
-  FR3 解一次只要 {solve_fr3} ms，所以同样的输入节奏它一条不丢。</p>
-  <p class="sub">下面每个数字都能在 <code>data/</code> 里用 Excel 或 pandas 复算；原始 trace 不在本包里。</p>
+  <p class="lead">头显一直在按每只手约 90 个位姿样本/秒交付。MORLA 的摄取线程每收到一帧都要同步
+  把命令写进设备，而 MMK2 的仿真每写一条要等 {submit} ms（物理步进线程占着锁），一帧因此要
+  {frame_busy} ms；DDS 只留最新一条，其余在到达引擎前被丢掉。FR3 真机这两跳只要 0.1 ms，
+  同样的输入它一条不丢。</p>
+  <p class="sub">下面每个数字都能在 <code>data/</code> 与 <code>results/</code> 里复算；原始 trace 不在本包里。</p>
 
   <div class="tiles">
     <div class="tile"><div class="v">{delivered} /s</div><div class="k">每只手交付的位姿样本<br>四轮运行完全相同</div></div>
     <div class="tile"><div class="v">{consumed_l} · {consumed_r}</div><div class="k">引擎实际吃到的样本/秒<br>报卡的那一轮（左 · 右）</div></div>
     <div class="tile"><div class="v">{lost_l}% · {lost_r}%</div><div class="k">在到达引擎前丢掉的份额<br>由 seq/pose 反推</div></div>
-    <div class="tile"><div class="v">{solve} ms</div><div class="k">MMK2 单次 IK（FR3 {solve_fr3} ms）<br>决定了摄取上限 1/{solve} ms</div></div>
+    <div class="tile"><div class="v">{frame_busy} ms</div><div class="k">遥操时一帧的处理时间<br>空转时只有 {frame_idle} ms</div></div>
   </div>
 
   <section>
@@ -375,7 +393,7 @@ PAGE = """<meta charset="utf-8">
     <h3>交付没有变，摄取塌了</h3>
     <p>虚线是接收端每秒交给下游的位姿样本数（由 <code>sequence</code> 增量除以 2 得到：一个位姿样本会带来
     一次 pose 更新和一次 landmarks 更新）。实线是引擎真正处理的样本数。三条线在开头 5 秒重合在 90；
-    一按 deadman 开始解算，实线就掉到 30–40，虚线纹丝不动。</p>
+    一开始遥操（每秒都有指令下发），实线就掉到 30–40，虚线纹丝不动。</p>
     <div class="fig">
       <div class="legend">
         <span><i class="swatch" style="border-top-style:dashed;border-color:var(--muted)"></i>头显交付（左/右）</span>
@@ -392,7 +410,22 @@ PAGE = """<meta charset="utf-8">
   </section>
 
   <section>
-    <h2>证据二 · 手感</h2>
+    <h2>证据二 · 一帧花在哪</h2>
+    <h3>贵在两条同步调用，不在 IK</h3>
+    <p>三段时间都取自同一条摄取线程（trace 的 <code>monotonic_ns</code>）：</p>
+    {cost_table}
+    <p>MMK2 的 IK 其实不在这一跳上——控制器是异步的，求解在 worker 线程，
+    所以 <code>step</code> 只有 1.23 ms。但输出整形在调用线程上又算了一次 FK 和误差指标；
+    更贵的是把命令写进仿真：场景线程在 <code>_step()</code> 里整段持锁跑
+    <code>mj_step</code> 和 <code>_snapshot</code>，<code>submit</code> 只能排队。</p>
+    <p>求解器本身也不便宜：单次 {solve} ms，纯 Python + numpy + scipy。它不随线程扩展——
+    1 / 2 / 4 个 worker 的总吞吐是 195 / 184 / 219 次/s（GIL 串行），而且 6×6 的小矩阵
+    仍让 OpenBLAS 拉满线程，每个 worker 白烧 4 个核（<code>OPENBLAS_NUM_THREADS=1</code>
+    后 1 个核，吞吐不变）。两臂同时 90 Hz 需要 180 次/s，已经贴着 ~200 次/s 的总容量。</p>
+  </section>
+
+  <section>
+    <h2>证据三 · 手感</h2>
     <h3>指令跟着摄取走，台阶因此变粗</h3>
     <p>引擎只在收到新样本时下发一次指令，所以指令率被摄取率封顶。平均速度两边接近
     （0.53 对 0.63 rad/s），但 MMK2 每拍走 {step_mmk} rad、FR3 每拍走 {step_fr3} rad，
@@ -406,12 +439,12 @@ PAGE = """<meta charset="utf-8">
   </section>
 
   <section>
-    <h2>证据三 · 为什么是 MMK2</h2>
-    <h3>绑定参数几乎一样，差在解算器</h3>
+    <h2>证据四 · 为什么是 MMK2</h2>
+    <h3>两台机器只有求解器与后端不同</h3>
     <p>两边的 <code>position_scale</code>、<code>smoothing_alpha</code>、Quest 实例的
-    <code>rate_hz</code> 都相同；差别是 IK：FR3 用内置解析解，MMK2 用
-    <code>morla.mmk2.cartesian_delta</code> 的数值解，慢 {solve} ms。取值的出处见
-    <code>results/config.txt</code>。</p>
+    <code>rate_hz</code> 都相同。差别有三层：仿真后端的步进锁（6.15 对 0.10 ms）、
+    输出整形放在调用线程（1.23 对 0.09 ms）、求解器（{solve} 对 {solve_fr3} ms，
+    FR3 用 Pinocchio 的 C++ 解析/差分）。取值的出处见 <code>results/</code> 下四个 txt。</p>
     <p><code>smoothing_alpha = 0.6</code> 的时间常数是 2.5 个控制周期：90 Hz 下 28 ms，
     35 Hz 下 71 ms。同样的数字在 MMK2 上多滞后约 40 ms，这是次生效应，不是主因。</p>
     <p>另外，MMK2 的初值位形 <code>[0,-0.6,1,±1.6,∓0.6,0]</code> 落在奇异附近
@@ -426,15 +459,15 @@ PAGE = """<meta charset="utf-8">
         <ul>
           <li>头显降频：接收端 sequence 四轮都是 180/s，与是否遥操无关。</li>
           <li>引擎门控：<code>control_gate</code> 只解释指令比样本少的部分，不解释样本本身的缺口。</li>
-          <li>绑定参数更宽容：两边 position_scale / smoothing 相同。</li>
+          <li>绑定参数：两边 position_scale / smoothing 相同；IK 也不在摄取线程上（worker 线程）。</li>
         </ul>
       </div>
       <div>
         <h3>还看不出来</h3>
         <ul>
-          <li>sequence 是接收器自增的计数，不是头显时钟：它能证明“APK 交给接收器多少”，不能证明 APK 内部有没有丢采样。</li>
-          <li>DDS 的 depth=1 不报丢弃数，具体丢了多少只能由 seq/pose 反推。</li>
-          <li>本轮只覆盖仿真与上述几条运行，MMK2 真机不在其中。</li>
+          <li>submit 的 6.15 ms 是仿真后端的锁等待；真机 <code>mmk2_sdk</code> 不共用这把锁，但我没有真机 trace。</li>
+          <li>DDS 的 depth=1 不报丢弃数，丢了多少只能由 seq/pose 反推。</li>
+          <li>本轮只覆盖仿真与上述几条运行；MMK2 真机不在其中。</li>
         </ul>
       </div>
     </div>
@@ -442,11 +475,12 @@ PAGE = """<meta charset="utf-8">
 
   <section>
     <h2>复算</h2>
-    <p>本页只读 <code>data/</code>，不需要 trace：</p>
-    <pre><code>python3 scripts/report.py          # 重新生成本页
-head data/&lt;run&gt;/rates_per_second.csv   # 逐秒的样本/指令数
-head data/&lt;run&gt;/summary.json           # 汇总百分位</code></pre>
-    <p>要从原始 trace 重新压缩数据，见 README 的“复现”一节。</p>
+    <p>本页只读 <code>data/</code> 与 <code>results/</code>，不需要 trace：</p>
+    <pre><code>python3 scripts/report.py            # 重新生成本页
+head data/&lt;run&gt;/rates_per_second.csv # 逐秒的样本/指令数
+cat results/frame_cost.txt           # 一帧的 step / submit / 帧间隔
+cat results/ik_bench.txt             # 求解器耗时、线程扩展、CPU 占用</code></pre>
+    <p>要从原始 trace 重新测量，见 README 的“复现”一节。</p>
   </section>
 
   <footer>MORLA 遥操节奏核查 · 2026-11-11 · 证据文件：README.md、data/、results/</footer>
