@@ -1,0 +1,18 @@
+{
+  "frame_rate_hz": 233.85602206215825,
+  "frames": 3942,
+  "interleave": {
+    "right x1508": 1
+  },
+  "port": {
+    "right_pose": {
+      "pose_hz": 89.4341117981068,
+      "seq_per_pose": 2.013271400132714,
+      "sequence_per_s": 180.05513947940017
+    }
+  },
+  "run": "20261111T053601Z_mmk2_quest_sim_8f7f6c0e1c994fdda6739f1752b0a62d",
+  "snapshot_interval_p50_ms": 11.180279,
+  "snapshot_interval_p95_ms": 13.9163859,
+  "snapshot_rate_hz": 89.4341117981068
+}

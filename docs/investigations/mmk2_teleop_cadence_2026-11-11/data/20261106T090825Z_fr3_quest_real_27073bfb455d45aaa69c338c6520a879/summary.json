@@ -1,0 +1,44 @@
+{
+  "frame_rate_hz": 267.9806839061972,
+  "frames": 17391,
+  "interleave": {
+    "right x5834": 1
+  },
+  "port": {
+    "right_pose": {
+      "at_cap_pct": null,
+      "candidate_age_max_ms": 46.894738,
+      "candidate_age_p50_ms": 11.476079,
+      "candidate_age_p95_ms": 13.211609300000001,
+      "damping_p50": 0.005,
+      "damping_p95": 0.005,
+      "gap_max_ms": 42.789587,
+      "gap_over_40ms_pct": 0.020024028834601523,
+      "gap_p50_ms": 11.095691500000001,
+      "gap_p95_ms": 12.817615999999994,
+      "joint_jump_p50": 0.006997893219173254,
+      "joint_jump_p95": 0.008169227397500057,
+      "output_step_p50": null,
+      "output_step_p95": null,
+      "pose_hz": 89.8912497357427,
+      "rate_hz": 89.92370664196949,
+      "raw_position_error_p50_m": 0.047772057493419,
+      "raw_position_error_p95_m": 0.09224750981366191,
+      "seq_per_pose": 2.0024001371506945,
+      "sequence_per_s": 179.99825079949852,
+      "sigma_min_p05": 0.09685113215671995,
+      "sigma_min_p50": 0.11103939870261209,
+      "solve_p50_ms": 2.83328,
+      "solve_p95_ms": 3.5814102000000005,
+      "solver_saturated_pct": null,
+      "solver_step_p50": 0.030000000000000027,
+      "solver_step_p95": 0.030000000000000027,
+      "ticks": 4995,
+      "zero_step_pct": NaN
+    }
+  },
+  "run": "20261106T090825Z_fr3_quest_real_27073bfb455d45aaa69c338c6520a879",
+  "snapshot_interval_p50_ms": 11.096145,
+  "snapshot_interval_p95_ms": 12.860729,
+  "snapshot_rate_hz": 89.8912497357427
+}

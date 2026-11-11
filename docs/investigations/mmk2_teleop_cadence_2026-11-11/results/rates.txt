@@ -1,34 +1,25 @@
 20261111T052027Z_mmk2_quest_sim_7ef3737a672a4e589b26db511a4dc0dd
   frames                     78.5 Hz
-  left_pose   APK              39.5 Hz
-              received         39.5 Hz
-              command          35.6 Hz
-  right_pose  APK              33.5 Hz
-              received         33.5 Hz
-              command          29.3 Hz
-  pose snapshots             73.0 Hz   interval p50 13.4 p95 29.8 ms
-  interleave              Lx1=2529 Lx2=527 Lx3=8 Rx1=3065
+  left_pose       pose   39.5 Hz   sequence  180.0 /s   seq/pose  4.56   command   35.6 Hz
+  right_pose      pose   33.5 Hz   sequence  180.0 /s   seq/pose  5.37   command   29.3 Hz
+  pose snapshots             73.0 Hz   interval p50 13.3 p95 29.8 ms
+  interleave              Lx1=2530 Lx2=527 Lx3=8 Rx1=3065
 
 20261111T053601Z_mmk2_quest_sim_8f7f6c0e1c994fdda6739f1752b0a62d
   frames                    233.9 Hz
-  right_pose  APK              89.4 Hz
-              received         89.4 Hz
+  right_pose      pose   89.4 Hz   sequence  180.1 /s   seq/pose  2.01
   pose snapshots             89.4 Hz   interval p50 11.2 p95 13.9 ms
   interleave              Rx1508=1
 
 20261106T090825Z_fr3_quest_real_27073bfb455d45aaa69c338c6520a879
   frames                    268.0 Hz
-  right_pose  APK              89.9 Hz
-              received         89.9 Hz
-              command          89.9 Hz
+  right_pose      pose   89.9 Hz   sequence  180.0 /s   seq/pose  2.00   command   89.9 Hz
   pose snapshots             89.9 Hz   interval p50 11.1 p95 12.9 ms
   interleave              Rx5834=1
 
 20261106T091451Z_fr3_quest_real_bdb268bc79d44e8f8c413e840b86d036
   frames                    268.4 Hz
-  right_pose  APK              89.9 Hz
-              received         89.9 Hz
-              command          90.0 Hz
+  right_pose      pose   89.9 Hz   sequence  180.0 /s   seq/pose  2.00   command   90.0 Hz
   pose snapshots             89.9 Hz   interval p50 11.1 p95 12.7 ms
   interleave              Rx2140=1
 

@@ -1,0 +1,175 @@
+<meta charset="utf-8">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>MMK2 遥操节奏核查</title>
+<style>
+:root{
+  --bg:#f4f6f7; --panel:#ffffff; --ink:#12171c; --muted:#57636e; --rule:#d9e0e5;
+  --accent:#0b6f78; --warm:#b05730; --chip:#e8eff0; --shadow:0 1px 2px rgba(18,23,28,.06);
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Microsoft YaHei",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1216; --panel:#141b21; --ink:#e8edf1; --muted:#96a3ae; --rule:#242e37;
+    --accent:#56c8d2; --warm:#e08a5c; --chip:#1a232b; --shadow:none;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1216; --panel:#141b21; --ink:#e8edf1; --muted:#96a3ae; --rule:#242e37;
+  --accent:#56c8d2; --warm:#e08a5c; --chip:#1a232b; --shadow:none;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:960px;margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:48px 80px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 14px}
+h1{font-size:clamp(28px,5vw,42px);line-height:1.15;letter-spacing:-.015em;margin:0 0 16px;
+  text-wrap:balance;font-weight:650}
+.lead{font-size:17px;max-width:62ch;color:var(--ink);margin:0 0 8px}
+.sub{font-size:15px;max-width:62ch;color:var(--muted);margin:0}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:32px 0 8px}
+.tile{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px 16px;box-shadow:var(--shadow)}
+.tile .v{font-family:var(--mono);font-size:clamp(19px,2.5vw,24px);font-weight:600;
+  font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.tile .k{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}
+section{margin-top:44px}
+h2{font-size:13px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;margin:0 0 6px;padding-top:18px;border-top:1px solid var(--rule)}
+h3{font-size:19px;margin:0 0 12px;font-weight:620;letter-spacing:-.01em}
+p{margin:0 0 14px;max-width:68ch}
+.fig{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:18px 14px 12px;
+  margin:18px 0 8px;box-shadow:var(--shadow)}
+.fig svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--muted);
+  padding:0 6px 2px;font-family:var(--mono)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.swatch{width:18px;height:0;border-top-width:2px;border-top-style:solid;display:inline-block}
+.cap{font-size:13px;color:var(--muted);margin:8px 2px 0;max-width:70ch}
+.scroll{overflow-x:auto;margin:16px 0 8px;border:1px solid var(--rule);border-radius:8px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:14px}
+th{text-align:left;font-weight:600;font-size:12px;letter-spacing:.04em;color:var(--muted);
+  padding:10px 12px;border-bottom:1px solid var(--rule);white-space:nowrap;background:var(--chip)}
+td{padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num,.strong{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:13px}
+td.strong{font-weight:600;color:var(--warm)}
+.notes{display:grid;grid-template-columns:1fr 1fr;gap:10px 28px;margin-top:6px}
+.notes h3{font-size:15px;margin:0 0 6px}
+.notes ul{margin:0;padding-left:18px;font-size:14px;color:var(--ink)}
+.notes li{margin-bottom:6px}
+code{font-family:var(--mono);font-size:.9em;background:var(--chip);padding:1px 5px;border-radius:4px}
+pre{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px 16px;
+  overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.7;margin:14px 0}
+pre code{background:none;padding:0}
+footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--rule);color:var(--muted);font-size:13px}
+@media (max-width:760px){
+  .tiles{grid-template-columns:1fr 1fr}
+  .notes{grid-template-columns:1fr}
+  .wrap{padding-block:32px 56px}
+}
+@media (max-width:420px){ .tiles{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+<div class="wrap">
+  <p class="eyebrow">MORLA · 2026-11-11 · 证据包</p>
+  <h1>MMK2 为什么“一卡一卡”</h1>
+  <p class="lead">头显一直在按每只手约 90 个位姿样本/秒交付。MORLA 的引擎每收到一个样本就同步解一次 IK，
+  而 MMK2 解一次要 12.4 ms——于是每秒最多只能吃下约 78 个，其余的在到达引擎之前被丢掉。
+  FR3 解一次只要 2.8 ms，所以同样的输入节奏它一条不丢。</p>
+  <p class="sub">下面每个数字都能在 <code>data/</code> 里用 Excel 或 pandas 复算；原始 trace 不在本包里。</p>
+
+  <div class="tiles">
+    <div class="tile"><div class="v">90 /s</div><div class="k">每只手交付的位姿样本<br>四轮运行完全相同</div></div>
+    <div class="tile"><div class="v">39.5 · 33.5</div><div class="k">引擎实际吃到的样本/秒<br>报卡的那一轮（左 · 右）</div></div>
+    <div class="tile"><div class="v">56% · 63%</div><div class="k">在到达引擎前丢掉的份额<br>由 seq/pose 反推</div></div>
+    <div class="tile"><div class="v">12.4 ms</div><div class="k">MMK2 单次 IK（FR3 2.8 ms）<br>决定了摄取上限 1/12.4 ms</div></div>
+  </div>
+
+  <section>
+    <h2>证据一 · 节奏</h2>
+    <h3>交付没有变，摄取塌了</h3>
+    <p>虚线是接收端每秒交给下游的位姿样本数（由 <code>sequence</code> 增量除以 2 得到：一个位姿样本会带来
+    一次 pose 更新和一次 landmarks 更新）。实线是引擎真正处理的样本数。三条线在开头 5 秒重合在 90；
+    一按 deadman 开始解算，实线就掉到 30–40，虚线纹丝不动。</p>
+    <div class="fig">
+      <div class="legend">
+        <span><i class="swatch" style="border-top-style:dashed;border-color:var(--muted)"></i>头显交付（左/右）</span>
+        <span><i class="swatch" style="border-color:var(--accent)"></i>引擎拿到 · 左</span>
+        <span><i class="swatch" style="border-color:var(--warm)"></i>引擎拿到 · 右</span>
+      </div>
+      <svg viewBox="0 0 880 282" role="img" aria-label="每秒头显交付与引擎摄取的位姿样本数"><text x="8.0" y="14.0" font-size="11" fill="var(--muted)">样本 / 秒</text><line x1="44.0" y1="236.0" x2="864.0" y2="236.0" stroke="var(--rule)" stroke-width="1"/><text x="36.0" y="240.0" text-anchor="end" font-size="11" fill="var(--muted)">0</text><line x1="44.0" y1="185.5" x2="864.0" y2="185.5" stroke="var(--rule)" stroke-width="1"/><text x="36.0" y="189.5" text-anchor="end" font-size="11" fill="var(--muted)">30</text><line x1="44.0" y1="135.0" x2="864.0" y2="135.0" stroke="var(--rule)" stroke-width="1"/><text x="36.0" y="139.0" text-anchor="end" font-size="11" fill="var(--muted)">60</text><line x1="44.0" y1="84.5" x2="864.0" y2="84.5" stroke="var(--rule)" stroke-width="1"/><text x="36.0" y="88.5" text-anchor="end" font-size="11" fill="var(--muted)">90</text><line x1="44.0" y1="34.0" x2="864.0" y2="34.0" stroke="var(--rule)" stroke-width="1"/><text x="36.0" y="38.0" text-anchor="end" font-size="11" fill="var(--muted)">120</text><polyline points="44.0,108.1 53.0,84.5 62.0,84.5 71.0,84.5 80.0,84.5 89.1,87.9 98.1,81.1 107.1,86.2 116.1,84.5 125.1,87.9 134.1,81.1 143.1,84.5 152.1,84.5 161.1,84.5 170.2,82.8 179.2,91.2 188.2,79.4 197.2,87.9 206.2,81.1 215.2,82.8 224.2,86.2 233.2,84.5 242.2,84.5 251.3,89.6 260.3,77.8 269.3,87.9 278.3,84.5 287.3,84.5 296.3,87.9 305.3,82.8 314.3,87.9 323.3,79.4 332.4,86.2 341.4,81.1 350.4,87.9 359.4,82.8 368.4,82.8 377.4,89.6 386.4,82.8 395.4,84.5 404.4,82.8 413.5,86.2 422.5,82.8 431.5,84.5 440.5,86.2 449.5,84.5 458.5,84.5 467.5,84.5 476.5,82.8 485.5,86.2 494.5,82.8 503.6,86.2 512.6,81.1 521.6,87.9 530.6,81.1 539.6,86.2 548.6,84.5 557.6,86.2 566.6,86.2 575.6,81.1 584.7,84.5 593.7,86.2 602.7,86.2 611.7,82.8 620.7,81.1 629.7,87.9 638.7,86.2 647.7,84.5 656.7,82.8 665.8,82.8 674.8,84.5 683.8,84.5 692.8,87.9 701.8,81.1 710.8,84.5 719.8,86.2 728.8,82.8 737.8,84.5 746.9,87.9 755.9,82.8 764.9,84.5 773.9,87.9 782.9,79.4 791.9,91.2 800.9,81.1 809.9,84.5 818.9,82.8 828.0,82.8 837.0,86.2 846.0,87.9 855.0,79.4 864.0,150.1" fill="none" stroke="var(--muted)" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/><polyline points="44.0,108.1 53.0,84.5 62.0,84.5 71.0,84.5 80.0,84.5 89.1,89.6 98.1,81.1 107.1,87.9 116.1,82.8 125.1,87.9 134.1,81.1 143.1,86.2 152.1,84.5 161.1,84.5 170.2,81.1 179.2,87.9 188.2,82.8 197.2,82.8 206.2,86.2 215.2,82.8 224.2,92.9 233.2,76.1 242.2,86.2 251.3,84.5 260.3,84.5 269.3,86.2 278.3,81.1 287.3,87.9 296.3,84.5 305.3,84.5 314.3,84.5 323.3,84.5 332.4,84.5 341.4,84.5 350.4,84.5 359.4,87.9 368.4,79.4 377.4,84.5 386.4,84.5 395.4,86.2 404.4,86.2 413.5,81.1 422.5,84.5 431.5,86.2 440.5,86.2 449.5,86.2 458.5,81.1 467.5,84.5 476.5,87.9 485.5,79.4 494.5,82.8 503.6,89.6 512.6,82.8 521.6,87.9 530.6,79.4 539.6,84.5 548.6,82.8 557.6,89.6 566.6,81.1 575.6,87.9 584.7,84.5 593.7,84.5 602.7,82.8 611.7,86.2 620.7,82.8 629.7,86.2 638.7,81.1 647.7,89.6 656.7,82.8 665.8,81.1 674.8,89.6 683.8,82.8 692.8,81.1 701.8,86.2 710.8,84.5 719.8,87.9 728.8,81.1 737.8,84.5 746.9,84.5 755.9,86.2 764.9,81.1 773.9,86.2 782.9,87.9 791.9,79.4 800.9,86.2 809.9,84.5 818.9,87.9 828.0,81.1 837.0,86.2 846.0,82.8 855.0,82.8 864.0,150.1" fill="none" stroke="var(--muted)" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/><polyline points="44.0,106.4 53.0,84.5 62.0,84.5 71.0,84.5 80.0,84.5 89.1,114.8 98.1,175.4 107.1,173.7 116.1,172.0 125.1,177.1 134.1,175.4 143.1,172.0 152.1,178.8 161.1,173.7 170.2,168.7 179.2,175.4 188.2,173.7 197.2,170.4 206.2,182.1 215.2,168.7 224.2,177.1 233.2,170.4 242.2,172.0 251.3,172.0 260.3,180.4 269.3,172.0 278.3,178.8 287.3,173.7 296.3,177.1 305.3,173.7 314.3,173.7 323.3,172.0 332.4,177.1 341.4,180.4 350.4,172.0 359.4,170.4 368.4,175.4 377.4,175.4 386.4,170.4 395.4,175.4 404.4,175.4 413.5,180.4 422.5,175.4 431.5,172.0 440.5,182.1 449.5,175.4 458.5,175.4 467.5,180.4 476.5,178.8 485.5,182.1 494.5,178.8 503.6,180.4 512.6,178.8 521.6,177.1 530.6,175.4 539.6,177.1 548.6,180.4 557.6,177.1 566.6,182.1 575.6,173.7 584.7,178.8 593.7,177.1 602.7,173.7 611.7,175.4 620.7,175.4 629.7,175.4 638.7,175.4 647.7,173.7 656.7,175.4 665.8,173.7 674.8,173.7 683.8,180.4 692.8,175.4 701.8,180.4 710.8,180.4 719.8,175.4 728.8,180.4 737.8,172.0 746.9,180.4 755.9,177.1 764.9,180.4 773.9,177.1 782.9,175.4 791.9,177.1 800.9,173.7 809.9,178.8 818.9,173.7 828.0,173.7 837.0,182.1 846.0,182.1 855.0,138.4 864.0,151.8" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/><polyline points="44.0,106.4 53.0,84.5 62.0,84.5 71.0,84.5 80.0,84.5 89.1,121.5 98.1,190.6 107.1,187.2 116.1,182.1 125.1,187.2 134.1,187.2 143.1,183.8 152.1,183.8 161.1,187.2 170.2,183.8 179.2,190.6 188.2,187.2 197.2,183.8 206.2,183.8 215.2,180.4 224.2,183.8 233.2,183.8 242.2,185.5 251.3,187.2 260.3,187.2 269.3,180.4 278.3,187.2 287.3,183.8 296.3,185.5 305.3,183.8 314.3,183.8 323.3,187.2 332.4,187.2 341.4,188.9 350.4,188.9 359.4,182.1 368.4,185.5 377.4,183.8 386.4,183.8 395.4,187.2 404.4,187.2 413.5,190.6 422.5,187.2 431.5,188.9 440.5,190.6 449.5,185.5 458.5,188.9 467.5,187.2 476.5,188.9 485.5,188.9 494.5,183.8 503.6,187.2 512.6,187.2 521.6,187.2 530.6,188.9 539.6,183.8 548.6,188.9 557.6,190.6 566.6,187.2 575.6,185.5 584.7,183.8 593.7,185.5 602.7,185.5 611.7,185.5 620.7,188.9 629.7,187.2 638.7,188.9 647.7,185.5 656.7,183.8 665.8,190.6 674.8,190.6 683.8,185.5 692.8,187.2 701.8,188.9 710.8,187.2 719.8,187.2 728.8,185.5 737.8,188.9 746.9,188.9 755.9,187.2 764.9,187.2 773.9,185.5 782.9,185.5 791.9,188.9 800.9,188.9 809.9,188.9 818.9,188.9 828.0,190.6 837.0,192.2 846.0,188.9 855.0,148.5 864.0,151.8" fill="none" stroke="var(--warm)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/><text x="44.0" y="254.0" text-anchor="middle" font-size="11" fill="var(--muted)">0</text><text x="134.1" y="254.0" text-anchor="middle" font-size="11" fill="var(--muted)">10</text><text x="224.2" y="254.0" text-anchor="middle" font-size="11" fill="var(--muted)">20</text><text x="314.3" y="254.0" text-anchor="middle" font-size="11" fill="var(--muted)">30</text><text x="404.4" y="254.0" text-anchor="middle" font-size="11" fill="var(--muted)">40</text><text x="494.5" y="254.0" text-anchor="middle" font-size="11" fill="var(--muted)">50</text><text x="584.7" y="254.0" text-anchor="middle" font-size="11" fill="var(--muted)">60</text><text x="674.8" y="254.0" text-anchor="middle" font-size="11" fill="var(--muted)">70</text><text x="764.9" y="254.0" text-anchor="middle" font-size="11" fill="var(--muted)">80</text><text x="855.0" y="254.0" text-anchor="middle" font-size="11" fill="var(--muted)">90</text><text x="440.0" y="276" text-anchor="middle" font-size="11" fill="var(--muted)">运行内的秒</text></svg>
+    </div>
+    <p class="cap">同一轮运行内的三段对照，说明掉下来的是处理能力而不是输入：</p>
+    <div class="scroll"><table class=""><thead><tr><th>时段</th><th>引擎拿到 左 / 右（样本/秒）</th><th>指令/秒</th><th>含义</th></tr></thead><tbody><tr><td class="">0–4 s　未按 deadman</td><td class="num">90 / 90</td><td class="num">0</td><td class="">引擎空转，能全速收 261 帧/秒</td></tr><tr><td class="">7–88 s　遥操中</td><td class="num">36 / 29</td><td class="num">36</td><td class="">每拍同步解一次 IK，摄取与指令 1:1</td></tr><tr><td class="">90–91 s　松手</td><td class="num">54 / 51</td><td class="num">12</td><td class="">最后 1 秒指令为 0，摄取回升到 50</td></tr></tbody></table></div>
+    <p class="cap">四轮运行横向对照。seq/pose 等于 2 表示接收端每发布一个位姿引擎就拿到一个；4.56 表示
+    平均每 4.56 次接收端更新才有一个位姿到达引擎。</p>
+    <div class="scroll"><table class=""><thead><tr><th>运行</th><th>引擎拿到</th><th>接收端 sequence</th><th>seq/pose</th><th>下发指令</th></tr></thead><tbody><tr><td class="">MMK2 · 双手 · 左手</td><td class="num">39.5 Hz</td><td class="num">180.0</td><td class="num strong">4.56</td><td class="num">35.6 Hz</td></tr><tr><td class="">MMK2 · 双手 · 右手</td><td class="num">33.5 Hz</td><td class="num">180.0</td><td class="num strong">5.37</td><td class="num">29.3 Hz</td></tr><tr><td class="">MMK2 · 单手 · 右手</td><td class="num">89.4 Hz</td><td class="num">180.1</td><td class="num">2.01</td><td class="num">无指令</td></tr><tr><td class="">FR3 · 单手 · 右手</td><td class="num">89.9 Hz</td><td class="num">180.0</td><td class="num">2.00</td><td class="num">89.9 Hz</td></tr><tr><td class="">FR3 · 单手 · 右手</td><td class="num">89.9 Hz</td><td class="num">180.0</td><td class="num">2.00</td><td class="num">90.0 Hz</td></tr></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>证据二 · 手感</h2>
+    <h3>指令跟着摄取走，台阶因此变粗</h3>
+    <p>引擎只在收到新样本时下发一次指令，所以指令率被摄取率封顶。平均速度两边接近
+    （0.53 对 0.63 rad/s），但 MMK2 每拍走 0.0149 rad、FR3 每拍走 0.0070 rad，
+    同样的动作被切成 5–6 倍粗的台阶——这就是“一格一格”的来源。</p>
+    <div class="scroll"><table class=""><thead><tr><th></th><th>指令率</th><th>间隔 p50 / p95 ms</th><th>每拍关节跳变 p50 / p95</th><th>解算 ms</th><th>candidate age ms</th><th>σ_min / 阻尼 p50</th></tr></thead><tbody><tr><td class="">MMK2 左</td><td class="num">35.6 Hz</td><td class="num">28.4 / 45.4</td><td class="num">0.0149 / 0.0321</td><td class="num">12.4 / 24.4</td><td class="num">35.3 / 55.8</td><td class="num">0.031 / 0.025</td></tr><tr><td class="">MMK2 右</td><td class="num">29.3 Hz</td><td class="num">33.9 / 54.9</td><td class="num">0.0157 / 0.0378</td><td class="num">13.4 / 26.7</td><td class="num">39.6 / 60.5</td><td class="num">0.032 / 0.024</td></tr><tr><td class="">FR3 右</td><td class="num">89.9 Hz</td><td class="num">11.1 / 12.8</td><td class="num">0.0070 / 0.0082</td><td class="num">2.8 / 3.6</td><td class="num">11.5 / 13.2</td><td class="num">0.111 / 0.005</td></tr></tbody></table></div>
+    <p class="cap">“每拍关节跳变”是相邻两条指令之间最大的关节差值，两台机器定义相同，可以直接比。</p>
+    <div class="fig">
+      <svg viewBox="0 0 880 170" role="img" aria-label="指令率对比"><text x="140" y="25.0" text-anchor="end" font-size="12" fill="var(--ink)">MMK2 左手</text><rect x="150" y="12.0" width="241.9" height="18" rx="3" fill="var(--accent)"/><text x="399.9" y="25.0" font-size="12" fill="var(--muted)" font-variant-numeric="tabular-nums">35.6 Hz</text><text x="140" y="59.0" text-anchor="end" font-size="12" fill="var(--ink)">MMK2 右手</text><rect x="150" y="46.0" width="198.7" height="18" rx="3" fill="var(--accent)"/><text x="356.7" y="59.0" font-size="12" fill="var(--muted)" font-variant-numeric="tabular-nums">29.3 Hz</text><text x="140" y="93.0" text-anchor="end" font-size="12" fill="var(--ink)">FR3（第一次）</text><rect x="150" y="80.0" width="610.6" height="18" rx="3" fill="var(--warm)"/><text x="768.6" y="93.0" font-size="12" fill="var(--muted)" font-variant-numeric="tabular-nums">89.9 Hz</text><text x="140" y="127.0" text-anchor="end" font-size="12" fill="var(--ink)">FR3（第二次）</text><rect x="150" y="114.0" width="611.1" height="18" rx="3" fill="var(--warm)"/><text x="769.1" y="127.0" font-size="12" fill="var(--muted)" font-variant-numeric="tabular-nums">90.0 Hz</text><line x1="761.1" y1="4" x2="761.1" y2="152" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 4"/><text x="761.1" y="166" text-anchor="middle" font-size="11" fill="var(--muted)">头显交付 90</text></svg>
+    </div>
+    <p class="cap">虚线是头显的交付节奏。MMK2 的指令率不到它的一半，FR3 正好贴着它。</p>
+  </section>
+
+  <section>
+    <h2>证据三 · 为什么是 MMK2</h2>
+    <h3>绑定参数几乎一样，差在解算器</h3>
+    <p>两边的 <code>position_scale</code>、<code>smoothing_alpha</code>、Quest 实例的
+    <code>rate_hz</code> 都相同；差别是 IK：FR3 用内置解析解，MMK2 用
+    <code>morla.mmk2.cartesian_delta</code> 的数值解，慢 12.4 ms。取值的出处见
+    <code>results/config.txt</code>。</p>
+    <p><code>smoothing_alpha = 0.6</code> 的时间常数是 2.5 个控制周期：90 Hz 下 28 ms，
+    35 Hz 下 71 ms。同样的数字在 MMK2 上多滞后约 40 ms，这是次生效应，不是主因。</p>
+    <p>另外，MMK2 的初值位形 <code>[0,-0.6,1,±1.6,∓0.6,0]</code> 落在奇异附近
+    （σ_min 0.031，阻尼 0.025），部分拍会被回溯砍步；这是叠加因素。</p>
+  </section>
+
+  <section>
+    <h2>边界</h2>
+    <div class="notes">
+      <div>
+        <h3>已经排除</h3>
+        <ul>
+          <li>头显降频：接收端 sequence 四轮都是 180/s，与是否遥操无关。</li>
+          <li>引擎门控：<code>control_gate</code> 只解释指令比样本少的部分，不解释样本本身的缺口。</li>
+          <li>绑定参数更宽容：两边 position_scale / smoothing 相同。</li>
+        </ul>
+      </div>
+      <div>
+        <h3>还看不出来</h3>
+        <ul>
+          <li>sequence 是接收器自增的计数，不是头显时钟：它能证明“APK 交给接收器多少”，不能证明 APK 内部有没有丢采样。</li>
+          <li>DDS 的 depth=1 不报丢弃数，具体丢了多少只能由 seq/pose 反推。</li>
+          <li>本轮只覆盖仿真与上述几条运行，MMK2 真机不在其中。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>复算</h2>
+    <p>本页只读 <code>data/</code>，不需要 trace：</p>
+    <pre><code>python3 scripts/report.py          # 重新生成本页
+head data/&lt;run&gt;/rates_per_second.csv   # 逐秒的样本/指令数
+head data/&lt;run&gt;/summary.json           # 汇总百分位</code></pre>
+    <p>要从原始 trace 重新压缩数据，见 README 的“复现”一节。</p>
+  </section>
+
+  <footer>MORLA 遥操节奏核查 · 2026-11-11 · 证据文件：README.md、data/、results/</footer>
+</div>
