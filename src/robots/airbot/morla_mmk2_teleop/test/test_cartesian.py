@@ -25,9 +25,11 @@ def test_urdf_se3_derivative_matches_joint_perturbations(side, sign):
     np.testing.assert_allclose(derivative, numeric, atol=1e-8)
 
 
-def test_recorded_wrist_branch_output_improves_after_limiting():
-    # MORLA-run-2026-11-11_0049, record 129906. The old output increased
-    # the bounded position error from 20 mm to 52 mm after component clipping.
+def test_recorded_wrist_branch_output_respects_step_lead_and_limits():
+    # MORLA-run-2026-11-11_0049, record 129906. The output stage now follows
+    # FR3/CR5: a plain lead clip plus a per-tick step clip, with no second FK
+    # gate (the gate used to hold a fifth of the ticks). It must still bound the
+    # step, stay inside the measured lead window and inside the joint limits.
     solver = ArmKinematics({'plugin_id': 'morla.airbot.mmk2.left_arm'}, clock=lambda: 0.)
     q = np.array([-.3188876369003639, -.2016800071874097, 1.1421473981007884,
                   1.9361305770410056, .27674488438272365, -.13017635151801338])
@@ -37,17 +39,28 @@ def test_recorded_wrist_branch_output_improves_after_limiting():
         [.5667844177179411, .7924428053667183, -.22536597803275255, .5697959590362862],
         [0., 0., 0., 1.],
     ])
-    candidate = solver.solve(target, seed=q, max_joint_step=.036574204)
+    candidate = np.asarray(solver.solve(target, seed=q, max_joint_step=.036574204))
+    goal = solver.goal.copy()
+    before = solver.command_metrics(q, goal, target)
     controller = AsyncCartesianController(solver)
     try:
+        # Feedback trailing at the edge of the lead window: the lead clip alone
+        # shapes the step, and the contract is the bound, not cost descent.
         feedback = q - .078 * np.sign(candidate - q)
-        output, report = controller._output(q, candidate, feedback, .004, .08, solver.goal, target)
+        output, report = controller._output(q, candidate, feedback, .004, .08, goal, target)
+        assert 0 < report['output_step_rad'] <= .004 + 1e-12
+        assert np.max(np.abs(output - feedback)) <= .08 + 1e-12
+        assert np.all(output >= solver.bounds[:, 0] - 1e-12)
+        assert np.all(output <= solver.bounds[:, 1] + 1e-12)
+        # Feedback on the command: the lead clip is inert, so the single
+        # direction-preserving speed clip must keep the solver's descent
+        # direction (the 20 mm -> 52 mm regression was a component-wise clip).
+        output, _ = controller._output(q, candidate, q, .004, .08, goal, target)
+        after = solver.command_metrics(output, goal, target)
+        assert after['cost'] < before['cost']
+        np.testing.assert_allclose(output - q, (candidate - q) * (.004 / np.max(np.abs(candidate - q))), atol=1e-12)
     finally:
         controller.close()
-    assert 0 < report['output_step_rad'] <= .004 + 1e-12
-    assert np.max(np.abs(output - feedback)) <= .08 + 1e-12
-    assert report['output_cost_after'] < report['output_cost_before']
-    assert report['output_position_error_m'] <= solver.last_report['position_guard_m'] + 1e-10
 
 
 def test_reset_discards_worker_result_from_previous_anchor():

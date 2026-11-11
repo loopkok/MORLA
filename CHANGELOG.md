@@ -1,5 +1,14 @@
 # Changelog（MORLA）
 
+## 2026-11-11 — MMK2 遥操输出链路对齐 FR3/CR5：撤掉求解器限步直通与输出端 FK 门
+
+- 操作员第五轮测试：平移和旋转都又慢又不跟手。录制 `20261111T043508Z_mmk2_quest_sim_3905092d1a`（3001 拍命令，左臂 ≈27.6 Hz）逐拍统计：输出步长 p50 0.0036 rad，而当拍允许上限 p50 0.0109 rad（33%）；`output_step_scale=1` 的拍也只走到 0.0043/0.0120；21–25% 的拍输出为 0；实际关节速度 ≈0.11 rad/s，TCP ≈0.022 m/s。
+- **求解器步长被输出上限钉死**：`AsyncCartesianController._run` 把 `cap = min(max_joint_step, max_joint_velocity·dt)` 作为 `max_joint_step` 传给求解器，求解器每拍只走 `cap`；而完成结果比当前命令晚一拍，`结果 − 当前 origin` 正好扣掉上一拍已交付的步长，稳态收敛到 cap/2（实测 0.36×）。FR3/CR5 只传 `seed`，求解器内部保持自己的 0.04 rad 步长，远大于输出上限，所以输出裁剪总是饱和、每拍跑满。现在 MMK2 也不再传 `max_joint_step`；`create_controller` 的求解器上限改为与 FR3 相同的 `min(differential_step_rad 0.04, max_joint_step 0.15)`。
+- **完成结果按它自己的种子落地**：工作线程把该请求的 seed 一并写进结果，`__call__` 交付 `origin + (结果 − seed)`，不再用晚一拍的绝对值减当前 origin。
+- **输出端不再做第二次 FK 校验**：`_output` 只做两件事——把候选裁进实测领先窗口，再按单一方向保持的比例限步。方向保持这一步保留 `limit_joint_step` 而非逐分量 `np.clip`：MMK2 腕部支路各关节分量极不均匀，逐分量裁剪会把求解器的下降方向掰歪，即 20 mm → 52 mm 那个回归。去掉的是原来的 10 次折半 FK 代价检查（21–25% 零运动拍的来源）；求解器内部仍做代价回溯与位置护栏。seed 改用 FR3/CR5 的 `integration_seed`：反馈越出领先窗口时贴边重锚，不再抛错中断遥操。
+- 验证：改写 `morla_mmk2_teleop/test/test_cartesian.py` 的记录腕部用例，断言限步、领先窗口、关节限位和方向保持；`morla_mmk2_teleop` 4 passed、`mmk2_mujoco_sim` 25 passed、`morla_mmk2_driver` 20 passed。桩环回（30/50 Hz、恒定 0.30 m 偏移）：`max_joint_velocity` 0.3/1.0/2.0 下输出步长 p50 均等于当拍上限，不再出现 0.36× 与成片零拍。`morla_teleop` 既有 caplog 用例 `test_frames_in_a_different_basis_are_dropped_with_a_throttled_warning` 仍失败，与本次改动无关。
+- 操作员侧：Web 里把双臂 `max_joint_velocity` 提到 1.0–2.0（0.2 仍会是瓶颈），初始位改到低奇异位形 `[0, -1.442, 1.273, ±1.571, ±1.34, 0]`；重启 Web 后生效。
+
 ## 2026-11-11 — MMK2 双臂异步 IK 与公共控制限步修复
 
 - 仿真与 SDK 双臂共用 MMK2 实际 URDF，以各臂基座到夹爪中心求解。新增 `morla.mmk2.cartesian_delta`，沿用 FR3/CR5 的异步差分 IK 链路：SE(3) 局部误差、自适应阻尼、上一条输出作为种子、限步后用 FK 回溯。加入位置误差约束，避免旋转输入把末端位置明显带偏。

@@ -1,8 +1,11 @@
 """MMK2 asynchronous Cartesian controller through the public Runtime gateway.
 
-Uses the FR3/CR5 request/worker/last-command integration pattern. Every emitted
-joint vector is direction-preserving, lead-bounded and FK-checked after its
-output speed limit. The worker only owns a latest request and cannot issue I/O.
+Uses the FR3/CR5 request/worker/last-command integration pattern: the worker
+solves one bounded differential step from a seed snapshotted with the request,
+and the caller applies the solver's increment to the previous command, bounded
+by the measured lead window and the per-tick joint speed. The solver keeps its
+own (larger) internal step; the output stage never gates on a second FK check.
+The worker only owns a latest request and cannot issue I/O.
 """
 import copy
 from concurrent.futures import Future
@@ -17,6 +20,17 @@ from .urdf_ik import ArmKinematics, PARAMETERS, vector6
 
 CONTROLLER_ID = 'morla.mmk2.cartesian_delta'
 ARM_PLUGINS = tuple(prefix + side + '_arm' for prefix in ('morla.airbot.mmk2.', 'morla.airbot.mmk2_sdk.') for side in ('left', 'right'))
+
+
+def integration_seed(measured, last_output, lead):
+    """Integrate from the last delivered command, bounded by current feedback.
+
+    Same rule as the FR3 and CR5 controllers: a feedback excursion beyond the
+    lead window re-anchors the seed to its edge instead of aborting teleop.
+    """
+    if last_output is None:
+        return measured.copy()
+    return measured + np.clip(last_output - measured, -lead, lead)
 
 
 def validate_parameters(parameters):
@@ -113,33 +127,32 @@ class AsyncCartesianController:
                     'age_ms': max(0., (self.clock() - self.report['sample_ns']) / 1e6) if 'sample_ns' in self.report else None}
 
     def _output(self, origin, candidate, measured, step, lead, goal, raw):
-        candidate, fraction = limit_joint_step(origin, candidate, step)
-        delta = candidate - origin
-        # Intersect the speed-bounded segment with the measured lead box.
-        lead_scale = 1.
-        for current, change, feedback in zip(origin, delta, measured):
-            if change > 0:
-                lead_scale = min(lead_scale, max(0., (feedback + lead - current) / change))
-            elif change < 0:
-                lead_scale = min(lead_scale, max(0., (feedback - lead - current) / change))
-        before = self.solver.command_metrics(origin, goal, raw)
-        bound = max(before['raw_position_error_m'], self.solver.position_lead_m)
-        accepted = origin.copy()
-        metrics = before
-        scale = lead_scale
-        for _ in range(10):
-            trial = origin + scale * delta
-            error = self.solver.command_metrics(trial, goal, raw)
-            if error['cost'] <= before['cost'] + 1e-14 and error['raw_position_error_m'] <= bound + 1e-10:
-                accepted, metrics = trial, error
-                break
-            scale *= .5
-        return accepted, {
-            'output_values': accepted.tolist(), 'output_step_rad': float(np.max(np.abs(accepted - origin))),
-            'output_step_limit_rad': step, 'output_cost_before': before['cost'],
-            'output_cost_after': metrics['cost'], 'output_position_error_m': metrics['raw_position_error_m'],
-            'output_angle_error_rad': metrics['raw_angle_error_rad'], 'output_fk_verified': True,
-            'output_step_scale': 0. if np.array_equal(accepted, origin) else fraction * scale,
+        """Shape the worker candidate in the FR3/CR5 output shape.
+
+        Bound the candidate to the measured lead window, then clip the applied
+        joint step against the previous command. The differential solve already
+        backtracks on cost and on the position guard, so no second FK gate is
+        applied here: the one that used to live here rejected a fifth of the
+        ticks outright and halved the delivered speed while it did.
+        """
+        bounded = np.clip(candidate, measured - lead, measured + lead)
+        # ONE direction-preserving speed clip, as the old code did and unlike a
+        # raw per-component np.clip: MMK2's wrist branches have very unequal
+        # joint components, and clipping them independently turns the solver's
+        # descent direction sideways (the 20 mm -> 52 mm regression). Scaling
+        # the whole step keeps direction and still saturates at `step`.
+        shaped, fraction = limit_joint_step(origin, bounded, step)
+        # Never command a joint further outside its limits than the previous
+        # command already was; the clip is inert while origin is in bounds.
+        lower = np.minimum(self.solver.bounds[:, 0], origin)
+        upper = np.maximum(self.solver.bounds[:, 1], origin)
+        output = np.clip(shaped, lower, upper)
+        metrics = self.solver.command_metrics(output, goal, raw)
+        return output, {
+            'output_values': output.tolist(), 'output_step_rad': float(np.max(np.abs(output - origin))),
+            'output_step_limit_rad': step, 'output_step_scale': fraction,
+            'output_position_error_m': metrics['raw_position_error_m'],
+            'output_angle_error_rad': metrics['raw_angle_error_rad'], 'output_fk_verified': False,
         }
 
     def __call__(self, value, measured, dt, parameters):
@@ -163,17 +176,22 @@ class AsyncCartesianController:
             if self.result is not None and now - self.result['requested_ns'] > 300_000_000:
                 raise TimeoutError('MMK2 IK result expired')
             origin = measured.copy() if self.last_output is None else self.last_output.copy()
-            if np.max(np.abs(origin - measured)) > lead + 1e-8:
-                raise ValueError('MMK2 feedback moved outside the command-lead window')
+            seed = integration_seed(measured, self.last_output, lead)
             self.pending = (self.generation, copy.deepcopy(value), measured.copy(), min(.05, dt),
-                            copy.deepcopy(parameters), now, dict(self.trace_context), None, origin.copy())
+                            copy.deepcopy(parameters), now, dict(self.trace_context), None, seed)
             self.condition.notify()
             completed = copy.deepcopy(self.result)
             if completed is None or completed['goal'] is None:
                 self.last_output = origin
                 self.output_report = {'output_values': origin.tolist(), 'output_step_rad': 0., 'output_reason': 'waiting_for_ik'}
                 return origin.tolist()
-            output, diagnostic = self._output(origin, completed['values'], measured, step, lead,
+            # The completed result is one request old, so its absolute value
+            # sits one applied step behind the current command. Apply the step
+            # the solver produced, relative to the seed it produced it from;
+            # subtracting from the current origin would cancel exactly that
+            # step and settle at half the commanded speed.
+            candidate = completed['values'] if completed['seed'] is None else origin + (completed['values'] - completed['seed'])
+            output, diagnostic = self._output(origin, candidate, measured, step, lead,
                                               completed['goal'], completed['raw'])
             self.last_output = output.copy()
             self.output_report = {**diagnostic, 'output_candidate_ns': completed['requested_ns'],
@@ -197,9 +215,12 @@ class AsyncCartesianController:
                     acknowledgement = self.controller.reanchor(value, measured, parameters)
                     result = measured.copy()
                 else:
-                    speed = min(parameters.get('max_joint_velocity', .3), self.device_joint_velocity)
-                    cap = min(parameters.get('max_joint_step', .02), speed * dt)
-                    result = self.controller(value, measured, dt, parameters, seed=seed, max_joint_step=cap)
+                    # The solver keeps its own (larger) internal step, exactly
+                    # as FR3/CR5 do. Passing the output speed cap down here made
+                    # the solver step equal the output step, so the one-request
+                    # stale result cancelled the previously delivered step and
+                    # settled at half the commanded speed.
+                    result = self.controller(value, measured, dt, parameters, seed=seed)
                 if self.clock() - requested > 250_000_000:
                     raise TimeoutError('MMK2 FK/IK deadline exceeded')
                 error = None
@@ -218,6 +239,7 @@ class AsyncCartesianController:
                     }
                     if result is not None:
                         self.result = {'values': vector6(result), 'requested_ns': requested,
+                                       'seed': None if seed is None else vector6(seed),
                                        'goal': None if self.solver.goal is None else self.solver.goal.copy(),
                                        'raw': None if self.solver.raw_target is None else self.solver.raw_target.copy()}
                         if waiter is not None:
@@ -262,7 +284,10 @@ def create_controller(context):
     for name in PARAMETERS:
         if name in parameters:
             solver_instance.setdefault('parameters', {})[name] = parameters[name]
-    maximum = min(parameters.get('differential_step_rad', .02), parameters.get('max_joint_step', .02))
+    # Same split as FR3/CR5: the solver's internal step is independent of the
+    # output speed cap and must stay comfortably larger than it, so the plain
+    # output clip is what bounds the motion.
+    maximum = min(parameters.get('differential_step_rad', .04), parameters.get('max_joint_step', .15))
     real = instance.get('backend') == 'real'
     sdk = instance['plugin_id'].startswith('morla.airbot.mmk2_sdk.')
     velocity = hardware.get('max_velocity', .1) if sdk else 3.14
