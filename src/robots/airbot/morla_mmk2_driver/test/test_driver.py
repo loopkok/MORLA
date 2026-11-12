@@ -384,8 +384,13 @@ def test_goal_cruise_velocity_is_separate_from_the_speed_cap(endpoint):
     finally:s.close()
 
 
-def test_goal_cruise_velocity_above_the_speed_cap_is_rejected():
-    _,rows=resolve();p=rows['left_arm']['parameters'];p['goal_max_velocity']=p['max_velocity']*2
+def test_goal_cruise_velocity_may_exceed_the_step_cap():
+    """A bulk edit sets one cruise value on every component (2026-11-13:
+    0.35 everywhere), so it must not be rejected on the lift (0.02) or head
+    (0.1); a cruise above the step cap simply means "as fast as allowed"."""
+    _,rows=resolve();p=rows['lift']['parameters'];p['goal_max_velocity']=p['max_velocity']*10
+    DeviceSession(rows)
+    p['goal_max_velocity']=0
     with pytest.raises(ValueError,match='goal_max_velocity'):DeviceSession(rows)
 
 

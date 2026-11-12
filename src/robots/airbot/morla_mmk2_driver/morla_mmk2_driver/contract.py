@@ -39,7 +39,8 @@ def goal_velocity(row):
     controller treats a goal as "move here at this speed, then stop", so a
     cruise far above the teleop speed makes every goal finish early and the
     arm stall until the next write -- a stop/go buzz at the write rate.
-    `goal_max_velocity` decouples that smoothness knob from the speed cap.
+    `goal_max_velocity` decouples that smoothness knob from the speed cap; a
+    value above `max_velocity` just means "as fast as this component may go".
     """
     p=row['parameters']
     return p.get('goal_max_velocity',p['max_velocity'])
@@ -79,9 +80,14 @@ def validate_configuration(row):
         limits(row);mapping(row)
         for name in (() if role=='base' else ('max_velocity','max_command_lead')):
             if isinstance(p[name],bool) or not isinstance(p[name],(int,float)) or not math.isfinite(p[name]) or not 0<p[name]<=10:raise ValueError('MMK2_SDK_INVALID_'+name)
+        # Cruise target for forward_position goals. It is deliberately NOT
+        # bounded by max_velocity: that bound turned a bulk "smooth everything"
+        # edit into MMK2_SDK_INVALID_goal_max_velocity on the lift and head,
+        # whose step caps are 0.02 and 0.1. A cruise above the step cap only
+        # means "as fast as this component is allowed to go".
         value=p.get('goal_max_velocity')
         if value is not None and (isinstance(value,bool) or not isinstance(value,(int,float)) or
-                                  not math.isfinite(value) or not 0<value<=p['max_velocity']):
+                                  not math.isfinite(value) or not 0<value<=10):
             raise ValueError('MMK2_SDK_INVALID_goal_max_velocity')
         value=p.get('command_timeout_s')
         if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or not .05<=value<=1:raise ValueError('MMK2_SDK_INVALID_COMMAND_TIMEOUT')
