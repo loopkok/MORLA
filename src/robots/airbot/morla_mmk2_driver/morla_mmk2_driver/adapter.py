@@ -1,5 +1,5 @@
 """MORLA ABI: shared whole-robot session and no second command ingress."""
-from .contract import PREFIX, role_of
+from .contract import PREFIX, role_of, validate_target
 from .session import DeviceSession
 
 
@@ -11,6 +11,11 @@ class Adapter:
         self.instance=instance;self.key=instance['instance_id'];self.session=session
         self.active=False
 
+    @property
+    def stop_wait_s(self):
+        # The stop hold is a set_goal write; wait past its own RPC deadline.
+        return self.session.command_rpc_timeout_s + .5
+
     def configure(self, context):self.session.start()
     def read(self, now_ns):return self.session.snapshot(self.key)
     def health(self, now_ns):return self.read(now_ns)
@@ -20,6 +25,15 @@ class Adapter:
     def activate(self):
         self.session.activate(self.key);self.active=True;return True
     def submit(self, command):return self.session.submit(self.key,command)
+    def work_position_constraints(self, values):
+        row = self.instance
+        joints = row['joints']
+        validate_target(row, {'names': [joint['name'] for joint in joints],
+                              'units': [joint['unit'] for joint in joints],
+                              'mode': 'position', 'values': values})
+        return row['parameters']['max_velocity'], row['parameters']['max_command_lead']
+
+    def release_target(self):self.session.release_target(self.key)
     def release(self):return self.stop()
     def stop(self):
         self.active=False;return self.session.stop()

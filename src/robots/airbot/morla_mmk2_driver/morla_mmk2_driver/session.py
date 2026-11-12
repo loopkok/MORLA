@@ -3,8 +3,11 @@ import copy
 import threading
 import time
 from morla_teleop.kinematics import limit_joint_step
-from .contract import CONNECTION_FIELDS, ROLES, role_of, validate_configuration, validate_target, limits
+from .contract import CONNECTION_FIELDS, ROLES, COMMAND_RPC_TIMEOUT_DEFAULT_S, role_of, validate_configuration, validate_target, limits
 from .feedback import decode
+try:from morla_core.cadence_probe import record as _cadence
+except ImportError:
+    def _cadence(*args,**kwargs):pass
 
 
 class DeviceSession:
@@ -13,10 +16,16 @@ class DeviceSession:
         self.lock=threading.RLock();self.io=threading.RLock();self.lifecycle=threading.RLock()
         self.shutdown=threading.Event();self.samples={};self.device_stamps={};self.last_sent={};self.pending={};self.desired={};self.active=set();self.command_times={}
         self.fault='';self.stop_error='';self.started=False;self.closed=False;self.threads=[];self.transport=None;self.captures=[]
+        # Dispatch telemetry: how often goals actually reach the controller is the
+        # real teleop rate limit, so expose it instead of inferring it.
+        self.writes=0;self.write_hz=None;self.last_write=None
+        # Measured joints found (tolerably) outside the command envelope when a
+        # component was armed; reported by snapshot() instead of blocking.
+        self.start_outside={}
         roles=[];signature=None;backend=None
         for row in self.rows.values():
             validate_configuration(row)
-            sig=tuple(row['parameters'][k] for k in CONNECTION_FIELDS)
+            sig=tuple(row['parameters'].get(k) for k in CONNECTION_FIELDS)
             if signature is not None and (signature!=sig or backend!=row['backend']):
                 raise ValueError('MMK2_SHARED_CONNECTION_CONFIGURATION_MISMATCH')
             signature=sig;backend=row['backend']
@@ -25,6 +34,7 @@ class DeviceSession:
                 if role in roles:raise ValueError('MMK2_DUPLICATE_COMPONENT')
                 roles.append(role)
         self.p=next(iter(self.rows.values()))['parameters'];self.backend=backend
+        self.command_rpc_timeout_s=self.p.get('command_rpc_timeout_s',COMMAND_RPC_TIMEOUT_DEFAULT_S)
         if transport_factory is None:
             from .fake import FakeTransport
             from .transport import Transport
@@ -98,6 +108,10 @@ class DeviceSession:
             ready=bool(sample['sample_ns']) and not self.fault and 0<=self.clock()-sample['sample_ns']<=self.p['feedback_timeout_s']*1e9
             sample.update(ready=ready,fault=bool(self.fault),reason=self.fault,stop_error=self.stop_error,source='hardware' if self.backend=='real' else 'fake',measured=self.backend=='real' and bool(sample['sample_ns']),synthetic=self.backend=='fake',software_dispatch_authorized=key in self.active,motor_enabled_verified=False,physical_stop_verified=False)
             sample['device_status']={'registration':copy.deepcopy(getattr(self.transport,'registration',{})),'motor_status':'unsupported_by_sdk'}
+            sample['dispatch']={'writes':self.writes,
+                                'rate_hz':None if self.write_hz is None else round(self.write_hz,2),
+                                'goal_rtt_s':None if self.transport is None else getattr(self.transport,'last_goal_rtt_s',None)}
+            sample['start_outside_limits']=copy.deepcopy(self.start_outside.get(key))
             for port in sample['ports'].values():
                 port.update(valid=ready,source=sample['source'],measured=sample['measured'],synthetic=sample['synthetic'])
             return sample
@@ -110,12 +124,41 @@ class DeviceSession:
             if not sample['ready']:raise RuntimeError('MMK2_FEEDBACK_NOT_READY')
             row=self.rows[key];role=role_of(row)
             if role!='base':
-                validate_target(row,{'names':ROLES[role][1],'values':sample['values'],'mode':'position','units':ROLES[role][2]})
+                self._check_start_pose(key,row,sample['values'])
             with self.lock:
                 self.active.add(key);self.pending.pop(key,None);self.desired.pop(key,None);self.last_sent.pop(key,None)
 
+    def _check_start_pose(self,key,row,values):
+        """Reject only a start pose that is *grossly* outside the command envelope.
+
+        The measured pose is not a command. A joint that settled or was nudged a
+        few degrees past a soft range still accepts commands -- both controllers
+        clip their output to these same limits -- and refusing to activate there
+        would block every path that could bring it back, teleop included. So a
+        small excursion is recorded in snapshot()['start_outside_limits'] and
+        activation proceeds. Anything wider than 10% of the joint range is the
+        signature of a wrong joint order/sign/offset, not of a resting arm, and
+        still fails.
+        """
+        role=role_of(row)
+        try:
+            validate_target(row,{'names':ROLES[role][1],'values':values,'mode':'position','units':ROLES[role][2]})
+        except ValueError as exc:
+            if str(exc)!='MMK2_SDK_TARGET_OUTSIDE_LIMITS':raise
+            low,high=limits(row)
+            joints=[(n,v,lo,hi) for n,v,lo,hi in zip(ROLES[role][1],values,low,high) if not lo<=v<=hi]
+            gross=[(n,round(v,4),lo,hi) for n,v,lo,hi in joints if v<lo-.1*(hi-lo) or v>hi+.1*(hi-lo)]
+            if gross:raise RuntimeError(f'MMK2_START_POSE_OUTSIDE_LIMITS: {gross}') from None
+            with self.lock:self.start_outside[key]=[(n,round(v,4),lo,hi) for n,v,lo,hi in joints]
+        else:
+            with self.lock:self.start_outside.pop(key,None)
+
     def submit(self,key,command):
-        q=validate_target(self.rows[key],command)
+        row=self.rows[key]
+        measured=None
+        if role_of(row)!='base':
+            with self.lock:measured=list(self.samples.get(key,{}).get('values') or [])
+        q=validate_target(row,command,measured or None)
         with self.lock:
             if self.fault:raise RuntimeError('MMK2_DEVICE_FAULT: '+self.fault)
             if key not in self.active:raise RuntimeError('ADAPTER_DISARMED')
@@ -127,12 +170,27 @@ class DeviceSession:
             self.pending[key]=q;self.command_times[key]=self.clock()
         return {'accepted':True,'completed':False,'phase':'queued'}
 
+    def release_target(self, key):
+        with self.lock:
+            self.pending.pop(key, None)
+            self.desired.pop(key, None)
+            self.command_times.pop(key, None)
+            if key in self.active and role_of(self.rows[key]) == 'base':
+                self.pending[key] = [0., 0.]
+
     def _worker(self):
         period=1/self.p['rate_hz']
-        while not self.shutdown.wait(period):
+        next_tick = time.monotonic() + period
+        # The rate limit is per unit of wall-clock time, not per loop iteration:
+        # set_goal itself takes ~1 s on the real controller, so the loop runs far
+        # below rate_hz and a nominal-period step would throttle commands ~20x.
+        last_send = time.monotonic()
+        while not self.shutdown.wait(max(0., next_tick - time.monotonic())):
+            # Count RPC time toward the period, without sending catch-up bursts.
+            next_tick = time.monotonic() + period
             try:
                 with self.io:
-                    targets={}
+                    targets={};probe={}
                     with self.lock:
                         if self.fault:continue
                         for key in list(self.active):
@@ -143,20 +201,47 @@ class DeviceSession:
                             if role_of(row)=='base':
                                 if self.clock()-self.command_times.get(key,0)>p['command_timeout_s']*1e9:
                                     goal=[0.,0.];self.desired[key]=goal
+                                # A resting base must not ride along on every
+                                # request: the controller zeroes a base that
+                                # hears nothing for 250 ms anyway, so only the
+                                # transition to zero needs sending. Keeping it
+                                # cost ~100 ms per request on the real
+                                # controller and cut the arm rate from ~18 Hz
+                                # to ~6 Hz (2026-11-13, zero-displacement probe).
+                                if not any(goal) and not any(self.last_sent.get(key,(0.,0.))):
+                                    continue
                                 q=goal
                             else:
-                                measured=self.samples[key]['values'];start=self.last_sent.get(key,measured);step=p['max_velocity']*period
+                                measured=self.samples[key]['values'];start=self.last_sent.get(key,measured);step=p['max_velocity']*max(period,time.monotonic()-last_send)
                                 limited,_=limit_joint_step(start,goal,step)
                                 q=limited.tolist()
                                 if max(abs(v-m) for v,m in zip(q,measured))>p['max_command_lead']:raise RuntimeError('MMK2_COMMAND_LEAD_EXCEEDED')
+                                # Per-write record: the delivered rate and step are the
+                                # real teleop smoothness limit, and nothing else observes
+                                # them (the ik.* probe only samples feedback at 10 Hz).
+                                probe[key]={'q':[round(v,5) for v in q],
+                                            'step':round(max(abs(v-s) for v,s in zip(q,start)),5),
+                                            'clip':round(max(abs(v-g) for v,g in zip(q,goal)),5)}
                             # Validate mapped hardware limits before sending too.
-                            validate_target(row,{'names':[j['name'] for j in row['joints']],'mode':'velocity' if role_of(row)=='base' else 'position','units':ROLES[role_of(row)][2],'values':q})
+                            validate_target(row,{'names':[j['name'] for j in row['joints']],'mode':'velocity' if role_of(row)=='base' else 'position','units':ROLES[role_of(row)][2],'values':q},
+                                            None if role_of(row)=='base' else measured)
                             targets[key]=q
                     if targets:
                         # A timeout may still have reached the controller.
                         # Record attempted writes so fault stop covers them.
-                        with self.lock:self.last_sent.update(targets)
+                        with self.lock:
+                            self.last_sent.update(targets)
+                            now=time.monotonic()
+                            if self.last_write is not None and now>self.last_write:
+                                rate=1/(now-self.last_write)
+                                self.write_hz=rate if self.write_hz is None else .8*self.write_hz+.2*rate
+                            self.last_write=now;self.writes+=1
+                        last_send=time.monotonic()
+                        started=time.monotonic()
                         self.transport.write(targets,self.rows)
+                        _cadence('dispatch',counts=('write',),
+                                 timings=(('goal_rtt',int((time.monotonic()-started)*1e9)),),
+                                 event={'components':sorted(targets),'arms':probe} if probe else None)
             except Exception as exc:self._fault(exc)
 
     def _hold(self):

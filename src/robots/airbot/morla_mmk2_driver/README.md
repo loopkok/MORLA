@@ -26,6 +26,9 @@
 设备身份是公共编译器的硬检查；公共 `verified`/`stop_verified` 仅记录现场验收，不能替代以上三项驱动门禁。现场先由厂商流程准备控制器，确认急停、
 使能、方向、零位、SDK/URDF 关节对应、头部轴顺序、夹爪极性与安全空间。
 `joint_signs`/`joint_offsets` 用于部署映射，目标仍受 SDK 原始边界与部署收紧边界约束。
+实测姿态本身不是命令：某关节静止在软限位外时，`activate` 仍放行（超过关节行程 10% 才判为关节顺序/符号映射错误并拒绝），
+越界清单写入 `snapshot()['start_outside_limits']`；命令侧只允许"同一侧、且不比实测更靠外"的目标，
+因此可以把滑出限位的关节收回来，但不可能把它推得更远。该容差只在实测已在界外时生效，实测在界内时行为与之前一致。
 底盘不支持位置偏移。连接断开后软件无法保证控制器停止，需现场验证控制器侧超时。
 故障不自动重连、不恢复旧目标；排除故障后重新启动会话。
 
@@ -33,8 +36,24 @@
 有效目标每拍从原始目标重新推导（做领先截断后即用），不跨拍积分；积分写法在手静止时会把目标冻结在“上一拍关节位置 + 领先距离”，留下永久偏置。贴限位的关节按 active-set 锁住重解，其余关节承担步长，被拒绝的向外需求记入 `limit_pressure_rad`。
 Quest 模板选用 `morla.mmk2.cartesian_delta`。输出上限为 0.05 rad / 2.0 rad/s，实际步长还受绑定的差分步长和 SDK 部署限速、下发频率及反馈领先距离约束。
 默认 trajectory 请求，缩放 0.05，主机限速/目标领先距离额外约束；此接口不宣称高频伺服。
+主机限速 `max_velocity` 按**实际墙钟时间**计算：每次下发允许前进 `max_velocity × max(1/rate_hz, 距上次下发的时间)`，再被目标本身截断。
+`trajectory` 的 `set_goal` 实机约 1.1–1.4 s（worker 约 0.8 Hz）；`forward_position` 快得多，2026-11-13 零位移实测：
+单臂 22 ms、双臂 47 ms、六组件（无底盘）56 ms（≈18 Hz），**再加底盘零速度一项就变成 161 ms（≈6.2 Hz）**。
+因此 worker 不再每拍都发空闲底盘：目标为零且上次已发过零时跳过该项，控制器 250 ms 收不到命令自己就会零速，
+手臂下发频率由 6 Hz 回到约 18 Hz。底盘运动时仍按原样逐拍下发。
+领先门禁（`max_command_lead`）仍在提交和下发两处检查，不因该改动放宽。
+`set_goal` 使用独立超时 `command_rpc_timeout_s`（默认 3 s；trajectory 实测 0.7–1.2 s），
+`rpc_timeout_s` 只约束 `create_robot`、状态流与图像。停止保持写入同样走该超时；adapter 通过
+`stop_wait_s` 让运行时把停止等待延长到该 RPC 截止时间之后，其他设备仍用默认 1 s。
+每次 `set_goal` 的 RTT 可通过 `Transport.last_goal_rtt_s` 读取，并每 30 s 汇总一条日志。
+每次真正的下发改写一条 `dispatch` 节拍记录（`~/.local/share/morla/cadence-probe/`）：计数 `write`、时延 `goal_rtt`，
+以及事件里的 `components` 和每臂 `q`（下发的关节目标）、`step`（相对上次下发的最大关节变化）、`clip`（目标被限步截掉多少）。
+`ik.*` 事件只按 10 Hz 抽样反馈，既看不出真实下发频率，也看不出每拍步长——平滑度问题要先用 `dispatch` 记录判断是
+"下发太慢/被截"还是"下发本身就抖"。
 `forward_position` 是显式可选 SDK 接口，需按固件验证后使用。底盘 250ms 主机命令超时会请求零速度，
 不是经过验证的控制器看门狗。
+厂商 proto 的 `tracking`（`TrackingParams`）在本控制器上不可用：服务端没有 `max_error` 字段，
+只带 `max_velocity` 的零位移目标返回 `GoalStatus=INVALID_TARGET(1)`。
 
 ## 安装与 ROS 2
 
@@ -65,7 +84,7 @@ SDK 没有协方差，ROS 输出使用保守未知方差。裸 driver 不自动�
 3. 另建真实装配，选 “AIRBOT MMK2 SDK 整机（真实设备，默认只读）”。所有 SDK 组件使用同一 mmk2_sdk session_id。在部署中逐个填同一真实 device_id/resource_key/host/port/robot_name/domain_id。模板 deployment.real.example.yaml 展示结构；控制器地址已填 `172.25.14.1`，必须替换序列号占位符；本轮不连接该地址。
 4. 保持三项写入开关 false，仅编译、启动，观察具名反馈/时间戳/健康与相机。缺任何执行器反馈不允许准备/激活；需要子集时从装配移除相应组件并调整 capture。
 5. 完成现场核验后再配置 Quest：真实输入源双手、接收协议/端口/设备身份；不要同时运行测试数据注入器。quest.real.example.yaml 是完整双手绑定示例。
-6. 双手位姿 → 各臂公共 Cartesian IK；双手 scalar → 各 SDK 夹爪；左 scalar 同时 → 升降（`morla.scalar_anchored`，按下 Grip 时锁存当前高度，只下发之后行程；绝对映射会让躯干在 Grip 生效那一拍瞬跳；`output_range` 必须显式填写为扳机满行程的位移，缺失时编译报 `ANCHORED_OUTPUT_RANGE`，不要依赖默认 `[0,1]`——那是 1 m 行程，`slide_joint` 正值朝下，会直接到底）；左摇杆 → 头；右摇杆 → 原生底盘 Twist。每条绑定都有 hold deadman 和 250ms 输入新鲜度。升降与夹爪共用左 scalar 是示例，可在 Web 改绑定。
+6. 双手位姿映射到各臂的笛卡尔 IK，双手扳机映射到各 SDK 夹爪，左摇杆控制头部，右摇杆控制底盘。真机 Quest 示例把升降绑定到 `quest.right_ab`，控制模式选「MMK2 升降按键点动」，速度默认 `0.01 m/s`，输入有效期 `250 ms`。按住 A 上升、按住 B 下降，松开或同时按住时发送位置保持。该绑定使用同一 Quest 的 A/B 按键，录制改用 Web 或键盘。若使用扳机作为升降输入，选 `morla.scalar_anchored`，使用 Grip 门控并显式填写相对行程 `output_range`，例如 `[0, 0.02]` m。
 7. 现场测量双臂输入坐标基、TCP 和方向；模板中的变换矩阵仅沿用模型参考，calibration_verified=false。夹爪 output_range=[0,1] 仅表示原始映射，确认极性后可反向。实机运动前，记录公共标定/停止 verified，并显式开启每个执行器组件的三项写入门禁。先单组低速，再整机。
 8. 通过 Web 准备、激活、获取控制权、按住 deadman，松开后检查保持/零速度及诊断；再验证停止、故障、断网、物理急停和长稳。采集只选 SDK 实际提供的端口。结束采集先点“暂停遥操”，再点“结束并保存”，最后结束工作站。
 

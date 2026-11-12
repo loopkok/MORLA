@@ -11,5 +11,6 @@ setup(name='morla_mmk2_driver',version='0.1.0',packages=find_packages(exclude=['
  extras_require={'ik':['scipy','mujoco>=3.2,<4']},license='Apache-2.0',maintainer='MORLA',maintainer_email='maintainers@morla.dev',
  entry_points={'morla.adapters':[PREFIX+role+':'+backend+' = morla_mmk2_driver.adapter:create_adapter' for role in [*ROLES,'camera'] for backend in ['fake','real']],
  'morla.kinematics':[PREFIX+side+'_arm = morla_mmk2_driver.kinematics:create_kinematics' for side in ['left','right']],
- 'morla.controllers':['morla.mmk2_sdk.base_twist = morla_mmk2_driver.controllers:create_controller'],
+ 'morla.controllers':['morla.mmk2_sdk.base_twist = morla_mmk2_driver.controllers:create_controller',
+                      'morla.mmk2_sdk.lift_button_jog = morla_mmk2_driver.controllers:create_lift_jog'],
  'console_scripts':['mmk2_driver = morla_mmk2_driver.node:main','mmk2_check = morla_mmk2_driver.check:main']})

@@ -1,7 +1,10 @@
 """Bounded native MMK2 gRPC protocol. No high-level SDK startup side effects."""
+import logging
 import threading
 import time
 from .vendor import common_pb2 as c, mmk2_pb2 as m
+
+log = logging.getLogger(__name__)
 
 
 def stamp_ns(stamp):
@@ -14,12 +17,17 @@ class Transport:
     def __init__(self, parameters):
         import grpc
         from .vendor.mmk2_pb2_grpc import MMK2ServiceStub
+        from .contract import COMMAND_RPC_TIMEOUT_DEFAULT_S
+        self._rpc_error = grpc.RpcError
         self.p = parameters
+        self.command_rpc_timeout_s = parameters.get('command_rpc_timeout_s', COMMAND_RPC_TIMEOUT_DEFAULT_S)
         self.channel = grpc.insecure_channel(f"{parameters['host']}:{parameters['port']}", options=[('grpc.max_receive_message_length', 32*1024*1024)])
         self.stub = MMK2ServiceStub(self.channel)
         self.stream = None
         self.closed = threading.Event()
         self.header = c.Header(caller_id=parameters['robot_name'])
+        self.last_goal_rtt_s = None
+        self._goal_rtt = {'count': 0, 'total_s': 0., 'max_s': 0., 'slow': 0, 'since': time.monotonic()}
 
     def _header(self):
         stamp=time.time_ns()
@@ -34,7 +42,11 @@ class Transport:
         self.stream = self.stub.get_robot_state(self._header())
         if self.closed.is_set():
             self.stream.cancel()
-        yield from self.stream
+        try:
+            yield from self.stream
+        except self._rpc_error as exc:
+            if not self.closed.is_set():
+                raise RuntimeError(f'MMK2_GET_ROBOT_STATE_RPC: {exc.code().name}: {exc.details()}') from exc
 
     def write(self, targets, rows):
         request = m.SetGoalRequest(header=self._header())
@@ -56,9 +68,48 @@ class Transport:
                 else:
                     goal.param.forward_position.CopyFrom(m.ForwardPositionParams(max_velocity=row['parameters']['max_velocity']))
         if request.goals_map:
-            reply = self.stub.set_goal(request, timeout=self.p['rpc_timeout_s'])
+            # set_goal is a planning RPC (~0.7-1.2 s on the real controller),
+            # not a read RPC; it needs its own deadline.
+            timeout = self.command_rpc_timeout_s
+            started = time.monotonic()
+            try:
+                reply = self.stub.set_goal(request, timeout=timeout)
+            except self._rpc_error as exc:
+                elapsed_ms = (time.monotonic() - started) * 1000
+                components = ','.join(sorted(request.goals_map))
+                raise RuntimeError(
+                    f'MMK2_SET_GOAL_RPC: {exc.code().name}; components={components}; '
+                    f'interface={self.p["command_interface"]}; elapsed_ms={elapsed_ms:.1f}; '
+                    f'deadline_s={timeout:g}; {exc.details()}'
+                ) from exc
+            self._record_goal_rtt(time.monotonic() - started)
             if reply.value != c.GoalStatus.SUCCESS:
-                raise RuntimeError(f'MMK2_GOAL_REJECTED:{reply.value}:{reply.message}')
+                # The controller rejects the whole request without saying which
+                # goal was invalid. Dump the exact SDK targets so an
+                # INVALID_TARGET can be attributed instead of guessed.
+                detail = []
+                for key, goal in request.goals_map.items():
+                    if role_of(rows[key]) == 'base':
+                        detail.append(f'{key}=twist({goal.goal.twist3d.x:+.4f},{goal.goal.twist3d.omega:+.4f})')
+                    else:
+                        detail.append(f'{key}={[round(v, 4) for v in goal.goal.joint_state.position]}')
+                raise RuntimeError(f'MMK2_GOAL_REJECTED:{reply.value}:{reply.message}; '
+                                   f'interface={self.p["command_interface"]}; sdk_targets={"; ".join(detail)}')
+
+    def _record_goal_rtt(self, rtt_s):
+        self.last_goal_rtt_s = rtt_s
+        stats = self._goal_rtt
+        stats['count'] += 1
+        stats['total_s'] += rtt_s
+        stats['max_s'] = max(stats['max_s'], rtt_s)
+        if rtt_s > .5 * self.command_rpc_timeout_s:
+            stats['slow'] += 1
+        now = time.monotonic()
+        if now - stats['since'] >= 30.:
+            log.info('MMK2_SET_GOAL_RTT count=%d avg_ms=%.1f max_ms=%.1f slow=%d deadline_s=%g',
+                     stats['count'], stats['total_s'] / stats['count'] * 1e3,
+                     stats['max_s'] * 1e3, stats['slow'], self.command_rpc_timeout_s)
+            self._goal_rtt = {'count': 0, 'total_s': 0., 'max_s': 0., 'slow': 0, 'since': now}
 
     def images(self, camera):
         return self.stub.get_image_once(m.GetImageRequest(header=self._header(), components=[camera,camera], image_types=['color','depth']), timeout=self.p['rpc_timeout_s'])

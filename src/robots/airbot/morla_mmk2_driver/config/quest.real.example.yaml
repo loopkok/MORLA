@@ -141,21 +141,13 @@
       "target": "right_gripper.position_target"
     },
     {
-      "controller": "morla.scalar_anchored",
-      "deadman": "quest.left_hold",
+      "controller": "morla.mmk2_sdk.lift_button_jog",
       "id": "control_3",
       "max_age_ms": 250,
       "parameters": {
-        "input_range": [
-          0,
-          1
-        ],
-        "output_range": [
-          0.0,
-          0.02
-        ]
+        "speed": 0.01
       },
-      "source": "quest.left_scalar",
+      "source": "quest.right_ab",
       "target": "lift.position_target"
     },
     {

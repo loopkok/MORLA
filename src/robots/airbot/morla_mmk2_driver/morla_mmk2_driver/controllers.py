@@ -1,5 +1,7 @@
 """Quest stick to native SDK [linear_x m/s, angular_z rad/s]."""
 import math
+from morla_mmk2_teleop.lift_button_jog import LiftButtonJog
+from .contract import PREFIX, limits
 
 
 class BaseTwist:
@@ -16,3 +18,11 @@ class BaseTwist:
 def create_controller(context):
     if context['instance']['plugin_id']!='morla.airbot.mmk2_sdk.base':raise ValueError('MMK2_BASE_WRONG_TARGET')
     return BaseTwist()
+
+
+def create_lift_jog(context):
+    instance = context['instance']
+    if instance['plugin_id'] != PREFIX + 'lift':
+        raise ValueError('MMK2_LIFT_WRONG_TARGET')
+    lower, upper = (bound[0] for bound in limits(instance))
+    return LiftButtonJog(lower, upper, instance['parameters']['max_command_lead'])

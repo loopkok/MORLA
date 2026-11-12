@@ -2,6 +2,9 @@
 import math
 
 PREFIX = 'morla.airbot.mmk2_sdk.'
+# The controller's set_goal service time is ~0.7-1.2 s on real hardware
+# (both arms ~1.2 s); the read-RPC deadline must not be reused for it.
+COMMAND_RPC_TIMEOUT_DEFAULT_S = 3.0
 ROLES = {
     'left_arm': ('left_arm', [f'left_arm_joint{i}' for i in range(1,7)], 'rad'),
     'right_arm': ('right_arm', [f'right_arm_joint{i}' for i in range(1,7)], 'rad'),
@@ -12,7 +15,7 @@ ROLES = {
     'base': ('base', ['linear_x','angular_z'], 'm_rad/s'),
 }
 ARM_LIMITS = [(-3.14,2.06),(-2.8,.17),(-.087,3.14),(-2.96,2.96),(-1.74,1.74),(-3.,3.)]
-CONNECTION_FIELDS = ('host','port','robot_name','domain_id','rpc_timeout_s','startup_timeout_s','feedback_timeout_s','rate_hz','command_interface','trajectory_scale')
+CONNECTION_FIELDS = ('host','port','robot_name','domain_id','rpc_timeout_s','command_rpc_timeout_s','startup_timeout_s','feedback_timeout_s','rate_hz','command_interface','trajectory_scale')
 
 
 def role_of(row):
@@ -50,6 +53,11 @@ def validate_configuration(row):
         value=p.get(name)
         if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or not lo<=value<=hi:
             raise ValueError('MMK2_SDK_INVALID_'+name)
+    # Optional so assemblies resolved before this parameter existed keep working.
+    value=p.get('command_rpc_timeout_s')
+    if value is not None and (isinstance(value,bool) or not isinstance(value,(int,float)) or
+                              not math.isfinite(value) or not .05<=value<=10):
+        raise ValueError('MMK2_SDK_INVALID_command_rpc_timeout_s')
     for name in (() if role=='camera' else ('allow_motion','mapping_verified','hold_stop_accepted')):
         if type(p.get(name)) is not bool:raise ValueError('MMK2_SDK_BOOLEAN_REQUIRED_'+name)
     if p.get('command_interface') not in ('trajectory','forward_position'):raise ValueError('MMK2_SDK_COMMAND_INTERFACE')
@@ -74,7 +82,24 @@ def validate_configuration(row):
         if type(p.get('domain_id')) is not int or p['domain_id']< -1:raise ValueError('MMK2_SDK_DOMAIN_ID')
 
 
-def validate_target(row,command):
+def _outside_allowed(q,measured,lower,upper):
+    """A joint already resting outside its range may be commanded toward it.
+
+    The command must stay on the same side and never further out than the
+    measured pose, so this can only reduce the excursion. It exists so an arm
+    that settled or was nudged past a soft limit can be driven back instead of
+    locking every command path (teleop and work positions included).
+    """
+    if measured is None or len(measured)!=len(q) or any(not math.isfinite(v) for v in measured):return False
+    for x,m,lo,hi in zip(q,measured,lower,upper):
+        if lo<=x<=hi:continue
+        if x<lo:
+            if not (m<lo and x>=m):return False
+        elif not (m>hi and x<=m):return False
+    return True
+
+
+def validate_target(row,command,measured=None):
     role=role_of(row);mode='velocity' if role=='base' else 'position';unit=ROLES[role][2]
     if command.get('names')!=[j['name'] for j in row['joints']] or command.get('mode')!=mode:
         raise ValueError('MMK2_SDK_COMMAND_NAMES_OR_MODE')
@@ -82,8 +107,13 @@ def validate_target(row,command):
     if units not in (unit,[unit]*n) and not (role=='base' and units==['m/s','rad/s']):
         raise ValueError('MMK2_SDK_COMMAND_UNITS')
     q=vector(command.get('values'),n);lower,upper=limits(row)
-    if any(not lo<=x<=hi for x,lo,hi in zip(q,lower,upper)):raise ValueError('MMK2_SDK_TARGET_OUTSIDE_LIMITS')
+    if role=='base':measured=None
+    if any(not lo<=x<=hi for x,lo,hi in zip(q,lower,upper)) and not _outside_allowed(q,measured,lower,upper):
+        raise ValueError('MMK2_SDK_TARGET_OUTSIDE_LIMITS')
     signs,offsets=mapping(row)
     raw=[(v-o)/s for v,s,o in zip(q,signs,offsets)]
-    if any(not j['lower']<=v<=j['upper'] for v,j in zip(raw,row['joints'])):raise ValueError('MMK2_SDK_MAPPED_TARGET_OUTSIDE_HARDWARE_LIMITS')
+    raw_measured=None if measured is None else [(v-o)/s for v,s,o in zip(measured,signs,offsets)]
+    hard_low=[j['lower'] for j in row['joints']];hard_high=[j['upper'] for j in row['joints']]
+    if any(not lo<=v<=hi for v,lo,hi in zip(raw,hard_low,hard_high)) and not _outside_allowed(raw,raw_measured,hard_low,hard_high):
+        raise ValueError('MMK2_SDK_MAPPED_TARGET_OUTSIDE_HARDWARE_LIMITS')
     return q

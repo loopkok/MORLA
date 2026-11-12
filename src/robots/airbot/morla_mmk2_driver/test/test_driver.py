@@ -51,6 +51,7 @@ def command(row,values):
 class Service(g.MMK2ServiceServicer):
     def __init__(self):
         self.fake=FakeTransport({'rate_hz':50});self.requests=[];self.reject=False;self.stale=False;self.bad=False;self.delay=0.;self.registration=[]
+        self.goal_delay = 0.
     def create_robot(self,request,context):
         self.registration.append(request)
         if self.delay:time.sleep(self.delay)
@@ -65,6 +66,8 @@ class Service(g.MMK2ServiceServicer):
             yield state
     def set_goal(self,request,context):
         self.requests.append(copy.deepcopy(request))
+        if self.goal_delay:
+            time.sleep(self.goal_delay)
         return c.GoalStatus(value=c.GoalStatus.INVALID_TARGET if self.reject else c.GoalStatus.SUCCESS,message='fixture')
     def get_image_once(self,request,context):
         assert len(request.components)==len(request.image_types)
@@ -124,13 +127,40 @@ def test_sdk_goals_hold_zero_and_watchdog(endpoint):
         wait(lambda:any('base' in r.goals_map and abs(r.goals_map['base'].goal.twist3d.x)>.02 for r in service.requests))
         wait(lambda:service.requests[-1].goals_map['base'].goal.twist3d.x==0,seconds=1)
         goal=next(r.goals_map['left_arm'] for r in service.requests if 'left_arm' in r.goals_map)
-        assert list(goal.goal.joint_state.position)==pytest.approx([.005,-.0025,0,0,0,0])
+        # Rate limiting keeps the direction and never overshoots the target.
+        # The magnitude comes from the real send interval, not 1/rate_hz.
+        position=list(goal.goal.joint_state.position)
+        assert 0 < position[0] <= .02
+        assert position[1:]==pytest.approx([-position[0]/2,0,0,0,0])
         assert goal.param.trajectory.max_velocity_scaling_factor==.05
         s.stop();count=len(service.requests);time.sleep(.1)
         assert len(service.requests)==count
         assert not s.active and not s.pending and not s.desired
         assert service.requests[-1].goals_map['base'].goal.twist3d.x==0
     finally:s.close()
+
+
+def test_releasing_one_sdk_arm_clears_its_target_only(endpoint):
+    service, _ = endpoint
+    session = session_for(endpoint, True)
+    try:
+        session.start()
+        for key in ('left_arm', 'right_arm'):
+            session.activate(key)
+            session.submit(key, command(session.rows[key], [.05, 0, 0, 0, 0, 0]))
+        wait(lambda: any('left_arm' in r.goals_map and 'right_arm' in r.goals_map
+                         for r in service.requests))
+        session.release_target('left_arm')
+        with session.io:
+            count = len(service.requests)
+            assert 'left_arm' not in session.pending and 'left_arm' not in session.desired
+        wait(lambda: len(service.requests) >= count + 2)
+        assert all('left_arm' not in r.goals_map and 'right_arm' in r.goals_map
+                   for r in service.requests[count:])
+        session.submit('left_arm', command(session.rows['left_arm'], [.02, 0, 0, 0, 0, 0]))
+        wait(lambda: any('left_arm' in r.goals_map for r in service.requests[count:]))
+    finally:
+        session.close()
 
 
 @pytest.mark.parametrize('problem',['stale','bad','reject'])
@@ -148,11 +178,188 @@ def test_feedback_or_goal_fault_stops_without_replay(endpoint,problem):
         service.reject=False;s.close()
 
 
+def test_rejected_goal_names_the_sdk_targets_and_dispatch_telemetry(endpoint):
+    service,_=endpoint;s=session_for(endpoint,True)
+    try:
+        s.start();s.activate('left_arm')
+        assert s.snapshot('left_arm')['dispatch']=={'writes':0,'rate_hz':None,'goal_rtt_s':None}
+        service.reject=True
+        s.submit('left_arm',command(s.rows['left_arm'],[.02,0,0,0,0,0]))
+        wait(lambda:s.fault)
+        reason=s.snapshot('left_arm')['reason']
+        # A rejected request names neither the component nor the target on its
+        # own; the message must carry the exact SDK positions it sent.
+        assert 'MMK2_GOAL_REJECTED:1:fixture' in reason and 'sdk_targets=left_arm=[' in reason
+        dispatch=s.snapshot('left_arm')['dispatch']
+        assert dispatch['writes']>=1 and dispatch['goal_rtt_s'] is not None
+    finally:
+        service.reject=False;s.close()
+
+
+def test_start_pose_tolerates_small_excursion_but_not_a_wrong_mapping():
+    # A joint resting a few degrees past a soft limit must not lock every command
+    # path (teleop arms through the same check); a gross excursion still fails.
+    _,rows=resolve(True);s=DeviceSession(rows);row=s.rows['left_arm']
+    pose=[0.]*6
+    s._check_start_pose('left_arm',row,pose)
+    assert 'left_arm' not in s.start_outside
+    pose[4]=1.83                                    # joint5 declared +-1.74
+    s._check_start_pose('left_arm',row,pose)
+    assert s.start_outside['left_arm']==[('left_arm_joint5',1.83,-1.74,1.74)]
+    s._check_start_pose('left_arm',row,[0.]*6)      # back inside clears it
+    assert 'left_arm' not in s.start_outside
+    pose[4]=2.2                                     # >10% of the 3.48 rad range
+    with pytest.raises(RuntimeError,match='MMK2_START_POSE_OUTSIDE_LIMITS'):
+        s._check_start_pose('left_arm',row,pose)
+
+
+def test_command_may_only_move_toward_the_range_when_measured_is_outside():
+    # Recovery path: a joint resting past its limit must accept commands that
+    # bring it back, and nothing else.
+    _,rows=resolve(True);row=rows['left_arm'];names=[j['name'] for j in row['joints']]
+    outside=[0.]*6;outside[4]=1.83                      # joint5 declared +-1.74
+    def command(q):return {'names':names,'mode':'position','units':'rad','values':q}
+    assert validate_target(row,command([0,0,0,0,1.78,0]),outside)[4]==1.78
+    assert validate_target(row,command(outside),outside)[4]==1.83
+    with pytest.raises(ValueError,match='MMK2_SDK_TARGET_OUTSIDE_LIMITS'):
+        validate_target(row,command([0,0,0,0,1.90,0]),outside)   # further out
+    with pytest.raises(ValueError,match='MMK2_SDK_TARGET_OUTSIDE_LIMITS'):
+        validate_target(row,command([0,0,0,0,1.78,0]))           # no measurement
+    with pytest.raises(ValueError,match='MMK2_SDK_TARGET_OUTSIDE_LIMITS'):
+        validate_target(row,command([0,0,0,0,1.78,0]),[0.]*6)    # measured inside
+
+
 def test_rpc_deadline_and_close_on_start_failure(endpoint):
     service,_=endpoint;service.delay=.4;s=session_for(endpoint)
     started=time.monotonic()
     with pytest.raises(grpc.RpcError):s.start()
     assert time.monotonic()-started<.5 and s.closed
+
+
+def test_goal_rpc_timeout_reports_call_and_targets(endpoint):
+    from morla_mmk2_driver.transport import Transport
+    _, rows = resolve()
+    service, port = endpoint
+    service.goal_delay = .15
+    transport = Transport({**rows['left_arm']['parameters'], 'host': '127.0.0.1',
+                           'port': port, 'command_rpc_timeout_s': .03})
+    try:
+        with pytest.raises(RuntimeError, match=r'MMK2_SET_GOAL_RPC: DEADLINE_EXCEEDED; components=left_arm,right_arm; interface=trajectory; elapsed_ms=.*; deadline_s=0.03'):
+            transport.write({'left_arm': [0.]*6, 'right_arm': [0.]*6}, rows)
+    finally:
+        transport.close()
+
+
+def test_slow_goal_does_not_reuse_read_rpc_deadline(endpoint):
+    from morla_mmk2_driver.transport import Transport
+    _, rows = resolve()
+    service, port = endpoint
+    service.goal_delay = .15
+    # rpc_timeout_s only bounds open/state/image calls; a set_goal that takes
+    # longer than it must still succeed under the command deadline.
+    transport = Transport({**rows['left_arm']['parameters'], 'host': '127.0.0.1',
+                           'port': port, 'rpc_timeout_s': .03})
+    try:
+        assert transport.command_rpc_timeout_s == 3.
+        transport.write({'left_arm': [0.]*6}, rows)
+        assert transport.last_goal_rtt_s >= .14
+    finally:
+        transport.close()
+
+
+def test_session_tolerates_controller_goal_latency(endpoint):
+    service, _ = endpoint
+    service.goal_delay = .9
+    s = session_for(endpoint, True)
+    try:
+        s.start(); s.activate('left_arm')
+        s.submit('left_arm', command(s.rows['left_arm'], [.01, 0, 0, 0, 0, 0]))
+        wait(lambda: service.requests, seconds=3)
+        time.sleep(1.2)
+        assert not s.fault and s.snapshot('left_arm')['ready']
+    finally:
+        service.goal_delay = 0.
+        s.close()
+
+
+def test_idle_base_does_not_ride_along_every_request(endpoint):
+    """A resting base must not cost ~100 ms on every request.
+
+    Measured on the controller (2026-11-13, zero-displacement probe): one
+    request with 6 components takes ~56 ms (17.7 Hz), the same request plus a
+    zero base takes ~161 ms (6.2 Hz). The controller zeroes a base that hears
+    nothing for 250 ms, so only the transition to zero needs sending.
+    """
+    service,_=endpoint;s=session_for(endpoint,True)
+    try:
+        s.start();s.activate('left_arm');s.activate('base')
+        for _ in range(20):
+            s.submit('base',command(s.rows['base'],[0.,0.]))
+            s.submit('left_arm',command(s.rows['left_arm'],[0.,0.,0.,0.,0.,0.]))
+            time.sleep(.02)
+        wait(lambda:len(service.requests)>=6,seconds=3)
+        calls=list(service.requests)
+        assert len([r for r in calls if 'base' in r.goals_map])<=1,[list(r.goals_map) for r in calls]
+        assert len([r for r in calls if 'left_arm' in r.goals_map])>=6
+    finally:s.close()
+
+
+def test_dispatch_probe_records_write_rate_and_step(endpoint,monkeypatch):
+    """What the arm receives each write is the real teleop smoothness limit.
+
+    The ik.* probe samples feedback at 10 Hz, so it cannot show either the
+    delivered rate or the per-write step; the driver records both itself.
+    """
+    from morla_mmk2_driver import session as session_module
+    records=[]
+    monkeypatch.setattr(session_module,'_cadence',lambda prefix,**kw:records.append((prefix,kw)))
+    s=session_for(endpoint,True)
+    try:
+        s.start();s.activate('left_arm');s.activate('right_arm')
+        for i in range(10):
+            s.submit('left_arm',command(s.rows['left_arm'],[.01*i,0,0,0,0,0]))
+            s.submit('right_arm',command(s.rows['right_arm'],[.01*i,0,0,0,0,0]))
+            time.sleep(.03)
+        wait(lambda:len([r for r in records if r[1].get('event')])>=3,seconds=3)
+        assert all(prefix=='dispatch' for prefix,_ in records)
+        assert any('write' in kw.get('counts',()) for _,kw in records)
+        event=next(kw['event'] for _,kw in records if kw.get('event'))
+        assert set(event['arms'])<= {'left_arm','right_arm'} and event['arms']
+        assert all(set(a)=={'q','step','clip'} for a in event['arms'].values())
+        assert all(len(a['q'])==6 for a in event['arms'].values())
+        rtt=[dict(kw['timings'])['goal_rtt'] for _,kw in records if kw.get('timings')]
+        assert rtt and all(value>0 for value in rtt)
+    finally:s.close()
+
+
+def test_worker_rate_limits_by_real_elapsed_not_nominal_period(endpoint):
+    """set_goal takes ~1 s on the real controller, so the worker sends ~20x
+    slower than rate_hz.  Stepping by max_velocity * nominal period then
+    commanded ~0.015 rad/s for arms configured at 0.35 rad/s (measured in the
+    2026-11-13 work-position run: 0.54 rad in 35 s).  The step must use the
+    real time between sends.
+    """
+    service, _ = endpoint
+    service.goal_delay = .4
+    s = session_for(endpoint, True)
+    try:
+        s.start(); s.activate('left_arm')
+        s.submit('left_arm', command(s.rows['left_arm'], [.1, 0, 0, 0, 0, 0]))
+        wait(lambda: len(service.requests) >= 2, seconds=3)
+        goals = [r.goals_map['left_arm'].goal.joint_state.position[0] for r in service.requests]
+        # The old code advanced max_velocity * 0.05 (the nominal period) per
+        # send; one real 0.4 s interval must advance at least most of that.
+        speed = s.rows['left_arm']['parameters']['max_velocity']
+        assert goals[1] > speed * .4 * .8, goals
+    finally:
+        service.goal_delay = 0.
+        s.close()
+
+
+@pytest.mark.parametrize('value',[0,.01,11,float('nan'),True,'3'])
+def test_invalid_command_rpc_timeout_is_rejected(value):
+    _,rows=resolve();rows['left_arm']['parameters']['command_rpc_timeout_s']=value
+    with pytest.raises(ValueError,match='command_rpc_timeout_s'):DeviceSession(rows)
 
 
 def test_missing_names_duplicate_errors_and_nonfinite():
@@ -165,8 +372,40 @@ def test_missing_names_duplicate_errors_and_nonfinite():
     with pytest.raises(ValueError):decode(bad,rows['left_arm'])
     bad=copy.deepcopy(state);bad.joint_state.position[0]=float('nan')
     with pytest.raises(ValueError):decode(bad,rows['left_arm'])
-    bad=copy.deepcopy(state);bad.joint_state.error_code.extend([1]*len(bad.joint_state.name))
+    bad=copy.deepcopy(state);bad.joint_state.error_code.extend([2]*len(bad.joint_state.name))
     with pytest.raises(ValueError):decode(bad,rows['left_arm'])
+
+
+def test_compact_firmware_errors_skip_slide_without_shifting_joint_codes():
+    from morla_mmk2_driver.feedback import decode
+    _, rows = resolve()
+    fake = FakeTransport({'rate_hz': 20})
+    try:
+        state = next(fake.states())
+    finally:
+        fake.close()
+    joint = state.joint_state
+    joint.name.remove('slide_joint')
+    joint.name.insert(5, 'slide_joint')
+    reported = {'left_arm_joint1': 1, 'left_arm_joint2': -1, 'right_arm_joint6': -2}
+    joint.error_code.extend([reported.get(name, 0) for name in joint.name if name != 'slide_joint'])
+
+    _, values, ports = decode(state, rows['left_arm'])
+    assert values == [0.] * 6
+    assert ports['position']['joint_error_codes']['left_arm_joint1'] == 1
+    assert ports['position']['joint_error_codes']['left_arm_joint2'] == -1
+    with pytest.raises(ValueError, match='right_arm: right_arm_joint6=-2'):
+        decode(state, rows['right_arm'])
+    assert decode(state, rows['lift'])[2]['position']['joint_error_codes'] == {'slide_joint': None}
+
+    joint.name[5] = 'unexpected_joint'
+    with pytest.raises(ValueError, match='MMK2_JOINT_ERROR_LAYOUT: name=17 error_code=16'):
+        decode(state, rows['left_arm'])
+
+    joint.name[5] = 'slide_joint'
+    joint.error_code.insert(5, 7)
+    with pytest.raises(ValueError, match='lift: slide_joint=7'):
+        decode(state, rows['lift'])
 
 
 def test_command_boundary_and_mapping():
@@ -176,6 +415,59 @@ def test_command_boundary_and_mapping():
     row=rows['left_gripper'];row['parameters']['joint_offsets']=[.9]
     with pytest.raises(ValueError,match='MAPPED'):validate_target(row,command(row,[0.]))
     assert validate_target(rows['left_arm'],command(rows['left_arm'],[0]*6))==[0]*6
+
+
+def test_lift_ab_jog_uses_live_levels_and_holds_on_neutral():
+    from morla_mmk2_driver.controllers import create_lift_jog
+    _, rows = resolve()
+    jog = create_lift_jog({'instance': rows['lift']})
+    q = [.2]
+    parameters = {'speed': .01}
+    assert jog.reanchor([1, 0], q, parameters)['acknowledged']
+    assert jog([1, 0], q, .05, parameters) is None
+    assert jog([0, 0], q, .05, parameters) is None
+    assert jog([1, 0], q, .05, parameters) == pytest.approx([.1995])
+    assert jog([1, 0], q, .05, parameters) == pytest.approx([.199])
+    assert jog([0, 0], q, .05, parameters) == q
+    assert jog([0, 1], q, .05, parameters) == pytest.approx([.2005])
+    assert jog([1, 1], q, .05, parameters) == q
+    assert jog([0, 1], [.87], .05, parameters) == [.87]
+    assert jog([1, 0], [-.04], .05, parameters) == [-.04]
+
+
+def test_lift_button_binding_releases_pending_target_when_buttons_go_stale(monkeypatch):
+    from types import SimpleNamespace
+    from morla_input.adapters.normalized import InputFrame
+    from morla_mmk2_driver.controllers import create_lift_jog
+    from morla_teleop import retargeting
+    from morla_teleop.engine import BindingEngine
+
+    _, rows = resolve()
+    binding = {'id': 'lift_ab', 'source': 'quest.right_ab', 'target': 'lift.position_target',
+               'controller': 'morla.mmk2_sdk.lift_button_jog', 'max_age_ms': 100}
+    monkeypatch.setattr(retargeting, 'install_controller_plugin',
+                        lambda registry, name, context: registry.register(name, create_lift_jog(context)))
+    released = []
+    now = 1_000_000_000
+    rt = SimpleNamespace(
+        clock=lambda: now, instances={'lift': rows['lift']}, resolved={'bindings': [binding]},
+        adapters={'lift': SimpleNamespace(health=lambda _: {'values': [.2]},
+                                         release_target=lambda: released.append(True))},
+    )
+    engine = BindingEngine(rt)
+
+    def frame(sequence, buttons, stamp):
+        return InputFrame('quest', 'epoch', sequence, now, 'right', {'right_ab': buttons},
+                          port_metadata={'right_ab': {'received_ns': stamp}})
+
+    assert engine.targets(frame(1, [0, 0], now)) == []
+    now += 20_000_000
+    assert engine.targets(frame(2, [1, 0], now))[0]['values'] == pytest.approx([.1998])
+    stale = now
+    now += 110_000_000
+    assert engine.targets(frame(3, [1, 0], stale)) == []
+    assert released == [True]
+    assert engine.targets(frame(4, [1, 0], now)) == []
 
 
 def test_shared_connection_mismatch_and_duplicate_role():
@@ -284,6 +576,36 @@ def test_web_installed_discovery_lifecycle_camera_recording(tmp_path):
             assert all(base['synthetic'][:])
             stamps=base['source_time_ns'][:];assert len(stamps)>2 and all(b>a for a,b in zip(stamps,stamps[1:]))
         outcome=svc.session.stop('cleanup');assert not outcome['result']['errors'],outcome
+
+
+def test_web_work_position_sends_only_selected_sdk_arm(tmp_path):
+    from fastapi.testclient import TestClient
+    from morla_web_manager.composable_api import create_app
+
+    with TestClient(create_app(tmp_path/'store', resource_root=tmp_path/'locks')) as client:
+        assembly = client.get('/api/v2/templates/mmk2-sdk-fake').json()
+        assembly.setdefault('metadata', {})['operator_control'] = {
+            'work_positions': {'left_arm': [.04, 0., 0., 0., 0., 0.]}, 'work_speed': .4}
+        saved = client.post('/api/v2/assemblies', json={'assembly': assembly, 'expected_revision': 0})
+        assert saved.status_code == 200, saved.text
+        started = client.post('/api/v2/sessions', json={
+            'assembly_id': assembly['assembly_id'], 'revision': 1,
+            'assembly_hash': saved.json()['resolved']['assembly_hash'], 'request_id': 'start'})
+        assert started.status_code == 200, started.text
+        service = client.app.state.composable
+        runtime = service.session
+        sid = started.json()['session_id']
+        response = client.post(f'/api/v2/sessions/{sid}/operator/action',
+                               json={'action': 'workpos', 'request_id': 'work'})
+        assert response.status_code == 200, response.text
+        assert service.operator.work['duration_ns'] == pytest.approx(400_000_000, abs=1)
+        def finished():
+            service.tick()
+            return service.operator.work['status'] != 'RUNNING'
+        wait(finished)
+        assert service.operator.work['status'] == 'SUCCEEDED', service.operator.work
+        calls = runtime.adapters['left_arm'].session.transport.calls
+        assert calls and all(set(call) == {'left_arm'} for call in calls if call)
 
 
 def test_differential_ik_singularity_and_large_hand_motion_are_bounded():

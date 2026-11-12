@@ -1,5 +1,75 @@
 # Changelog（MORLA）
 
+## 2026-11-13 — MMK2 臂"卡"的定位：左臂目标够不到 + 下发节拍首次落盘
+
+- 本轮数据（Web 140814 会话，装载了跳过空闲底盘的驱动；`cadence-probe/1794508507256284391-140814.jsonl`，93 s）：
+  - 控制器侧并不慢：`ik.left.submitted` 8358 次 / 93 s ≈ **84 Hz**，IK 完成 7714（92%），`reused` 仅 8.5%/10.5%，`overwritten` 7.7%——IK 跟得上，不是瓶颈；
+  - **左臂目标经常不可达**：`raw_position_error_m` p50 0.016 m、p90 0.122 m、max 0.196 m，约 1/4 采样在 0.07 m 以上，`active_joint_limits` 反复出现 j4/j6；右臂全程 0.000 m。即左手映射出的目标位姿在左臂工作空间之外，臂只能"够到哪算哪"；
+  - 双臂实测关节在缓慢移动（0.02–0.16 rad/s）时仍以 10–16% 的比例在每 100 ms 采样间反向，幅度约 0.005–0.01 rad（≈0.3–0.6°）——指令流里带着手/Quest 抖动；
+  - 现有绑定 `smoothing_alpha=0.6` 在约 84 Hz 输入下时间常数仅 ~13 ms（截止 ~12 Hz），基本不滤抖动。
+- 修复/新增：`DeviceSession._worker` 每次真正下发写一条 `dispatch` 节拍记录——`write` 计数、`goal_rtt` 时延、`components`，以及每臂 `q`/`step`/`clip`。此前只有 10 Hz 抽样的 `ik.*` 事件，既看不到真实下发频率也看不到每拍步长，"卡"到底来自下发慢、限步截断还是指令本身抖，无法区分。
+- 测试：`morla_mmk2_driver` 39 passed（新增 `test_dispatch_probe_records_write_rate_and_step`）。
+- 操作员侧：下一轮遥操数据里 `dispatch.write` 计数即真实下发 Hz，`step` 是每次下发的关节跳变，`clip>0` 表示驱动限步在削目标；这三项决定下一步是继续提频、放宽限步，还是先加输入平滑。
+
+## 2026-11-13 — MMK2 遥操抖动：空闲底盘不再搭车，手臂下发 6 Hz → 18 Hz
+
+- 现象：换成 `forward_position` 后臂能跟手，但每动一下都明显"跳一下"；夹爪闭合/回弹很慢。
+- 零位移实测（目标=当前实测，关节不动；授权后由独立进程执行，最大漂移 0.0038 rad）：
+  - `forward_position` 的 `set_goal` 很快：单臂 22 ms、双臂 47 ms、六组件（无底盘）56 ms ≈ **17.7 Hz**；
+  - 同样的请求**加一项底盘零速度**变成 161 ms ≈ **6.2 Hz**——底盘一项就要约 100 ms；
+  - 13 Hz 连发零位移目标 3 s，实测峰峰值 0.0008–0.0019 rad（≈编码器量化 0.00038），说明高频下发本身不引起振动，抖动来自"每拍一个'走到这里就停'的目标"被 6 Hz 量化；
+  - 厂商 `tracking` 接口不可用：服务端 `TrackingParams` 无 `max_error` 字段，只带 `max_velocity` 返回 `GoalStatus=INVALID_TARGET(1)`。
+- 修复：`DeviceSession._worker` 在"底盘目标为零且上次已发过零"时跳过底盘项。控制器 250 ms 收不到底盘命令反而会请求零速，所以空闲底盘只发一次零速就够；底盘运动时仍逐拍下发。
+- 测试：`morla_mmk2_driver` 38 passed（新增 `test_idle_base_does_not_ride_along_every_request`）。
+- 操作员侧：重启 Web 栈生效。夹爪慢与下发频率无关的另一半原因在 `max_velocity`：左 0.35 / 右 0.2（SDK 原始量/s），0→1 全行程需 2.9 s / 5 s，建议两者都改到 1.5（上限 10，全行程 0.67 s）。
+
+## 2026-11-13 — 实测姿态在软限位外不再锁死全部命令路径（回工作位 `MMK2_SDK_TARGET_OUTSIDE_LIMITS`）
+
+- 现象：左臂遥操一轮后点“回工作位”，`tick` 报 `回工作位激活失败：MMK2_SDK_TARGET_OUTSIDE_LIMITS`，随后 `group_stopped`。实时状态显示 `left_arm = [-0.351, -0.936, 0.066, -0.278, 1.8301, 0.517]`，joint5 声明范围 ±1.74，即实测越上限 0.09 rad（5.2°）；右臂与配置的工作位目标都在范围内。
+- 根因：`DeviceSession.activate` 把**实测反馈**当命令用 `validate_target` 校验，任何关节超限即拒绝激活；`submit`/`_worker` 又对每个目标做同样的硬校验。于是关节一旦停在界外，遥操（同样走 activate）和回工作位（插值起点就是实测值）都会失败，软件层面没有任何路径能把它拉回来——一个静止越界 5° 的关节让整条左臂不可用。
+- 修复：
+  - `validate_target(row, command, measured=None)` 增加“同侧且不比实测更靠外”的例外：关节已在界外时，只接受把它收回来的目标（含原地保持），朝界外的一律拒绝；实测在界内时行为完全不变。`submit` 与 `_worker` 下发前校验都传入实测值。
+  - `activate` 改用 `_check_start_pose`：小幅越界（≤ 关节行程 10%）放行并写入 `snapshot()['start_outside_limits']`；超过 10% 仍以 `MMK2_START_POSE_OUTSIDE_LIMITS` 拒绝，那是关节顺序/符号/零位映射错误的特征而非静止误差。
+  - 驱动 README 补充该边界语义。
+- 测试：`morla_mmk2_driver` 37 passed（新增 `test_start_pose_tolerates_small_excursion_but_not_a_wrong_mapping`、`test_command_may_only_move_toward_the_range_when_measured_is_outside`）。editable 安装，重启 Web 栈生效。
+- 操作员侧：重启 Web 后直接点“回工作位”即可把左腕 joint5 收回范围内（约 8 s 的路程按现有领先截断速度走）；若控制器本身也拒绝界外目标，新的 `MMK2_GOAL_REJECTED` 文案会列出它收到的 SDK 目标。
+
+## 2026-11-13 — MMK2 `set_goal` 拒绝原因可归因：目标转储与下发遥测
+
+- 现象：一轮遥操末尾整机冻结，`device_fault` 只有 `MMK2_GOAL_REJECTED:1:`（`INVALID_TARGET`），控制器整包拒绝却不说是哪个组件、哪个目标。
+- 修复：`Transport.write` 在 `GoalStatus != SUCCESS` 时把每个 goal 的 SDK 目标（关节角或底盘 twist）拼进错误文本；`DeviceSession` 增加下发遥测 `writes` / EWMA `write_hz` / `last_goal_rtt_s`，经 `snapshot()['dispatch']` 暴露，用来区分“命令没发出”和“发出去但跟不上”。
+- 测试：新增 `test_rejected_goal_names_the_sdk_targets_and_dispatch_telemetry`；35 passed。
+
+## 2026-11-13 — MMK2 下发限速按真实发送间隔计算（回工作位超时修复）
+
+- 现象：上一轮修复后实机回工作位不再报 `DEADLINE_EXCEEDED`，但移动极慢，在 `duration+30 s` 的 35.28 s 截止点仍超时（`work position timed out`）。实测：左臂最差关节还差 1.028 rad，35.27 s 只走了约 0.54 rad，有效速度 0.0155 rad/s；装配 `work_speed=0.3`、计划时长 5.28 s。
+- 根因：`DeviceSession._worker` 每次下发按 `max_velocity × (1/rate_hz)` 限步（双臂 0.35×0.05 = 0.0175 rad），但这个步长语义是“每个 rate_hz 周期走这么多”。真实 `set_goal` 服务时间约 1.1–1.4 s，worker 实际只有约 0.8 Hz，于是指令速率被静默压到 `max_velocity × 0.05 / 1.2 ≈ 0.015 rad/s`，与实测一致；与 `work_speed`、领先截断都无关。
+- 修复：worker 改为按**实际墙钟时间**限步，`step = max_velocity × max(1/rate_hz, 距上次下发的时间)`。步长仍被目标本身截断（`limit_joint_step` 不会越过目标），`max_command_lead` 的提交/下发双重门禁不变，所以不会产生超出领先窗口的跳变。
+- 测试：`morla_mmk2_driver` 34 passed（新增 `test_worker_rate_limits_by_real_elapsed_not_nominal_period`：`goal_delay=0.4 s` 时第二次下发的步长必须达到一个真实发送间隔的量级）；既有 `test_sdk_goals_hold_zero_and_watchdog` 改为断言方向保持与不越过目标，不再断言固定 0.005 步长（那正是本次修复的缺陷）。`morla_runtime` 34 passed；`morla_web_manager/test/test_workstation_operator.py` 32 passed（`test_paused_policy_takeover_release_stays_paused_until_explicit_resume` 在整套运行中偶发失败，单跑通过，与本次无关）。
+- 预期效果与操作员侧：同一段 1.03 rad 的回工作位运动，受工作位领先截断 `max_command_lead/2 = 0.075 rad` 与约 0.8 Hz 下发节奏约束，预计约 15–20 s 完成（此前 >35 s 超时），仍在 35 s 截止时间内。代码是 editable 安装，重启 Web 栈后生效。若仍希望接近 `work_speed` 设定速度，下一步需把回工作位改为一次性轨迹下发，但那是下发语义变更，另行验证。
+
+## 2026-11-13 — MMK2 回工作位：set_goal 独立超时，停止等待与报错语义修正
+
+- 现象：真实 MMK2 整机在 Web 配置工作位后点“回工作位”，约 0.86 s 即失败：`回工作位反馈不可用 [left_arm] MMK2_SET_GOAL_RPC: DEADLINE_EXCEEDED; ... elapsed_ms=802.0; deadline_s=0.8`，但关节状态流与相机在线；随后停止报 `base STOP_TIMEOUT`。
+- 现场只读与零位移探测（`192.168.110.22:50055`）：`get_robot_state` 53.7 Hz、双臂 3 s 漂移 0.38 mrad、相机 20–78 ms；`create_robot` 67–117 ms；**零位移 `set_goal` 单臂 668–917 ms（连续 10 次全部 SUCCESS），双臂 1206 ms**。控制器没有卡死，是运动 RPC 的固有服务时间（0.7–1.2 s）被 0.8 s 的读 RPC 截止时间截断。
+- 修复：
+  - 驱动新增实例参数 `command_rpc_timeout_s`（默认 3 s，范围 0.05–10），仅用于 `set_goal`（含停止保持写入）；`rpc_timeout_s` 继续约束 `create_robot`/状态流/图像。旧 resolved 装配没有该字段时按默认值工作。
+  - 每次 `set_goal` 记录 RTT，`Transport.last_goal_rtt_s` 可读，每 30 s 汇总一次 count/avg/max/slow 日志。
+  - MMK2 adapter 声明 `stop_wait_s = command_rpc_timeout_s + 0.5`；`RuntimeSession._stop_adapters` 按设备取 `max(1 s, stop_wait_s)`，其他设备仍用默认 1 s。修复“停止保持写入还在飞行，运行时 1 s 就判 `STOP_TIMEOUT`”。
+  - `_work_position_feedback` 区分设备故障与反馈过期/未就绪：锁存 fault 时显示 `回工作位设备故障 [key] <原因>`，不再把指令通道超时说成“反馈不可用”。
+- 验证：`morla_mmk2_driver` 33 passed（新增慢 `set_goal` 不复用读超时、会话级 0.9 s 延迟不误判故障、非法 `command_rpc_timeout_s`、超时文案用例）；`morla_runtime` 34 passed（新增按设备延长停止等待）；`morla_web_manager/test/test_workstation_operator.py` 32 passed（新增指令通道故障文案用例），`test_composable_api.py` 9 passed。实机复测仍待重启 Web 后执行。
+- 操作员侧：重启 Web（当前 FAULTED 会话没有关闭接口，会挡住新会话）。修复后 `set_goal` 吞吐约 0.8 Hz，回工作位会按领先截断慢速移动（首个位姿约几十秒），这是下发方式的限制而非新故障；若需要更快，下一步应改为一次性轨迹下发。
+
+## 2026-11-11 — Quest 每只手各按各的 Grip：取消“右手 Grip 总揽”
+
+- 操作员三轮复测：只按住右手 Grip 时仿真左臂也在动（左手 Grip 未按）；先按左 Grip 无反应，必须先按右 Grip；松开右 Grip 后左 Grip 可单独遥操。前两轮录制的 trace 里 `operator_hold` 只在右 Grip 按住期间为真，同时左右臂都有命令。
+- **根因 1（闸门被总揽）**：`composable_service.input_event` 把每帧的 `right_hold`（没有时退到 `hold_to_control`）镜像成工作站的全局 operator hold（250 ms TTL），`BindingEngine._deadman_held` 再把它与自己声明的 deadman 做或运算。于是任意一只手按住 Grip 就打开了所有 binding 的闸门，未被按住的那条臂跟着自己的控制器走。这不是 deadman 语义，是网关把设备 hold 当成了“操作员在握住控制权”。
+- **修复**：输入帧到全局 hold 的镜像整段删除；`disconnect_input` 不再清理已不存在的 `input-*` hold 键。引擎的 `operator_hold` OR 保留，只服务于没有物理 Grip 的显式客户端 hold（键盘 S，`/operator/hold` 端点），并在代码与文档里写明这一点。
+- **根因 2（左臂无法自己激活）**：`quest_events.py` 只用右手 Grip 的按下沿触发 `teleop_start`。现在改为每只手各自跟踪按下沿：任一 Grip 按下都可激活会话；重连/换 epoch 后仍先采纳初始电平，连接时已按住的手不会自动启动。左臂单独遥操不再需要先按右 Grip。
+- **根因 3（上面这条改在了一条不生效的路径上）**：Web 的可组合输入走 **snapshot v3**（`quest_snapshot.QuestSnapshotPublisher` → `quest_events.QuestEventSource`），`QuestEventSource.event` 每帧都用**接收器下发的命令日志**覆盖 `actions`，所以 delta 解码器里的按下沿逻辑在可组合栈里根本不执行。真正决定能否激活的是接收器 `QuestSnapshotPublisher.update` 的映射表：右手 `{0:teleop_start,1..3:record}`，左手只有 `{1:workpos}`——左手 Grip 物理上不可能发出 `teleop_start`。`20261111T150834Z` 录像逐帧核对：左 Grip 在 1.30 s 按下（无任何命令）、2.18 s 松开，右 Grip 2.78 s 按下才出现 `right-1-1-teleop_start`，左 Grip 3.61 s 再按下才开始跟随。修复：左手映射补 `{0:teleop_start}`，`validate_snapshot` 的左手动作白名单同步放开；并加一条互斥——另一只手正按住 Grip 时，这一手的按下沿只作为 deadman 加入，不再产生第二次接管（否则双臂同时按下会让已在跟随的臂重新 re-anchor）。
+- 测试：`test_engine.py` 新增“一只手不放另一只手不放就不派发”和“显式 operator hold 仍能打开声明了 deadman 的绑定”；`test_workstation_operator.py` 新增“Quest grip 只作为 binding deadman，不进入全局 operator hold”；`test_quest_events.py` 的右手用例扩展为双手按下沿（含一手按住时另一手的按下仍是新的一次、重连后不重放）。结果：`scripts/test_composable.sh --layer pure` 410 passed，fake 37 passed，web 19 passed；`test_workstation_operator.py` + `test_composable_api.py` 38 passed（`test_paused_policy_takeover_release_stays_paused_until_explicit_resume` 在未改动的 HEAD 上同样偶发失败，与本次无关）；MMK2/FR3 34 passed、4 项因本机未注册 `morla.mmk2.cartesian_delta` 插件而失败，HEAD 上一致。
+- 操作员侧：Web 服务的输入/绑定代码是 editable 安装，重启 Web 栈后生效；装配无需改动。
+
 ## 2026-11-11 — 解耦 MMK2 仿真步进与遥操命令入队
 
 - MMK2 和公共 MuJoCo 后端分离命令入队锁与步进锁。命令入队可与物理计算、状态快照和传感器采样并行；底盘停止清零与模式切换仍和步进互斥。

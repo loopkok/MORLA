@@ -184,6 +184,12 @@
           "minimum": 0.02,
           "maximum": 2
         },
+        "command_rpc_timeout_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 10,
+          "title": "运动指令 set_goal 超时 / s"
+        },
         "startup_timeout_s": {
           "type": "number",
           "minimum": 0.1,
@@ -316,6 +322,7 @@
       "robot_name": "morla_mmk2",
       "domain_id": -1,
       "rpc_timeout_s": 0.25,
+      "command_rpc_timeout_s": 3.0,
       "startup_timeout_s": 5.0,
       "feedback_timeout_s": 0.3,
       "rate_hz": 20.0,
@@ -384,6 +391,7 @@
         "robot_name",
         "domain_id",
         "rpc_timeout_s",
+        "command_rpc_timeout_s",
         "startup_timeout_s",
         "feedback_timeout_s",
         "rate_hz",
@@ -653,6 +661,12 @@
           "minimum": 0.02,
           "maximum": 2
         },
+        "command_rpc_timeout_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 10,
+          "title": "运动指令 set_goal 超时 / s"
+        },
         "startup_timeout_s": {
           "type": "number",
           "minimum": 0.1,
@@ -785,6 +799,7 @@
       "robot_name": "morla_mmk2",
       "domain_id": -1,
       "rpc_timeout_s": 0.25,
+      "command_rpc_timeout_s": 3.0,
       "startup_timeout_s": 5.0,
       "feedback_timeout_s": 0.3,
       "rate_hz": 20.0,
@@ -853,6 +868,7 @@
         "robot_name",
         "domain_id",
         "rpc_timeout_s",
+        "command_rpc_timeout_s",
         "startup_timeout_s",
         "feedback_timeout_s",
         "rate_hz",
@@ -1043,6 +1059,12 @@
           "minimum": 0.02,
           "maximum": 2
         },
+        "command_rpc_timeout_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 10,
+          "title": "运动指令 set_goal 超时 / s"
+        },
         "startup_timeout_s": {
           "type": "number",
           "minimum": 0.1,
@@ -1145,6 +1167,7 @@
       "robot_name": "morla_mmk2",
       "domain_id": -1,
       "rpc_timeout_s": 0.25,
+      "command_rpc_timeout_s": 3.0,
       "startup_timeout_s": 5.0,
       "feedback_timeout_s": 0.3,
       "rate_hz": 20.0,
@@ -1188,6 +1211,7 @@
         "robot_name",
         "domain_id",
         "rpc_timeout_s",
+        "command_rpc_timeout_s",
         "startup_timeout_s",
         "feedback_timeout_s",
         "rate_hz",
@@ -1327,6 +1351,12 @@
           "minimum": 0.02,
           "maximum": 2
         },
+        "command_rpc_timeout_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 10,
+          "title": "运动指令 set_goal 超时 / s"
+        },
         "startup_timeout_s": {
           "type": "number",
           "minimum": 0.1,
@@ -1429,6 +1459,7 @@
       "robot_name": "morla_mmk2",
       "domain_id": -1,
       "rpc_timeout_s": 0.25,
+      "command_rpc_timeout_s": 3.0,
       "startup_timeout_s": 5.0,
       "feedback_timeout_s": 0.3,
       "rate_hz": 20.0,
@@ -1472,6 +1503,7 @@
         "robot_name",
         "domain_id",
         "rpc_timeout_s",
+        "command_rpc_timeout_s",
         "startup_timeout_s",
         "feedback_timeout_s",
         "rate_hz",
@@ -1611,6 +1643,12 @@
           "minimum": 0.02,
           "maximum": 2
         },
+        "command_rpc_timeout_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 10,
+          "title": "运动指令 set_goal 超时 / s"
+        },
         "startup_timeout_s": {
           "type": "number",
           "minimum": 0.1,
@@ -1713,6 +1751,7 @@
       "robot_name": "morla_mmk2",
       "domain_id": -1,
       "rpc_timeout_s": 0.25,
+      "command_rpc_timeout_s": 3.0,
       "startup_timeout_s": 5.0,
       "feedback_timeout_s": 0.3,
       "rate_hz": 20.0,
@@ -1756,6 +1795,7 @@
         "robot_name",
         "domain_id",
         "rpc_timeout_s",
+        "command_rpc_timeout_s",
         "startup_timeout_s",
         "feedback_timeout_s",
         "rate_hz",
@@ -1907,6 +1947,12 @@
           "minimum": 0.02,
           "maximum": 2
         },
+        "command_rpc_timeout_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 10,
+          "title": "运动指令 set_goal 超时 / s"
+        },
         "startup_timeout_s": {
           "type": "number",
           "minimum": 0.1,
@@ -2009,6 +2055,7 @@
       "robot_name": "morla_mmk2",
       "domain_id": -1,
       "rpc_timeout_s": 0.25,
+      "command_rpc_timeout_s": 3.0,
       "startup_timeout_s": 5.0,
       "feedback_timeout_s": 0.3,
       "rate_hz": 20.0,
@@ -2056,6 +2103,7 @@
         "robot_name",
         "domain_id",
         "rpc_timeout_s",
+        "command_rpc_timeout_s",
         "startup_timeout_s",
         "feedback_timeout_s",
         "rate_hz",
@@ -2207,6 +2255,12 @@
           "minimum": 0.02,
           "maximum": 2
         },
+        "command_rpc_timeout_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 10,
+          "title": "运动指令 set_goal 超时 / s"
+        },
         "startup_timeout_s": {
           "type": "number",
           "minimum": 0.1,
@@ -2297,6 +2351,7 @@
       "robot_name": "morla_mmk2",
       "domain_id": -1,
       "rpc_timeout_s": 0.25,
+      "command_rpc_timeout_s": 3.0,
       "startup_timeout_s": 5.0,
       "feedback_timeout_s": 0.3,
       "rate_hz": 20.0,
@@ -2342,6 +2397,7 @@
         "robot_name",
         "domain_id",
         "rpc_timeout_s",
+        "command_rpc_timeout_s",
         "startup_timeout_s",
         "feedback_timeout_s",
         "rate_hz",
@@ -2436,6 +2492,12 @@
           "minimum": 0.02,
           "maximum": 2
         },
+        "command_rpc_timeout_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 10,
+          "title": "运动指令 set_goal 超时 / s"
+        },
         "startup_timeout_s": {
           "type": "number",
           "minimum": 0.1,
@@ -2491,6 +2553,7 @@
       "robot_name": "morla_mmk2",
       "domain_id": -1,
       "rpc_timeout_s": 0.25,
+      "command_rpc_timeout_s": 3.0,
       "startup_timeout_s": 5.0,
       "feedback_timeout_s": 0.3,
       "rate_hz": 20.0,
@@ -2567,6 +2630,56 @@
     },
     "web": {
       "label": "MMK2 SDK 底盘速度"
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.mmk2_sdk.lift_button_jog",
+    "plugin_version": "1.0.0",
+    "kind": "controller",
+    "ports": {},
+    "controller_types": {
+      "inputs": [
+        "button_pair"
+      ],
+      "outputs": [
+        "joint_targets"
+      ],
+      "target_plugins": [
+        "morla.airbot.mmk2_sdk.lift"
+      ],
+      "target_dim": 1
+    },
+    "backend_variants": {
+      "fake": {
+        "available": true
+      },
+      "real": {
+        "available": true
+      }
+    },
+    "defaults": {
+      "speed": 0.01
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "speed": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.02,
+          "title": "升降点动速度 / m/s"
+        }
+      }
+    },
+    "source": {
+      "package": "morla_mmk2_driver",
+      "version": "0.1.0"
+    },
+    "web": {
+      "label": "MMK2 升降按键点动"
     }
   }
 ]
