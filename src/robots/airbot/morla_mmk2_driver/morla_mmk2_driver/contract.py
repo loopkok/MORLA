@@ -46,6 +46,18 @@ def goal_velocity(row):
     return p.get('goal_max_velocity',p['max_velocity'])
 
 
+def tracks_goal_velocity(row):
+    """Whether each goal's cruise is measured from the target's own speed.
+
+    A fixed cruise cannot remove the stop/go: the teleop target moves at
+    0.07-0.53 rad/s while one cruise value covers only one of those. Tracking
+    sets each goal's cruise just above the target's current joint speed, so the
+    goal finishes roughly when the next write arrives instead of a third of the
+    way into the period. `goal_max_velocity` stays the ceiling.
+    """
+    return row['parameters'].get('goal_velocity_tracking',False) is True
+
+
 def limits(row):
     p=row['parameters'];n=len(row['joints'])
     lower=vector(p.get('joint_lower',[j['lower'] for j in row['joints']]),n)
@@ -89,6 +101,10 @@ def validate_configuration(row):
         if value is not None and (isinstance(value,bool) or not isinstance(value,(int,float)) or
                                   not math.isfinite(value) or not 0<value<=10):
             raise ValueError('MMK2_SDK_INVALID_goal_max_velocity')
+        # Optional, like goal_max_velocity, so older assemblies still resolve.
+        value=p.get('goal_velocity_tracking')
+        if value is not None and type(value) is not bool:
+            raise ValueError('MMK2_SDK_BOOLEAN_REQUIRED_goal_velocity_tracking')
         value=p.get('command_timeout_s')
         if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or not .05<=value<=1:raise ValueError('MMK2_SDK_INVALID_COMMAND_TIMEOUT')
         if role=='base' and any(mapping(row)[1]):raise ValueError('MMK2_BASE_VELOCITY_OFFSETS_UNSUPPORTED')

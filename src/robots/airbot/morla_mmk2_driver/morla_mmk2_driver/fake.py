@@ -12,7 +12,7 @@ class FakeTransport:
         self.lock = threading.Lock()
         self.q = {name:0. for role,(_,names,_) in ROLES.items() if role!='base' for name in names}
         self.base = [0.,0.]
-        self.calls = [];self.registration={'version':'synthetic_protocol_fixture'}
+        self.calls = [];self.cruises=[];self.registration={'version':'synthetic_protocol_fixture'}
 
     def open(self):
         pass
@@ -25,9 +25,10 @@ class FakeTransport:
             yield state
             self.closed.wait(1/self.p['rate_hz'])
 
-    def write(self, targets, rows):
+    def write(self, targets, rows, cruises=None):
         with self.lock:
             self.calls.append({key:list(q) for key,q in targets.items()})
+            if cruises:self.cruises.append(dict(cruises))
             for key,q in targets.items():
                 row=rows[key];role=role_of(row);signs,offsets=mapping(row)
                 if role=='base':self.base=[v*s for v,s in zip(q,signs)]

@@ -3,7 +3,7 @@ import copy
 import threading
 import time
 from morla_teleop.kinematics import limit_joint_step
-from .contract import CONNECTION_FIELDS, ROLES, COMMAND_RPC_TIMEOUT_DEFAULT_S, role_of, validate_configuration, validate_target, limits
+from .contract import CONNECTION_FIELDS, ROLES, COMMAND_RPC_TIMEOUT_DEFAULT_S, goal_velocity, role_of, tracks_goal_velocity, validate_configuration, validate_target, limits
 from .feedback import decode
 try:from morla_core.cadence_probe import record as _cadence
 except ImportError:
@@ -19,6 +19,8 @@ class DeviceSession:
         # Dispatch telemetry: how often goals actually reach the controller is the
         # real teleop rate limit, so expose it instead of inferring it.
         self.writes=0;self.write_hz=None;self.last_write=None
+        # Recent goal-target speed per component, for goal_velocity_tracking.
+        self.rates={}
         # Measured joints found (tolerably) outside the command envelope when a
         # component was armed; reported by snapshot() instead of blocking.
         self.start_outside={}
@@ -190,7 +192,7 @@ class DeviceSession:
             next_tick = time.monotonic() + period
             try:
                 with self.io:
-                    targets={};probe={}
+                    targets={};probe={};cruises={}
                     with self.lock:
                         if self.fault:continue
                         for key in list(self.active):
@@ -212,17 +214,37 @@ class DeviceSession:
                                     continue
                                 q=goal
                             else:
-                                measured=self.samples[key]['values'];start=self.last_sent.get(key,measured);step=p['max_velocity']*max(period,time.monotonic()-last_send)
+                                measured=self.samples[key]['values'];start=self.last_sent.get(key,measured)
+                                elapsed=max(period,time.monotonic()-last_send);step=p['max_velocity']*elapsed
                                 limited,_=limit_joint_step(start,goal,step)
                                 q=limited.tolist()
-                                if max(abs(v-m) for v,m in zip(q,measured))>p['max_command_lead']:raise RuntimeError('MMK2_COMMAND_LEAD_EXCEEDED')
+                                lag=max(abs(v-m) for v,m in zip(q,measured))
+                                if lag>p['max_command_lead']:raise RuntimeError('MMK2_COMMAND_LEAD_EXCEEDED')
+                                advance=max(abs(v-s) for v,s in zip(q,start))/elapsed
+                                if tracks_goal_velocity(row):
+                                    rate=max(advance,self.rates.get(key,0.))
+                                    self.rates[key]=rate if advance>rate else .7*rate+.3*advance
+                                    # Each forward_position goal is "move here at this
+                                    # speed, then stop", so a cruise above the target's
+                                    # own speed parks the arm until the next write. At
+                                    # 33 Hz writes and 0.007 rad steps that stop is ~1/3
+                                    # of every period: a buzz at the write rate, in
+                                    # teleop and in the pure-interpolation work position
+                                    # alike. 20% headroom makes each goal last about one
+                                    # write interval; a lagging arm still gets a fast
+                                    # goal (lag/0.25 s) so this cannot trip the lead gate.
+                                    cap=goal_velocity(row)
+                                    # Floor: the first write has no rate history yet,
+                                    # and a zero cruise is not a meaningful goal.
+                                    cruises[key]=min(cap,max(cap*.1,1.2*rate,lag/.25))
                                 # Per-write record: the delivered rate and step are the
                                 # real teleop smoothness limit, and nothing else observes
                                 # them (the ik.* probe only samples feedback at 10 Hz).
                                 probe[key]={'q':[round(v,5) for v in q],
                                             'm':[round(v,5) for v in measured],
                                             'step':round(max(abs(v-s) for v,s in zip(q,start)),5),
-                                            'clip':round(max(abs(v-g) for v,g in zip(q,goal)),5)}
+                                            'clip':round(max(abs(v-g) for v,g in zip(q,goal)),5),
+                                            'v':round(cruises.get(key,goal_velocity(row)),4)}
                             # Validate mapped hardware limits before sending too.
                             validate_target(row,{'names':[j['name'] for j in row['joints']],'mode':'velocity' if role_of(row)=='base' else 'position','units':ROLES[role_of(row)][2],'values':q},
                                             None if role_of(row)=='base' else measured)
@@ -239,7 +261,7 @@ class DeviceSession:
                             self.last_write=now;self.writes+=1
                         last_send=time.monotonic()
                         started=time.monotonic()
-                        self.transport.write(targets,self.rows)
+                        self.transport.write(targets,self.rows,cruises)
                         _cadence('dispatch',counts=('write',),
                                  timings=(('goal_rtt',int((time.monotonic()-started)*1e9)),),
                                  event={'components':sorted(targets),'arms':probe} if probe else None)

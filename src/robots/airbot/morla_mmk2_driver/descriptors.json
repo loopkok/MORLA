@@ -279,6 +279,10 @@
           "maximum": 10,
           "title": "控制器巡航速度 / rad/s"
         },
+        "goal_velocity_tracking": {
+          "type": "boolean",
+          "title": "按目标速度自动调整每个目标的巡航速度"
+        },
         "max_command_lead": {
           "type": "number",
           "exclusiveMinimum": 0,
@@ -373,6 +377,7 @@
       "max_command_lead": 0.15,
       "command_timeout_s": 0.25,
       "goal_max_velocity": 0.1,
+      "goal_velocity_tracking": false,
       "position_lead_m": 0.02,
       "rotation_lead_rad": 0.35,
       "damping_min": 0.005,
@@ -413,6 +418,7 @@
         "joint_offsets",
         "max_velocity",
         "goal_max_velocity",
+        "goal_velocity_tracking",
         "max_command_lead",
         "command_timeout_s",
         "rotation_lead_rad"
@@ -764,6 +770,10 @@
           "maximum": 10,
           "title": "控制器巡航速度 / rad/s"
         },
+        "goal_velocity_tracking": {
+          "type": "boolean",
+          "title": "按目标速度自动调整每个目标的巡航速度"
+        },
         "max_command_lead": {
           "type": "number",
           "exclusiveMinimum": 0,
@@ -858,6 +868,7 @@
       "max_command_lead": 0.15,
       "command_timeout_s": 0.25,
       "goal_max_velocity": 0.1,
+      "goal_velocity_tracking": false,
       "position_lead_m": 0.02,
       "rotation_lead_rad": 0.35,
       "damping_min": 0.005,
@@ -898,6 +909,7 @@
         "joint_offsets",
         "max_velocity",
         "goal_max_velocity",
+        "goal_velocity_tracking",
         "max_command_lead",
         "command_timeout_s",
         "rotation_lead_rad"
@@ -1170,6 +1182,10 @@
           "maximum": 10,
           "title": "控制器巡航速度 / SDK 原始量/s"
         },
+        "goal_velocity_tracking": {
+          "type": "boolean",
+          "title": "按目标速度自动调整每个目标的巡航速度"
+        },
         "max_command_lead": {
           "type": "number",
           "exclusiveMinimum": 0,
@@ -1213,7 +1229,8 @@
       "max_velocity": 0.2,
       "max_command_lead": 1.0,
       "command_timeout_s": 0.25,
-      "goal_max_velocity": 0.2
+      "goal_max_velocity": 0.2,
+      "goal_velocity_tracking": false
     },
     "source": {
       "package": "morla_mmk2_driver",
@@ -1249,6 +1266,7 @@
         "joint_offsets",
         "max_velocity",
         "goal_max_velocity",
+        "goal_velocity_tracking",
         "max_command_lead",
         "command_timeout_s"
       ],
@@ -1470,6 +1488,10 @@
           "maximum": 10,
           "title": "控制器巡航速度 / SDK 原始量/s"
         },
+        "goal_velocity_tracking": {
+          "type": "boolean",
+          "title": "按目标速度自动调整每个目标的巡航速度"
+        },
         "max_command_lead": {
           "type": "number",
           "exclusiveMinimum": 0,
@@ -1513,7 +1535,8 @@
       "max_velocity": 0.2,
       "max_command_lead": 1.0,
       "command_timeout_s": 0.25,
-      "goal_max_velocity": 0.2
+      "goal_max_velocity": 0.2,
+      "goal_velocity_tracking": false
     },
     "source": {
       "package": "morla_mmk2_driver",
@@ -1549,6 +1572,7 @@
         "joint_offsets",
         "max_velocity",
         "goal_max_velocity",
+        "goal_velocity_tracking",
         "max_command_lead",
         "command_timeout_s"
       ],
@@ -1770,6 +1794,10 @@
           "maximum": 10,
           "title": "控制器巡航速度 / m/s"
         },
+        "goal_velocity_tracking": {
+          "type": "boolean",
+          "title": "按目标速度自动调整每个目标的巡航速度"
+        },
         "max_command_lead": {
           "type": "number",
           "exclusiveMinimum": 0,
@@ -1813,7 +1841,8 @@
       "max_velocity": 0.02,
       "max_command_lead": 0.03,
       "command_timeout_s": 0.25,
-      "goal_max_velocity": 0.02
+      "goal_max_velocity": 0.02,
+      "goal_velocity_tracking": false
     },
     "source": {
       "package": "morla_mmk2_driver",
@@ -1849,6 +1878,7 @@
         "joint_offsets",
         "max_velocity",
         "goal_max_velocity",
+        "goal_velocity_tracking",
         "max_command_lead",
         "command_timeout_s"
       ],
@@ -2082,6 +2112,10 @@
           "maximum": 10,
           "title": "控制器巡航速度 / rad/s"
         },
+        "goal_velocity_tracking": {
+          "type": "boolean",
+          "title": "按目标速度自动调整每个目标的巡航速度"
+        },
         "max_command_lead": {
           "type": "number",
           "exclusiveMinimum": 0,
@@ -2129,7 +2163,8 @@
       "max_velocity": 0.1,
       "max_command_lead": 0.15,
       "command_timeout_s": 0.25,
-      "goal_max_velocity": 0.1
+      "goal_max_velocity": 0.1,
+      "goal_velocity_tracking": false
     },
     "source": {
       "package": "morla_mmk2_driver",
@@ -2165,6 +2200,7 @@
         "joint_offsets",
         "max_velocity",
         "goal_max_velocity",
+        "goal_velocity_tracking",
         "max_command_lead",
         "command_timeout_s"
       ],

@@ -1,5 +1,16 @@
 # Changelog（MORLA）
 
+## 2026-11-13 — 卡顿不是 IK 法的问题：按目标速度自动设定每个目标的巡航速度
+
+- 本轮数据（`cadence-probe/1794510354663855121-153969.jsonl`，377 s，7648 次 `dispatch`，两次会话：`differential` 至 283.9 s、`analytic_dh` 之后）：
+  - **换 IK 法没有改变下发流**：逐关节目标速度反向率 differential 9–16%、analytic_dh 6–12%（没有变差），每拍步长 p50 从 0.0072 涨到 0.0111 rad（同一手速下更粗糙）；`clip`≈0 说明限步门禁没在削目标。
+  - **纯插值的"回工作位"（262.9–286.7 s，无任何 IK、无手部输入）目标流是干净的单向斜坡**（每关节反向率 0–1%，速度 0.22–0.31 rad/s），但下发仍是 26 ms 间隔、每拍 0.005–0.015 rad 的离散点目标；这一路也抖，说明抖来自下发语义而不是解算。
+  - 下发节拍：间隔 p50 30 ms、p75 41 ms、p90 57 ms、p99 148 ms；**216 次间隔 >100 ms**（最长 0.47 s）。按 `step/(0.35×间隔)` 算，控制器每个周期只有 62% 在动（p50），其余停住。
+- 结论：`forward_position` = "用给定速度走到这个目标然后停"，固定巡航 0.35 rad/s 与每拍 0.007 rad 的步长组合成 33 Hz 的走走停停；手速跨 0.07–0.53 rad/s，**任何常数都给不出连续运动**。
+- 修复：新增设备参数 `goal_velocity_tracking`（布尔，默认 false）。开启后每个目标的巡航速度取"最近目标速度 ×1.2"，使目标刚好用一个下发周期走完；落后时按 `领先误差/0.25 s` 提速，因此不会触发 `max_command_lead`；下限为巡航上限的 10%，上限仍是 `goal_max_velocity`，每拍步长仍由 `max_velocity` 限制。`dispatch` 记录新增 `v`（本次目标实际用的巡航速度）以便核对。
+- 测试：`morla_mmk2_driver` **45 passed**（新增 `test_goal_velocity_tracking_matches_each_goal_to_the_target_speed`、`test_goal_velocity_tracking_must_be_a_boolean`）；`npm run build` 通过。
+- 操作员侧：左右臂勾选"按目标速度自动调节每个目标的巡航速度"，`goal_max_velocity` 保留 0.35 作为上限，重启 Web 栈后跑一轮；看 `dispatch` 的 `v` 是否随手速变化、`clip` 是否仍接近 0。
+
 ## 2026-11-13 — MMK2 高频抖动：新增控制器巡航速度 `goal_max_velocity`
 
 - 下发遥测首轮数据（Web 147236 会话，143.9 s，`dispatch` 事件 2677 条）：真实下发 **~32 Hz**（间隔 p50 31 ms、p90 55 ms），`goal_rtt` p50 30 ms，每次下发关节跳变 p50 0.008 rad / p90 0.015 rad，`clip`≈0（驱动限步几乎不削目标）；只有含底盘的 7 组件请求仍是 p50 157 ms，与先前 161 ms 一致。

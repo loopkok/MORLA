@@ -37,11 +37,13 @@ def generate():
             label_unit='通道 1 m/s、通道 2 rad/s' if role=='base' else 'SDK 原始量' if unit=='sdk_gripper' else unit
             title={'joint_lower':'目标下限 / '+label_unit,'joint_upper':'目标上限 / '+label_unit,'joint_signs':'SDK 到逻辑关节方向（±1）','joint_offsets':'SDK 到逻辑关节偏置 / '+label_unit}[name]
             fields[name]=dict(type='array',title=title,items={'type':'number'},minItems=n,maxItems=n)
-        fields.update(max_velocity={'type':'number','exclusiveMinimum':0,'maximum':10},goal_max_velocity={'type':'number','exclusiveMinimum':0,'maximum':10},max_command_lead={'type':'number','exclusiveMinimum':0,'maximum':10},command_timeout_s={'type':'number','minimum':.05,'maximum':1})
+        fields.update(max_velocity={'type':'number','exclusiveMinimum':0,'maximum':10},goal_max_velocity={'type':'number','exclusiveMinimum':0,'maximum':10},goal_velocity_tracking={'type':'boolean'},max_command_lead={'type':'number','exclusiveMinimum':0,'maximum':10},command_timeout_s={'type':'number','minimum':.05,'maximum':1})
         params=dict(defaults,joint_lower=[x[0] for x in bounds],joint_upper=[x[1] for x in bounds],joint_signs=[1]*n,joint_offsets=[0]*n,max_velocity=.1 if unit=='rad' else .02 if unit=='m' else .2,max_command_lead=.15 if unit=='rad' else .03 if unit=='m' else 1. if unit=='sdk_gripper' else .2,command_timeout_s=.25)
         fields['max_velocity']['title']='目标限速 / '+('SDK 原始量/s' if unit=='sdk_gripper' else unit+'/s')
         fields['goal_max_velocity']['title']='控制器巡航速度 / '+('SDK 原始量/s' if unit=='sdk_gripper' else unit+'/s')
         params['goal_max_velocity']=params['max_velocity']
+        fields['goal_velocity_tracking']['title']='按目标速度自动调整每个目标的巡航速度'
+        params['goal_velocity_tracking']=False
         fields['max_command_lead']['title']='目标领先上限 / '+label_unit
         fields['command_interface']['title']='SDK 目标接口'
         fields['trajectory_scale']['title']='SDK 轨迹速度与加速度缩放'
@@ -56,7 +58,7 @@ def generate():
                 fields[name] = dict(type='number', exclusiveMinimum=0, maximum=maximum, title=title)
                 params[name] = default
         if role=='base':
-            for name in ('max_velocity','goal_max_velocity','max_command_lead'):
+            for name in ('max_velocity','goal_max_velocity','goal_velocity_tracking','max_command_lead'):
                 fields.pop(name);params.pop(name)
         geometry={'frames':['base','flange','mount'],'sdk_component':sdk,'calibration_required':True,'collision_verified':False}
         if role.endswith('_arm'):geometry.update(controller_capabilities=['cartesian_ik'],solver_base_frame=role.split('_')[0]+'_base_link',solver_tip_frame=role.split('_')[0]+'_gripper_center')

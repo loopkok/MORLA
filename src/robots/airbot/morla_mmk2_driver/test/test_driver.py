@@ -325,7 +325,7 @@ def test_dispatch_probe_records_write_rate_and_step(endpoint,monkeypatch):
         assert any('write' in kw.get('counts',()) for _,kw in records)
         event=next(kw['event'] for _,kw in records if kw.get('event'))
         assert set(event['arms'])<= {'left_arm','right_arm'} and event['arms']
-        assert all(set(a)=={'q','m','step','clip'} for a in event['arms'].values())
+        assert all(set(a)=={'q','m','step','clip','v'} for a in event['arms'].values())
         assert all(len(a['q'])==6 and len(a['m'])==6 for a in event['arms'].values())
         rtt=[dict(kw['timings'])['goal_rtt'] for _,kw in records if kw.get('timings')]
         assert rtt and all(value>0 for value in rtt)
@@ -382,6 +382,44 @@ def test_goal_cruise_velocity_is_separate_from_the_speed_cap(endpoint):
         speed=s.rows['left_arm']['parameters']['max_velocity']
         assert speed>.05 and 0<goal.goal.joint_state.position[0]<=.02
     finally:s.close()
+
+
+def test_goal_velocity_tracking_matches_each_goal_to_the_target_speed(endpoint):
+    """One fixed cruise cannot remove the stop/go for every hand speed.
+
+    2026-11-13, 378 s probe: per-write target speed spans 0.07-0.53 rad/s
+    (p10-p90) while one cruise value is in force, so some fraction of every
+    write period is always a stop. Tracking sets the cruise just above the
+    target's own measured speed, and still never exceeds goal_max_velocity.
+    """
+    service,_=endpoint
+    _,rows=resolve(True)
+    for row in rows.values():
+        row['parameters'].update(port=endpoint[1],allow_motion=True,mapping_verified=True,hold_stop_accepted=True,command_interface='forward_position')
+    p=rows['left_arm']['parameters'];p['goal_max_velocity']=1.;p['goal_velocity_tracking']=True
+    step_cap=p['max_velocity']
+    s=DeviceSession(rows)
+    try:
+        s.start();s.activate('left_arm')
+        for i in range(30):   # 0.004 rad per 30 ms write = ~0.13 rad/s
+            s.submit('left_arm',command(s.rows['left_arm'],[.004*i,0,0,0,0,0]))
+            time.sleep(.03)
+        cruises=[r.goals_map['left_arm'].param.forward_position.max_velocity for r in service.requests if 'left_arm' in r.goals_map]
+        assert cruises
+        assert max(cruises)<=1.
+        # 20% headroom above the target's own delivered speed. The upper bound
+        # is loose because writes batch submissions, so the rate the worker
+        # sees can exceed the nominal 0.13 rad/s of the submissions.
+        assert .12<cruises[-1]<.6
+        # Tracking does not change the per-write step cap.
+        assert s.rows['left_arm']['parameters']['max_velocity']==pytest.approx(step_cap)
+    finally:s.close()
+
+
+@pytest.mark.parametrize('value',['true',1,0])
+def test_goal_velocity_tracking_must_be_a_boolean(value):
+    _,rows=resolve();rows['left_arm']['parameters']['goal_velocity_tracking']=value
+    with pytest.raises(ValueError,match='goal_velocity_tracking'):DeviceSession(rows)
 
 
 def test_goal_cruise_velocity_may_exceed_the_step_cap():
