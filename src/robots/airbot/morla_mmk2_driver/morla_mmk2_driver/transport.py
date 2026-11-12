@@ -50,7 +50,7 @@ class Transport:
 
     def write(self, targets, rows):
         request = m.SetGoalRequest(header=self._header())
-        from .contract import ROLES, role_of, mapping
+        from .contract import ROLES, role_of, mapping, goal_velocity
         for key, q in targets.items():
             row = rows[key]; role = role_of(row); component = ROLES[role][0]
             goal = request.goals_map[component]
@@ -66,7 +66,7 @@ class Transport:
                     scale = self.p['trajectory_scale']
                     goal.param.trajectory.CopyFrom(m.TrajectoryParams(max_velocity_scaling_factor=scale, max_acceleration_scaling_factor=scale, wait=False))
                 else:
-                    goal.param.forward_position.CopyFrom(m.ForwardPositionParams(max_velocity=row['parameters']['max_velocity']))
+                    goal.param.forward_position.CopyFrom(m.ForwardPositionParams(max_velocity=goal_velocity(row)))
         if request.goals_map:
             # set_goal is a planning RPC (~0.7-1.2 s on the real controller),
             # not a read RPC; it needs its own deadline.

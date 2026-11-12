@@ -325,8 +325,8 @@ def test_dispatch_probe_records_write_rate_and_step(endpoint,monkeypatch):
         assert any('write' in kw.get('counts',()) for _,kw in records)
         event=next(kw['event'] for _,kw in records if kw.get('event'))
         assert set(event['arms'])<= {'left_arm','right_arm'} and event['arms']
-        assert all(set(a)=={'q','step','clip'} for a in event['arms'].values())
-        assert all(len(a['q'])==6 for a in event['arms'].values())
+        assert all(set(a)=={'q','m','step','clip'} for a in event['arms'].values())
+        assert all(len(a['q'])==6 and len(a['m'])==6 for a in event['arms'].values())
         rtt=[dict(kw['timings'])['goal_rtt'] for _,kw in records if kw.get('timings')]
         assert rtt and all(value>0 for value in rtt)
     finally:s.close()
@@ -354,6 +354,39 @@ def test_worker_rate_limits_by_real_elapsed_not_nominal_period(endpoint):
     finally:
         service.goal_delay = 0.
         s.close()
+
+
+def test_goal_cruise_velocity_is_separate_from_the_speed_cap(endpoint):
+    """forward_position means "move to this goal at this speed, then stop".
+
+    Measured 2026-11-13 (write probe, 32 Hz delivery): teleop joint speeds are
+    0.02-0.25 rad/s while the goal asked for 0.6 rad/s, so every goal was
+    covered in ~a third of the write period and the arm waited the rest --
+    a stop/go buzz at the write rate, seen both in teleop and in a pure
+    interpolation (回工作位). The cruise has to be tunable without lowering
+    `max_velocity`, which is the per-write step cap the IK also uses.
+    """
+    service,_=endpoint
+    _,rows=resolve(True)
+    for row in rows.values():
+        row['parameters'].update(port=endpoint[1],allow_motion=True,mapping_verified=True,hold_stop_accepted=True,command_interface='forward_position')
+    rows['left_arm']['parameters']['goal_max_velocity']=.05
+    s=DeviceSession(rows)
+    try:
+        s.start();s.activate('left_arm')
+        s.submit('left_arm',command(s.rows['left_arm'],[.02,-.01,0,0,0,0]))
+        wait(lambda:any('left_arm' in r.goals_map for r in service.requests))
+        goal=next(r.goals_map['left_arm'] for r in service.requests if 'left_arm' in r.goals_map)
+        assert goal.param.forward_position.max_velocity==pytest.approx(.05)
+        # The step cap still uses max_velocity, not the smaller cruise value.
+        speed=s.rows['left_arm']['parameters']['max_velocity']
+        assert speed>.05 and 0<goal.goal.joint_state.position[0]<=.02
+    finally:s.close()
+
+
+def test_goal_cruise_velocity_above_the_speed_cap_is_rejected():
+    _,rows=resolve();p=rows['left_arm']['parameters'];p['goal_max_velocity']=p['max_velocity']*2
+    with pytest.raises(ValueError,match='goal_max_velocity'):DeviceSession(rows)
 
 
 @pytest.mark.parametrize('value',[0,.01,11,float('nan'),True,'3'])

@@ -220,6 +220,7 @@ class DeviceSession:
                                 # real teleop smoothness limit, and nothing else observes
                                 # them (the ik.* probe only samples feedback at 10 Hz).
                                 probe[key]={'q':[round(v,5) for v in q],
+                                            'm':[round(v,5) for v in measured],
                                             'step':round(max(abs(v-s) for v,s in zip(q,start)),5),
                                             'clip':round(max(abs(v-g) for v,g in zip(q,goal)),5)}
                             # Validate mapped hardware limits before sending too.

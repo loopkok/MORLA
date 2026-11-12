@@ -47,11 +47,18 @@ Quest 模板选用 `morla.mmk2.cartesian_delta`。输出上限为 0.05 rad / 2.0
 `stop_wait_s` 让运行时把停止等待延长到该 RPC 截止时间之后，其他设备仍用默认 1 s。
 每次 `set_goal` 的 RTT 可通过 `Transport.last_goal_rtt_s` 读取，并每 30 s 汇总一条日志。
 每次真正的下发改写一条 `dispatch` 节拍记录（`~/.local/share/morla/cadence-probe/`）：计数 `write`、时延 `goal_rtt`，
-以及事件里的 `components` 和每臂 `q`（下发的关节目标）、`step`（相对上次下发的最大关节变化）、`clip`（目标被限步截掉多少）。
+以及事件里的 `components` 和每臂 `q`（下发的关节目标）、`m`（同一时刻的实测关节）、`step`（相对上次下发的最大关节变化）、`clip`（目标被限步截掉多少）。
 `ik.*` 事件只按 10 Hz 抽样反馈，既看不出真实下发频率，也看不出每拍步长——平滑度问题要先用 `dispatch` 记录判断是
 "下发太慢/被截"还是"下发本身就抖"。
 `forward_position` 是显式可选 SDK 接口，需按固件验证后使用。底盘 250ms 主机命令超时会请求零速度，
 不是经过验证的控制器看门狗。
+`forward_position` 的语义是"以给定速度走到这个目标然后停"。控制器巡航速度由
+`goal_max_velocity`（默认为 `max_velocity`）决定，与 `max_velocity` 分开：后者仍是每拍可前进的
+安全上限，被 worker 限步和手臂 IK 步长使用。2026-11-13 实测（32 Hz 下发）：遥操关节速度通常
+0.02–0.25 rad/s，而目标要求 0.6 rad/s，于是每个目标只用下发周期的 1/3–1/2 就走完、其余时间停住，
+表现为按**下发频率**的走走停停（遥操和纯插值的"回工作位"都出现）。把巡航速度调到接近实际运动
+速度（例如 0.25 rad/s）能让手臂整段周期都在动；代价是该组的最大关节速度也随之受限，所以它是
+"平滑度 ↔ 最高速度"的调节旋钮，不是安全参数。
 厂商 proto 的 `tracking`（`TrackingParams`）在本控制器上不可用：服务端没有 `max_error` 字段，
 只带 `max_velocity` 的零位移目标返回 `GoalStatus=INVALID_TARGET(1)`。
 

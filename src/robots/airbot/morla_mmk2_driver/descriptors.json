@@ -273,6 +273,12 @@
           "maximum": 10,
           "title": "目标限速 / rad/s"
         },
+        "goal_max_velocity": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "控制器巡航速度 / rad/s"
+        },
         "max_command_lead": {
           "type": "number",
           "exclusiveMinimum": 0,
@@ -366,6 +372,7 @@
       "max_velocity": 0.1,
       "max_command_lead": 0.15,
       "command_timeout_s": 0.25,
+      "goal_max_velocity": 0.1,
       "position_lead_m": 0.02,
       "rotation_lead_rad": 0.35,
       "damping_min": 0.005,
@@ -405,6 +412,7 @@
         "joint_signs",
         "joint_offsets",
         "max_velocity",
+        "goal_max_velocity",
         "max_command_lead",
         "command_timeout_s",
         "rotation_lead_rad"
@@ -750,6 +758,12 @@
           "maximum": 10,
           "title": "目标限速 / rad/s"
         },
+        "goal_max_velocity": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "控制器巡航速度 / rad/s"
+        },
         "max_command_lead": {
           "type": "number",
           "exclusiveMinimum": 0,
@@ -843,6 +857,7 @@
       "max_velocity": 0.1,
       "max_command_lead": 0.15,
       "command_timeout_s": 0.25,
+      "goal_max_velocity": 0.1,
       "position_lead_m": 0.02,
       "rotation_lead_rad": 0.35,
       "damping_min": 0.005,
@@ -882,6 +897,7 @@
         "joint_signs",
         "joint_offsets",
         "max_velocity",
+        "goal_max_velocity",
         "max_command_lead",
         "command_timeout_s",
         "rotation_lead_rad"
@@ -1148,6 +1164,12 @@
           "maximum": 10,
           "title": "目标限速 / SDK 原始量/s"
         },
+        "goal_max_velocity": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "控制器巡航速度 / SDK 原始量/s"
+        },
         "max_command_lead": {
           "type": "number",
           "exclusiveMinimum": 0,
@@ -1190,7 +1212,8 @@
       ],
       "max_velocity": 0.2,
       "max_command_lead": 1.0,
-      "command_timeout_s": 0.25
+      "command_timeout_s": 0.25,
+      "goal_max_velocity": 0.2
     },
     "source": {
       "package": "morla_mmk2_driver",
@@ -1225,6 +1248,7 @@
         "joint_signs",
         "joint_offsets",
         "max_velocity",
+        "goal_max_velocity",
         "max_command_lead",
         "command_timeout_s"
       ],
@@ -1440,6 +1464,12 @@
           "maximum": 10,
           "title": "目标限速 / SDK 原始量/s"
         },
+        "goal_max_velocity": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "控制器巡航速度 / SDK 原始量/s"
+        },
         "max_command_lead": {
           "type": "number",
           "exclusiveMinimum": 0,
@@ -1482,7 +1512,8 @@
       ],
       "max_velocity": 0.2,
       "max_command_lead": 1.0,
-      "command_timeout_s": 0.25
+      "command_timeout_s": 0.25,
+      "goal_max_velocity": 0.2
     },
     "source": {
       "package": "morla_mmk2_driver",
@@ -1517,6 +1548,7 @@
         "joint_signs",
         "joint_offsets",
         "max_velocity",
+        "goal_max_velocity",
         "max_command_lead",
         "command_timeout_s"
       ],
@@ -1732,6 +1764,12 @@
           "maximum": 10,
           "title": "目标限速 / m/s"
         },
+        "goal_max_velocity": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "控制器巡航速度 / m/s"
+        },
         "max_command_lead": {
           "type": "number",
           "exclusiveMinimum": 0,
@@ -1774,7 +1812,8 @@
       ],
       "max_velocity": 0.02,
       "max_command_lead": 0.03,
-      "command_timeout_s": 0.25
+      "command_timeout_s": 0.25,
+      "goal_max_velocity": 0.02
     },
     "source": {
       "package": "morla_mmk2_driver",
@@ -1809,6 +1848,7 @@
         "joint_signs",
         "joint_offsets",
         "max_velocity",
+        "goal_max_velocity",
         "max_command_lead",
         "command_timeout_s"
       ],
@@ -2036,6 +2076,12 @@
           "maximum": 10,
           "title": "目标限速 / rad/s"
         },
+        "goal_max_velocity": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "控制器巡航速度 / rad/s"
+        },
         "max_command_lead": {
           "type": "number",
           "exclusiveMinimum": 0,
@@ -2082,7 +2128,8 @@
       ],
       "max_velocity": 0.1,
       "max_command_lead": 0.15,
-      "command_timeout_s": 0.25
+      "command_timeout_s": 0.25,
+      "goal_max_velocity": 0.1
     },
     "source": {
       "package": "morla_mmk2_driver",
@@ -2117,6 +2164,7 @@
         "joint_signs",
         "joint_offsets",
         "max_velocity",
+        "goal_max_velocity",
         "max_command_lead",
         "command_timeout_s"
       ],

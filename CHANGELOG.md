@@ -1,5 +1,15 @@
 # Changelog（MORLA）
 
+## 2026-11-13 — MMK2 高频抖动：新增控制器巡航速度 `goal_max_velocity`
+
+- 下发遥测首轮数据（Web 147236 会话，143.9 s，`dispatch` 事件 2677 条）：真实下发 **~32 Hz**（间隔 p50 31 ms、p90 55 ms），`goal_rtt` p50 30 ms，每次下发关节跳变 p50 0.008 rad / p90 0.015 rad，`clip`≈0（驱动限步几乎不削目标）；只有含底盘的 7 组件请求仍是 p50 157 ms，与先前 161 ms 一致。
+- 关键推断：`forward_position` 每个目标的语义是"以目标里的速度走到这里然后停"。目标里的速度是 **0.6 rad/s**，而实测关节速度只有 0.02–0.25 rad/s，所以每拍目标只用周期的 1/3–1/2 就走完，剩下时间臂是停着的——抖动频率就等于下发频率（32 Hz），幅度等于每拍跳变。这解释了为什么**纯插值的"回工作位"也抖**：那条路径没有任何手部输入。
+- 修复：新增设备参数 `goal_max_velocity`（0 < x ≤ `max_velocity`，默认等于 `max_velocity`，旧装配无需改动），只有它进入 SDK `ForwardPositionParams.max_velocity`；`max_velocity` 继续作为每拍前进上限，worker 限步和手臂 IK 步长仍用它。这样"平滑度"和"最高速度"不再被同一个数字绑死。
+- 遥测补充：`dispatch` 事件增加 `m`（同一时刻实测关节），下一轮可直接看指令与实际响应的关系。
+- 测试：`morla_mmk2_driver` 41 passed（新增 `test_goal_cruise_velocity_is_separate_from_the_speed_cap`、`test_goal_cruise_velocity_above_the_speed_cap_is_rejected`）。
+- 操作员侧：左/右臂 `goal_max_velocity` 先设 **0.25 rad/s**（设备选型 → 设备专用参数），重启 Web 栈后再跑一轮。代价是该组最大关节速度随之降到 0.25 rad/s；需要更快时往上加（0.35 是折中），这是"平滑 ↔ 速度"旋钮。
+- 仍未解决：左臂 IK 残差 p90 0.12 m（目标经常在可达空间外），属于映射/工作空间问题，与本次抖动无关。
+
 ## 2026-11-13 — MMK2 臂"卡"的定位：左臂目标够不到 + 下发节拍首次落盘
 
 - 本轮数据（Web 140814 会话，装载了跳过空闲底盘的驱动；`cadence-probe/1794508507256284391-140814.jsonl`，93 s）：
