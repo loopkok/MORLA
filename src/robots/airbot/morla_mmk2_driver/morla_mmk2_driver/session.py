@@ -3,11 +3,9 @@ import copy
 import threading
 import time
 from morla_teleop.kinematics import limit_joint_step
+from morla_core.cadence_probe import record as _cadence
 from .contract import CONNECTION_FIELDS, ROLES, COMMAND_RPC_TIMEOUT_DEFAULT_S, goal_velocity, role_of, tracks_goal_velocity, validate_configuration, validate_target, limits
 from .feedback import decode
-try:from morla_core.cadence_probe import record as _cadence
-except ImportError:
-    def _cadence(*args,**kwargs):pass
 
 
 class DeviceSession:

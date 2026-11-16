@@ -1,5 +1,17 @@
 # Changelog（MORLA）
 
+## 2026-11-16 — 接入 MMK2 后公共层的四处回撤：限步改回可选、Web 去品牌、探针转可选、Quest 双手说明
+
+- 背景：对比接入 MMK2 之前的基线（`f2166a5`）逐项审计公共层改动。MMK2 的能力都是通过既有扩展点进来的（新控制器 id、adapter 可选方法、entry point、可选字段），没有破坏组合契约；但有三处"共享默认值被 MMK2 需求改掉"和一处未纳入版本管理的运行时依赖，会让别的机器人或下一个接手者踩空。
+- **限步上限改回按绑定显式开启**：`CartesianController` 的 `step_cap` 默认恢复为 `False`（此前为了 MMK2 全位姿求解跳变改成默认 `True`）。`max_joint_step`/`max_joint_velocity` 仍然**声明即校验**（非法值照旧报错），但只有构造时 `step_cap=True` 或绑定参数写 `step_cap: true` 才真的截断命令。原因：astral / nero 的组装预设早就写了 `max_joint_step: 0.15`，那是"设备描述"，写在任何控制器读取它之前；默认截断等于静默改变这两台已交付机器人的实际动作。MMK2 / FR3 / CR5 三个包装控制器本来就显式传 `step_cap=False`（它们自己按上一条命令限步），因此本次回撤不影响任何 MMK2 路径。新增 `step_cap_enabled()`；非布尔值（`1`、`"true"`）一律拒绝，避免"不小心开了/关了"。
+- **Web 去掉 MMK2 品牌分支**（两条都是"数据驱动代替型号判断"）：
+  - `ReferenceWorkspace` 不再用 `morla.airbot.mmk2_sdk.left_arm/right_arm` 插件名判断"是否显示单设备工作位"，改读 descriptor 的 `web.per_device_work_position`（`make_descriptors.py` 对两条臂置 true，`descriptors.json` 已重新生成，只多这两处字段）；真实设备后端条件保持不变。
+  - `RunConsole` 的 IK 报告标题不再用 `method==='mmk2_analytic_dh'` 之类的字符串分支，改为优先用解算器自己上报的 `method_label`；三个 MMK2 解算器（analytic_dh / urdf_least_squares / urdf_ik）已在上报里带上该字段，其余控制器仍走原有回退（`differential` → 连续微分跟随）。
+- **`cadence_probe` 转为版本管理的可选诊断**：该模块此前未纳入 git，却被 5 个公共模块无条件 import（换台机器就 ImportError）。现已随 `morla_core` 提交，并改为**默认关闭**、`MORLA_CADENCE_PROBE=1` 才启用：共享框架不应在每个进程里往用户家目录写文件。开启后行为与之前一致（每进程一份 `<wall_ns>-<pid>.jsonl`，逐秒写计数/时延分位/事件，不自动清理）。MMK2 驱动的 `dispatch` 记录也在其中，驱动 README 已注明采集前要先带该环境变量启动工作站。
+- **Quest "任一 grip 开始遥操" 写成文档**：左手 grip 的按下沿也会产生 `teleop_start`（左撇子不必先伸右手），但当另一只手 grip 已在按下状态时不再重复开始（否则会重夺会话、重锚定全部手臂），只增加 deadman。同时说明 `right_ab`（A/B，`button_pair`）被装配置为升降等点动输入占用时，A/B 的录制操作不再派发（`BindingEngine.reserves_input_action` 按装配计算）。`morla_input/README.md` 与控制链里的「Quest 工作站快捷键」说明已同步：左或右 Grip 都能开始；装配里存在 `right_ab` 绑定时 A/B 用于点动、录制改用页面或键盘。
+- 测试：`morla_teleop` 新增 `test_a_declared_bound_alone_does_not_clip`（只声明 `max_joint_step` 不再被截断）与 `test_invalid_step_cap_is_rejected`，原有截断/回退用例改为显式 `step_cap: true`。合并运行 `morla_core`/`morla_teleop`/`morla_runtime`/`morla_input`/`morla_operator_control` **333 passed, 1 skipped**（3 个失败为既有项：flake8/pep257 历史遗留，`test_profiles` 顺序依赖且 HEAD 上同样失败）；`morla_mmk2_driver` + `morla_mmk2_teleop` **59 passed**；`morla_web_manager` **320 passed**（3 个 `test_piano_api` 失败因本机缺 `~/Desktop/MORLA-piano`）；`npm run build` 通过。
+- 操作员侧：本次不改 MMK2 实机默认行为（三个包装控制器本来就显式关闭限步）。要再采一轮 `dispatch` 数据时，以 `MORLA_CADENCE_PROBE=1` 启动 Web 栈。
+
 ## 2026-11-13 — 卡顿不是 IK 法的问题：按目标速度自动设定每个目标的巡航速度
 
 - 本轮数据（`cadence-probe/1794510354663855121-153969.jsonl`，377 s，7648 次 `dispatch`，两次会话：`differential` 至 283.9 s、`analytic_dh` 之后）：

@@ -426,6 +426,7 @@
       "preferred_controllers": {
         "pose6d": "morla.mmk2.cartesian_delta"
       },
+      "per_device_work_position": true,
       "templates": [
         {
           "id": "mmk2-sdk-fake",
@@ -917,6 +918,7 @@
       "preferred_controllers": {
         "pose6d": "morla.mmk2.cartesian_delta"
       },
+      "per_device_work_position": true,
       "binding_presets": [
         {
           "controller": "morla.mmk2.cartesian_delta",

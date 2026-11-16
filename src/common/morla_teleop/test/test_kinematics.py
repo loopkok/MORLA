@@ -192,22 +192,22 @@ def _far_request(controller,parameters,seed):
 
 
 def test_max_joint_step_bounds_a_single_tick():
-    # MMK2's wrist flipped ~1.5 rad in one tick at q5=0. The binding already
-    # declared max_joint_step=0.02, but the generic controller never read it.
+    # A full-pose solve can land on a distant branch (MMK2's wrist flipped
+    # ~1.5 rad in one tick at q5=0). The binding opts in and declares the bound.
     seed=[0.]*6
-    out=_far_request(CartesianController(FarBranchSolver()),{'max_joint_step':.02},seed)
+    out=_far_request(CartesianController(FarBranchSolver()),{'step_cap':True,'max_joint_step':.02},seed)
     assert np.max(np.abs(np.asarray(out)-seed))<=.02+1e-12
 
 
 def test_max_joint_velocity_bounds_a_single_tick_by_dt():
     seed=[0.]*6
-    out=_far_request(CartesianController(FarBranchSolver()),{'max_joint_velocity':.2},seed)
+    out=_far_request(CartesianController(FarBranchSolver()),{'step_cap':True,'max_joint_velocity':.2},seed)
     assert np.max(np.abs(np.asarray(out)-seed))<=.2*.05+1e-12
 
 
 def test_both_limits_take_the_tighter_one():
     seed=[0.]*6
-    parameters={'max_joint_step':.5,'max_joint_velocity':.2}
+    parameters={'step_cap':True,'max_joint_step':.5,'max_joint_velocity':.2}
     out=_far_request(CartesianController(FarBranchSolver()),parameters,seed)
     assert np.max(np.abs(np.asarray(out)-seed))<=.2*.05+1e-12
 
@@ -218,10 +218,19 @@ def test_without_the_parameters_the_solver_result_is_unchanged():
     np.testing.assert_allclose(out,[1.,0.,0.,2.,2.,2.])
 
 
+def test_a_declared_bound_alone_does_not_clip():
+    # Astral and Nero's composed presets declare max_joint_step as a device
+    # description, written before any controller read it. Honouring it by
+    # default silently changed their delivered motion, so the cap is opt-in.
+    seed=[0.]*6
+    out=_far_request(CartesianController(FarBranchSolver()),{'max_joint_step':.02},seed)
+    np.testing.assert_allclose(out,[1.,0.,0.,2.,2.,2.])
+
+
 def test_joint_step_cap_applies_to_jog_too():
     seed=[0.]*6
     controller=CartesianController(FarBranchSolver(),jog=True)
-    parameters={'axes_map':{'x':'x','y':'y'},'linear_speed':.1,'max_joint_step':.02}
+    parameters={'step_cap':True,'axes_map':{'x':'x','y':'y'},'linear_speed':.1,'max_joint_step':.02}
     out=controller({'x':1,'y':0},seed,.02,parameters)
     assert np.max(np.abs(np.asarray(out)-seed))<=.02+1e-12
 
@@ -244,6 +253,15 @@ def test_invalid_joint_step_limits_are_rejected(bad):
         _far_request(CartesianController(FarBranchSolver()),{'max_joint_step':bad},seed)
     with pytest.raises(ControllerError):
         _far_request(CartesianController(FarBranchSolver()),{'max_joint_velocity':bad},seed)
+
+
+@pytest.mark.parametrize('bad',[1,0,'true',None])
+def test_invalid_step_cap_is_rejected(bad):
+    # Opting in must be explicit: a truthy string or number would make an
+    # assembly clip or not clip by accident.
+    seed=[0.]*6
+    with pytest.raises(ControllerError):
+        _far_request(CartesianController(FarBranchSolver()),{'step_cap':bad,'max_joint_step':.02},seed)
 
 
 def _pose_tick(controller, parameters, angle=.4, position=(0.,0.,0.), seed=None):
@@ -303,7 +321,7 @@ def test_invalid_smoothing_alpha_is_rejected(bad):
 
 def test_fallback_joint_limit_preserves_coordinated_direction():
     controller = CartesianController(FarBranchSolver())
-    output = _far_request(controller, {'max_joint_step': .02}, [0.] * 6)
+    output = _far_request(controller, {'step_cap': True, 'max_joint_step': .02}, [0.] * 6)
     np.testing.assert_allclose(output, [.01, 0., 0., .02, .02, .02])
     report = controller.diagnostics()
     assert report['final_fk_verified']
@@ -321,6 +339,6 @@ def test_fallback_holds_if_limiting_a_branch_increases_cartesian_error():
             return [2., 0., 0., 0., 0., 0.]
 
     controller = CartesianController(FoldedBranch())
-    output = _far_request(controller, {'max_joint_step': .02}, [0.] * 6)
+    output = _far_request(controller, {'step_cap': True, 'max_joint_step': .02}, [0.] * 6)
     assert output == [0.] * 6
     assert controller.diagnostics()['joint_step_scale'] == 0.

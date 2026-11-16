@@ -307,6 +307,8 @@ quest3_udp_mocap
 
 CR5 的启动、fake 演练与现场配置见 [CR5 VR 指南](../../../docs/integrations/cr5_vr.md)。
 
-### 公共工作站统一手柄操作（2026-11-02）
+### 公共工作站统一手柄操作（2026-11-02，2026-11-16 更新）
 
-右 grip 开始遥操/重定跟随零点/人工接管，并提供 hold；右 A 开始录制或在人工接管后交还控制；右 B 停止保存；右摇杆按下丢弃本段；左 X 停止跟随并直接回工作位。键盘 S/A/B/N/A+N 与 Vader M3/A/B/R3/X 对应。2026-11-03 起按键状态进入 v3 快照，操作使用编号 journal；升级后重启 Web 与接收进程。详细操作与保护条件见 [统一操作说明](../../../docs/integrations/UNIFIED_WORKSTATION_OPERATORS_2026-11-02.md)。
+**任一 grip 都能开始遥操**：左手或右手 grip 的按下沿都会产生 `teleop_start`，左撇子不必先伸右手。但两手不同时授权同一会话：若另一只手的 grip 已经在按下状态，这一次按下**不**产生 `teleop_start`（否则会重新夺取会话、重锚定已经在动的全部手臂），它只是该手自己那些 binding 的 deadman——全局 operator hold 不会因此打开（`/operator/hold` 只接受显式客户端 hold）。握住的任一只手松开都会停止它自己那条链的跟随。其余按键不变：右 A 开始录制或在人工接管后交还控制；右 B 停止保存；右摇杆按下丢弃本段；左 X 停止跟随并直接回工作位。键盘 S/A/B/N/A+N 与 Vader M3/A/B/R3/X 对应。2026-11-03 起按键状态进入 v3 快照，操作使用编号 journal；升级后重启 Web 与接收进程。详细操作与保护条件见 [统一操作说明](../../../docs/integrations/UNIFIED_WORKSTATION_OPERATORS_2026-11-02.md)。
+
+右前两个按键另作为只读端口 `right_ab`（语义 `button_pair`，dim 2，轴名 `a`/`b`）提供，供把 A/B 用作点动输入的装配（例如 MMK2 升降）使用。**当装配里存在 `source: <输入>.right_ab` 的绑定时，A/B 的录制操作被该绑定占用**：`record_or_release` / `record_stop` 不再由操作路由派发，录制改用 Web 或键盘。这是一条按装配计算的占用判断（`BindingEngine.reserves_input_action`），不是按机器人型号写死。

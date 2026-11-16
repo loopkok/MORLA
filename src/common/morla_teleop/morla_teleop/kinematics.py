@@ -15,11 +15,26 @@ def limit_joint_step(origin, target, maximum):
     return np.asarray(origin, dtype=float) + scale * delta, scale
 
 
+def step_cap_enabled(parameters):
+    """Whether a binding opted into the per-tick joint step ceiling.
+
+    The cap changes delivered motion, so it is opt-in per binding: every
+    assembly written before this option existed declared max_joint_step as
+    documentation of the device, not as a request for the shared controller
+    to clip the command.
+    """
+    value=parameters.get('step_cap',False)
+    if type(value) is not bool:raise ControllerError('step_cap must be a boolean')
+    return value
+
+
 def joint_step_cap(parameters,dt):
     """Per-tick joint step ceiling from max_joint_step and max_joint_velocity.
 
     Pass the bound to solvers that accept it and apply it to the returned
-    command for solvers that resolve a whole pose in one call.
+    command for solvers that resolve a whole pose in one call. Values are
+    validated whenever they are declared; whether the bound is applied is
+    decided by `step_cap_enabled`.
     """
     caps=[]
     for key,value in (('max_joint_step',parameters.get('max_joint_step')),
@@ -49,18 +64,20 @@ def solver_for(instance):
 
 
 class CartesianController:
-    def __init__(self,solver,*,jog=False,clock=time.monotonic_ns,max_solve_ns=50_000_000,step_cap=True,
+    def __init__(self,solver,*,jog=False,clock=time.monotonic_ns,max_solve_ns=50_000_000,step_cap=False,
                  smooth_input=True):
         self.solver,self.jog,self.clock,self.max_solve_ns=solver,jog,clock,max_solve_ns
-        # Optional input low-pass (`smoothing_alpha`). Wrappers that already
-        # filter the pose themselves (FR3/CR5 async controllers) pass False, or
-        # the same alpha would be applied twice and quietly soften the arm.
+        # Optional input low-pass (`smoothing_alpha`, default 1 = off).
+        # Wrappers that already filter the pose themselves (FR3/CR5 async
+        # controllers) pass False, or the same alpha would be applied twice and
+        # quietly soften the arm.
         self.smooth_input=smooth_input
-        # Wrappers that clip their own output (FR3/CR5 async controllers bound
-        # the step against the last command and the measured lead) must pass
-        # step_cap=False. Applying the same cap twice halves the commanded rate:
-        # the inner clip starts from a seed that is already a clipped command
-        # one tick old, so each wrapper tick only advances half the bound.
+        # Off by default: the cap changes delivered motion, so a binding opts in
+        # with `step_cap: true` (see step_cap_enabled). Wrappers that clip their
+        # own output (FR3/CR5 async controllers bound the step against the last
+        # command and the measured lead) must stay off: applying the same cap
+        # twice halves the commanded rate, because the inner clip starts from a
+        # seed that is already a clipped command one tick old.
         self.step_cap=step_cap
         # Nero/Astral analytic solvers keep a continuity branch across solves.
         # Resetting it every tick turns each frame into a full cold search
@@ -255,7 +272,11 @@ class CartesianController:
         # Tool offsets must already be resolved and versioned by the compiler.
         target_tip=target@np.linalg.inv(tool)
         self.last_report.update(stage='solving',target_tcp=target.tolist(),target_tip=target_tip.tolist())
-        cap=joint_step_cap(parameters,dt) if self.step_cap else None
+        # Validated whenever declared; applied only when this wrapper or the
+        # binding asked for it.
+        declared=joint_step_cap(parameters,dt)
+        opted_in=step_cap_enabled(parameters)
+        cap=declared if (self.step_cap or opted_in) else None
         solve_arguments={'seed':start} if (seed is not None and self._seed_aware) else {}
         solver_cap = cap if max_joint_step is None else max_joint_step
         if self._step_aware and solver_cap is not None:

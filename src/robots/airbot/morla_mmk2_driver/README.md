@@ -46,12 +46,14 @@ Quest 模板选用 `morla.mmk2.cartesian_delta`。输出上限为 0.05 rad / 2.0
 `rpc_timeout_s` 只约束 `create_robot`、状态流与图像。停止保持写入同样走该超时；adapter 通过
 `stop_wait_s` 让运行时把停止等待延长到该 RPC 截止时间之后，其他设备仍用默认 1 s。
 每次 `set_goal` 的 RTT 可通过 `Transport.last_goal_rtt_s` 读取，并每 30 s 汇总一条日志。
-每次真正的下发改写一条 `dispatch` 节拍记录（`~/.local/share/morla/cadence-probe/`）：计数 `write`、时延 `goal_rtt`，
+每次真正的下发改写一条 `dispatch` 节拍记录（`~/.local/share/morla/cadence-probe/`，需以 `MORLA_CADENCE_PROBE=1` 启动相关进程，默认关闭、不写任何文件）：计数 `write`、时延 `goal_rtt`，
 以及事件里的 `components` 和每臂 `q`（下发的关节目标）、`m`（同一时刻的实测关节）、`step`（相对上次下发的最大关节变化）、`clip`（目标被限步截掉多少）、`v`（本次目标实际使用的巡航速度）。
 按 `step/间隔/v` 可以算出控制器在每个下发周期里"动多久、停多久"：2026-11-13 的 378 s 记录里 `v=0.35`、
 `step` 中位数 0.0072 rad、间隔中位数 31 ms，即每个目标只用约 20 ms 走完、剩下 11 ms 停住。
 `ik.*` 事件只按 10 Hz 抽样反馈，既看不出真实下发频率，也看不出每拍步长——平滑度问题要先用 `dispatch` 记录判断是
 "下发太慢/被截"还是"下发本身就抖"。
+采集前先确认进程确实在写：以 `MORLA_CADENCE_PROBE=1` 启动工作站（Web 服务继承该变量，其拉起的三方进程同样生效），
+目录里每个进程一个 `<wall_ns>-<pid>.jsonl`，按 `dispatch` 前缀过滤；文件不自动清理，查完手动删除。
 `forward_position` 是显式可选 SDK 接口，需按固件验证后使用。底盘 250ms 主机命令超时会请求零速度，
 不是经过验证的控制器看门狗。
 `forward_position` 的语义是"以给定速度走到这个目标然后停"。控制器巡航速度由
