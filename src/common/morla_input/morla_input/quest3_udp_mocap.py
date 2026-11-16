@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+from morla_core.cadence_probe import record as cadence_record
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Pose, Point, Quaternion, PoseStamped, PoseArray
@@ -781,6 +782,8 @@ class Quest3UDPMocap(Node):
             sent_ns=int((arrival_time or time.time()) * 1e9))
         if row is not None:
             self._teleop_events_pub[side].publish(String(data=json.dumps(row, allow_nan=False)))
+            if kind == 'pose':
+                cadence_record('quest_publish.' + side, counts=('pose',))
 
     def _on_snapshot_ack(self, message):
         try:
@@ -874,6 +877,11 @@ class Quest3UDPMocap(Node):
         if not np.isfinite([trigger, grip, stick_x, stick_y]).all() or not 0 <= mask <= 63:
             return
         side = "right" if "right" in line.lower() else "left"
+        grip_levels = getattr(self, '_cadence_grip_levels', {})
+        if grip_levels.get(side) != (grip > .5):
+            grip_levels[side] = grip > .5
+            self._cadence_grip_levels = grip_levels
+            cadence_record('quest_raw_grip.' + side, event={'grip': grip, 'mask': mask})
         msg = Joy()
         msg.header.stamp = self._float_to_ros_time(arrival_time)
         msg.header.frame_id = self._pose_frame_id()

@@ -5,7 +5,8 @@
 # browser's 工作站 tab, so this script needs no assembly/deployment file.
 # Run on the Linux ROS 2 Humble host; a local viewer needs its desktop session.
 #
-#   tools/start_morla_web.sh                # start + open browser
+#   tools/start_morla_web.sh                # start + open browser; a console
+#                                           #   already on the port is stopped
 #   OPEN_BROWSER=0 tools/start_morla_web.sh # skip opening the page
 #   PORT=9090 tools/start_morla_web.sh      # different port
 set -euo pipefail
@@ -25,6 +26,10 @@ if ! command -v curl >/dev/null 2>&1; then
   echo "缺少 curl，请先安装后重试。" >&2
   exit 1
 fi
+if ! command -v ss >/dev/null 2>&1; then
+  echo "缺少 ss（iproute2），无法检测端口占用。" >&2
+  exit 1
+fi
 URL="http://127.0.0.1:$PORT/"
 probe() { curl --noproxy 127.0.0.1 --connect-timeout 1 --max-time 2 -sf "$1" >/dev/null 2>&1; }
 open_browser() {
@@ -37,15 +42,80 @@ open_browser() {
   fi
 }
 
-# Check the public MORLA API, not just an arbitrary HTTP page on this port.
-if probe "${URL}api/v2/components"; then
-  echo "MORLA 控制台已在运行，打开 工作站: $URL"
-  echo "已有服务会继续使用原来的代码；更新后请先停止旧服务再重新启动。"
-  open_browser
-  exit 0
-fi
+# PIDs listening on $PORT (only processes owned by this user are visible).
+listener_pids() {
+  ss -H -tlnp "sport = :$PORT" 2>/dev/null |
+    grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u || true
+}
+
+proc_cmdline() {
+  tr '\0' ' ' <"/proc/$1/cmdline" 2>/dev/null || true
+}
+
+# Send a signal to the process, and to the children it spawned when it leads
+# its own process group, so a stopped console leaves nothing behind.
+signal_pid() {
+  local sig=$1 pid=$2 pgid
+  pgid=$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')
+  if [ -n "$pgid" ] && [ "$pgid" = "$pid" ]; then
+    kill "-$sig" -- "-$pgid" 2>/dev/null || true
+  else
+    kill "-$sig" "$pid" 2>/dev/null || true
+  fi
+}
+
+# A console left over from a previous run keeps serving the old build, so stop
+# it before starting; this is a restart, not a reuse.
+stop_stale_console() {
+  local pids pid cmd
+  local -a morla_pids=() other_pids=()
+  mapfile -t pids < <(listener_pids)
+  [ "${#pids[@]}" -gt 0 ] || return 0
+
+  for pid in "${pids[@]}"; do
+    cmd=$(proc_cmdline "$pid")
+    if [[ "$cmd" == *morla_web_manager* ]]; then
+      morla_pids+=("$pid")
+    else
+      other_pids+=("$pid")
+    fi
+  done
+
+  if [ "${#other_pids[@]}" -gt 0 ]; then
+    echo "端口 $PORT 被其他程序占用，未自动结束：" >&2
+    for pid in "${other_pids[@]}"; do
+      echo "  PID $pid: $(proc_cmdline "$pid")" >&2
+    done
+    echo "请先停止该程序，或用 PORT=9090 指定其他端口。" >&2
+    exit 1
+  fi
+
+  echo "检测到旧的 MORLA 控制台（PID ${morla_pids[*]}），正在停止…"
+  for pid in "${morla_pids[@]}"; do signal_pid TERM "$pid"; done
+  for _ in $(seq 1 40); do
+    [ -z "$(listener_pids)" ] && break
+    sleep 0.25
+  done
+  if [ -n "$(listener_pids)" ]; then
+    echo "旧控制台未在 10 秒内退出，强制结束。" >&2
+    for pid in "${morla_pids[@]}"; do signal_pid KILL "$pid"; done
+    for _ in $(seq 1 20); do
+      [ -z "$(listener_pids)" ] && break
+      sleep 0.25
+    done
+  fi
+  if [ -n "$(listener_pids)" ]; then
+    echo "端口 $PORT 仍被占用，请手动检查。" >&2
+    exit 1
+  fi
+  echo "旧控制台已停止。"
+}
+
+stop_stale_console
+
+# Anything else still holding the port is not ours to kill.
 if probe "$URL"; then
-  echo "$URL 已有 HTTP 服务，但没有 MORLA 公共 API。请确认占用进程，或用 PORT=9090 指定其他端口。" >&2
+  echo "$URL 已被其他 HTTP 服务占用。请确认占用进程，或用 PORT=9090 指定其他端口。" >&2
   exit 1
 fi
 
@@ -76,7 +146,7 @@ fi
 echo "启动 MORLA 网页控制台…"
 "$BIN" &
 WEB_PID=$!
-trap 'kill "$WEB_PID" 2>/dev/null || true' EXIT INT TERM
+trap 'kill "$WEB_PID" 2>/dev/null || true' EXIT INT TERM HUP
 
 READY=0
 for _ in $(seq 1 60); do

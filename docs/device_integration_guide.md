@@ -455,6 +455,8 @@ InputFrame(
 
 deadman 的“同源、严格 True/False、先释放再按下”编译期校验已随重构删除，编译器不再拒绝跨源或非布尔声明；执行期只按 binding 声明做门控——跨源声明在本帧源不匹配，结果是该绑定永远不派发（安全失败，不是放行）。deadman 端口名不得缺失：端口不存在、为假、或超过 `max_age_ms` 都算松开。手套+脚踏、双设备组合按钮如需真正的安全联锁与撤权，仍必须自建显式聚合逻辑；binding deadman 只停止派发，不做撤权。
 
+每只手的 grip 只是声明它的 binding 的 deadman。Web 工作站的全局 operator hold 只接受显式客户端 hold（键盘 `/operator/hold` 端点），不再镜像输入帧里的 `<side>_hold` 或 `hold_to_control`：否则按住一只手柄会打开所有 binding 的门，未被按住的那条臂会跟着自己的控制器走（2026-11-11 实测）。
+
 ### 6.2 新 controller 的接口
 
 现有 controller 能力包括 joint jog、scalar map、笛卡尔增量 IK、手柄笛卡尔 jog、XHand/Wuji retarget。编译器中出现某 controller 名不表示运行时一定安装了实现，例如 identity 仍需实际可调用实现。

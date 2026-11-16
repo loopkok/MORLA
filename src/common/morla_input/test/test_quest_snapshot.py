@@ -50,6 +50,16 @@ def test_first_snapshot_with_state_adopts_mode_without_needing_pose_packet():
     assert not w.source.actions  # no startup operations from preexisting held buttons
 
 
+def test_left_grip_can_start_teleoperation():
+    w = Wire()
+    w.receive(w.update(side='left'))
+    w.receive(w.state(side='left'))
+    frame = w.receive(w.state(side='left', grip=1.))
+    assert frame.ports['left_hold']
+    assert not frame.ports.get('right_hold', False)
+    assert w.source.actions == ['teleop_start']
+
+
 def test_carry_forward_never_renews_field_age_or_repeats_its_sample_identity():
     w=Wire();w.start();stamp=w.source.latest.port_metadata['right_pose']['received_ns']
     sample=w.source.latest.port_metadata['right_pose']['sample_sequence']
@@ -72,6 +82,8 @@ def test_short_press_release_survives_overwrite_and_is_dispatched_once():
     w=Wire();w.start();w.state(buttons=(0,));released=w.state()
     frame=w.receive(released)
     assert frame.ports['right_buttons'][0]==0 and w.source.actions==['record_or_release']
+    assert frame.ports['right_ab'] == [0, 0]
+    assert frame.port_metadata['right_ab'] == frame.port_metadata['right_buttons']
     ids=list(w.source.action_ids);assert ids
     w.receive(w.state());assert not w.source.actions
     ack=w.source.acknowledgement();ack['consumer']='test'
@@ -121,6 +133,25 @@ def test_reconnection_baselines_both_sides_even_when_other_hand_arrives_later():
     assert not w.source.actions
     w.receive(w.state(side='left'));w.receive(w.state(side='left',buttons=(0,)))
     assert w.source.actions==['workpos']
+
+
+def test_either_grip_starts_teleop_but_not_while_the_other_hand_holds():
+    # Field report (2026-11-11): the left grip did nothing until the right grip
+    # had been pressed, because only the right hand's journal mapped its grip to
+    # teleop_start. Either hand now arms the session, and a grip that joins a
+    # session the other hand already holds stays a deadman instead of
+    # re-taking the takeover over and re-anchoring the moving arm.
+    w=Wire();w.start()
+    w.receive(w.update(side='left'));w.receive(w.state(side='left'))
+    w.receive(w.state(side='left',grip=1.))
+    assert w.source.actions==['teleop_start']
+    # Right grip while the left is held: a fresh edge, but no second takeover.
+    w.receive(w.update());w.receive(w.state());w.receive(w.state(grip=1.))
+    assert not w.source.actions
+    w.receive(w.state())
+    w.receive(w.state(side='left'))
+    # With both released, each hand can start on its own again.
+    w.receive(w.state(side='left',grip=1.));assert w.source.actions==['teleop_start']
 
 
 def test_hand_mode_clears_controller_state_and_old_generation_cannot_return():

@@ -155,25 +155,31 @@ class RuntimeSession:
     def _actuators(self):
         return [key for key, value in self.instances.items() if value.get('kind') == 'actuator']
 
+    def component_health(self, key, now=None):
+        adapter = self.adapters[key]
+        try:
+            value = dict(adapter.health(self._now() if now is None else now))
+        except Exception as exc:
+            value = {'ready': False, 'sample_ns': 0, 'fault': True, 'reason': 'HEALTH_FAILED: ' + str(exc),
+                     'source': 'unavailable', 'measured': False, 'synthetic': False}
+        stamp = value.get('sample_ns')
+        if type(stamp) is not int or stamp < 0:
+            value.update(ready=False, fault=True, reason='INVALID_HEALTH_TIMESTAMP')
+            stamp = 0
+        # A feedback thread can publish a newer sample during adapter.health().
+        age = self._now() - stamp
+        value['age_ns'] = age
+        value['fresh'] = 0 <= age <= self.max_age_ns
+        value['ready'] = value.get('ready') is True and value['fresh']
+        if age < 0:
+            value.update(fault=True, reason='FUTURE_HEALTH_TIMESTAMP')
+        return value
+
     def _health(self):
         now = self._now()
         result = {}
-        for key, adapter in self.adapters.items():
-            try:
-                value = dict(adapter.health(now))
-            except Exception as exc:
-                value = {'ready': False, 'sample_ns': 0, 'fault': True, 'reason': 'HEALTH_FAILED: ' + str(exc),
-                         'source': 'unavailable', 'measured': False, 'synthetic': False}
-            stamp = value.get('sample_ns')
-            if type(stamp) is not int or stamp < 0:
-                value.update(ready=False, fault=True, reason='INVALID_HEALTH_TIMESTAMP')
-                stamp = 0
-            age = self._now() - stamp
-            value['age_ns'] = age
-            value['fresh'] = 0 <= age <= self.max_age_ns
-            value['ready'] = value.get('ready') is True and value['fresh']
-            if age < 0:
-                value.update(fault=True, reason='FUTURE_HEALTH_TIMESTAMP')
+        for key in self.adapters:
+            value = self.component_health(key, now)
             result[key] = value
             self.trace_feedback(key, value)
         return result
@@ -489,6 +495,7 @@ class RuntimeSession:
             physical = id(adapter.session) if getattr(adapter, 'device_scoped_stop', False) else id(adapter)
             grouped.setdefault(physical, []).append(key)
         for keys in grouped.values():
+            group_adapter = self.adapters[keys[0]]
             done, outcome = threading.Event(), {}
             def stop_one(keys=keys, done=done, outcome=outcome):
                 try:
@@ -501,10 +508,16 @@ class RuntimeSession:
                     outcome['error'] = str(exc)
                 finally:
                     done.set()
+            started = time.monotonic()
             threading.Thread(target=stop_one, name='morla-stop-' + keys[0], daemon=True).start()
-            jobs.append((keys, done, outcome))
-        deadline = time.monotonic() + timeout_s
-        for keys, done, outcome in jobs:
+            # Adapters whose stop RPC is slower than the default may declare
+            # the wait they need; other adapters keep the shared 1 s budget.
+            try:
+                wait_s = float(getattr(group_adapter, 'stop_wait_s', timeout_s))
+            except Exception:
+                wait_s = timeout_s
+            jobs.append((keys, done, outcome, started + max(timeout_s, wait_s)))
+        for keys, done, outcome, deadline in jobs:
             if not done.wait(max(0.0, deadline - time.monotonic())):
                 errors.append({'component': keys[0], 'reason': 'STOP_TIMEOUT'})
             elif not outcome.get('ok'):

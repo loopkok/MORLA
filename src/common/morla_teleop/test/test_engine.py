@@ -188,6 +188,8 @@ def test_cartesian_controller_uses_installed_kinematics_without_brand_branch(mon
 
 def test_deadman_gates_targets_until_held_and_reanchors_on_release():
     rt=runtime('generic.gripper','ratio',[0,1])
+    released = []
+    rt.adapters['gripper'].release_target = lambda: released.append('gripper')
     rt.resolved['bindings'][0]['deadman']='input.hold'
     clock=[100];rt.clock=lambda:clock[0]
     engine=BindingEngine(rt)
@@ -208,8 +210,43 @@ def test_deadman_gates_targets_until_held_and_reanchors_on_release():
     # A stale grip sample is a dropped grip, not a held one.
     clock[0]=100+400_000_000
     assert engine.targets(frame(6,{'scalar':.9,'hold':True}))==[]
+    assert released == ['gripper', 'gripper']
     engine.close()
     assert engine.deadman=={}
+
+
+def test_one_hold_does_not_release_the_other_bindings_deadman():
+    # Field report (2026-11-11): holding only the right grip also drove the
+    # left arm. The workstation used to mirror that grip into its global
+    # operator hold, and the engine OR-ed that hold into every binding, so one
+    # hand released the other arm's gate. A grip is now only the deadman the
+    # bindings that name it declare.
+    rt=runtime('generic.gripper','ratio',[0,1])
+    base=rt.resolved['bindings'][0]
+    rt.instances={side:{'plugin_id':'generic.gripper','joints':[{'name':'opening','unit':'ratio'}]}
+                  for side in ('left','right')}
+    rt.adapters={side:SimpleNamespace(health=lambda now:{'values':[0.]}) for side in rt.instances}
+    rt.resolved={'bindings':[
+        dict(base,id=side,source='input.'+side+'_scalar',target=side+'.position_target',
+             deadman='input.'+side+'_hold',parameters={'input_range':[0,1],'output_range':[0,1]})
+        for side in ('left','right')]}
+    engine=BindingEngine(rt)
+    ports={'left_scalar':.8,'right_scalar':.3,'left_hold':False,'right_hold':True}
+    frame=InputFrame('input','epoch',0,100,'input',ports,
+                     port_metadata={key:{'received_ns':100} for key in ports})
+    assert [row['component_id'] for row in engine.targets(frame)]==['right']
+    engine.close()
+
+
+def test_explicit_operator_hold_still_opens_a_declared_deadman():
+    # The keyboard client holds no physical grip, so its explicit hold is the
+    # only release available; this is why operator_hold is not simply removed.
+    rt=runtime('generic.gripper','ratio',[0,1])
+    rt.resolved['bindings'][0]['deadman']='input.hold'
+    engine=BindingEngine(rt,operator_hold=lambda:True)
+    frame=InputFrame('input','epoch',0,100,'input',{'scalar':.6,'hold':False})
+    assert engine.targets(frame)[0]['values']==pytest.approx([.6])
+    engine.close()
 
 
 def test_partial_input_frame_does_not_block_other_bound_devices():
@@ -228,11 +265,17 @@ def test_headless_host_can_delegate_unified_actions_to_operator_coordinator():
     from types import SimpleNamespace
     from morla_teleop.session import ControlHost
     calls=[]
-    runtime=SimpleNamespace(clock=lambda:0)
+    runtime=SimpleNamespace(clock=lambda:0,resolved={'bindings': []})
     host=ControlHost(runtime,operator_action=lambda action,request:calls.append((action,request)))
     frame=SimpleNamespace(source_epoch='epoch',sequence=2)
     host.event('quest',frame,['teleop_start','record_or_release','record_stop','record_discard','workpos'])
     assert [action for action,_ in calls]==['teleop_start','record_or_release','record_stop','record_discard','workpos']
+    runtime.resolved['bindings'] = [{'source': 'quest.right_ab'}]
+    calls.clear()
+    host.event('quest',frame,['record_or_release','record_stop','record_discard'])
+    assert [action for action,_ in calls] == ['record_discard']
+    host.event('other_quest',frame,['record_stop'])
+    assert calls[-1][0] == 'record_stop'
 
 
 def test_anchored_scalar_does_not_step_the_lift_when_grip_is_pressed():

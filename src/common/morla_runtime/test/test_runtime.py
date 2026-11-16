@@ -280,3 +280,23 @@ def test_bad_health_timestamp_does_not_stop_active_group(runtime):
     runtime.adapters['arm'].health = lambda now: {'ready': True, 'sample_ns': 'invalid'}
     assert runtime.tick()['status'] == 'ACTIVE'
     assert runtime.adapters['arm'].active
+
+
+def test_stop_wait_extends_device_group_timeout():
+    runtime = object.__new__(RuntimeSession)
+
+    class Slow:
+        stop_wait_s = 1.4
+        def stop(self):
+            time.sleep(1.15)
+            return True
+
+    class Fast:
+        def stop(self):
+            return True
+
+    runtime.adapters = {'slow': Slow(), 'fast': Fast()}
+    started = time.monotonic()
+    errors = runtime._stop_adapters(['slow', 'fast'], timeout_s=1.0)
+    assert errors == []
+    assert time.monotonic() - started >= 1.1

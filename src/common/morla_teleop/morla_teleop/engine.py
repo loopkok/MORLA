@@ -1,4 +1,5 @@
 """Transport-neutral binding execution shared by Web, ROS and embedded callers."""
+from morla_core.cadence_probe import record as cadence_record
 import logging
 import time
 
@@ -15,6 +16,12 @@ class BindingEngine:
         self.deadman = {}
         self.basis_warnings = {}
         self.operator_hold = operator_hold
+
+    def reserves_input_action(self, input_id, action):
+        return action in ('record_or_release', 'record_stop') and any(
+            binding['source'] == input_id + '.right_ab'
+            for binding in self.runtime.resolved.get('bindings', ())
+        )
 
     def _trace(self, kind, data, **context):
         try:
@@ -97,11 +104,11 @@ class BindingEngine:
                 continue
             source_port=binding['source'].split('.',1)[1]
             if source_port not in frame.ports:
-                previous=self.bindings.get(binding['id'])
-                if previous is not None:previous.reset()
+                self._release_binding(binding)
                 self._trace('control_gate', {'reason':'source_port_missing','input_sequence':frame.sequence}, binding_id=binding['id'])
                 continue
             if not self._input_basis_matches(binding, frame):
+                self._release_binding(binding)
                 self._trace('control_gate', {'reason':'input_basis_mismatch','input_sequence':frame.sequence}, binding_id=binding['id'])
                 continue
             if not self._deadman_held(binding, frame, now):
@@ -114,6 +121,9 @@ class BindingEngine:
             if measured is None:
                 raise ValueError('adapter does not expose measured positions: ' + key)
             controller=self._binding_controller(binding)
+            if self._release_on_input_loss(controller) and not controller.input_fresh(frame):
+                self._release_binding(binding)
+                continue
             port=binding['source'].split('.',1)[1]
             metadata=(frame.port_metadata or {}).get(port,{})
             sample_key=(frame.source_epoch,metadata.get('received_ns'),metadata.get('frame_id',frame.frame_id),
@@ -128,6 +138,8 @@ class BindingEngine:
                 if setter is not None:
                     try: setter(context)
                     except Exception: pass
+            if port in ('left_pose', 'right_pose'):
+                cadence_record('engine.' + port, counts=('consumed',))
             began=time.perf_counter_ns()
             try:
                 values = controller.step(frame, measured, now)
@@ -190,6 +202,10 @@ class BindingEngine:
 
         ``now`` is the frame's entry time; the caller passes it so all bindings
         in one frame agree about how old that frame is.
+
+        The declared deadman is the only physical release for a binding. The
+        optional ``operator_hold`` is an explicit client hold (keyboard), never
+        a mirror of a hand grip: see the note below.
         """
         source = binding.get('deadman')
         if source is None or source == '':
@@ -206,12 +222,37 @@ class BindingEngine:
                 held = 0 <= now - stamp <= binding.get('max_age_ms', 250) * 1_000_000
         previous = self.deadman.get(binding['id'], False)
         if self.operator_hold is not None:
+            # An explicit operator hold is a deliberate "I am holding the
+            # control" from a client that has no physical grip (the keyboard
+            # client), so it opens every binding. A hand's grip must never be
+            # routed here: each grip is only the deadman its own bindings
+            # declare, and one hand opening the gate of the other arm made the
+            # untended arm follow its controller while its grip was open.
             held = held or bool(self.operator_hold())
-        self.deadman[binding['id']] = held
         if not held and previous:
-            controller = self.bindings.get(binding['id'])
-            if controller is not None: controller.reset()
+            self._release_binding(binding)
+        else:
+            self.deadman[binding['id']] = held
         return held
+
+    @staticmethod
+    def _release_on_input_loss(controller):
+        return any(getattr(plugin, 'release_on_input_loss', False)
+                   for plugin in controller.registry.plugins.values())
+
+    def _release_binding(self, binding):
+        controller = self.bindings.get(binding['id'])
+        release = self.deadman.get(binding['id'], False)
+        if controller is not None:
+            release |= (getattr(controller, '_last_port_sample', None) is not None
+                        and self._release_on_input_loss(controller))
+            controller.reset()
+        if release:
+            self.deadman[binding['id']] = False
+            key = binding['target'].split('.', 1)[0]
+            release = getattr(self.runtime.adapters[key], 'release_target', None)
+            if release is not None:
+                release()
 
     def reset(self):
         self.deadman.clear()

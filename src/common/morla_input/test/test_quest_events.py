@@ -37,7 +37,7 @@ def test_event_carries_the_basis_it_was_measured_in():
     assert canonical.input_basis_id == 'quest3_canonical_legacy_v1'
 
 
-def test_right_grip_starts_once_per_press_without_starting_on_reconnect():
+def test_either_grip_starts_once_per_press_without_starting_on_reconnect():
     source, event, _, _ = setup_source(('left', 'right'))
     source.event(event('pose'))
     source.event(event('grip', values=1.))
@@ -49,10 +49,16 @@ def test_right_grip_starts_once_per_press_without_starting_on_reconnect():
     assert source.actions == []
     source.event(event('grip', values=0.))
     assert source.actions == []  # Release only releases the binding deadman.
+    # A left-only operator arms from the left grip; each hand tracks its own
+    # level, so one held grip cannot swallow the other hand's press.
     source.event(event('pose', side='left'))
     source.event(event('grip', values=0., side='left'))
+    frame = source.event(event('grip', values=1., side='left'))
+    assert source.actions == ['teleop_start'] and frame.ports['left_hold'] is True
     source.event(event('grip', values=1., side='left'))
     assert source.actions == []
+    source.event(event('grip', values=1.))
+    assert source.actions == ['teleop_start']
     source.event(event('pose', epoch='second'))
     source.event(event('grip', values=1., epoch='second'))
     assert source.actions == []

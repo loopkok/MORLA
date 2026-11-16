@@ -182,6 +182,21 @@ class WorkstationControl:
         self.activity='playback'; self.paused=False;self.gate='playback'; self.service._reset_bindings()
         return self.state()
 
+    def _work_position_feedback(self, key, count):
+        health = self.runtime.component_health(key)
+        # A latched session fault (e.g. a set_goal deadline) does not mean the
+        # state stream is stale; do not misreport a command-path fault as
+        # unavailable feedback.
+        if health.get('fault'):
+            raise ValueError(f'回工作位设备故障 [{key}] {health.get("reason") or "未知故障"}')
+        if not health['ready']:
+            raise ValueError(f'回工作位反馈不可用 [{key}] ' +
+                             ('反馈已过期' if not health['fresh'] else '设备未就绪'))
+        measured = health.get('values')
+        if not isinstance(measured, list) or len(measured) != count or not all(math.isfinite(v) for v in measured):
+            raise ValueError(f'回工作位关节反馈无效 [{key}]')
+        return measured
+
     def start_work_position(self, request_id):
         rt, svc = self.runtime, self.service
         if svc.recorder: raise ValueError('请先结束或丢弃本段录制，再回工作位')
@@ -194,6 +209,7 @@ class WorkstationControl:
             raise ValueError('work_speed must be in (0,1] joint units/s')
         if not isinstance(targets,dict) or not targets: raise ValueError('请先在 Web 遥操作设置中配置并保存工作位')
         start = {}
+        lead_limits = {}
         duration = 0.
         # Freeze and validate every target before activating any device.
         for key, values in targets.items():
@@ -208,14 +224,13 @@ class WorkstationControl:
                 velocity=joint.get('max_velocity',speed)
                 if type(velocity) not in (int,float) or not math.isfinite(velocity) or velocity<=0:
                     raise ValueError('invalid joint velocity limit: '+key)
-            health = rt.adapters[key].health(svc.clock())
-            if health.get('ready') is not True or health.get('fault') or not 0 <= svc.clock()-health.get('sample_ns',-10**20) <= rt.max_age_ns:
-                raise ValueError('work position requires fresh ready feedback: '+key)
-            measured = health.get('values')
-            if not isinstance(measured,list) or len(measured)!=len(joints) or not all(math.isfinite(v) for v in measured):
-                raise ValueError('work position feedback dimensions: '+key)
+            measured = self._work_position_feedback(key, len(joints))
             start[key] = measured
-            duration=max(duration,*(abs(b-a)/min(speed,joint.get('max_velocity',speed))
+            device_speed = speed
+            constraints = getattr(rt.adapters[key], 'work_position_constraints', None)
+            if constraints is not None:
+                device_speed, lead_limits[key] = constraints(values)
+            duration=max(duration,*(abs(b-a)/min(speed,device_speed,joint.get('max_velocity',speed))
                          for a,b,joint in zip(measured,values,joints)))
         self.gate=None
         svc.stop_policy(rt.session_id); self.playback=None; self.return_to=None;self.interrupted=None
@@ -223,7 +238,7 @@ class WorkstationControl:
         operation = rt.activate(request_id+'-activate',list(targets))
         now = svc.clock()
         self.work={'status':'RUNNING','targets':targets,'start':start,'duration_ns':max(1,int(duration*1e9)),
-                   'started_ns':None,'elapsed_ns':0,'last_ns':now,'requested_ns':now,
+                   'started_ns':None,'elapsed_ns':0,'last_ns':now,'requested_ns':now,'lead_limits':lead_limits,
                    'activation_id':request_id+'-activate','deadline_ns':now+int((duration+30)*1e9)}
         self.activity='workpos';self.paused=False; self.holds.clear()
         rt.trace('work_position',{'phase':'requested','targets':targets,'speed':speed,'activation':operation})
@@ -247,30 +262,36 @@ class WorkstationControl:
         if now>w['deadline_ns']: raise RuntimeError('work position timed out')
         operation=rt.operation(w['activation_id'])
         if operation['status'] in ('RUNNING','DISPATCHED'): return
-        if operation['status']!='SUCCEEDED' or rt.status!='ACTIVE': raise RuntimeError('work position activation failed/cancelled')
+        if operation['status']!='SUCCEEDED' or rt.status!='ACTIVE':
+            raise RuntimeError('回工作位激活失败：' + (operation.get('error') or operation['status']))
         if w['started_ns'] is None:w['started_ns']=now;w['last_ns']=now
         # Do not jump across a scheduler stall by replaying elapsed trajectory time.
         w['elapsed_ns']+=min(100_000_000,max(0,now-w['last_ns']));w['last_ns']=now
         ratio=min(1.,w['elapsed_ns']/w['duration_ns'])
         commands=[];arrived=True
         for key,target in w['targets'].items():
-            health=rt.adapters[key].health(now)
-            if health.get('ready') is not True or health.get('fault') or not 0<=now-health.get('sample_ns',-10**20)<=rt.max_age_ns:
-                raise RuntimeError('work position feedback lost: '+key)
-            measured=health.get('values',[])
-            if len(measured)!=len(target) or not all(math.isfinite(v) for v in measured): raise RuntimeError('invalid work position feedback')
+            measured = self._work_position_feedback(key, len(target))
             arrived=arrived and all(abs(a-b)<=.02 for a,b in zip(measured,target))
             joints=rt.instances[key]['joints']
+            values = [a + ratio * (b - a) for a, b in zip(w['start'][key], target)]
+            if key in w['lead_limits']:
+                # Leave room for feedback to update between this read and SDK submit.
+                lead = w['lead_limits'][key] / 2
+                distance = max(abs(value - actual) for value, actual in zip(values, measured))
+                if distance > lead:
+                    arrived = False
+                    values = [actual + (value - actual) * lead / distance
+                              for value, actual in zip(values, measured)]
             commands.append({'component_id':key,'names':[j['name'] for j in joints],
-                'units':[j['unit'] for j in joints],'mode':'position',
-                'values':[a+ratio*(b-a) for a,b in zip(w['start'][key],target)]})
+                'units':[j['unit'] for j in joints],'mode':'position','values':values})
         if self.gate!='workpos':
             w['permit']=rt.acquire('workpos');self.gate='workpos'
         w['permit']=rt.renew('workpos',w['permit']['token'])
         svc.sequence+=1
         receipt=rt.submit({'session_id':rt.session_id,'producer':'workpos','sequence':svc.sequence,
                            'issued_ns':now,'commands':commands,'epoch':w['permit']['epoch'],'token':w['permit']['token']})
-        if not receipt.get('accepted'): raise RuntimeError('work position command rejected')
+        if not receipt.get('accepted'):
+            raise RuntimeError('回工作位指令被拒绝：' + (receipt.get('reason') or '未知原因'))
         if ratio==1 and arrived:
             w['status']='SUCCEEDED'; self.activity='paused';self.paused=True;self.gate=None
             rt.revoke(reason='work_position_arrived')

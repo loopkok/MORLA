@@ -33,7 +33,7 @@ class _QuestDeltaDecoder(InputStream):
         self.pinch = {side: None for side in SIDES}
         self.input_basis_id = None
         self.actions = []
-        self._start_grip = None
+        self._start_grip = {name: None for name in SIDES}
         self._button_levels = {}
         self.pinch_range_m = tuple(pinch_range_m)
         if len(self.pinch_range_m) != 2 or not self.pinch_range_m[0] < self.pinch_range_m[1]:
@@ -43,7 +43,7 @@ class _QuestDeltaDecoder(InputStream):
         super().disconnect()
         self.cache = {}
         self.actions = []
-        self._start_grip = None
+        self._start_grip = {name: None for name in SIDES}
         self._button_levels = {}
 
     @staticmethod
@@ -113,7 +113,7 @@ class _QuestDeltaDecoder(InputStream):
             self.reconnect()
             self.cache = {}
             self.pinch = {name: None for name in SIDES}
-            self._start_grip = None
+            self._start_grip = {name: None for name in SIDES}
             self._button_levels = {}
         if row['kind'] == 'pose':
             self.mode[side] = row['source']
@@ -144,6 +144,8 @@ class _QuestDeltaDecoder(InputStream):
                 self._hold(side,grip>.5,stamp,row['frame_id'])
                 self.cache[side+'_axes']=({'x':axes[0],'y':axes[1]},stamp,row['frame_id'])
                 self.cache[side+'_buttons']=(list(buttons),stamp,row['frame_id'])
+                if side == 'right':
+                    self.cache['right_ab'] = (buttons[:2], stamp, row['frame_id'])
         elif kind == 'pose':
             if (not isinstance(values, list) or len(values) != 7
                     or any(type(v) not in (int, float) for v in values)):
@@ -190,13 +192,15 @@ class _QuestDeltaDecoder(InputStream):
             if self.pinch[side] is not None:
                 self._hold(side, self.pinch[side], stamp, row['frame_id'])
         frame = self._accept(row['frame_id'], basis)
-        if grip is not None and side == 'right':
+        if grip is not None:
             pressed = grip > .5
-            # Adopt the first observed level after reconnect/mode change.
-            # A held button at connection time must not start motion.
-            if pressed and self._start_grip is False:
+            # Each hand arms on its own grip edge: a left-only operator must not
+            # have to reach for the right grip first. Levels are tracked per
+            # hand so pressing the second grip while the first is held is a
+            # fresh press, and a grip already held at connect never starts.
+            if pressed and self._start_grip[side] is False:
                 self.actions = ['teleop_start']
-            self._start_grip = pressed
+            self._start_grip[side] = pressed
         if kind == 'controller_state':
             previous=self._button_levels.get(side)
             if previous is not None and not self.actions:
@@ -307,7 +311,7 @@ class QuestEventSource(_QuestDeltaDecoder):
             keep = {} if changed_epoch or not self.connected else {
                 k:v for k,v in self.cache.items() if k.startswith(('left_' if side == 'right' else 'right_'))}
             self.on_transition(); self.reconnect(); self.cache = keep
-            self.pinch[side] = None; self._start_grip = None; self._button_levels = {}
+            self.pinch[side] = None; self._start_grip = {name: None for name in SIDES}; self._button_levels = {}
             self.event_sequence[side] = -1
             self._field_sequences = {k:v for k,v in self._field_sequences.items() if k[0] != side}
             self._sample_metadata = {k:v for k,v in self._sample_metadata.items() if k in keep}
@@ -340,6 +344,8 @@ class QuestEventSource(_QuestDeltaDecoder):
                 port = side+'_'+name
                 if port in self.cache:
                     self._sample_metadata[port] = {'sample_sequence':sample['sequence'],'source_time_ns':sample['sent_ns']}
+            if kind == 'controller_state' and side == 'right' and 'right_ab' in self.cache:
+                self._sample_metadata['right_ab'] = self._sample_metadata['right_buttons']
             if kind == 'controller_state' and side in self.sides and (side == 'right' or self.sides == ('left',)):
                 self.cache['axes'] = self.cache[side+'_axes']
         # All discrete operations come from the numbered journal, never from

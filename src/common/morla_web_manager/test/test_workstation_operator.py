@@ -24,12 +24,14 @@ def cell(tmp_path,request):
             'bindings':[{'id':'grip_control','source':'quest.scalar','target':'grip.closure',
                          'deadman':'quest.right_hold','controller':'morla.scalar_map','parameters':{}}],
             'capture':{'state':['grip.position'],'action':['grip.closure'],'images':{}}}
-        if getattr(request,'param',None)=='dual':
+        if getattr(request,'param',None) in ('dual','dual_grips'):
             import copy
             assembly['instances']['grip2']=copy.deepcopy(assembly['instances']['grip'])
             assembly['bindings'].append({**copy.deepcopy(assembly['bindings'][0]),'id':'second','target':'grip2.closure'})
             assembly['capture']['state'].append('grip2.position')
             assembly['capture']['action'].append('grip2.closure')
+            if request.param == 'dual_grips':
+                assembly['bindings'][1].update(source='quest.left_scalar', deadman='quest.left_hold')
         if getattr(request,'param',None)=='continuous_empty':
             assembly['bindings'][0]['deadman']=''
         if getattr(request,'param',None)=='continuous_missing':
@@ -66,6 +68,21 @@ def cell(tmp_path,request):
                               action=action,wait=wait,manager=manager,publisher=publisher,seq=seq)
 
 
+@pytest.mark.parametrize('cell', ['dual_grips'], indirect=True)
+def test_quest_grips_control_only_their_own_binding(cell):
+    cell.send(grip=1., trigger=.7)
+    cell.send(grip=1., trigger=.7)
+    assert cell.rt.adapters['grip'].values == pytest.approx([.7])
+    assert cell.rt.adapters['grip2'].values == [0.]
+    cell.send(side='left', grip=1., trigger=.4)
+    assert cell.svc.operator.handoff.pending is None
+    assert cell.rt.adapters['grip2'].values == pytest.approx([.4])
+    cell.send(grip=0., trigger=.9)
+    cell.send(side='left', grip=1., trigger=.6)
+    assert cell.rt.adapters['grip'].values == pytest.approx([.7])
+    assert cell.rt.adapters['grip2'].values == pytest.approx([.6])
+
+
 def test_quest_full_record_save_discard_and_work_position(cell):
     c=cell
     c.send(grip=1.)
@@ -90,6 +107,24 @@ def test_quest_full_record_save_discard_and_work_position(cell):
     assert c.svc.operator.work['status']=='SUCCEEDED'
     assert c.rt.status=='READY_DISARMED'
     assert c.rt.adapters['grip'].values==pytest.approx([.4])
+
+
+def test_a_hand_grip_is_the_bindings_deadman_not_a_global_operator_hold(cell):
+    # 2026-11-11 field report: holding only the right grip also drove the left
+    # arm. The grip used to be mirrored into the workstation operator hold,
+    # which the engine OR-ed into every binding's deadman, so one hand opened
+    # the other arm's gate. A grip now only gates the bindings that declare
+    # it; the explicit keyboard hold is the one deliberate global release.
+    c=cell
+    assert c.action('teleop_start').status_code==200
+    # The press edge itself re-takes ownership (re-anchor), so the first frame
+    # after it is not the one that commands; the next one follows normally.
+    c.send(grip=1.,trigger=.7)
+    c.send(grip=1.,trigger=.7)
+    assert c.rt.adapters['grip'].values==pytest.approx([.7])
+    assert not c.svc.operator.held()
+    c.send(side='left',grip=1.,trigger=.3)
+    assert not c.svc.operator.held()
 
 
 def test_keyboard_hold_expiry_and_registered_actions(cell):
@@ -207,6 +242,35 @@ def test_work_position_feedback_loss_stops_and_scheduler_stall_does_not_jump(cel
     assert c.svc.operator.work['status']=='FAILED'
     assert c.rt.status=='READY_DISARMED' and c.svc.operator.error
     assert not adapter.active
+
+
+def test_work_position_command_fault_is_not_reported_as_feedback_loss(cell):
+    c=cell
+    assert c.action('workpos').status_code==200
+    c.svc.tick()
+    adapter=c.rt.adapters['grip'];health=adapter.health
+    adapter.health=lambda now:{**health(now),'ready':False,'fault':True,
+                               'reason':'MMK2_SET_GOAL_RPC: DEADLINE_EXCEEDED'}
+    c.clock[0]+=100_000_000;c.svc.tick()
+    assert c.svc.operator.work['status']=='FAILED'
+    assert c.svc.operator.error.startswith('回工作位设备故障 [grip]')
+    assert '反馈不可用' not in c.svc.operator.error
+
+
+def test_work_position_accepts_feedback_published_during_poll(cell):
+    assert cell.action('workpos').status_code == 200
+    adapter = cell.rt.adapters['grip']
+    read = adapter.health
+
+    def fresh_sample(now):
+        cell.clock[0] += 1_000_000
+        return {**read(now), 'sample_ns': cell.clock[0]}
+
+    adapter.health = fresh_sample
+    cell.clock[0] += 50_000_000
+    cell.svc.tick()
+    assert cell.svc.operator.work['status'] == 'RUNNING'
+    assert cell.svc.operator.error is None
 
 
 def test_pause_cancels_work_position_and_log_has_operator_records(cell):

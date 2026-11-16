@@ -102,17 +102,17 @@ function useWorkstationModel(visible:boolean){
  const questVisible=(endpoint:Endpoint)=>{
   if(!isQuest(endpoint))return true
   const side=deployment.instances?.[endpoint.instance]?.parameters?.side||assembly.instances[endpoint.instance].parameters?.side||'both'
-  const match=portName(endpoint).match(/^(left|right)_(pose|axes|scalar|hold|landmarks|buttons)$/)
+  const match=portName(endpoint).match(/^(left|right)_(pose|axes|scalar|hold|landmarks|buttons|ab)$/)
   return !!match&&(side==='both'||side===match[1])
  }
- const currentQuestPort=(endpoint:Endpoint)=>/^(left|right)_(pose|axes|scalar|hold|landmarks|buttons)$/.test(portName(endpoint))
+ const currentQuestPort=(endpoint:Endpoint)=>/^(left|right)_(pose|axes|scalar|hold|landmarks|buttons|ab)$/.test(portName(endpoint))
  const holdPort=(endpoint:Endpoint)=>/^(left_hold|right_hold|hold_to_control|deadman)$/.test(portName(endpoint))
  const standardHold=(endpoint:Endpoint)=>sources.find(candidate=>candidate.instance===endpoint.instance&&(
   isQuest(endpoint)?portName(candidate)===portName(endpoint).replace(/_(pose|axes|scalar|landmarks|buttons)$/,'_hold'):portName(candidate)==='hold_to_control'))
  const signalLabel=(endpoint:Endpoint)=>{
   if(!isQuest(endpoint))return portLabel(endpoint.ref)
   const [side,kind]=portName(endpoint).split('_')
-  const names:Record<string,string>={pose:'侧位姿（手柄 / 裸手）',axes:'摇杆',scalar:'扳机 / 捏合开合量',hold:' Grip / 捏合',landmarks:'手关键点',buttons:'手柄按键'}
+  const names:Record<string,string>={pose:'侧位姿（手柄 / 裸手）',axes:'摇杆',scalar:'扳机 / 捏合开合量',hold:' Grip / 捏合',landmarks:'手关键点',buttons:'手柄按键',ab:'手柄 A/B（升降）'}
   return names[kind]?endpoint.instance+' · '+(side==='left'?'左':'右')+names[kind]:portLabel(endpoint.ref)+'（兼容）'
  }
  const choices=(source:string,target:string)=>compatible(catalog,endpoints.find(e=>e.ref===source)?.port,endpoints.find(e=>e.ref===target)?.port,assembly.instances[target.split('.')[0]]?.plugin,device(target.split('.')[0]).backend||assembly.instances[target.split('.')[0]]?.backend||'fake')
@@ -156,7 +156,7 @@ function useWorkstationModel(visible:boolean){
   const selected=sources.find(e=>e.ref===source)
   const previous=sources.find(e=>e.ref===old.source)
   const previousHold=previous&&standardHold(previous)
-  const deadman=selected&&source!==old.source&&old.deadman&&old.deadman===previousHold?.ref
+  const deadman=selected&&portName(selected)==='right_ab'?'':selected&&source!==old.source&&old.deadman&&old.deadman===previousHold?.ref
    ?standardHold(selected)?.ref||old.deadman:old.deadman
   const candidate=preserveBindingParameters(old,{...old,source,target,controller,deadman,input_basis_id:next.input_basis_id,parameters:defaults(controller,source,target)},catalog)
   if(await confirm('切换控制链，请核对以下变更：\n'+describeChanges(old,candidate)))patchBinding(index,candidate)

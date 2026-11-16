@@ -40,6 +40,8 @@ class ControlHost:
     def event(self,input_id,frame,actions):
         from .actions import dispatch_input_action
         for action in actions:
+            if self.engine.reserves_input_action(input_id, action):
+                continue
             request='input-'+input_id+'-'+frame.source_epoch+'-'+str(frame.sequence)+'-'+action
             if action=='teleop_start':self.engine.reset()
             dispatch_input_action(action,request,operation=self._operation,

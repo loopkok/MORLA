@@ -68,7 +68,7 @@ def validate_snapshot(row):
     if not isinstance(commands, list) or len(commands) > MAX_COMMANDS:
         raise InputError('Quest command journal oversized')
     previous = 0
-    actions = {'teleop_start','record_or_release','record_stop','record_discard'} if row['side']=='right' else {'workpos'}
+    actions = {'teleop_start','record_or_release','record_stop','record_discard'} if row['side']=='right' else {'teleop_start','workpos'}
     for command in commands:
         if (not isinstance(command, dict) or set(command) != {'id','sent_ns','action'} or
                 not integer(command['id'], 1) or not previous < command['id'] <= row['command_sequence'] or
@@ -119,13 +119,21 @@ class QuestSnapshotPublisher:
             previous = state['levels']
             levels = [values['grip'] > .5, *map(bool,values['buttons'])]
             if previous is not None and old and 0 <= sent_ns-old['sent_ns'] <= MAX_AGE_NS:
-                mapping = {0:'teleop_start',1:'record_or_release',2:'record_stop',3:'record_discard'} if side == 'right' else {1:'workpos'}
+                mapping = {0:'teleop_start',1:'record_or_release',2:'record_stop',3:'record_discard'} if side == 'right' else {0:'teleop_start',1:'workpos'}
                 # Same priority as the existing operator router: one operation per sample.
                 for index, action in mapping.items():
-                    if levels[index] and not previous[index]:
-                        state['command_sequence'] += 1
-                        state['commands'].append({'id':state['command_sequence'],'sent_ns':sent_ns,'action':action})
-                        break
+                    if not (levels[index] and not previous[index]):
+                        continue
+                    # Either grip arms teleop (a left-handed operator must not
+                    # have to reach for the right grip first), but a grip that
+                    # joins a session the other hand already holds only adds a
+                    # deadman: starting again would re-take the session over and
+                    # re-anchor every arm, including the one already moving.
+                    if action == 'teleop_start' and self._other_grip_held(side):
+                        continue
+                    state['command_sequence'] += 1
+                    state['commands'].append({'id':state['command_sequence'],'sent_ns':sent_ns,'action':action})
+                    break
             state['levels'] = levels
             if len(state['commands']) > MAX_COMMANDS:
                 state['commands_dropped'] += len(state['commands'])-MAX_COMMANDS
@@ -138,6 +146,11 @@ class QuestSnapshotPublisher:
                          'basis':basis,'frame_id':state['fields']['pose']['frame_id'],
                          'fields':state['fields'],'commands':state['commands'],
                          'command_sequence':state['command_sequence'],'commands_dropped':state['commands_dropped']})
+
+    def _other_grip_held(self, side):
+        other = self.states.get('right' if side == 'left' else 'left')
+        levels = (other or {}).get('levels')
+        return bool(levels and levels[0])
 
     def acknowledge(self, ack, now_ns):
         if not isinstance(ack, dict) or set(ack) != {'version','epoch','side','generation','command_sequence','consumer'}:

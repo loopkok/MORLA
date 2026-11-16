@@ -5,6 +5,7 @@ Quest sources subscribe to the guarded morla_input outputs, never raw network
 packets. The gamepad source expects joy/game_controller_node's SDL layout.
 """
 from __future__ import annotations
+from morla_core.cadence_probe import record as cadence_record
 import threading
 import time
 from dataclasses import replace
@@ -118,6 +119,26 @@ class RosInputManager:
             row = json.loads(msg.data)
             source = self.sources[iid]
             frame = source.event(row)
+            side = row.get('side')
+            if side in ('left', 'right'):
+                pose = row.get('fields', {}).get('pose')
+                sequence = pose.get('sequence') if isinstance(pose, dict) else None
+                previous = getattr(self, '_cadence_pose_sequences', {})
+                key = (iid, side)
+                counts = ['snapshot']
+                if sequence is not None and previous.get(key) != sequence:
+                    counts.append('pose')
+                    previous[key] = sequence
+                    self._cadence_pose_sequences = previous
+                cadence_record('quest_ros.' + side, counts=counts)
+                if frame is not None:
+                    level = frame.ports.get(side + '_hold')
+                    levels = getattr(self, '_cadence_hold_levels', {})
+                    if levels.get(key) != level or source.actions:
+                        levels[key] = level
+                        self._cadence_hold_levels = levels
+                        cadence_record('quest_decoded_grip.' + side,
+                                       event={'hold': level, 'actions': list(source.actions)})
             try:
                 if frame is not None:
                     self.on_event(iid, frame, source.actions)

@@ -88,6 +88,8 @@ def default_catalog():
                 descriptor['ports'][side+'_axes']=_port('output','axes_buttons',2,axis_names=['x','y'])
                 descriptor['ports'][side+'_buttons']=_port('output','axes_buttons',6,dtype='int32',
                     axis_names=['primary','secondary','stick_press','menu','trigger_click','grip_click'])
+            descriptor['ports']['right_ab'] = _port('output', 'button_pair', 2, dtype='int32',
+                                                    axis_names=['a', 'b'])
         if descriptor['kind']=='input':
             descriptor['configuration_schema']['properties']['process_mode']={'type':'string','enum':['auto','managed','external']}
             if 'axes' in descriptor['ports']:

@@ -1,5 +1,6 @@
 """Persistent assembly revisions and a single authoritative composable session."""
 from __future__ import annotations
+from morla_core.cadence_probe import record as cadence_record
 from contextlib import contextmanager
 import copy
 import fcntl
@@ -357,6 +358,10 @@ class ComposableService:
 
         Observe every button edge, even when motion is rate-limited. Never route
         these composable events to the legacy Profile operator router as well.
+        Device holds are not mirrored into the workstation operator hold either:
+        each hand's grip is only the deadman its own bindings declare, and a
+        mirrored grip opened every other binding's gate (2026-11-11). Only
+        explicit client holds (``/operator/hold``, keyboard) reach that store.
         """
         with self.lock:
             session=self.require(session_id)
@@ -376,6 +381,12 @@ class ComposableService:
                             'sequence':frame.sequence,'sample_ns':(frame.port_metadata or {}).get('buttons',{}).get('received_ns',frame.received_ns),
                             'buttons':list(buttons),'actions':list(actions)})
             for index, action in enumerate(actions):
+                if self._engine().reserves_input_action(input_id, action):
+                    continue
+                if (action == 'teleop_start' and session.instances[input_id]['plugin_id'] == 'morla.input.quest'
+                        and ((session.status == 'ACTIVE' and self.operator.gate == 'human_mobile')
+                             or (self.operator.handoff.pending or {}).get('destination') == 'human')):
+                    continue
                 ids=getattr(source,'action_ids',[])
                 identity=ids[index] if len(ids)==len(actions) else str(frame.sequence)+'-'+str(index)
                 request='input-'+input_id+'-'+frame.source_epoch+'-'+identity+'-'+action
@@ -386,12 +397,9 @@ class ComposableService:
                 if result['status']=='FAILED':self.input_errors[input_id]=result.get('error','input action failed')
                 else:self.input_errors.pop(input_id,None)
                 session._event('input_operation',request_id=request,input_id=input_id,action=action,result=result)
-            port = 'right_hold' if 'right_hold' in frame.ports else 'hold_to_control'
-            if port in frame.ports:
-                stamp=(frame.port_metadata or {}).get(port,{}).get('received_ns',frame.received_ns)
-                self.operator.hold('input-'+input_id,frame.ports[port] is True,stamp=stamp,ttl_ns=250_000_000)
 
     def ingest_frame(self,session_id,frame):
+        cadence_started = time.monotonic_ns()
         try:
             return self._ingest_frame(session_id,frame)
         except Exception as exc:
@@ -404,10 +412,25 @@ class ComposableService:
                     session.revoke(reason='input_or_controller_failed')
                 self.active_input_sources.clear()
             raise
+        finally:
+            cadence_record('web_input', timings=(('total', time.monotonic_ns() - cadence_started),))
 
     def _ingest_frame(self,session_id,frame):
+        lock_started = time.monotonic_ns()
         with self.lock:
+            acquired = time.monotonic_ns()
             session=self.require(session_id)
+            cadence_record('web_input', counts=('frame',), timings=(('lock_wait', acquired - lock_started),))
+            if getattr(self, '_cadence_session_id', None) != session_id:
+                self._cadence_session_id = session_id
+                cadence_record('workstation', event={
+                    'session_id': session_id,
+                    'bindings': [{'id': b['id'], 'deadman': b.get('deadman'),
+                                  'parameters': b.get('parameters', {})}
+                                 for b in session.resolved.get('bindings', [])],
+                    'simulation': session.resolved.get('source_assembly', {}).get('metadata', {}).get('simulation'),
+                    'trace_enabled': session.diagnostics.options['enabled'],
+                })
             session.trace_input(frame)
             input_id=frame.source_id
             if input_id not in session.instances or session.instances[input_id]['kind']!='input':
@@ -421,7 +444,9 @@ class ComposableService:
                 return {'accepted':False,'reason':'explicit_activation_required'}
             if self.operator.handoff.pending or self.operator.paused or self.operator.gate!='human_mobile':
                 return {'accepted':False,'reason':'operator_takeover_required'}
+            targets_started = time.monotonic_ns()
             command_rows=self._engine().targets(frame)
+            cadence_record('web_input', timings=(('targets', time.monotonic_ns() - targets_started),))
             if not command_rows:
                 return {"accepted":False,"reason":"release_or_reanchor_required"}
             # Lease bookkeeping only; submit no longer enforces authority.
@@ -432,9 +457,13 @@ class ComposableService:
                 lease=session.renew("human_mobile",lease["token"],250_000_000)
             self.sequence+=1
             self.active_input_sources.add(input_id)
-            return session.submit({"session_id":session.session_id,"producer":"human_mobile",
-                                   "token":lease["token"],"epoch":lease["epoch"],"sequence":self.sequence,
-                                   "issued_ns":self.clock(),"ttl_ns":200_000_000,"commands":command_rows})
+            submit_started = time.monotonic_ns()
+            try:
+                return session.submit({"session_id":session.session_id,"producer":"human_mobile",
+                                       "token":lease["token"],"epoch":lease["epoch"],"sequence":self.sequence,
+                                       "issued_ns":self.clock(),"ttl_ns":200_000_000,"commands":command_rows})
+            finally:
+                cadence_record('web_input', timings=(('submit', time.monotonic_ns() - submit_started),))
 
     def disconnect_input(self, input_id, connection=None):
         with self.lock:
@@ -442,7 +471,6 @@ class ComposableService:
                 return
             if self.session: self.session.trace('input_connection', {'input_id':input_id,'connected':False})
             self.connections.pop(input_id,None)
-            self.operator.holds.pop('input-'+input_id,None)
             source=self.inputs.get(input_id)
             if source: source.disconnect()
             if (input_id in self.active_input_sources and self.session and self.session.lease
