@@ -1,5 +1,6 @@
 """MMK2 planar base reference mapping; input axes are named and bounded."""
 import math
+from morla_mmk2_teleop.lift_button_jog import LiftButtonJog
 
 
 class DifferentialDrive:
@@ -25,3 +26,11 @@ def create_controller(context):
     if context['instance']['plugin_id']!='morla.airbot.mmk2.base':
         raise ValueError('MMK2_BASE_CONTROLLER_TARGET')
     return DifferentialDrive()
+
+
+def create_lift_jog(context):
+    instance = context['instance']
+    if instance['plugin_id'] != 'morla.airbot.mmk2.lift':
+        raise ValueError('MMK2_LIFT_WRONG_TARGET')
+    joint = instance['joints'][0]
+    return LiftButtonJog(joint['lower'], joint['upper'], .03)

@@ -39,7 +39,9 @@
     "label": "末端位姿跟随 · MMK2",
     "control_family": "cartesian_pose",
     "ik_modes": [
-      "differential"
+      "differential",
+      "urdf_numerical",
+      "analytic_dh"
     ]
   },
   "defaults": {
@@ -49,7 +51,9 @@
     "command_lead_rad": 0.08,
     "max_joint_step": 0.02,
     "position_scale": 0.25,
-    "rotation_scale": 1.0
+    "rotation_scale": 1.0,
+    "position_guard_enabled": true,
+    "ik_iterations": 1
   },
   "configuration_schema": {
     "type": "object",
@@ -89,6 +93,18 @@
         "type": "number",
         "exclusiveMinimum": 0,
         "maximum": 0.15
+      },
+      "ik_iterations": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3,
+        "title": "每次 IK 请求的最大迭代次数",
+        "description": "1 为单步。2 或 3 在同一目标领先窗口内迭代，最终关节命令仍受输出限速。"
+      },
+      "position_guard_enabled": {
+        "type": "boolean",
+        "title": "TCP 位置护栏",
+        "description": "关闭后，差分 IK 按综合位姿代价选步，旋转时可能伴随 TCP 平移。"
       },
       "position_lead_m": {
         "type": "number",
@@ -160,7 +176,9 @@
       "ik_mode": {
         "type": "string",
         "enum": [
-          "differential"
+          "differential",
+          "urdf_numerical",
+          "analytic_dh"
         ]
       }
     }

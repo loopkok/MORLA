@@ -386,19 +386,26 @@ def test_rgb_depth_thread_and_sensor_clock(tmp_path):
         assert not result['result']['errors'],result
 
 
-def test_dual_quest_binding_uses_public_ik_and_units(tmp_path):
+@pytest.mark.parametrize('ik_mode', ['differential', 'analytic_dh'])
+def test_dual_quest_binding_uses_public_ik_and_units(tmp_path, ik_mode):
     from morla_teleop.engine import BindingEngine
     from morla_input.adapters.normalized import InputStream
     catalog=default_catalog()
     for d in json.loads((PACKAGE/'descriptors.json').read_text()):
         if not any(x['plugin_id']==d['plugin_id'] for x in catalog.list()):catalog.register(d)
     a=json.loads((PACKAGE/'config/quest.sim.yaml').read_text())
+    for binding in a['bindings']:
+        if binding['controller'] == 'morla.mmk2.cartesian_delta':
+            binding['parameters']['ik_mode'] = ik_mode
     a['instances']={k:v for k,v in a['instances'].items() if not k.endswith('_camera')}
     a['capture']['images']={}
     r=RuntimeSession(compile_system(a,registry=catalog),resource_root=tmp_path/'locks')
     r.start()
     engine=BindingEngine(r)
     try:
+        # Match Web activation, which starts all workers before accepting input.
+        for binding in r.resolved['bindings']:
+            engine._binding_controller(binding)
         activate(r);source=InputStream('quest');source.reconnect()
         before=np.asarray(r.adapters['left_arm'].read(r.clock())['values'])
         for i in range(4):
@@ -467,6 +474,47 @@ def test_base_binding_velocity_units_and_input_loss_stop(tmp_path):
         time.sleep(.03)
         assert scene.read('sensors')['ports']['odometry']['values'][0]==x
     finally:r.stop('cleanup')
+
+
+def test_sim_lift_ab_moves_both_directions_and_holds_on_release(running):
+    from morla_input.adapters.normalized import InputFrame
+    from morla_teleop.engine import BindingEngine
+
+    activate(running)
+    running.resolved['bindings'] = [
+        {'id': 'lift_ab', 'source': 'quest.right_ab', 'target': 'lift.position_target',
+         'controller': 'morla.mmk2.lift_button_jog', 'parameters': {'speed': .01}},
+    ]
+    engine = BindingEngine(running)
+    scene = running.adapters['lift'].session
+
+    def send(sequence, buttons):
+        time.sleep(.02)
+        now = running.clock()
+        frame = InputFrame('quest', 'epoch', sequence, now, 'input', {'right_ab': buttons})
+        rows = engine.targets(frame)
+        if rows:
+            assert running.submit({'sequence': sequence, 'commands': rows})['accepted']
+        return rows
+
+    try:
+        assert send(1, [0, 0]) == []
+        start = scene.read('lift')['values'][0]
+        up = send(2, [1, 0])[0]['values'][0]
+        assert up < start
+        wait_for(lambda: scene.read('lift')['values'][0] <= up + 1e-8)
+        down = send(3, [0, 1])[0]['values'][0]
+        assert down > up
+        hold = send(4, [0, 0])[0]['values'][0]
+        wait_for(lambda: abs(scene.read('lift')['values'][0] - hold) < 1e-8)
+        assert send(5, [0, 0]) == []
+        send(6, [1, 0])
+        engine.targets(InputFrame('quest', 'epoch', 7, running.clock(), 'input', {}))
+        with scene.step_lock, scene.command_lock:
+            assert 'lift' not in scene.pending
+            assert scene.targets['lift'][0] == scene.data.qpos[scene.indices['lift']['qpos'][0]]
+    finally:
+        engine.close()
 
 
 def test_whole_template_compound_bases_and_head_lens():

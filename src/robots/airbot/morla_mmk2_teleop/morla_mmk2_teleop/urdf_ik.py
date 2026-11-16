@@ -83,12 +83,19 @@ def error_and_jacobian(current, target, body_jacobian):
 
 class ArmKinematics:
     method_name = 'mmk2_urdf_differential'
+    method_label = '连续微分跟随'
 
-    def __init__(self, instance, *, max_step_rad=.02, clock=time.monotonic):
+    def __init__(self, instance, *, max_step_rad=.02, clock=time.monotonic, position_guard_enabled=True, ik_iterations=1):
         side = instance['plugin_id'].split('.')[-1].removesuffix('_arm')
         if side not in ('left', 'right'):
             raise ValueError('MMK2 IK requires a left or right arm')
         self.clock = clock
+        if type(position_guard_enabled) is not bool:
+            raise ValueError('MMK2 position_guard_enabled must be a boolean')
+        self.position_guard_enabled = position_guard_enabled
+        if type(ik_iterations) is not int or not 1 <= ik_iterations <= 3:
+            raise ValueError('MMK2 ik_iterations must be an integer between 1 and 3')
+        self.ik_iterations = ik_iterations
         self.max_step = float(max_step_rad)
         if not np.isfinite(self.max_step) or not 0 < self.max_step <= .3:
             raise ValueError('Invalid MMK2 differential step')
@@ -208,6 +215,31 @@ class ArmKinematics:
         self.raw_target = raw.copy()
         return goal
 
+    def _rotation_at_fixed_position(self, q, jacobian, derivative, error, damping):
+        """Find a damped angular step in the translational Jacobian nullspace."""
+        free = np.ones(6, dtype=bool)
+        step = np.zeros(6)
+        at_lower = q <= self.bounds[:, 0] + 1e-9
+        at_upper = q >= self.bounds[:, 1] - 1e-9
+        for _ in range(7):
+            if np.count_nonzero(free) <= 1:
+                return step
+            _, singular_values, right_vectors = np.linalg.svd(jacobian[:3, free], full_matrices=True)
+            rank = np.count_nonzero(singular_values > 1e-8)
+            nullspace = right_vectors[rank:].T
+            if not nullspace.shape[1]:
+                return step
+            angular = derivative[3:, free] @ nullspace
+            regularization = damping * damping * np.eye(nullspace.shape[1])
+            step[free] = -nullspace @ np.linalg.solve(
+                angular.T @ angular + regularization, angular.T @ error[3:])
+            outward = (at_lower & (step < 0)) | (at_upper & (step > 0))
+            if not outward.any():
+                return step
+            free[outward] = False
+            step.fill(0.)
+        return step
+
     def solve(self, target, seed=None, max_joint_step=None):
         raw = validate_transform(target)
         q = self.q.copy() if seed is None else vector6(seed)
@@ -219,8 +251,43 @@ class ArmKinematics:
                 raise ValueError('Invalid MMK2 per-tick joint step')
             limit = min(limit, max_joint_step)
         began = self.clock()
+        result = self._solve_step(raw, q, limit, began)
+        if self.ik_iterations == 1 or self.last_report['reason'] == 'deadline_hold':
+            return result
+
+        first = self.last_report
+        last = first
+        goal = self.goal
+        position = np.asarray(result)
+        iterations = 1
+        duration = self.clock() - began
+        while (iterations < self.ik_iterations
+               and last['reason'] in ('tracking', 'tracking_rotation_fallback')
+               and self.clock() - began + duration + .001 < .02):
+            started = self.clock()
+            trial = self._solve_step(raw, position, limit, began, goal)
+            duration = max(duration, self.clock() - started)
+            iterations += 1
+            if self.last_report['reason'] not in ('tracking', 'tracking_rotation_fallback'):
+                break
+            last = self.last_report
+            position = np.asarray(trial)
+
+        elapsed = self.clock() - began
+        if elapsed > .02:
+            position = q.copy()
+            last = {**first, **self.command_metrics(q, goal, raw),
+                    'cost_after': first['cost_before'], 'reason': 'deadline_hold',
+                    'converged': False, 'bounded_target_converged': False}
+        self.q = position.copy()
+        self.last_report = {**last, 'cost_before': first['cost_before'], 'iterations': iterations,
+                            'joint_step_rad': float(np.max(np.abs(position - q))), 'elapsed_s': elapsed}
+        return position.tolist()
+
+    def _solve_step(self, raw, q, limit, began, goal=None):
         current, jacobian = self._placement(q)
-        goal = self._bounded_goal(raw, current)
+        if goal is None:
+            goal = self._bounded_goal(raw, current)
         body_jacobian = jacobian.copy()
         body_jacobian[:3] = current[:3, :3].T @ jacobian[:3]
         body_jacobian[3:] = current[:3, :3].T @ jacobian[3:]
@@ -257,7 +324,10 @@ class ArmKinematics:
         reason = 'holding'
         # Keep the raw hand-position error bounded during orientation tracking.
         position_bound = max(before['raw_position_error_m'], self.position_lead_m)
-        for scale in (1., .5, .25, .125, .0625, .03125, .015625):
+        scales = (1., .5, .25, .125, .0625, .03125, .015625)
+        position_rejected = False
+        rotation_rejections = set()
+        for scale in scales:
             if self.clock() - began > .02:
                 reason = 'deadline_hold'
                 break
@@ -265,19 +335,51 @@ class ArmKinematics:
             trial = np.clip(unconstrained, self.bounds[:, 0], self.bounds[:, 1])
             pressure = max(pressure, float(np.linalg.norm(unconstrained - trial)))
             candidate = self.command_metrics(trial, goal, raw)
-            if candidate['cost'] < before['cost'] - 1e-16 and candidate['raw_position_error_m'] <= position_bound + 1e-10:
-                result, metrics, reason = trial, candidate, 'tracking'
-                break
+            if candidate['cost'] < before['cost'] - 1e-16:
+                if (not self.position_guard_enabled
+                        or candidate['raw_position_error_m'] <= position_bound + 1e-10):
+                    result, metrics, reason = trial, candidate, 'tracking'
+                    break
+                position_rejected = True
+
+        if (self.position_guard_enabled and reason == 'holding' and position_rejected and limit > 0
+                and before['raw_angle_error_rad'] > 1e-6 and self.clock() - began <= .02):
+            rotation_step = self._rotation_at_fixed_position(q, jacobian, derivative, error, damping)
+            maximum = float(np.max(np.abs(rotation_step)))
+            if np.isfinite(maximum) and maximum > 1e-12:
+                rotation_step *= min(1., limit / maximum)
+                for scale in scales:
+                    if self.clock() - began > .02:
+                        break
+                    trial = np.clip(q + scale * rotation_step, self.bounds[:, 0], self.bounds[:, 1])
+                    candidate = self.command_metrics(trial, goal, raw)
+                    if candidate['raw_position_error_m'] > position_bound + 1e-10:
+                        rotation_rejections.add('position')
+                    elif candidate['raw_angle_error_rad'] >= before['raw_angle_error_rad'] - 1e-6:
+                        rotation_rejections.add('angle')
+                    elif candidate['cost'] >= before['cost'] - 1e-16:
+                        rotation_rejections.add('cost')
+                    else:
+                        result, metrics, reason = trial, candidate, 'tracking_rotation_fallback'
+                        break
+            else:
+                rotation_rejections.add('no_direction')
         if self.clock() - began > .02:
             result, metrics, reason = q.copy(), before, 'deadline_hold'
         self.q = result.copy()
         self.last_report = {
-            'method': self.method_name, 'reason': reason, 'exact_convergence': False,
-            'max_step_rad': limit, 'damping': damping, 'sigma_min': sigma,
+            'method': self.method_name, 'method_label': self.method_label,
+            'reason': reason, 'exact_convergence': False,
+            'holding_cause': ('position_guard' if position_rejected else 'no_cost_descent')
+            if reason == 'holding' else None,
+            'rotation_rejections': sorted(rotation_rejections) if reason == 'holding' else [],
+            'active_joint_limits': np.flatnonzero(~free).tolist(),
+            'max_step_rad': limit, 'iterations': 1, 'damping': damping, 'sigma_min': sigma,
             'position_lead_m': self.position_lead_m, 'rotation_lead_rad': self.rotation_lead_rad,
             'limit_pressure_rad': pressure, 'joint_step_rad': float(np.max(np.abs(result - q))),
             'cost_before': before['cost'], 'cost_after': metrics['cost'],
-            'final_fk_verified': True, 'position_guard_m': position_bound,
+            'final_fk_verified': True, 'position_guard_enabled': self.position_guard_enabled,
+            'position_guard_m': position_bound if self.position_guard_enabled else None,
             **metrics,
             'converged': metrics['raw_position_error_m'] <= 1e-4 and metrics['raw_angle_error_rad'] <= 1e-3,
             'bounded_target_converged': metrics['position_error_m'] <= 1e-4 and metrics['angle_error_rad'] <= 1e-3,

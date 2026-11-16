@@ -283,6 +283,17 @@ class MMK2Session(MujocoDeviceSession):
         raise ValueError('MMK2_FIXED_CALIBRATION_CAMERA: use local viewer for orbit')
 
 
+class MMK2LiftAdapter(MujocoAdapter):
+    def release_target(self):
+        scene = self.session
+        with scene.step_lock, scene.command_lock:
+            scene.pending.pop(self.key, None)
+            indices = scene.indices[self.key]
+            position = scene.data.qpos[indices['qpos']].copy()
+            scene.targets[self.key] = position
+            scene.data.ctrl[indices['ctrl']] = position
+
+
 def create_adapters(runtime):
     selected = [r for r in runtime.instances.values() if r.get('backend')=='sim']
     if any(not r['plugin_id'].startswith(PREFIX) for r in selected):
@@ -290,4 +301,7 @@ def create_adapters(runtime):
     if any(r['kind']=='actuator' and r.get('backend')!='sim' for r in runtime.instances.values()):
         raise ValueError('MMK2_SCENE_REQUIRES_ALL_ACTUATORS_SIM')
     session = MMK2Session(runtime)
-    return {r['instance_id']:MujocoAdapter(r,session) for r in selected}
+    return {
+        row['instance_id']: (MMK2LiftAdapter if row['plugin_id'] == PREFIX + 'lift' else MujocoAdapter)(row, session)
+        for row in selected
+    }

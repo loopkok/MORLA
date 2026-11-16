@@ -1435,5 +1435,52 @@
       "package": "mmk2_mujoco_sim",
       "version": "0.1.0"
     }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "morla.mmk2.lift_button_jog",
+    "plugin_version": "1.0.0",
+    "kind": "controller",
+    "ports": {},
+    "controller_types": {
+      "inputs": [
+        "button_pair"
+      ],
+      "outputs": [
+        "joint_targets"
+      ],
+      "target_plugins": [
+        "morla.airbot.mmk2.lift"
+      ],
+      "target_dim": 1
+    },
+    "backend_variants": {
+      "sim": {
+        "available": true
+      }
+    },
+    "defaults": {
+      "speed": 0.01
+    },
+    "configuration_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "speed": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.02,
+          "title": "升降点动速度 / m/s"
+        }
+      }
+    },
+    "web": {
+      "label": "MMK2 升降按键点动"
+    },
+    "source": {
+      "package": "mmk2_mujoco_sim",
+      "version": "0.1.0"
+    }
   }
 ]
