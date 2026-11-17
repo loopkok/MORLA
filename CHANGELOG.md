@@ -11,6 +11,12 @@
 - **Quest "任一 grip 开始遥操" 写成文档**：左手 grip 的按下沿也会产生 `teleop_start`（左撇子不必先伸右手），但当另一只手 grip 已在按下状态时不再重复开始（否则会重夺会话、重锚定全部手臂），只增加 deadman。同时说明 `right_ab`（A/B，`button_pair`）被装配置为升降等点动输入占用时，A/B 的录制操作不再派发（`BindingEngine.reserves_input_action` 按装配计算）。`morla_input/README.md` 与控制链里的「Quest 工作站快捷键」说明已同步：左或右 Grip 都能开始；装配里存在 `right_ab` 绑定时 A/B 用于点动、录制改用页面或键盘。
 - 测试：`morla_teleop` 新增 `test_a_declared_bound_alone_does_not_clip`（只声明 `max_joint_step` 不再被截断）与 `test_invalid_step_cap_is_rejected`，原有截断/回退用例改为显式 `step_cap: true`。合并运行 `morla_core`/`morla_teleop`/`morla_runtime`/`morla_input`/`morla_operator_control` **333 passed, 1 skipped**（3 个失败为既有项：flake8/pep257 历史遗留，`test_profiles` 顺序依赖且 HEAD 上同样失败）；`morla_mmk2_driver` + `morla_mmk2_teleop` **59 passed**；`morla_web_manager` **320 passed**（3 个 `test_piano_api` 失败因本机缺 `~/Desktop/MORLA-piano`）；`npm run build` 通过。
 - 操作员侧：本次不改 MMK2 实机默认行为（三个包装控制器本来就显式关闭限步）。要再采一轮 `dispatch` 数据时，以 `MORLA_CADENCE_PROBE=1` 启动 Web 栈。
+- 审计记录：[MMK2 接入对公共层的影响：审计与回撤（2026-11-16）](docs/integrations/MMK2_SHARED_LAYER_AUDIT_2026-11-16.md)——基线与范围、保留的扩展点、四项回撤的依据、验证数字与未验证边界。
+
+## 2026-11-17 — 书面记录：MMK2 公共层审计与回撤归档
+
+- 把 2026-11-16 的公共层审计与四项回撤写成仓库内文档 `docs/integrations/MMK2_SHARED_LAYER_AUDIT_2026-11-16.md`，并在上一条 CHANGELOG 里链接。此前审计结论只在会话里，接手者看不到"为什么 `step_cap` 要改回默认关闭""为什么 Web 里不许出现 mmk2 字样"。
+- 文档内容：基线 `f2166a5` → `781f2f2` 的范围、MMK2 用过哪些既有扩展点、哪些共享默认值被改动、四项回撤各自的症状与影响面、测试数字，以及明确列出的未验证项（未连接实机/Quest，未测 DDS 时延与现场停止）。代码无改动。
 
 ## 2026-11-13 — 卡顿不是 IK 法的问题：按目标速度自动设定每个目标的巡航速度
 
