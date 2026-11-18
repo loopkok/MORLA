@@ -193,7 +193,7 @@ class ComposableService:
                 raise ServiceError("preview/installed dependency hash changed; compile and save a new revision")
             from morla_input.adapters.ingress import InputIngressAdapter
             adapters={x['instance_id']:InputIngressAdapter(x,self.clock) for x in resolved['instances'] if x['kind']=='input'}
-            session=RuntimeSession(resolved,resource_root=self.resource_root,clock=self.clock,registry=self.catalog,adapters=adapters,diagnostic_root=self.diagnostic_root)
+            session=RuntimeSession(resolved,resource_root=self.resource_root,clock=self.clock,registry=self.catalog,adapters=adapters,diagnostic_root=self.diagnostic_root,diagnostic_mode='summary')
             session.start()
             self.session=session
             session.on_command(self.capture_command)
@@ -429,7 +429,8 @@ class ComposableService:
                                   'parameters': b.get('parameters', {})}
                                  for b in session.resolved.get('bindings', [])],
                     'simulation': session.resolved.get('source_assembly', {}).get('metadata', {}).get('simulation'),
-                    'trace_enabled': session.diagnostics.options['enabled'],
+                    'trace_enabled': session.trace_enabled('control'),
+                    'diagnostic_mode': session.diagnostics.options['mode'],
                 })
             session.trace_input(frame)
             input_id=frame.source_id

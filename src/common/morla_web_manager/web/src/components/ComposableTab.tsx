@@ -278,7 +278,7 @@ function useWorkstationModel(visible:boolean){
   // state that must never leak into a saved assembly.
   else changed({...assembly,metadata:{...assembly.metadata,simulation:{mode:sim.mode,display:sim.display,...patch}}})
  }
- const logOptions={enabled:true,feedback_hz:50,queue_size:4096,segment_mb:16,max_run_mb:1024,...assembly.metadata?.diagnostic_logging}
+ const logOptions={enabled:true,mode:'summary' as const,feedback_hz:50,queue_size:4096,segment_mb:16,max_run_mb:1024,...assembly.metadata?.diagnostic_logging}
  const currentLogRun=selectedRun||session?.session_id||logRuns[0]?.session_id||''
  const logEntry=logRuns.find(r=>r.session_id===currentLogRun)
  const logFiles=currentLogRun===session?.session_id&&session?.diagnostic_log?.directory?['manifest.json',...session.diagnostic_log.files,...(session.status==='STOPPED'?['summary.json']:[])]:logEntry?.files||[]

@@ -15,6 +15,16 @@ import time
 
 
 _SECRET = ('token', 'password', 'secret', 'credential', 'authorization')
+_SUMMARY_RECORDS = {
+    'run_started', 'run_ended', 'event', 'feedback', 'start_failed',
+    'input_connection', 'input_error', 'control_error', 'control_pipeline_error', 'device_fault',
+    'diagnostic_hook_failed', 'operator_request', 'operator_result', 'operator_error',
+    'operator_hold', 'handoff', 'work_position', 'record_discarded',
+}
+_SAMPLED_RECORDS = {
+    'input', 'control', 'input_gate', 'control_gate', 'command_request', 'command_receipt',
+}
+_SAMPLE_PERIOD_NS = 1_000_000_000
 
 
 def snapshot(value, *, budget=4096, depth=12, max_bytes=65536, accounting=None):
@@ -63,12 +73,13 @@ def snapshot(value, *, budget=4096, depth=12, max_bytes=65536, accounting=None):
     return result
 
 
-def options(resolved):
+def options(resolved, default_mode='full'):
     raw = resolved.get('source_assembly', {}).get('metadata', {}).get('diagnostic_logging', {})
-    if not isinstance(raw, dict) or set(raw)-{'enabled','feedback_hz','queue_size','segment_mb','max_run_mb'}:
+    if not isinstance(raw, dict) or set(raw)-{'enabled','mode','feedback_hz','queue_size','segment_mb','max_run_mb'}:
         raise ValueError('Invalid diagnostic_logging options')
-    result = {'enabled': True, 'feedback_hz': 50, 'queue_size': 4096, 'segment_mb': 16, 'max_run_mb': 1024, **raw}
+    result = {'enabled': True, 'mode': default_mode, 'feedback_hz': 50, 'queue_size': 4096, 'segment_mb': 16, 'max_run_mb': 1024, **raw}
     if type(result['enabled']) is not bool: raise ValueError('diagnostic_logging.enabled must be boolean')
+    if result['mode'] not in ('summary', 'sampled', 'full'): raise ValueError('Invalid diagnostic_logging.mode')
     for key, lower, upper in [('feedback_hz',1,200),('queue_size',16,65536),('segment_mb',1,256),('max_run_mb',1,8192)]:
         value = result[key]
         if type(value) not in (int,float) or not math.isfinite(value) or not lower <= value <= upper:
@@ -79,9 +90,9 @@ def options(resolved):
 
 
 class DiagnosticLog:
-    def __init__(self, session_id, resolved, *, root=None, clock=time.monotonic_ns):
+    def __init__(self, session_id, resolved, *, root=None, clock=time.monotonic_ns, default_mode='full'):
         self.session_id, self.resolved, self.clock = session_id, resolved, clock
-        self.options = options(resolved)
+        self.options = options(resolved, default_mode)
         default = Path(os.environ.get('XDG_STATE_HOME', str(Path.home()/'.local/state')))/'morla/teleop'
         self.root = Path(root or os.environ.get('MORLA_DIAGNOSTIC_LOG_ROOT', str(default))).expanduser()
         self.queue = queue.Queue(maxsize=self.options['queue_size'])
@@ -100,6 +111,7 @@ class DiagnosticLog:
         self.queue_byte_limit = 16*1024*1024
         self.segments = []
         self.feedback_times = {}
+        self.sample_times = {}
         self.outcome = None
 
     def start(self):
@@ -115,7 +127,11 @@ class DiagnosticLog:
             manifest = {'schema_version':1, 'session_id':self.session_id,
                         'started_at_utc':datetime.now(timezone.utc).isoformat(),
                         'options':self.options, 'clocks':{'wall_time_ns':'unix_epoch_utc','monotonic_ns':'runtime_clock'},
-                        'feedback_policy':'cached_health_sample_on_runtime_poll_or_explicit_trace_feedback',
+                        'feedback_policy': {
+                            'summary': 'health_transitions',
+                            'sampled': 'health_transitions_and_cached_feedback_at_most_once_per_second',
+                            'full': 'cached_health_sample_on_runtime_poll_or_explicit_trace_feedback',
+                        }[self.options['mode']],
                         'resolved_system':snapshot(self.resolved,budget=200000,depth=24,max_bytes=4*1024*1024)}
             (self.directory/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,allow_nan=False,indent=2))
             self.thread = threading.Thread(target=self._write_loop, name='morla-diagnostics', daemon=True)
@@ -125,10 +141,32 @@ class DiagnosticLog:
             self.error = 'LOG_START_FAILED: '+str(exc)
             self.closed = True
 
+    def accepts(self, kind, *, component_id=None, binding_id=None):
+        if not self.options['enabled'] or not self.started or self.closed or self.closing.is_set():
+            return False
+        mode = self.options['mode']
+        if mode == 'full' or kind in _SUMMARY_RECORDS:
+            return True
+        if mode != 'sampled' or kind not in _SAMPLED_RECORDS:
+            return False
+        previous = self.sample_times.get((kind, component_id, binding_id))
+        return previous is None or self.clock() - previous >= _SAMPLE_PERIOD_NS
+
     def emit(self, kind, payload, *, component_id=None, binding_id=None, monotonic_ns=None):
-        if not self.options['enabled'] or not self.started: return False
-        if self.closed or self.closing.is_set(): return False
+        if not self.accepts(kind, component_id=component_id, binding_id=binding_id): return False
+        mode = self.options['mode']
+        if (mode != 'full' and kind == 'event'
+                and isinstance(payload, dict) and payload.get('event') == 'command_dispatched'):
+            return False
         try:
+            if mode == 'sampled' and kind in _SAMPLED_RECORDS:
+                key = (kind, component_id, binding_id)
+                now = self.clock()
+                with self.lock:
+                    previous = self.sample_times.get(key)
+                    if previous is not None and now - previous < _SAMPLE_PERIOD_NS:
+                        return False
+                    self.sample_times[key] = now
             # Refuse before copying a payload when already saturated.
             if self.queue.full():
                 with self.lock:
@@ -164,13 +202,16 @@ class DiagnosticLog:
             return False
 
     def feedback(self, component_id, sample, *, now_ns):
-        if not self.options['enabled'] or not self.started or self.closed: return
+        if not self.accepts('feedback'): return
         stamp = sample.get('sample_ns')
         marker = (stamp, sample.get('ready'), sample.get('fault'), sample.get('reason'))
         old = self.feedback_times.get(component_id)
-        period = int(1e9/self.options['feedback_hz'])
+        mode = self.options['mode']
+        period = _SAMPLE_PERIOD_NS if mode == 'sampled' else int(1e9/self.options['feedback_hz'])
         if old and marker == old[1]: return
-        if old and now_ns-old[0] < period and marker[1:] == old[1][1:]: return
+        if old and marker[1:] == old[1][1:]:
+            if mode == 'summary' or now_ns-old[0] < period:
+                return
         if self.emit('feedback', sample, component_id=component_id, monotonic_ns=now_ns):
             self.feedback_times[component_id] = (now_ns,marker)
 
@@ -181,7 +222,7 @@ class DiagnosticLog:
                     'directory':str(self.directory) if self.directory else None,
                     'files':list(self.segments), 'written':dict(self.written),'dropped':dict(self.dropped),
                     'queued':self.queue.qsize(),'queued_bytes_estimate':self.queued_bytes,'queue_byte_limit':self.queue_byte_limit,'bytes_written':self.bytes_written,'error':self.error,
-                    'feedback_hz':self.options['feedback_hz']}
+                    'feedback_hz':self.options['feedback_hz'], 'mode':self.options['mode']}
 
     def _open_segment(self, index):
         name=f'trace-{index:05d}.jsonl'

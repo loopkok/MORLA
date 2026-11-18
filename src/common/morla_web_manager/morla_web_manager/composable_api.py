@@ -187,7 +187,7 @@ def router(service):
     def preflight(raw:dict):
         resolved=call(service.compile,raw["assembly"],raw.get("deployment"))
         from morla_runtime import RuntimeSession
-        runtime=RuntimeSession(resolved,resource_root=service.resource_root,registry=service.catalog)
+        runtime=RuntimeSession(resolved,resource_root=service.resource_root,registry=service.catalog,diagnostic_mode='summary')
         return {"compile_valid":True,"device_probe_performed":False,"preflight":runtime.preflight(),
                 "status":resolved['status'],"resolved":resolved}
 

@@ -14,7 +14,7 @@ class RuntimeErrorCode(RuntimeError):
 
 
 class RuntimeSession:
-    def __init__(self, resolved, resource_root=None, clock=None, adapters=None, registry=None, allow_unverified_test_fixture=False, diagnostic_root=None):
+    def __init__(self, resolved, resource_root=None, clock=None, adapters=None, registry=None, allow_unverified_test_fixture=False, diagnostic_root=None, *, diagnostic_mode='full'):
         self.resolved = copy.deepcopy(resolved)
         self.clock = clock or time.monotonic_ns
         self.session_id = uuid.uuid4().hex
@@ -37,7 +37,8 @@ class RuntimeSession:
         self._operation_generation = 0
         self._pending_operation = None
         from .diagnostic_log import DiagnosticLog
-        self.diagnostics = DiagnosticLog(self.session_id, self.resolved, root=diagnostic_root, clock=self.clock)
+        self.diagnostics = DiagnosticLog(self.session_id, self.resolved, root=diagnostic_root,
+                                         clock=self.clock, default_mode=diagnostic_mode)
         self._last_diagnostic_inputs = {}
 
     def _now(self):
@@ -70,6 +71,8 @@ class RuntimeSession:
 
     def trace_input(self, frame):
         source = getattr(frame, 'source_id', 'unknown')
+        if not self.trace_enabled('input', component_id=source):
+            return
         identity = (getattr(frame,'source_epoch',None), getattr(frame,'sequence',None), getattr(frame,'received_ns',None))
         if self._last_diagnostic_inputs.get(source) == identity: return
         if len(self._last_diagnostic_inputs) > 256: self._last_diagnostic_inputs.clear()
@@ -77,6 +80,9 @@ class RuntimeSession:
         self.trace('input', {name:getattr(frame,name,None) for name in
                    ('source_id','source_epoch','sequence','received_ns','frame_id','valid','input_basis_id','ports','port_metadata')},
                    component_id=source)
+
+    def trace_enabled(self, kind, **scope):
+        return self.diagnostics.accepts(kind, **scope)
 
     def trace_feedback(self, component_id, sample):
         try: self.diagnostics.feedback(component_id, sample, now_ns=self.clock())
@@ -494,8 +500,9 @@ class RuntimeSession:
                     dispatched.append(item['component_id'])
                 receipt = {'accepted': True, 'sequence': seq, 'dispatched': dispatched, 'monotonic_ns': now}
                 self._event('command_dispatched', sequence=seq, components=dispatched)
-                self.trace('command_receipt', {'receipt':receipt,'adapter_receipts':adapter_receipts,
-                                             'execution_acknowledgement':'see_adapter_receipts_not_implied_by_dispatch'})
+                if self.trace_enabled('command_receipt'):
+                    self.trace('command_receipt', {'receipt':receipt,'adapter_receipts':adapter_receipts,
+                                                 'execution_acknowledgement':'see_adapter_receipts_not_implied_by_dispatch'})
                 for callback in self._command_callbacks:
                     try:
                         callback(copy.deepcopy(command), copy.deepcopy(receipt))
@@ -506,8 +513,9 @@ class RuntimeSession:
                 if attempted:
                     self._group_stop('partial_dispatch')
                 self._event('command_rejected', reason=str(exc), dispatched=dispatched)
-                self.trace('command_receipt', {'accepted':False,'reason':str(exc),'dispatched':dispatched,
-                                             'adapter_receipts':adapter_receipts})
+                if self.diagnostics.options['mode'] == 'full':
+                    self.trace('command_receipt', {'accepted':False,'reason':str(exc),'dispatched':dispatched,
+                                                 'adapter_receipts':adapter_receipts})
                 return {'accepted': False, 'reason': str(exc), 'dispatched': dispatched}
 
     def tick(self):

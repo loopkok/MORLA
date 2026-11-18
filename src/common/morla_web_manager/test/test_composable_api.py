@@ -14,8 +14,10 @@ def assembly():
             "capture":{"state":["grip.position"],"action":["grip.closure"],"images":{},"action_source":"command","hold_frames":0}}
 
 
-def saved_session(client):
+def saved_session(client, diagnostic_mode=None):
     a=assembly()
+    if diagnostic_mode is not None:
+        a['metadata'] = {'diagnostic_logging': {'mode': diagnostic_mode}}
     saved=client.post('/api/v2/assemblies',json={"assembly":a,"expected_revision":0})
     assert saved.status_code==200,saved.text
     body={"assembly_id":a["assembly_id"],"revision":1,"assembly_hash":saved.json()["resolved"]["assembly_hash"],"request_id":"start-1"}
@@ -226,11 +228,78 @@ def test_shared_simulation_templates_and_live_settings(tmp_path, monkeypatch):
         assert client.get(f'/api/v2/sessions/{sid}/state').json()['simulation']['mode']=='kinematic'
 
 
+def test_web_summary_diagnostics_skip_per_frame_reports_and_keep_motion(tmp_path, monkeypatch):
+    from morla_input.adapters.normalized import InputFrame
+    from morla_teleop.engine import BindingEngine
+
+    monkeypatch.setenv('MORLA_DIAGNOSTIC_LOG_ROOT', str(tmp_path/'logs'))
+
+    def unexpected_report(controller):
+        pytest.fail('summary logging must not collect a per-frame controller report')
+
+    monkeypatch.setattr(BindingEngine, '_reports', staticmethod(unexpected_report))
+    with TestClient(create_app(tmp_path/'store', resource_root=tmp_path/'locks')) as client:
+        _, _, state = saved_session(client)
+        sid = state['session_id']
+        assert state['diagnostic_log']['mode'] == 'summary'
+        service = client.app.state.composable
+        service.operation(sid, {'operation': 'prepare', 'request_id': 'prepare-log'})
+        service.operation(sid, {'operation': 'activate', 'request_id': 'activate-log'})
+        for seq in range(3):
+            frame = InputFrame('phone', 'epoch', seq, service.clock(), 'operator',
+                               {'scalar': .7, 'hold_to_control': True})
+            assert service.ingest_frame(sid, frame)['dispatched'] == ['grip']
+        service.operation(sid, {'operation': 'stop', 'request_id': 'stop-log'})
+
+        response = client.get(f'/api/v2/diagnostics/runs/{sid}/tail?limit=200')
+        assert response.status_code == 200
+        rows = response.json()['records']
+        kinds = {row['kind'] for row in rows}
+        assert {'run_started', 'event', 'feedback', 'run_ended'} <= kinds
+        assert not kinds & {'input', 'control', 'controller', 'command_request', 'command_receipt'}
+        events = {row['data']['event'] for row in rows if row['kind'] == 'event'}
+        assert 'activated' in events and 'command_dispatched' not in events
+        assert not service.session.diagnostics.dropped
+
+
+def test_web_sampled_diagnostics_build_reports_once_per_second(tmp_path, monkeypatch):
+    from collections import Counter
+    from morla_input.adapters.normalized import InputFrame
+    from morla_teleop.engine import BindingEngine
+
+    report_calls = []
+    monkeypatch.setattr(BindingEngine, '_reports', staticmethod(lambda controller: report_calls.append(controller) or {}))
+    monkeypatch.setenv('MORLA_DIAGNOSTIC_LOG_ROOT', str(tmp_path/'logs'))
+    with TestClient(create_app(tmp_path/'store', resource_root=tmp_path/'locks')) as client:
+        _, _, state = saved_session(client, 'sampled')
+        sid = state['session_id']
+        assert state['diagnostic_log']['mode'] == 'sampled'
+        service = client.app.state.composable
+        service.operation(sid, {'operation': 'prepare', 'request_id': 'prepare-log'})
+        service.operation(sid, {'operation': 'activate', 'request_id': 'activate-log'})
+        log_clock = log_origin = service.clock()
+        service.session.diagnostics.clock = lambda: log_clock
+        for seq, offset in enumerate((0, 20_000_000, 999_999_999, 1_000_000_000)):
+            log_clock = log_origin + offset
+            frame = InputFrame('phone', 'epoch', seq, service.clock(), 'operator',
+                               {'scalar': .7, 'hold_to_control': True})
+            assert service.ingest_frame(sid, frame)['dispatched'] == ['grip']
+        assert len(report_calls) == 2
+        service.session.trace('device_fault', {'reason': 'fault-coincident-with-sample'})
+        service.operation(sid, {'operation': 'stop', 'request_id': 'stop-log'})
+        response = client.get(f'/api/v2/diagnostics/runs/{sid}/tail?limit=200')
+        assert response.status_code == 200
+        counts = Counter(row['kind'] for row in response.json()['records'])
+        assert all(counts[kind] == 2 for kind in ('input', 'control', 'command_request', 'command_receipt'))
+        assert counts['device_fault'] == 1
+
+
 def test_diagnostic_logs_are_independent_downloadable_and_confined(tmp_path,monkeypatch):
     from morla_input.adapters.normalized import InputFrame
     monkeypatch.setenv('MORLA_DIAGNOSTIC_LOG_ROOT',str(tmp_path/'logs'))
     with TestClient(create_app(tmp_path/'store',resource_root=tmp_path/'locks')) as client:
-        _,_,state=saved_session(client);sid=state['session_id'];service=client.app.state.composable
+        _,_,state=saved_session(client,'full');sid=state['session_id'];service=client.app.state.composable
+        assert state['diagnostic_log']['mode'] == 'full'
         assert service.recorder is None
         assert state['diagnostic_log']['enabled'] and state['diagnostic_log']['directory']
         service.operation(sid,{'operation':'prepare','request_id':'prepare-log'})

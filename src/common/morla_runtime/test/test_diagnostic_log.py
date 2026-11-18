@@ -71,6 +71,28 @@ def test_failed_start_is_preserved_and_logging_can_be_disabled(tmp_path):
     assert disabled.state()['diagnostic_log']['state']=='disabled'
 
 
+def test_summary_feedback_records_health_changes_without_periodic_samples(tmp_path):
+    logger = DiagnosticLog('e'*32, resolved({'mode': 'summary'}), root=tmp_path)
+    logger.start()
+    for stamp, fault in enumerate((False, False, True, True, False)):
+        logger.feedback('arm', {'sample_ns': stamp, 'ready': not fault, 'fault': fault},
+                        now_ns=stamp*1_000_000_000)
+    logger.close()
+    feedback = [row['data'] for row in records(logger.directory) if row['kind'] == 'feedback']
+    assert [sample['sample_ns'] for sample in feedback] == [0, 2, 4]
+
+
+def test_sampled_feedback_limits_periodic_samples_and_keeps_faults(tmp_path):
+    logger = DiagnosticLog('f'*32, resolved({'mode': 'sampled'}), root=tmp_path)
+    logger.start()
+    for stamp, fault in ((0, False), (100_000_000, False), (200_000_000, True),
+                         (300_000_000, False), (1_300_000_000, False)):
+        logger.feedback('arm', {'sample_ns': stamp, 'ready': not fault, 'fault': fault}, now_ns=stamp)
+    logger.close()
+    feedback = [row['data'] for row in records(logger.directory) if row['kind'] == 'feedback']
+    assert [sample['sample_ns'] for sample in feedback] == [0, 200_000_000, 300_000_000, 1_300_000_000]
+
+
 def test_redaction_binary_omission_and_bounded_snapshots(tmp_path):
     value={'token':'auth','password':'pwd','device':{'secret_ref':'vault','position':[1,2]},'image':b'pixels'}
     result=snapshot(value)

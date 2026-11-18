@@ -29,6 +29,12 @@ class BindingEngine:
             if trace is not None: trace(kind, data, **context)
         except Exception: pass
 
+    def _trace_enabled(self, kind, **scope):
+        enabled = getattr(self.runtime, 'trace_enabled', None)
+        if enabled is not None:
+            return enabled(kind, **scope)
+        return getattr(self.runtime, 'trace', None) is not None
+
     @staticmethod
     def _reports(controller):
         reports = {}
@@ -71,14 +77,15 @@ class BindingEngine:
                 'kinematics_provider':getattr(adapter,'kinematics_provider',None)})
         controller=BindingController(binding,names,registry=registry,clock=self.clock,
                                      max_age_ns=int(age*1_000_000))
-        for plugin_id, plugin in registry.plugins.items():
-            setter = getattr(plugin, 'set_diagnostic_sink', None)
-            if setter is not None:
-                def sink(report, plugin_id=plugin_id):
-                    self._trace('controller', {'plugin_id':plugin_id, 'report':report},
-                                binding_id=binding['id'], component_id=target)
-                try: setter(sink)
-                except Exception as exc: self._trace('diagnostic_hook_failed', {'reason':str(exc)}, binding_id=binding['id'])
+        if self._trace_enabled("controller"):
+            for plugin_id, plugin in registry.plugins.items():
+                setter = getattr(plugin, 'set_diagnostic_sink', None)
+                if setter is not None:
+                    def sink(report, plugin_id=plugin_id):
+                        self._trace('controller', {'plugin_id':plugin_id, 'report':report},
+                                    binding_id=binding['id'], component_id=target)
+                    try: setter(sink)
+                    except Exception as exc: self._trace('diagnostic_hook_failed', {'reason':str(exc)}, binding_id=binding['id'])
         self.bindings[binding['id']]=controller
         return controller
 
@@ -131,16 +138,18 @@ class BindingEngine:
             if ('received_ns' in metadata and frame.valid and controller.input_fresh(frame)
                     and sample_key==getattr(controller,'_last_port_sample',None)):
                 continue
-            context={'source_id':frame.source_id,'source_epoch':frame.source_epoch,'sequence':frame.sequence,
-                     'received_ns':frame.received_ns,'frame_id':getattr(frame,'frame_id',None),'binding_id':binding['id']}
-            for plugin in controller.registry.plugins.values():
-                setter=getattr(plugin,'set_trace_context',None)
-                if setter is not None:
-                    try: setter(context)
-                    except Exception: pass
+            detailed = self._trace_enabled('control', binding_id=binding['id'], component_id=key)
+            if detailed and self._trace_enabled('controller'):
+                context={'source_id':frame.source_id,'source_epoch':frame.source_epoch,'sequence':frame.sequence,
+                         'received_ns':frame.received_ns,'frame_id':getattr(frame,'frame_id',None),'binding_id':binding['id']}
+                for plugin in controller.registry.plugins.values():
+                    setter=getattr(plugin,'set_trace_context',None)
+                    if setter is not None:
+                        try: setter(context)
+                        except Exception: pass
             if port in ('left_pose', 'right_pose'):
                 cadence_record('engine.' + port, counts=('consumed',))
-            began=time.perf_counter_ns()
+            began=time.perf_counter_ns() if detailed else 0
             try:
                 values = controller.step(frame, measured, now)
             except Exception as exc:
@@ -148,12 +157,13 @@ class BindingEngine:
                             'feedback':feedback,'reports':self._reports(controller)},
                             binding_id=binding['id'], component_id=key)
                 raise
-            self._trace('control', {'controller':binding['controller'],'input_sequence':frame.sequence,
-                        'input_epoch':frame.source_epoch,'input_received_ns':frame.received_ns,
-                        'source_port':port,'input':frame.ports[port], 'feedback':feedback,
-                        'target_values':values,'produced_target':values is not None,
-                        'dispatch_acknowledged':False,'elapsed_ns':time.perf_counter_ns()-began,
-                        'reports':self._reports(controller)}, binding_id=binding['id'], component_id=key)
+            if detailed:
+                self._trace('control', {'controller':binding['controller'],'input_sequence':frame.sequence,
+                            'input_epoch':frame.source_epoch,'input_received_ns':frame.received_ns,
+                            'source_port':port,'input':frame.ports[port], 'feedback':feedback,
+                            'target_values':values,'produced_target':values is not None,
+                            'dispatch_acknowledged':False,'elapsed_ns':time.perf_counter_ns()-began,
+                            'reports':self._reports(controller)}, binding_id=binding['id'], component_id=key)
             controller._last_port_sample=sample_key
             if values is not None:
                 if len(values)!=len(instance['joints']):
