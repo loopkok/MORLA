@@ -1,5 +1,17 @@
 # Changelog（MORLA）
 
+## 2026-11-18 — Web 相机实时画面不参与遥操链路：成本核查与实测
+
+- 问题：Web 可视化里的相机实时画面数据从哪来、会不会影响遥操延迟、开启录制后会不会降低数采帧率；此前在 MMK2 仿真里"开三个相机画面"遥操非常卡，是不是同一个原因；真机相机链路是否有同样问题。
+- 两条**互不相关**的画面链路：工作站页走 `/api/v2/sessions/{id}/cameras/{id}/stream`（MJPEG 长连接，60 Hz 轮询 `adapter.read()`，`(source_ns, sample_ns)` 变了才推；帧由仿真渲染线程、UVC 子进程或 `ros_image` 订阅回调产生）；监控页走 `video_feed` 的 15 Hz 转发，数据来自 monitor 对 `/quest3_video_streamer/preview/{label}` 的**无条件订阅**，而 streamer 的预览编码**只看推送门控、不看订阅者**（10 fps / 640 宽 / q65）。两条都不在遥操的输入帧、解算、下发里。
+- 成本分两类：**不看也在跑**的是仿真相机渲染（按装配里的相机实例数，与观众无关；MMK2 版固定 5 ms 一轮、每机位 15 Hz 先渲彩色再渲深度）和老链路常驻预览编码；**看了才多**的只有每路 60 Hz 的缓存读取（`deepcopy` 实测 0.007 ms/次）加一次 HTTP 推送，可忽略。真机上唯一把编码放进遥操同进程的路径是 `morla.camera.ros_image` 默认订阅裸 `Image`（Web 进程 rclpy 回调里 `Image.save(JPEG q90)`），改成 `compressed: true` 或驱动侧压缩即可。
+- 实测（本机 16 核，真实 MMK2 模型 33 body / 30 geom，320×240、q90）：`mj_step` 0.06 ms、`mj_forward` 0.02 ms、彩色渲染 1.47 ms/相机、深度渲染 0.56 ms/相机、JPEG+深度拷贝 0.27 ms/相机，**4 相机完整一轮 8.2–10.4 ms**，按 15 Hz 折合**单核 12–15%**；更关键的是解释器时间——同进程里跑完整渲染时，纯 Python 线程的 `thread_time()/wall` 只从 1.00 降到 0.99，即渲染线程只抢走约 **1%**（500 Hz `mj_step` 时 0.3%），不会把 `engine.targets`/`submit` 挤成两倍慢。
+- 录制与画面互不门控：composable 的录制在 `tick()` 里持 `service.lock` 调 `capture_tick()`，按 `dataset_fps` 读**同一份** adapter 缓存、只在 `source_ns` 前进时 append，写盘在独立队列与线程；预览走 `adapter.read()`、不拿这把锁、不触发编码。老链路的 `collect/{label}`（有订阅者才编码，全分辨率 q90）与 `preview/{label}`（常驻）是两个话题。真正限制录制帧率的是 tick 节拍（20 ms）、`dataset_fps`、ingest 与录制 tick 抢同一把锁（每帧 `targets+submit` p50 约 10 ms 量级）以及生产端速率，不是画面。
+- **"开三个相机就非常卡"的归因**：2026-11-11 三轮复测的 manifest 里就是 4 路仿真机位（320×240@15）全开，其中单臂那轮输入仍有 130 Hz——相机在也跑得满。当时卡的是已定位的 ingest/IK/前瞻窗口那条链（`deadline_hold` 29%/21%、零关节步长 30%/28%）。相机是常数税，不会单独造成 2 倍频率差；核数少、另开 `display: local`、或机位更多更大时会放大。
+- 顺手发现但**本次不改**两处：`depth` 端口全仓只有生产者、没有任何消费者（占每相机约 23% 渲染成本，并让每帧多 307 KB 进缓存、被每次读取再拷一遍）；仿真相机按实例数渲染、与观众无关，不需要看/录的机位不要建实例（`mmk2_quest_sim` revision-16 之后已无相机实例，可作 A/B 基线）。运行页会自动给每个仿真机位挂一路预览，"看的成本"可忽略，但容易让人把它当卡顿来源。
+- 未验证边界：核查时工作站无活动会话，未读现场逐线程 CPU（数字来自同模型离屏基准）；未测浏览器侧解码；老链路的 10 fps/q65/30 fps/q90 来自代码与 streamer 文档，本轮未实测；全部数字来自本机 GL 路径，Jetson 需重跑。
+- 记录与复现脚本：[Web 相机实时画面的成本核查（2026-11-18）](docs/investigations/camera_preview_2026-11-18/README.md)（含 `scripts/bench_camera_render.py`，可直接换机器重跑）。代码无改动。
+
 ## 2026-11-16 — 接入 MMK2 后公共层的四处回撤：限步改回可选、Web 去品牌、探针转可选、Quest 双手说明
 
 - 背景：对比接入 MMK2 之前的基线（`f2166a5`）逐项审计公共层改动。MMK2 的能力都是通过既有扩展点进来的（新控制器 id、adapter 可选方法、entry point、可选字段），没有破坏组合契约；但有三处"共享默认值被 MMK2 需求改掉"和一处未纳入版本管理的运行时依赖，会让别的机器人或下一个接手者踩空。
