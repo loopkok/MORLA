@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 
 import h5py
@@ -65,12 +66,14 @@ class StreamDataWriter:
         if self._sensor_specs:
             root = self._file.create_group("sensors")
             for key, spec in self._sensor_specs.items():
-                fingers = len(spec.get("finger_order", ("thumb", "index", "middle", "ring", "pinky")))
-                points = int(spec.get("point_count_per_finger", 120))
                 group = root.create_group(key)
-                group.attrs["finger_order"] = __import__("json").dumps(
-                    list(spec.get("finger_order", ("thumb", "index", "middle", "ring", "pinky")))
-                )
+                named_fields = spec.get("codec") == "named_fields_v1"
+                if named_fields:
+                    group.attrs["codec"] = spec["codec"]
+                else:
+                    group.attrs["finger_order"] = json.dumps(
+                        list(spec.get("finger_order", ("thumb", "index", "middle", "ring", "pinky")))
+                    )
                 from morla_data_collect.codecs import sensor_fields
                 datasets = {}
                 for field, (shape, dtype) in sensor_fields(spec).items():
@@ -78,6 +81,8 @@ class StreamDataWriter:
                         field, shape=(0,) + shape, maxshape=(None,) + shape,
                         dtype=dtype, chunks=(1,) + shape,
                     )
+                    if named_fields and (unit := spec["fields"].get(field, {}).get("unit")):
+                        datasets[field].attrs["unit"] = unit
                 for field in ("timestamps", "arrival_timestamps"):
                     datasets[field] = group.create_dataset(
                         field, shape=(0,), maxshape=(None,), dtype="f8", chunks=(1024,)
@@ -123,12 +128,16 @@ class StreamDataWriter:
         fields = self._sensors[key]
         expected = {name for name in fields if name not in {"timestamps", "arrival_timestamps"}}
         if set(sample) != expected:
-            raise ValueError(f"sensor {key}: expected fields {sorted(expected)}")
+            missing, extra = sorted(expected - set(sample)), sorted(set(sample) - expected)
+            raise ValueError(f"sensor {key}: missing fields {missing}, unexpected fields {extra}")
         prepared = {}
         for name in expected:
             dataset = fields[name]
             from morla_data_collect.codecs import checked_array
-            value = checked_array(sample[name], dataset.dtype)
+            try:
+                value = checked_array(sample[name], dataset.dtype)
+            except ValueError as exc:
+                raise ValueError(f"sensor {key}/{name}: {exc}") from exc
             if value.shape != dataset.shape[1:]:
                 raise ValueError(f"sensor {key}/{name}: shape mismatch")
             if np.issubdtype(value.dtype, np.number) and not np.isfinite(value).all():

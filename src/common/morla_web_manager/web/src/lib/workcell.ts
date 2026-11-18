@@ -1,8 +1,17 @@
 export type Schema = { required?:string[]; type?: string; title?: string; description?: string; enum?: (string | number | boolean)[]; minimum?: number; maximum?: number; exclusiveMinimum?: number; exclusiveMaximum?: number; minItems?: number; maxItems?: number; items?: Schema; properties?: Record<string, Schema>; default?: unknown }
-export type Port = { direction: string; semantic: string; dim: number; unit: string; axis_names?: string[] }
+export type Port = { direction: string; semantic: string; dim: number; unit: string; axis_names?: string[]; sample_fields?: Record<string, {shape:number[]; dtype:string; unit?:string}> }
 export type WebMetadata = { device_category?:string; control_family?:string; label?: string; fields?: string[]; connection_fields?: string[]; field_backends?: Record<string,string[]>; field_conditions?: Record<string,Record<string,unknown[]>>; preferred_controllers?: Record<string,string>; binding_presets?: {controller:string;source_plugin:string;parameters?:Record<string,unknown>;defaults:Record<string,unknown>}[]; ik_modes?:string[]; per_device_work_position?:boolean }
+export type PortRoles = { feedback?: string | null; command?: string | null; images?: string[]; preview?: string[]; sensors?: string[] }
+export function componentPorts(component?: Component): PortRoles {
+ const ports=component?.ports||{}
+ const images=Object.keys(ports).filter(name=>ports[name].direction==='output'&&ports[name].semantic==='image')
+ if(images.includes('rgb')) images.unshift(...images.splice(images.indexOf('rgb'),1))
+ return {feedback:ports.position?'position':null,command:ports.position_target?'position_target':ports.closure?'closure':null,
+   images,preview:images,sensors:[],...component?.port_roles}
+}
+
 export type Template = {id:string;title:string;assembly_id:string}
-export type Component = { plugin_id: string; plugin_version: string; kind: string; resources?: {sharing?: string}; ports: Record<string, Port>; joints?: { name: string; unit: string; lower?: number; upper?: number }[]; geometry?: { frames?: string[]; controller_capabilities?:string[] }; defaults?: Record<string, unknown>; configuration_schema?: Schema; web?: WebMetadata; controller_types?: { inputs?: string[]; outputs?: string[]; target_plugins?:string[]; target_capability?:string; target_dim?:number; equal_dimensions_units?:boolean }; backend_variants?: Record<string, { available?: boolean }> }
+export type Component = { plugin_id: string; plugin_version: string; kind: string; resources?: {sharing?: string}; ports: Record<string, Port>; port_roles?: PortRoles; joints?: { name: string; unit: string; lower?: number; upper?: number }[]; geometry?: { frames?: string[]; controller_capabilities?:string[] }; defaults?: Record<string, unknown>; configuration_schema?: Schema; web?: WebMetadata; controller_types?: { inputs?: string[]; outputs?: string[]; target_plugins?:string[]; target_capability?:string; target_dim?:number; equal_dimensions_units?:boolean }; backend_variants?: Record<string, { available?: boolean }> }
 export type Instance = { plugin: string; version: string; backend?: string; role?: string; parameters?: Record<string, unknown>; display_name?: string; [key: string]: unknown }
 export type Binding = { id: string; source: string; target: string; deadman?: string; controller: string; max_age_ms?: number; input_basis_id?: string; parameters: Record<string, unknown>; [key: string]: unknown }
 export type LogOptions = { enabled?:boolean; feedback_hz?:number; queue_size?:number; segment_mb?:number; max_run_mb?:number }
@@ -10,12 +19,27 @@ export type OperatorOptions = { work_positions?:Record<string,number[]>; work_sp
 export type SimOptions = { mode: 'physics' | 'kinematic'; display: 'web' | 'local' | 'both' }
 export type Mount = { child: string; parent: string; transform?: number[]; calibration?: string }
 export type Group = { members: string[]; fault_policy: string; [key: string]: unknown }
-export type Assembly = { assembly_version: number; assembly_id: string; revision: number; title?: string; metadata?: Record<string, unknown> & { simulation?: SimOptions; diagnostic_logging?:LogOptions; operator_control?:OperatorOptions }; instances: Record<string, Instance>; mounts: Mount[]; bindings: Binding[]; control_groups: Record<string, Group>; capture: { state: string[]; action: string[]; images: Record<string, string>; auxiliary?: string[]; action_source: string; dataset_fps?: number; [key: string]: unknown }; [key: string]: unknown }
+export type Assembly = { assembly_version: number; assembly_id: string; revision: number; title?: string; metadata?: Record<string, unknown> & { simulation?: SimOptions; diagnostic_logging?:LogOptions; operator_control?:OperatorOptions }; instances: Record<string, Instance>; mounts: Mount[]; bindings: Binding[]; control_groups: Record<string, Group>; capture: { state: string[]; action: string[]; images: Record<string, string>; auxiliary?: string[]; sensors?: (string | {source?:string; sensor_key:string; fields:Record<string,unknown>})[]; action_source: string; dataset_fps?: number; [key: string]: unknown }; [key: string]: unknown }
 export type Device = { backend?: string; device_id?: string; resource_key?: string; verified?: boolean; stop_verified?: boolean; parameters?: Record<string, unknown>; [key: string]: unknown }
 export type Deployment = { deployment_version?: number; deployment_id?: string; instances?: Record<string, Device>; calibrations?: Record<string, unknown>; [key: string]: unknown }
 export const initial = (): Assembly => ({ assembly_version: 1, assembly_id: 'my_workcell', revision: 1, metadata: { simulation: { mode: 'kinematic', display: 'web' } }, instances: {}, mounts: [], bindings: [], control_groups: {}, capture: { state: [], action: [], images: {}, auxiliary: [], action_source: 'command', dataset_fps: 30 } })
-export function normalise(raw: Assembly): Assembly {
+export function normalise(raw: Assembly, catalog: Component[] = []): Assembly {
   const value = { ...initial(), ...raw, metadata: raw.metadata, capture: { ...initial().capture, ...raw.capture },instances:structuredClone(raw.instances) }
+  for(const [id,item] of Object.entries(value.instances).sort(([a],[b])=>a<b?-1:a>b?1:0)) {
+    const component=catalog.find(d=>d.plugin_id===item.plugin&&d.plugin_version===(item.version||'1.0.0'))
+    const roles=componentPorts(component)
+    if(component?.kind==='actuator'){
+      if(raw.capture?.state===undefined&&roles.feedback)value.capture.state.push(id+'.'+roles.feedback)
+      if(raw.capture?.action===undefined&&roles.command)value.capture.action.push(id+'.'+roles.command)
+    }
+    if(raw.capture?.images===undefined){
+      const images=component?.port_roles?.images||[]
+      for(const port of images)value.capture.images[images.length===1?id:id+'__'+port]=id+'.'+port
+    }
+    if(raw.capture?.sensors===undefined&&roles.sensors?.length){
+      value.capture.sensors=[...(value.capture.sensors||[]),...roles.sensors.map(port=>id+'.'+port)]
+    }
+  }
   for(const item of Object.values(value.instances)) {
     if(item.plugin!=='morla.input.vader5')continue
     const p=item.parameters||{},actions=p.action_buttons
@@ -104,18 +128,18 @@ export function parameterSchema(key: string): Schema {
  const defaults:Record<string,number>={position_scale:.8,rotation_scale:1,max_joint_velocity:.3,smoothing_alpha:.35,max_joint_step:.15,linear_speed:.02,angular_speed:.15,speed:.25,position_lead_m:.05,rotation_lead_rad:.35,damping_min:.005,damping_max:.15,singularity_threshold:.05,differential_step_rad:.04,command_lead_rad:.08}
  return key in defaults?{type:'number',default:defaults[key],minimum:0}:{}
 }
-export function parseWorkcellDocument(raw:unknown): {assembly:Assembly;deployment:Deployment} {
+export function parseWorkcellDocument(raw:unknown,catalog:Component[]=[]): {assembly:Assembly;deployment:Deployment} {
  const object=(v:unknown):v is Record<string,unknown> => !!v&&typeof v==='object'&&!Array.isArray(v)
  if(!object(raw))throw new Error('配置文件必须包含工作站对象。')
  const candidate=object(raw.assembly)?raw.assembly:raw
- const a:Record<string,unknown>={bindings:[],mounts:[],control_groups:{},...candidate}
+ const a:Record<string,unknown>={bindings:[],mounts:[],control_groups:{},capture:{},...candidate}
  const strings=(v:unknown):v is string[]=>Array.isArray(v)&&v.every(x=>typeof x==='string')
  if(a.assembly_version!==1||typeof a.assembly_id!=='string'||!Number.isInteger(a.revision)||Number(a.revision)<1||!object(a.instances)||!Array.isArray(a.bindings)||!Array.isArray(a.mounts)||!object(a.control_groups)||!object(a.capture))throw new Error('配置缺少有效的设备、控制映射、安装关系或记录设置。')
  if(Object.values(a.instances).some(i=>!object(i)||typeof i.plugin!=='string')||a.bindings.some(b=>!object(b)||!['id','source','target','controller'].every(k=>typeof b[k]==='string')||!object(b.parameters)))throw new Error('设备或控制映射格式不正确。')
  if(a.mounts.some(m=>!object(m)||typeof m.child!=='string'||typeof m.parent!=='string'||m.transform!==undefined&&(!Array.isArray(m.transform)||![7,16].includes(m.transform.length)||m.transform.some(v=>typeof v!=='number'||!Number.isFinite(v)))))throw new Error('安装位姿必须包含有限数值的坐标变换。')
- if(!strings(a.capture.state)||!strings(a.capture.action)||!object(a.capture.images)||Object.values(a.capture.images).some(v=>typeof v!=='string')||a.capture.auxiliary!==undefined&&!strings(a.capture.auxiliary)||Object.values(a.control_groups).some(g=>!object(g)||!strings(g.members)))throw new Error('数据记录或控制组格式不正确。')
+ if(a.capture.state!==undefined&&!strings(a.capture.state)||a.capture.action!==undefined&&!strings(a.capture.action)||a.capture.images!==undefined&&(!object(a.capture.images)||Object.values(a.capture.images).some(v=>typeof v!=='string'))||a.capture.auxiliary!==undefined&&!strings(a.capture.auxiliary)||Object.values(a.control_groups).some(g=>!object(g)||!strings(g.members)))throw new Error('数据记录或控制组格式不正确。')
  if(raw.deployment!==undefined&&!object(raw.deployment))throw new Error('硬件部署配置必须是对象。')
- return {assembly:normalise(a as Assembly),deployment:(raw.deployment || {}) as Deployment}
+ return {assembly:normalise(a as Assembly,catalog),deployment:(raw.deployment || {}) as Deployment}
 }
 
 export function visibleDeviceFields(component:Component, backend:string, parameters?:Record<string,unknown>, deployment?:Record<string,unknown>, connection=false):Record<string,Schema> {

@@ -59,6 +59,9 @@ def test_external_plugin_catalog_template_compile_and_scene(tmp_path,monkeypatch
         with pytest.raises(CompilationError,match='target plugin'):compile_system(bad,registry=service.catalog)
         descriptor=external_robot();descriptor['plugin_id']='example.other';service.catalog.register(descriptor)
         duplicate=client.get('/api/v2/templates')
+        assert duplicate.status_code == 200
+        assert not any(row['id'] == 'example-demo' for row in duplicate.json())
+        duplicate = client.get('/api/v2/templates/example-demo')
         assert duplicate.status_code==422 and 'ambiguous template' in duplicate.text
 
 

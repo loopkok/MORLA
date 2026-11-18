@@ -69,29 +69,33 @@ def router(service):
             session._event('simulation_options', **settings)
             return settings
 
-    @api.get('/sessions/{session_id}/cameras/{camera_id}/frame')
-    def camera_frame(session_id: str, camera_id: str):
+    def camera_source(session_id, camera_id, port):
+        from morla_core.contracts.port_roles import port_roles
+
         session = call(service.require, session_id)
-        adapter = session.adapters.get(camera_id)
         instance = session.instances.get(camera_id, {})
-        if adapter is None or instance.get('ports',{}).get('rgb',{}).get('semantic') != 'image':
-            raise HTTPException(404, 'camera not found')
+        adapter = session.adapters.get(camera_id)
+        previews = port_roles(instance)['preview']
+        selected = port if port is not None else next(iter(previews), None)
+        if adapter is None or selected not in previews or not callable(getattr(adapter, 'read', None)):
+            raise HTTPException(404, 'camera port not found')
+        return session, adapter, selected
+
+    @api.get('/sessions/{session_id}/cameras/{camera_id}/frame')
+    def camera_frame(session_id: str, camera_id: str, port: str | None = None):
+        session, adapter, selected = camera_source(session_id, camera_id, port)
         sample = adapter.read(session.clock())
-        port = sample.get('ports', {}).get('rgb', {})
+        port = sample.get('ports', {}).get(selected, {})
         if not port.get('valid') or not port.get('data') or port.get('encoding') != 'jpeg':
             raise HTTPException(503, 'camera frame unavailable')
         return Response(port['data'], media_type='image/jpeg', headers={'Cache-Control': 'no-store'})
 
     @api.post('/sessions/{session_id}/cameras/{camera_id}/view')
-    def camera_view(session_id: str, camera_id: str, raw: dict):
+    def camera_view(session_id: str, camera_id: str, raw: dict, port: str | None = None):
         # Free-camera orbit/pan/zoom for the MuJoCo preview, driven by pointer
         # drags in the page. Only simulated cameras have a viewpoint to move;
         # real camera adapters have no such method and answer 400.
-        session = call(service.require, session_id)
-        adapter = session.adapters.get(camera_id)
-        instance = session.instances.get(camera_id, {})
-        if adapter is None or instance.get('ports',{}).get('rgb',{}).get('semantic') != 'image':
-            raise HTTPException(404, 'camera not found')
+        _, adapter, _ = camera_source(session_id, camera_id, port)
         if not hasattr(adapter, 'view'):
             raise HTTPException(400, 'camera view is not adjustable')
         action = raw.get('action')
@@ -104,15 +108,11 @@ def router(service):
         return call(adapter.view, action, float(raw.get('dx', 0.)), float(raw.get('dy', 0.)))
 
     @api.get('/sessions/{session_id}/cameras/{camera_id}/stream')
-    def camera_stream(session_id: str, camera_id: str):
+    def camera_stream(session_id: str, camera_id: str, port: str | None = None):
         # Polling one JPEG per request capped the preview at the page's request
         # interval (~10 fps), which dominated the perceived teleop lag. Push the
         # latest cached frame instead: one connection, render-rate frames.
-        session = call(service.require, session_id)
-        adapter = session.adapters.get(camera_id)
-        instance = session.instances.get(camera_id, {})
-        if adapter is None or instance.get('ports',{}).get('rgb',{}).get('semantic') != 'image':
-            raise HTTPException(404, 'camera not found')
+        session, adapter, selected = camera_source(session_id, camera_id, port)
 
         async def frames():
             last = None
@@ -122,7 +122,7 @@ def router(service):
                         sample = adapter.read(session.clock())
                     except Exception:
                         return  # adapter closed with the session
-                    port = sample.get('ports', {}).get('rgb', {})
+                    port = sample.get('ports', {}).get(selected, {})
                     data = port.get('data')
                     key = (port.get('source_ns'), port.get('sample_ns'))
                     if port.get('valid') and data and port.get('encoding') == 'jpeg' and key != last:
@@ -331,11 +331,25 @@ def create_app(root=None,resource_root=None,*,mount_web=True,diagnostic_root=Non
     from fastapi.staticfiles import StaticFiles
     import inspect
     dist=Path(__file__).parents[1]/"web/dist"
-    if not dist.is_dir():
+    if mount_web and not dist.is_dir():
+        from morla_core.resource_locator import resolve_plugin_resource, ResourceLookupError
+
         try:
-            from ament_index_python.packages import get_package_share_directory
-            dist=Path(get_package_share_directory("morla_web_manager"))/"web/dist"
-        except ImportError: pass
+            dist = resolve_plugin_resource('morla_web_manager', 'web/dist/index.html').parent
+        except ResourceLookupError:
+            # A pip install puts setuptools data_files under the installation
+            # prefix. Locate the recorded index using the installed wheel.
+            from importlib.metadata import distribution, PackageNotFoundError
+
+            try:
+                package = distribution('morla_web_manager')
+            except PackageNotFoundError:
+                pass
+            else:
+                for entry in package.files or ():
+                    if str(entry).endswith('share/morla_web_manager/web/dist/index.html'):
+                        dist = Path(package.locate_file(entry)).resolve().parent
+                        break
     if mount_web and dist.is_dir():
         options={"directory":dist,"html":True}
         # colcon symlink installs leave the files as symlinks into the source

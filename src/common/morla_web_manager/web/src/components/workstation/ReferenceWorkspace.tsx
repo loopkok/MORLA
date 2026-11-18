@@ -1,3 +1,4 @@
+import { componentPorts } from '../../lib/workcell'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { WorkstationModel } from '../ComposableTab'
@@ -22,7 +23,22 @@ import { WorkspaceIcon } from './WorkspaceIcon'
 import './reference.css'
 const pages=[['teleop','遥操控制'],['capture','数据采集'],['policy','训练与推理'],['composition','系统编排'],['library','组件库与驱动'],['diagnostics','会话与诊断']] as const
 function Card({title,children,aside}:{title:string;children:ReactNode;aside?:ReactNode}){return <section className="rw-card"><header><h3>{title}</h3>{aside}</header><div className="rw-card-body">{children}</div></section>}
-function Camera({m,id}:{m:WorkstationModel;id:string}){const [failed,setFailed]=useState(false);useEffect(()=>setFailed(false),[id,m.session?.session_id]);const sim=(m.device(id).backend||m.assembly.instances[id]?.backend)==='sim';return <div className="rw-camera"><div className="rw-camera-label">● {sim?'MuJoCo · ':''}{m.assembly.instances[id]?.display_name||id}</div>{!m.active?<div className="rw-view-empty">启动工作站后显示{sim?' MuJoCo 仿真':'相机'}画面</div>:sim?<SimPreview sessionId={m.session!.session_id} cameraId={id}/>:failed?<div className="rw-view-empty">相机画面暂不可用<button onClick={()=>setFailed(false)}>重试</button></div>:<img alt={id+' 实时画面'} src={`/api/v2/sessions/${m.session!.session_id}/cameras/${id}/stream`} onError={()=>setFailed(true)}/>}</div>}
+function Camera({m,id}:{m:WorkstationModel;id:string}){
+ const [failed,setFailed]=useState(false),[selected,setSelected]=useState('')
+ const ports=componentPorts(m.descriptor(m.assembly.instances[id])).preview||[]
+ const port=ports.includes(selected)?selected:ports[0]
+ useEffect(()=>setFailed(false),[id,port,m.session?.session_id])
+ const sim=(m.device(id).backend||m.assembly.instances[id]?.backend)==='sim'
+ const stream=`/api/v2/sessions/${m.session?.session_id}/cameras/${id}/stream?port=${encodeURIComponent(port||'')}`
+ return <div className="rw-camera">
+  <div className="rw-camera-label">● {sim?'MuJoCo · ':''}{m.assembly.instances[id]?.display_name||id}</div>
+  {ports.length>1&&<select aria-label={id+'预览通道'} value={port} onChange={event=>setSelected(event.target.value)}>{ports.map(name=><option key={name}>{name}</option>)}</select>}
+  {!m.active?<div className="rw-view-empty">启动工作站后显示相机画面</div>:sim?
+   <SimPreview sessionId={m.session!.session_id} cameraId={id} port={port}/>:
+   failed?<div className="rw-view-empty">相机画面暂不可用<button onClick={()=>setFailed(false)}>重试</button></div>:
+   <img alt={id+' 实时画面'} src={stream} onError={()=>setFailed(true)}/>}
+ </div>
+}
 export function ReferenceWorkspace({m,onOpenLegacy}:{m:WorkstationModel;onOpenLegacy?:(id:string)=>void}){
  const [page,setPage]=useState('teleop'),[tab,setTab]=useState('run'),[inspect,setInspect]=useState('devices'),[showLibrary,setShowLibrary]=useState(false),[showConfig,setShowConfig]=useState(false),[camera,setCamera]=useState(''),[manifest,setManifest]=useState(''),[normalization,setNormalization]=useState(''),[prompt,setPrompt]=useState('')
  useEffect(()=>{window.scrollTo({top:0,behavior:'instant'})},[page,tab])

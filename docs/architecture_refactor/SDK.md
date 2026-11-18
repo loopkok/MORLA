@@ -15,17 +15,21 @@
 
 目录发现支持 ament resource 类型 `morla_components`。resource 内容每行是 prefix 内的 manifest 相对路径；绝对路径、路径穿越和逃逸 symlink 拒绝。
 
-纯 Python 分发元数据使用 `morla.component_manifests` group；entry value 是**分发目录内的 JSON/YAML 相对文件路径**，不是 Python import reference。例如最终 wheel 的 `entry_points.txt`：
+纯 Python 插件可用标准 wheel 安装。把静态 `morla_plugin.json` 和描述文件放在同一个 Python 包内，通过 `package-data` 一起构建。MORLA 从 wheel 安装清单读取索引，发现时不会导入组件模块。
 
-```ini
-[morla.component_manifests]
-reference_arm = morla_reference/descriptor.json
-
-[morla.adapters]
-lab.reference.arm:fake = morla_reference.adapter:create_adapter
+```json
+{
+  "version": 1,
+  "resource_package": "morla_example_components",
+  "manifests": ["descriptors.json"]
+}
 ```
 
-前一 group 由 MORLA 作为静态数据元数据读取，不调用 EntryPoint.load；打包器应将相对资源路径原样写入已安装的分发元数据。后一 group 使用标准 Python entry-point factory，仅当精确 `plugin_id:backend` 被选中且 runtime 已占有资源锁时 load。安装时验证包来源，AssemblySpec 不接受 Python 路径或 shell。相同 ID/version 多重注册报歧义；不会按安装顺序任选其一。
+`resource_package` 供描述中的 `web.templates[].package` 和 `geometry.simulation.package` 引用。模板与模型路径相对于索引所在目录，且文件必须由该 wheel 安装。Python 工厂使用标准 entry point 格式，Adapter 名称为 `plugin_id:backend`。例如 `example.external.arm:fake = morla_example_components:adapter`。wheel 描述只匹配同一分发包提供的 Adapter。既有配置仍可通过 ament 发现。旧 `morla.component_manifests` 的手写路径元数据保留读取兼容。
+
+目录的 `diagnostics` 返回安装来源和错误详情。歧义组件身份不能被选中，其他身份继续可用。每个 wheel 使用独立的 `resource_package`。示例以常规 wheel 安装验收，editable 开发可先使用 ament 或构建 wheel。
+
+完整的外部夹爪、机械臂、样本传感器与双路相机见 [外部组件示例](../../examples/external_components/README.md)。
 
 `default_catalog()` 自动发现安装的静态 manifest。`Catalog.register()` 可用于隔离测试；Web 与 runtime 必须使用同一 trusted catalog。盲接回归在 `integration_repros.py::test_ir07_installed_blind_arm_web_gateway_recording_canary` 中创建独立分发元数据，实际完成自动发现、编译、启动、网关与落盘。
 
@@ -66,6 +70,12 @@ stop() -> bool | dict
 读取能力提供 `read(now_ns: int) -> dict`；可选操作能力提供 `operate(operation: str) -> bool | dict`，只允许 descriptor 声明的动作。操作幂等、取消状态、超时由 runtime 管理；不可中断 SDK 必须有独立停止/设备 watchdog 证据。
 
 `health` 至少返回 `ready / sample_ns / source / measured / synthetic`；actuator 返回具名顺序对应的 `values`。read 返回 `ports[port_id]`，样本含 `values` 或 JPEG `data`、源时间/有效性/来源。`fake` 不能标 measured；缓存 command echo 不能标实际反馈。传感器与图像原 payload 通过专用流落盘。
+
+### 端口角色和结构化样本
+
+描述可在 `port_roles` 声明 `feedback` 和 `command` 端口，以及 `preview`、`images`、`sensors` 端口数组。采集的显式选择优先；空列表表示关闭默认选择。位置型 Adapter 仍通过 `health().values` 提供与 canonical joints 一致的反馈顺序，并通过 `read().ports` 返回具名端口值。JPEG 相机预览可通过 `?port=wide` 选择端口。原单相机 URL 默认读取第一个可预览端口。
+
+非图像输出可声明 `sample_fields`。每个字段声明固定 `shape`、`dtype` 和可选 `unit`，标量使用空 shape。录制时在 `read().ports[port_id].fields` 返回同名字段，在端口样本提供 `sample_ns` 与有效性。标量 `valid` 可省略并继承端口有效性。需要特定形状的有效性掩码时，在声明与样本中显式提供。配置使用 `capture.sensors` 选择独立传感器流。模型观测维度仍由 `capture.state` 定义。
 
 ## 四、符合性测试
 

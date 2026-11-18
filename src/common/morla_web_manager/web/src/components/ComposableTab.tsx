@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { pluginBindingDefaults, preferredController, compatible, initial, label as componentLabel, normalise, parseWorkcellDocument, portLabel } from '../lib/workcell'
+import { componentPorts, pluginBindingDefaults, preferredController, compatible, initial, label as componentLabel, normalise, parseWorkcellDocument, portLabel } from '../lib/workcell'
 import type { Assembly, Binding, Component, Deployment, Device, Instance, Template, SimOptions } from '../lib/workcell'
 import './workcell.css'
 
@@ -49,12 +49,12 @@ function useWorkstationModel(visible:boolean){
  const [templates,setTemplates]=useState<Template[]>([])
  const [templateCache,setTemplateCache]=useState<Record<string,Assembly>>({})
  const active=!!session&&session.status!=='STOPPED', locked=active||busy||recovering
- const descriptor=(item?:Instance)=>catalog.find(d=>d.plugin_id===item?.plugin)
+ const descriptor=(item?:Instance)=>catalog.find(d=>d.plugin_id===item?.plugin&&d.plugin_version===(item.version||'1.0.0'))
  const instances=Object.entries(assembly.instances), actuators=instances.filter(([,i])=>descriptor(i)?.kind==='actuator'),inputs=instances.filter(([,i])=>descriptor(i)?.kind==='input')
  const endpoints:Endpoint[]=instances.flatMap(([id,item])=>Object.entries(descriptor(item)?.ports||{}).map(([name,port])=>({ref:id+'.'+name,instance:id,port})))
  const sources=endpoints.filter(e=>descriptor(assembly.instances[e.instance])?.kind==='input'&&e.port.direction==='output')
  const targets=endpoints.filter(e=>descriptor(assembly.instances[e.instance])?.kind==='actuator'&&e.port.direction==='input')
- const rootFrame=(item:Instance)=>{const d=descriptor(item);return d?.kind==='sensor'&&d.ports.rgb?'optical':d?.geometry?.frames?.includes('base')?'base':d?.geometry?.frames?.includes('mount')?'mount':undefined}
+ const rootFrame=(item:Instance)=>{const d=descriptor(item);return d?.kind==='sensor'&&d.geometry?.frames?.includes('optical')?'optical':d?.geometry?.frames?.includes('base')?'base':d?.geometry?.frames?.includes('mount')?'mount':undefined}
  const mountable=instances.filter(([,item])=>descriptor(item)?.kind!=='input').flatMap(([id,item])=>rootFrame(item)?[id+'.'+rootFrame(item)]:[])
  const frames=['world',...instances.filter(([,i])=>descriptor(i)?.kind!=='input').flatMap(([id,item])=>(descriptor(item)?.geometry?.frames||[]).map(frame=>id+'.'+frame))]
  const invalidate=()=>{draftEpoch.current++;checkAbort.current?.abort();setCheckedSnapshot('');setCheckError('');setCheckIssues([]);setResolved(null);setPreflight(null)}
@@ -69,13 +69,13 @@ function useWorkstationModel(visible:boolean){
   catch(e){if(e instanceof WorkstationError&&e.detail==='assembly revision conflict')void request<typeof saved>('/assemblies').then(setSaved).catch(()=>{});const text=(e as Error).message;setError(true);setMessage(text);if(!pending)setErrorDetails(e instanceof WorkstationError?text+'\n\n接口详情：\n'+JSON.stringify(e.detail,null,2):text);setRecords(old=>old.map(r=>r.id===id?{...r,status:text.includes('待确认')?'待确认':'未完成',message:text}:r))}
   finally{pendingActions.current.delete(title);setBusy(pendingActions.current.size>0)}
  }
- const applySaved=(item:{assembly:Assembly;deployment?:Deployment;resolved:Resolved})=>{invalidate();const next=normalise(item.assembly),migrated=JSON.stringify(next.instances)!==JSON.stringify(item.assembly.instances);setAssembly(next);setDeployment(item.deployment||{});setResolved(migrated?null:item.resolved);setSavedRevision(item.assembly.revision);setSavedHash(migrated?'':item.resolved.assembly_hash);setSavedSnapshot(snapshot(migrated?item.assembly:next,item.deployment||{}));setTemplate(templates.find(t=>t.assembly_id===next.assembly_id)?.id||'');if(migrated)setMessage('已更新为统一手柄按键，请保存新版本后启动。')}
+ const applySaved=(item:{assembly:Assembly;deployment?:Deployment;resolved:Resolved}, components=catalog)=>{invalidate();const next=normalise(item.assembly,components),migrated=JSON.stringify(next.instances)!==JSON.stringify(item.assembly.instances);setAssembly(next);setDeployment(item.deployment||{});setResolved(migrated?null:item.resolved);setSavedRevision(item.assembly.revision);setSavedHash(migrated?'':item.resolved.assembly_hash);setSavedSnapshot(snapshot(migrated?item.assembly:next,item.deployment||{}));setTemplate(templates.find(t=>t.assembly_id===next.assembly_id)?.id||'');if(migrated)setMessage('已更新为统一手柄按键，请保存新版本后启动。')}
  useEffect(()=>{
-  request<{components:Component[]}>('/components').then(x=>setCatalog(x.components)).catch(e=>{setError(true);setMessage(e.message)})
+  const components=request<{components:Component[]}>('/components').then(x=>{setCatalog(x.components);return x.components}).catch(e=>{setError(true);setMessage(e.message);return []})
   request<typeof saved>('/assemblies').then(setSaved).catch(e=>{setError(true);setMessage('读取已保存配置失败：'+e.message)})
   request<Template[]>('/templates').then(items=>{setTemplates(items);setTemplate(current=>current||items[0]?.id||'')}).catch(e=>{setError(true);setMessage(e.message)})
   const epoch=draftEpoch.current
-  void request<Session|null>('/active-session').then(async current=>{if(!current||current.status==='STOPPED'||!current.assembly_id||!current.revision)return;const item=await request<{assembly:Assembly;deployment?:Deployment;resolved:Resolved}>(`/assemblies/${current.assembly_id}/revisions/${current.revision}`);if(epoch===draftEpoch.current)applySaved(item);setSession(current);setStage('run')}).catch(e=>{setError(true);setMessage(e.message)}).finally(()=>setRecovering(false))
+  void request<Session|null>('/active-session').then(async current=>{if(!current||current.status==='STOPPED'||!current.assembly_id||!current.revision)return;const item=await request<{assembly:Assembly;deployment?:Deployment;resolved:Resolved}>(`/assemblies/${current.assembly_id}/revisions/${current.revision}`);const list=await components;if(epoch===draftEpoch.current)applySaved(item,list);setSession(current);setStage('run')}).catch(e=>{setError(true);setMessage(e.message)}).finally(()=>setRecovering(false))
  },[])
  useEffect(()=>{setTemplate(templates.find(t=>t.assembly_id===assembly.assembly_id)?.id||'')},[templates,assembly.assembly_id])
  const setInstance=(id:string,item:Instance)=>changed({...assembly,instances:{...assembly.instances,[id]:item}})
@@ -84,16 +84,27 @@ function useWorkstationModel(visible:boolean){
   const root=d.kind==='input'?(d.plugin_id.includes('quest')?'quest':d.plugin_id.includes('vader')?'pad':'input'):d.kind==='sensor'?'camera':d.plugin_id.includes('hand')?'hand':d.plugin_id.includes('gripper')||d.plugin_id.includes('epg')?'gripper':'arm'
   let id=root,n=2;while(assembly.instances[id])id=root+'_'+n++
   const next=structuredClone(assembly);next.instances[id]={plugin:d.plugin_id,version:d.plugin_version,backend:d.backend_variants?.fake?.available!==false&&d.backend_variants?.fake?'fake':Object.keys(d.backend_variants||{}).find(k=>d.backend_variants![k].available!==false)}
-  if(d.kind==='actuator'){next.capture.state.push(id+'.position');const target=d.ports.closure?'closure':d.ports.position_target?'position_target':Object.entries(d.ports).find(([,p])=>p.direction==='input')?.[0];if(target)next.capture.action.push(id+'.'+target)}
-  if(d.ports.rgb){next.capture.images[id]=id+'.rgb';next.instances[id].parameters={width:640,height:480,fps:30}}
-  const rootFrame=d.kind==='sensor'&&d.ports.rgb?'optical':d.geometry?.frames?.includes('base')?'base':d.geometry?.frames?.includes('mount')?'mount':d.geometry?.frames?.includes('optical')?'optical':null
+  const {feedback,command,images=[],sensors=[]}=componentPorts(d)
+  if(d.kind==='actuator'){
+   if(feedback)next.capture.state.push(id+'.'+feedback)
+   const target=d.port_roles?command:d.ports.closure?'closure':command||Object.keys(d.ports).find(port=>d.ports[port].direction==='input')
+   if(target)next.capture.action.push(id+'.'+target)
+  }
+  if(!d.port_roles&&images.length===1&&images[0]==='rgb'){
+   next.instances[id].parameters=Object.fromEntries(Object.entries({width:640,height:480,fps:30})
+    .filter(([key])=>d.defaults?.[key]===undefined))
+  }
+  for(const port of images) next.capture.images[images.length===1?id:id+'__'+port]=id+'.'+port
+  if(sensors.length)next.capture.sensors=[...(next.capture.sensors||[]),...sensors.map(port=>id+'.'+port)]
+  const rootFrame=d.kind==='sensor'&&d.geometry?.frames?.includes('optical')?'optical':d.geometry?.frames?.includes('base')?'base':d.geometry?.frames?.includes('mount')?'mount':d.geometry?.frames?.includes('optical')?'optical':null
   if(rootFrame&&d.kind!=='input') next.mounts.push({child:id+'.'+rootFrame,parent:'world',transform:rootFrame==='optical'?[1.5,1.5,1.4,0,0,0,1]:[0,0,0,0,0,0,1]})
   changed(next);setSelectedDevice(id);setStage('devices');setTimeout(()=>document.querySelector<HTMLInputElement>('.wc-editor input[aria-label="设备显示名称"]')?.focus(),0)
  }
- async function remove(id:string){if(!await confirm(`移除设备 ${id}？\n相关控制链：${assembly.bindings.filter(b=>[b.source,b.target,b.deadman||''].some(x=>x.startsWith(id+'.'))).map(b=>b.id).join('、')||'无'}\n安装关系：${assembly.mounts.filter(m=>[m.child,m.parent].some(x=>x.startsWith(id+'.'))).map(m=>m.child+' → '+m.parent).join('、')||'无'}\n记录通道：${[...assembly.capture.state,...assembly.capture.action,...(assembly.capture.auxiliary||[]),...Object.values(assembly.capture.images)].filter(x=>x.startsWith(id+'.')).join('、')||'无'}\n该设备的控制组成员与部署项也将清理。`))return
+ async function remove(id:string){if(!await confirm(`移除设备 ${id}？\n相关控制链：${assembly.bindings.filter(b=>[b.source,b.target,b.deadman||''].some(x=>x.startsWith(id+'.'))).map(b=>b.id).join('、')||'无'}\n安装关系：${assembly.mounts.filter(m=>[m.child,m.parent].some(x=>x.startsWith(id+'.'))).map(m=>m.child+' → '+m.parent).join('、')||'无'}\n记录通道：${[...assembly.capture.state,...assembly.capture.action,...(assembly.capture.auxiliary||[]),...Object.values(assembly.capture.images),...(assembly.capture.sensors||[]).map(sensor=>typeof sensor==='string'?sensor:sensor.source||'')].filter(x=>x.startsWith(id+'.')).join('、')||'无'}\n该设备的控制组成员与部署项也将清理。`))return
   const ids=Object.keys(assembly.instances),index=ids.indexOf(id);setSelectedDevice(ids[index+1]||ids[index-1]||'')
   const next=structuredClone(assembly);delete next.instances[id];next.bindings=next.bindings.filter(b=>![b.source,b.target,b.deadman||''].some(x=>x.startsWith(id+'.')));next.mounts=next.mounts.filter(m=>![m.child,m.parent].some(x=>x.startsWith(id+'.')))
   next.capture.state=next.capture.state.filter(x=>!x.startsWith(id+'.'));next.capture.action=next.capture.action.filter(x=>!x.startsWith(id+'.'));next.capture.auxiliary=next.capture.auxiliary?.filter(x=>!x.startsWith(id+'.'));next.capture.images=Object.fromEntries(Object.entries(next.capture.images).filter(([,v])=>!v.startsWith(id+'.')))
+  if(next.capture.sensors)next.capture.sensors=next.capture.sensors.filter(item=>!(typeof item==='string'?item:item.source||'').startsWith(id+'.'))
   next.control_groups=Object.fromEntries(Object.entries(next.control_groups).map(([key,g])=>[key,{...g,members:g.members.filter(x=>x!==id)}] as const).filter(([,g])=>g.members.length))
   const dep=structuredClone(deployment);if(dep.instances)delete dep.instances[id];changeDeployment(dep);changed(next)
  }
@@ -176,7 +187,7 @@ function useWorkstationModel(visible:boolean){
   changed(next);setSelectedDevice(copy);setMessage('已复制设备设置。请单独核对连接身份、安装、控制链和记录通道。')
  }
  const nextStage=()=>setStage(stages[Math.min(stages.findIndex(s=>s.id===stage)+1,stages.length-1)].id)
- async function loadTemplate(){if(!template||!await confirm('载入预设将替换当前草稿，继续？'))return;const a=templateCache[template]||normalise(await request<Assembly>('/templates/'+template));setTemplateCache(cache=>({...cache,[template]:a}));const revision=saved.find(x=>x.assembly_id===a.assembly_id)?.revision||0;changed({...structuredClone(a),revision:revision+1});setDeployment({});setSavedRevision(revision);setSavedHash('');setMessage('已载入机器人与输入标定，可继续检查设备设置。')}
+ async function loadTemplate(){if(!template||!await confirm('载入预设将替换当前草稿，继续？'))return;const a=templateCache[template]||normalise(await request<Assembly>('/templates/'+template),catalog);setTemplateCache(cache=>({...cache,[template]:a}));const revision=saved.find(x=>x.assembly_id===a.assembly_id)?.revision||0;changed({...structuredClone(a),revision:revision+1});setDeployment({});setSavedRevision(revision);setSavedHash('');setMessage('已载入机器人与输入标定，可继续检查设备设置。')}
  async function check(){
   checkAbort.current?.abort();const abort=new AbortController();checkAbort.current=abort
   const epoch=draftEpoch.current,key=snapshot(assembly,deployment);setCheckError('');setPreflight(null);setCheckedSnapshot('');setCheckIssues([])
@@ -277,7 +288,7 @@ function useWorkstationModel(visible:boolean){
 
 
  async function loadImport(raw:unknown){
-  const document=parseWorkcellDocument(raw),a=document.assembly
+  const document=parseWorkcellDocument(raw,catalog),a=document.assembly
   if(!await confirm('载入配置并替换当前未保存的修改？'))return
   changed(normalise(a));setDeployment(document.deployment||{});setSavedRevision(saved.find(x=>x.assembly_id===a.assembly_id)?.revision||0);setSavedHash('');setMessage('配置已导入，请检查表单并保存新版本。');setStage('devices')
  }

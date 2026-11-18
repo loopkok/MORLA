@@ -196,6 +196,38 @@ class RuntimeSession:
         for key, instance in self.instances.items():
             backend, plugin = instance.get('backend', 'fake'), instance['plugin_id']
             missing = []
+            if instance.get('plugin_distribution') and backend in {'real', 'fake', 'sim'}:
+                from .plugins import adapter_entry
+                try:
+                    entry = adapter_entry(instance)
+                except ValueError as exc:
+                    missing.append(str(exc))
+                    entry = None
+                simulation = instance.get('geometry', {}).get('simulation') if backend == 'sim' else None
+                if entry is None:
+                    if not simulation:
+                        missing.append('installed_adapter_entry_point:' + plugin + ':' + backend)
+                    else:
+                        if module_missing('mujoco'):
+                            missing.append('mujoco')
+                        provider = simulation.get('provider')
+                        if provider:
+                            from importlib import metadata
+                            entries = metadata.entry_points(group='morla.simulation_scenes')
+                            if sum(item.name == provider for item in entries) != 1:
+                                missing.append('simulation_scene_provider:' + provider)
+                        else:
+                            from morla_core.resource_locator import resolve_plugin_resource, ResourceLookupError
+                            try:
+                                side = instance.get('parameters', {}).get('side', 'left')
+                                path = simulation['path'].format(side=side)
+                                resolve_plugin_resource(simulation['package'], path)
+                            except (ResourceLookupError, KeyError, ValueError) as exc:
+                                missing.append('simulation_model:' + str(exc))
+                checks.append({'instance_id': key, 'backend': backend, 'backend_available': not missing,
+                               'missing': missing, 'probe': 'installed_adapter_metadata_only_dependencies_unchecked',
+                               'render_context_verified': None})
+                continue
             if backend == 'sim':
                 if module_missing('mujoco'): missing.append('mujoco')
                 if (instance.get('kind') == 'sensor' and
@@ -265,7 +297,8 @@ class RuntimeSession:
                     adapter = load_installed_adapter(copy.deepcopy(instance), context)
                     if adapter is not None:
                         self.adapters[key] = adapter
-                if any(row.get('backend') == 'sim' for row in self.instances.values()):
+                if any(row.get('backend') == 'sim' and key not in self.adapters
+                       for key, row in self.instances.items()):
                     from .sim_mujoco import make_sim_adapters
                     for key, adapter in make_sim_adapters(self).items():
                         self.adapters.setdefault(key, adapter)

@@ -85,6 +85,7 @@ def _deployment_ranges(instance,source,body):
         if actuator is not None:actuator.set('ctrlrange',bounds)
 
 def build_scene(resolved,output=None,timestep=0.002):
+    from morla_core.contracts.port_roles import image_ports
     import math
     if not math.isfinite(timestep) or timestep<=0:raise ValueError('timestep must be finite and positive')
     root=ET.Element('mujoco',{'model':resolved['assembly_id']})
@@ -98,8 +99,9 @@ def build_scene(resolved,output=None,timestep=0.002):
     for instance in resolved['instances']:
         iid=instance['instance_id'];plugin=instance['plugin_id'];side=instance.get('parameters',{}).get('side','left')
         if not re.fullmatch('[a-z][a-z0-9_-]*',iid):raise ValueError('Invalid instance name')
-        if instance.get('kind')=='sensor' and instance.get('ports',{}).get('rgb',{}).get('semantic')=='image':
-            wrapper=ET.Element('body',{'name':iid+'__mount'});ET.SubElement(wrapper,'camera',{'name':iid+'__rgb','pos':'0 0 0','quat':'1 0 0 0'})
+        if instance.get('kind')=='sensor' and (images := image_ports(instance)):
+            wrapper=ET.Element('body',{'name':iid+'__mount'})
+            ET.SubElement(wrapper,'camera',{'name':iid+'__'+images[0],'pos':'0 0 0','quat':'1 0 0 0'})
             wrappers[iid]=wrapper;frames[iid+'.optical']=wrapper;world.append(wrapper);continue
         if instance.get('kind')!='actuator':continue
         source,path,body,flange=_source_component(instance,side)

@@ -1,3 +1,4 @@
+import { componentPorts } from './workcell'
 import type { Assembly, Binding, Component, Deployment } from './workcell'
 export const stages=[{id:'devices',title:'设备选型',note:'选择设备与运行方式'},{id:'geometry',title:'连接与标定',note:'连接身份、安装与坐标'},{id:'control',title:'遥操配置',note:'输入 → 控制模式 → 执行器'},{id:'capture',title:'数据记录',note:'观测、动作与图像'},{id:'check',title:'检查',note:'检查配置并保存版本'},{id:'run',title:'运行',note:'初始化、遥操与运行反馈'}]
 export function snapshot(assembly:Assembly,deployment:Deployment){return JSON.stringify({assembly,deployment},(_key,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b))):value)}
@@ -61,10 +62,10 @@ export function capSummary(binding:Binding,assembly:Assembly,deployment:Deployme
 }
 // Camera selection follows actuator mode, rather than the presence of a spare simulated sensor.
 export function workspaceCameras(assembly:Assembly,deployment:Deployment,catalog:Component[]){
- const entries=Object.entries(assembly.instances),descriptor=(plugin:string)=>catalog.find(c=>c.plugin_id===plugin)
+ const entries=Object.entries(assembly.instances),descriptor=(item:Assembly['instances'][string])=>catalog.find(c=>c.plugin_id===item.plugin&&c.plugin_version===(item.version||'1.0.0'))
  const backend=(id:string)=>deployment.instances?.[id]?.backend||assembly.instances[id].backend||'fake'
- const simulated=entries.some(([id,item])=>descriptor(item.plugin)?.kind==='actuator'&&backend(id)==='sim')
- const cameras=entries.filter(([,item])=>descriptor(item.plugin)?.ports.rgb?.semantic==='image')
+ const simulated=entries.some(([id,item])=>descriptor(item)?.kind==='actuator'&&backend(id)==='sim')
+ const cameras=entries.filter(([,item])=>(componentPorts(descriptor(item)).preview?.length||0)>0)
  return {simulated,cameras,candidates:cameras.filter(([id])=>simulated?backend(id)==='sim':backend(id)!=='sim')}
 }
 export const deviceCategories=[['input','输入设备'],['arm','机械臂'],['end','末端'],['whole','整机'],['camera','相机'],['sensor','传感器']] as const

@@ -252,7 +252,9 @@ def test_installed_manifest_discovered_without_import(tmp_path,monkeypatch):
     value=assembly();value['instances']={'third':{'plugin':'lab.installed.arm'}}
     assert compile_system(value)['feature_contract']['action_dim']==3
     (dist/'entry_points.txt').write_text('[morla.component_manifests]\narm = ../../arbitrary.py\n')
-    with pytest.raises(ValueError,match='relative JSON/YAML'):default_catalog()
+    invalid_catalog = default_catalog()
+    assert any(item['origin'] == 'legacy:morla-blind-fixture' for item in invalid_catalog.diagnostics)
+    assert invalid_catalog.get('morla.fake.arm')['kind'] == 'actuator'
 
 def test_group_identity_and_fault_policy_strict():
     value=assembly();value['control_groups']=[{'group_id':'duplicate','members':['a']},{'group_id':'duplicate','members':['b']}]

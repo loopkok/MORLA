@@ -10,6 +10,7 @@ from .parser import fields, finite_json
 from morla_core.coordinates import UNITY_LEFT_HANDED_BASIS_ID, validate_basis_change
 from morla_core.plugins.registry import default_catalog
 from morla_core.contracts.features import SchemaV3, ActionBlockV3
+from morla_core.contracts.port_roles import port_roles
 from morla_core.schema import StreamSpec, StateBlockSpec
 
 _ID = re.compile(r'^[a-z][a-z0-9_-]*$')
@@ -104,6 +105,19 @@ def compile_system(assembly, deployment=None, registry=None):
         if descriptor['backend_variants'][backend].get('requires'): diagnostics.append({'error_code':'BACKEND_DEPENDENCIES_UNCHECKED','path':'/instances/'+iid,'severity':'info','message':'Implementation registered; runtime preflight must verify '+', '.join(descriptor['backend_variants'][backend]['requires']),'instances':[iid]})
         if not available: diagnostics.append({'error_code':'BACKEND_UNAVAILABLE','path':'/instances/'+iid,'severity':'warning','message':backend+' backend is not installed/validated','instances':[iid]})
         instances[iid]={'instance_id':iid,'plugin_id':plugin,'plugin_version':descriptor['plugin_version'],'kind':descriptor['kind'],'backend':backend,'namespace':namespace,'role':row.get('role'),'parameters':parameters,'ports':descriptor['ports'],'joints':descriptor.get('joints',[]),'session_id':sid,'resources':resources,'command_modes':descriptor.get('command_modes',[]),'geometry':descriptor.get('geometry',{}),'operations':descriptor.get('operations',{}),'backend_available':available,'stop_policy':descriptor.get('resources',{}).get('stop_policy','unsupported')}
+        if 'port_roles' in descriptor:
+            instances[iid]['port_roles'] = descriptor['port_roles']
+        distribution = catalog.distribution(plugin, descriptor['plugin_version'])
+        if distribution:
+            instances[iid]['plugin_distribution'] = distribution
+            if descriptor.get('configuration_schema'):
+                from jsonschema import validate
+                from jsonschema.exceptions import SchemaError, ValidationError
+                try:
+                    validate(parameters, descriptor['configuration_schema'])
+                except (SchemaError, ValidationError) as exc:
+                    field = '/'.join(map(str, exc.absolute_path))
+                    raise CompilationError(exc.message, f'/instances/{iid}/parameters/{field}') from exc
     unknown=set(instance_bindings)-set(instances)
     if unknown: raise CompilationError('deployment references unknown/disabled instances: '+str(sorted(unknown)))
     mounts=assembly.get('mounts',[]); parents={}
@@ -232,14 +246,17 @@ def compile_system(assembly, deployment=None, registry=None):
 def _compile_capture(assembly,instances):
     capture=assembly.get('capture',{})
     fields(capture,{'state','action','images','sensors','dataset_fps','action_source','hold_frames','max_gap_ms','label_source','reference_clock','metadata','auxiliary'})
-    state_refs=capture.get('state',[i['instance_id']+'.position' for i in instances.values() if i['kind']=='actuator'])
-    action_refs=capture.get('action',[i['instance_id']+'.position_target' for i in instances.values() if i['kind']=='actuator'])
+    def defaults(role):
+        return [instance['instance_id']+'.'+name for instance in instances.values()
+                if instance['kind']=='actuator' and (name := port_roles(instance)[role])]
+    state_refs=capture.get('state',defaults('feedback'))
+    action_refs=capture.get('action',defaults('command'))
     stream_sources={}; streams={}; blocks={'state':[],'action':[]}; features={'state':[],'action':[]}; cameras={}
     def stream(instance,pid,port,key=None):
         key=key or instance['instance_id']+'__'+pid
         stream_sources[key]={'instance_id':instance['instance_id'],'port_id':pid}
         joint_names=tuple(j['name'] for j in instance['joints']) if len(instance['joints'])==port['dim'] else ()
-        streams[key]=StreamSpec(key,instance['namespace']+'/'+pid,'sensor_msgs/msg/CompressedImage' if port['semantic']=='image' else 'sensor_msgs/msg/JointState', (None,None,3) if port['semantic']=='image' else (port['dim'],),port.get('dtype','float64'),port.get('unit','ratio'),'sensor_data','arrival',True,'camera' if port['semantic']=='image' else ('command' if port['direction']=='input' else 'state'),joint_names)
+        streams[key]=StreamSpec(key,instance['namespace']+'/'+pid,'sensor_msgs/msg/CompressedImage' if port['semantic']=='image' else 'sensor_msgs/msg/JointState', (None,None,3) if port['semantic']=='image' else (port['dim'],),port.get('dtype','float64'),port.get('unit','ratio'),'sensor_data','arrival',not bool(port.get('sample_fields')),'camera' if port['semantic']=='image' else ('command' if port['direction']=='input' else 'state'),joint_names)
         return key
     for side,refs in (('state',state_refs),('action',action_refs)):
         if not isinstance(refs,list) or len(set(refs))!=len(refs): raise CompilationError('capture references must be unique list','/capture/'+side)
@@ -249,6 +266,8 @@ def _compile_capture(assembly,instances):
             if side=='state' and port['direction']!='output': raise CompilationError('state must reference output port',reference)
             if side=='action' and (port['direction']!='input' or instance['kind']!='actuator'): raise CompilationError('action must reference writable actuator input',reference)
             if port['semantic']=='image': raise CompilationError('images belong in capture.images',reference)
+            if port.get('sample_fields'):
+                raise CompilationError('named samples belong in capture.sensors', reference)
             dim=port['dim']; stream_key=stream(instance,pid,port)
             locals_=[j['name'] for j in instance['joints']] if len(instance['joints'])==dim else [f'value{i}' for i in range(dim)]
             names=[instance['instance_id']+'.'+pid+'.'+name for name in locals_]
@@ -256,8 +275,9 @@ def _compile_capture(assembly,instances):
                 blocks[side].append(StateBlockSpec(reference,stream_key,dim,tuple(names),port['unit'],tuple(range(offset,offset+dim)),tuple(locals_),(),tuple(range(dim))))
             else:
                 state_indexes=[]
+                feedback = port_roles(instance)['feedback']
                 for name in locals_:
-                    matches=[idx for idx,f in enumerate(features['state']) if f['instance_id']==instance['instance_id'] and f['local_name']==name and f['port_id']=='position']
+                    matches=[idx for idx,f in enumerate(features['state']) if f['instance_id']==instance['instance_id'] and f['local_name']==name and f['port_id']==feedback]
                     if len(matches)==1: state_indexes.append(matches[0])
                 semantics=_action_semantics(port)
                 source_indices=tuple(state_indexes) if len(state_indexes)==dim and semantics!='velocity' else ()
@@ -265,7 +285,10 @@ def _compile_capture(assembly,instances):
             for name,local in zip(names,locals_):
                 features[side].append({'feature_id':name,'name':name,'instance_id':instance['instance_id'],'port_id':pid,'local_name':local,'unit':port['unit'],'semantic':_action_semantics(port) if side=='action' else port['semantic']})
             offset+=dim
-    images=capture.get('images',{})
+    images=capture.get('images',{
+        instance['instance_id'] + ('__'+name if len(names)>1 else ''): instance['instance_id']+'.'+name
+        for instance in instances.values() if (names := instance.get('port_roles',{}).get('images'))
+        for name in names})
     if not isinstance(images,dict): raise CompilationError('capture images must map dataset keys to instance ports')
     for label,reference in sorted(images.items()):
         _id(label,'/capture/images')
@@ -275,21 +298,36 @@ def _compile_capture(assembly,instances):
         cameras[label]={'instance_id':instance['instance_id'],'port_id':pid,'dataset_key':label,'unit':'rgb','model_slot':None}
     auxiliary=capture.get('auxiliary',[])
     sensor_specs=[]
-    for sensor in capture.get('sensors',[]):
+    sensor_refs = capture.get('sensors', [
+        instance['instance_id']+'.'+name for instance in instances.values()
+        for name in port_roles(instance)['sensors']])
+    for sensor in sensor_refs:
         if isinstance(sensor,str):
             instance,pid,port=_endpoint(sensor,instances,'output'); key=stream(instance,pid,port)
-            sensor_specs.append({'sensor_key':key,'source_stream':key,'required':False,'fields':{'values':{'shape':[port['dim']],'dtype':port.get('dtype','float64')}}})
+            sample_fields = port.get('sample_fields')
+            spec = {'sensor_key':key,'source_stream':key,'required':False,
+                    'fields':sample_fields or {'values':{'shape':[port['dim']],'dtype':port.get('dtype','float64')}}}
+            if sample_fields:
+                spec['codec'] = 'named_fields_v1'
+            sensor_specs.append(spec)
         elif isinstance(sensor,dict):
             fields(sensor,{'sensor_key','source','source_stream','required','fields','unit','codec'},('sensor_key','fields'))
             spec=deepcopy(sensor)
             if 'source' in spec:
                 instance,pid,port=_endpoint(spec.pop('source'),instances,'output'); spec['source_stream']=stream(instance,pid,port)
+                if port.get('sample_fields'):
+                    if spec['fields'] != port['sample_fields']:
+                        raise CompilationError('sensor fields differ from declared port', pid)
+                    spec['codec'] = 'named_fields_v1'
             if spec.get('source_stream') not in streams: raise CompilationError('sensor source stream must resolve to captured output')
             sensor_specs.append(spec)
         else: raise CompilationError('sensor specification must be port reference or mapping')
     if not isinstance(auxiliary,list): raise CompilationError('auxiliary must be a list of port references')
     for reference in auxiliary:
-        instance,pid,port=_endpoint(reference,instances,'output'); stream(instance,pid,port)
+        instance,pid,port=_endpoint(reference,instances,'output')
+        if port.get('sample_fields'):
+            raise CompilationError('named samples belong in capture.sensors', reference)
+        stream(instance,pid,port)
     action_source={'dispatched_command':'dispatched','authorized_command':'authorized','requested_command':'requested'}.get(capture.get('action_source','command'),capture.get('action_source','command'))
     schema=SchemaV3(assembly['assembly_id'],'composable',tuple(streams[k] for k in sorted(streams)),tuple(blocks['state']),tuple(blocks['action']),tuple(cameras),capture.get('dataset_fps',30),action_source,capture.get('hold_frames',10),capture.get('max_gap_ms',100.0),sensor_specs=tuple(sensor_specs),metadata={'assembly_id':assembly['assembly_id'],'assembly_revision':assembly['revision'],'label_source':capture.get('label_source','dispatched'),'stream_sources':stream_sources})
     return schema,{'state_features':features['state'],'action_features':features['action'],'cameras':cameras,'state_dim':schema.state_dim,'action_dim':schema.action_dim}

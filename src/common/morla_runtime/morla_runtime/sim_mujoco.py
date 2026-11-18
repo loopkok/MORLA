@@ -10,6 +10,8 @@ from pathlib import Path
 import threading
 import time
 
+from morla_core.contracts.port_roles import port_roles, image_ports
+
 
 def _builder():
     try:
@@ -65,6 +67,8 @@ class MujocoDeviceSession:
         self.indices = {}
         self.command_limits = {}
         self.targets = {}
+        self.feedback_ports = {row['instance_id']: port_roles(row)['feedback'] or 'position'
+                               for row in actuator_rows}
         for row in actuator_rows:
             key = row['instance_id']
             names = [joint['name'] for joint in row['joints']]
@@ -97,8 +101,10 @@ class MujocoDeviceSession:
             self.targets[key] = self.data.qpos[qpos].copy()
         self.cameras = [row for row in self.runtime.instances.values()
                         if row.get('backend') == 'sim' and row.get('kind') == 'sensor'
-                        and (row.get('kind')=='sensor' and row.get('ports',{}).get('rgb',{}).get('semantic')=='image')]
-        self.camera_ids = {row['instance_id']: mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_CAMERA, row['instance_id'] + '__rgb') for row in self.cameras}
+                        and image_ports(row)]
+        self.camera_ports = {row['instance_id']: image_ports(row)[0] for row in self.cameras}
+        self.camera_ids = {key: mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_CAMERA, key + '__' + port)
+                           for key, port in self.camera_ports.items()}
         if any(value < 0 for value in self.camera_ids.values()):
             raise ValueError('SIM_CAMERA_MAPPING_MISSING')
         mujoco.mj_forward(self.model, self.data)
@@ -125,7 +131,8 @@ class MujocoDeviceSession:
                       'simulation_mode': self.mode,
                       'simulation_level': ('kinematic_collision_unverified' if self.mode == 'kinematic' else self.artifact['simulation_level']),
                       'scene_id': id(self), 'ports': {}}
-            for name, vector, unit in (('position', position, 'rad'), ('velocity', velocity, 'rad/s')):
+            feedback = self.feedback_ports[key]
+            for name, vector, unit in ((feedback, position, 'rad'), ('velocity', velocity, 'rad/s')):
                 sample['ports'][name] = {'values': vector, 'sample_ns': now, 'source': 'simulation',
                                          'valid': True, 'measured': False, 'synthetic': True, 'unit': unit}
             values[key] = sample
@@ -283,7 +290,7 @@ class MujocoDeviceSession:
                     sample = {'ready': True, 'sample_ns': now, 'source': 'simulation', 'synthetic': True,
                               'measured': False, 'scene_id': id(self), 'simulation_time_s': simtime,
                               'simulation_mode': self.mode,
-                              'simulation_level': ('kinematic_collision_unverified' if self.mode == 'kinematic' else self.artifact['simulation_level']), 'ports': {'rgb': image}}
+                              'simulation_level': ('kinematic_collision_unverified' if self.mode == 'kinematic' else self.artifact['simulation_level']), 'ports': {self.camera_ports[key]: image}}
                     with self.state_lock:
                         self.camera_cache[key] = sample
                     last[key] = simtime
@@ -412,7 +419,7 @@ def make_sim_adapters(runtime):
         if set(adapters) != {row['instance_id'] for row in selected}:
             raise ValueError('SIM_SCENE_PROVIDER_INCOMPLETE')
         return adapters
-    if any(row.get('kind') != 'actuator' and not (row.get('kind')=='sensor' and row.get('ports',{}).get('rgb',{}).get('semantic')=='image') for row in selected):
+    if any(row.get('kind') != 'actuator' and not (row.get('kind')=='sensor' and image_ports(row)) for row in selected):
         raise ValueError('SIM_SENSOR_PROVIDER_UNAVAILABLE')
     session = MujocoDeviceSession(runtime)
     return {row['instance_id']: MujocoAdapter(row, session) for row in selected}

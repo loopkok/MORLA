@@ -6,11 +6,18 @@ MORLA_LAYER=pure
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --layer) MORLA_LAYER="$2"; shift 2 ;;
-    --help) echo 'test_composable.sh --layer pure|fake|sim|web|learning [pytest arguments]'; exit 0 ;;
+    --help) echo 'test_composable.sh --layer pure|fake|external|sim|web|learning [pytest arguments]'; exit 0 ;;
     *) break ;;
   esac
 done
 export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
+if [[ "$MORLA_LAYER" == external ]]; then
+  # Exercise the composable Web entry point without adding any robot packages.
+  for package in morla_core morla_runtime morla_input morla_teleop morla_learning morla_data_collect morla_web_manager; do
+    export PYTHONPATH="$MORLA_ROOT/src/common/$package${PYTHONPATH:+:$PYTHONPATH}"
+  done
+  exec "$MORLA_PYTHON" -m pytest -q "$MORLA_ROOT/src/common/morla_web_manager/test/test_external_wheel.py" "$@"
+fi
 for package_dir in "$MORLA_ROOT"/src/common/* "$MORLA_ROOT"/src/robots/*/*; do
   [[ -f "$package_dir/package.xml" ]] && export PYTHONPATH="$package_dir${PYTHONPATH:+:$PYTHONPATH}"
 done

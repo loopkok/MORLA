@@ -154,6 +154,13 @@ def resolve_plugin_resource(package_name: str, relative_path: str) -> Path:
     try:
         package_share(package_name)
     except ResourceLookupError:
+        from morla_core.plugins.manifest_loader import wheel_resource
+        try:
+            wheel_path = wheel_resource(package_name, relative_path)
+        except (OSError, ValueError) as exc:
+            raise ResourceLookupError(str(exc)) from exc
+        if wheel_path is not None:
+            return wheel_path
         matches = [p.parent for p in (morla_source_root()/'src').rglob('package.xml')
                    if p.parent.name == package_name and ET.parse(p).findtext('name') == package_name]
         if len(matches) != 1:

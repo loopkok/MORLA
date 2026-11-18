@@ -572,6 +572,10 @@ class ComposableService:
     def capture_tick(self):
         schema=self.session.resolved["capture_schema"]
         sources=schema.get("metadata",{}).get("stream_sources",{})
+        samples = {}
+        sensors = {}
+        for sensor in schema.get('sensor_specs', []):
+            sensors.setdefault(sensor.get('source_stream'), []).append(sensor)
         for stream in schema.get("streams",[]):
             source=stream.get("source_kind")
             key=stream["stream_key"]
@@ -591,7 +595,10 @@ class ComposableService:
                 port_id=camera.get("port_id",port_id)
             adapter=self.session.adapters.get(instance_id)
             if adapter is None: continue
-            sample=adapter.read(self.clock()) if hasattr(adapter,"read") else adapter.health(self.clock())
+            if instance_id not in samples:
+                samples[instance_id] = (adapter.read(self.clock()) if hasattr(adapter,"read")
+                                        else adapter.health(self.clock()))
+            sample = samples[instance_id]
             port=sample.get("ports",{}).get(port_id,{})
             source_ns=port.get('received_ns',port.get('sample_ns',sample.get('sample_ns')))
             if type(source_ns) is not int or not 0<=self.clock()-source_ns<=self.session.max_age_ns: continue
@@ -602,6 +609,17 @@ class ComposableService:
                     self.recorder.append_camera(label,port["data"],timestamp=timestamp)
                     self.capture_source_ns[key]=source_ns
             elif source in {"state","command_echo"}:
+                sensor_specs = sensors.get(key, ())
+                if any(spec.get('codec') == 'named_fields_v1' for spec in sensor_specs):
+                    fields = port.get('fields')
+                    if fields is None and not port.get('valid'):
+                        continue
+                    fields = dict(fields) if isinstance(fields, dict) else {}
+                    fields.setdefault('valid', port.get('valid', True))
+                    for spec in sensor_specs:
+                        self.recorder.append_sensor(spec['sensor_key'], fields, timestamp=timestamp)
+                    self.capture_source_ns[key] = source_ns
+                    continue
                 values=port.get("values")
                 if values is None and port_id=="position": values=sample.get("values")
                 if values is not None:
@@ -613,12 +631,11 @@ class ComposableService:
                     provenance['received_time_ns']=self.clock()
                     self.recorder.append_stream(key,values,timestamp=timestamp,provenance=provenance)
                     self.capture_source_ns[key]=source_ns
-                    for sensor in schema.get('sensor_specs',[]):
-                        if sensor.get('source_stream')==key:
-                            import numpy as np
-                            shape=sensor.get('fields',{}).get('values',{}).get('shape',[len(values)])
-                            self.recorder.append_sensor(sensor['sensor_key'],
-                                {'values':np.asarray(values).reshape(shape),'valid':np.asarray(bool(provenance['valid']))},timestamp=timestamp)
+                    for sensor in sensor_specs:
+                        import numpy as np
+                        shape=sensor.get('fields',{}).get('values',{}).get('shape',[len(values)])
+                        self.recorder.append_sensor(sensor['sensor_key'],
+                            {'values':np.asarray(values).reshape(shape),'valid':np.asarray(bool(provenance['valid']))},timestamp=timestamp)
 
     def capture_command(self,command,receipt):
         if not self.recorder or not receipt.get("accepted"): return

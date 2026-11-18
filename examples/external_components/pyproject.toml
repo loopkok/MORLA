@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=70.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "morla-example-components"
+version = "1.0.0"
+requires-python = ">=3.10"
+
+[project.entry-points."morla.adapters"]
+"example.external.arm:fake" = "morla_example_components:adapter"
+"example.external.gripper:fake" = "morla_example_components:adapter"
+"example.external.sensor:fake" = "morla_example_components:adapter"
+"example.external.camera:fake" = "morla_example_components:adapter"
+
+[project.entry-points."morla.kinematics"]
+"example.external.arm" = "morla_example_components:kinematics"
+
+[tool.setuptools.package-data]
+morla_example_components = ["*.json", "*.xml"]

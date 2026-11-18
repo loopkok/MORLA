@@ -1,6 +1,8 @@
 """Reference fake adapters. They never claim physical measurements."""
 import copy
 
+from morla_core.contracts.port_roles import port_roles
+
 
 class FakeAdapter:
     backend = 'fake'
@@ -18,6 +20,7 @@ class FakeAdapter:
 
     def read(self, now_ns):
         ports = {}
+        feedback = port_roles(self.instance)["feedback"]
         for name, definition in self.instance.get('ports', {}).items():
             if definition.get('direction') != 'output':
                 continue
@@ -26,7 +29,7 @@ class FakeAdapter:
                 sample.update(data=_FAKE_JPEG, encoding='jpeg', width=8, height=8)
             else:
                 dim = int(definition.get('dim', len(self.values)))
-                sample['values'] = list(self.values) if name == 'position' and len(self.values) == dim else [0.0] * dim
+                sample['values'] = list(self.values) if name == feedback and len(self.values) == dim else [0.0] * dim
                 sample['unit'] = definition.get('unit', '')
             ports[name] = sample
         return {'ports': ports, 'sample_ns': now_ns, 'source': 'fake', 'synthetic': True, 'measured': False}

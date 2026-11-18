@@ -238,21 +238,9 @@ src/robots/<vendor>/morla_<device>/       # 执行器；输入/传感器也可�
 
 静态发现有两种方式：
 
-- ament resource 类型 `morla_components`；resource 文件每行指向安装 prefix 内一个 manifest 的相对路径。`setup.py` 要安装 manifest 和 ament index 条目。接入包不得使用绝对路径、路径穿越或逃逸 symlink；当前 ament loader 主要校验解析后仍在 prefix 内，Python manifest loader 另有相对路径检查。
-- Python distribution 元数据 group `morla.component_manifests`；value 是分发目录内 JSON/YAML 的相对路径，**不是 Python import reference**。检查实际安装的 `entry_points.txt` 和包数据，不能只写一个源码文件就假定发现成功。
-
-示意安装元数据：
-
-```ini
-[morla.component_manifests]
-custom_arm = morla_custom_arm/descriptor.json
-
-[morla.adapters]
-vendor.arm:real = morla_custom_arm.adapter:create_adapter
-vendor.arm:fake = morla_custom_arm.fake:create_adapter
-```
-
-adapter entry point 使用标准 Python factory。manifest group 是 MORLA 自己读取的静态数据格式，打包工具需要能原样保留该相对路径；不能不经验证就套用普通对象 entry point 的约束。相同 ID/version 重复注册应报错，不能依赖安装顺序选取。
+- ament resource 类型 `morla_components`；resource 文件每行指向安装 prefix 内一个 manifest 的相对路径。`setup.py` 要安装 manifest 和 ament index 条目。声明使用 prefix 内的相对路径。ament symlink 安装可指回源码。wheel 使用自身安装清单约束资源归属。
+- 标准 Python wheel 使用包数据中的 `morla_plugin.json` 静态索引和标准工厂 entry point。模板、模型和描述一并列为包数据。安装后由 MORLA 自动发现。安装格式和完整例子见 [组件 SDK](architecture_refactor/SDK.md) 与 [外部组件示例](../examples/external_components/README.md)。
+- 目录发现只读静态数据。工厂在该组件被选中并启动时加载。外部设备可声明 `port_roles`、自定义端口名和多字段采集样本。
 
 ### 4.3 实际 Adapter ABI
 

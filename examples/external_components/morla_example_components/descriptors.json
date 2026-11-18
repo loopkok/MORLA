@@ -1,0 +1,205 @@
+[
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "example.external.arm",
+    "plugin_version": "1.0.0",
+    "kind": "actuator",
+    "ports": {
+      "angle": {
+        "direction": "output",
+        "semantic": "joint_state",
+        "dim": 1,
+        "unit": "rad"
+      },
+      "angle_goal": {
+        "direction": "input",
+        "semantic": "joint_targets",
+        "dim": 1,
+        "unit": "rad"
+      }
+    },
+    "port_roles": {
+      "feedback": "angle",
+      "command": "angle_goal"
+    },
+    "backend_variants": {
+      "fake": {
+        "available": true
+      }
+    },
+    "joints": [
+      {
+        "name": "axis",
+        "unit": "rad",
+        "lower": -0.5,
+        "upper": 0.5
+      }
+    ],
+    "command_modes": [
+      "position"
+    ],
+    "geometry": {
+      "frames": [
+        "base",
+        "flange"
+      ],
+      "controller_capabilities": [
+        "cartesian_ik"
+      ],
+      "simulation": {
+        "package": "morla_example_components",
+        "path": "arm.xml",
+        "root_body": "base",
+        "flange_body": "tool"
+      }
+    },
+    "web": {
+      "label": "External demo arm",
+      "templates": [
+        {
+          "id": "external-components",
+          "title": "External components",
+          "package": "morla_example_components",
+          "path": "assembly.json"
+        }
+      ]
+    },
+    "configuration_schema": {
+      "type": "object",
+      "properties": {
+        "rate_hz": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "defaults": {
+      "rate_hz": 50
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "example.external.gripper",
+    "plugin_version": "1.0.0",
+    "kind": "actuator",
+    "ports": {
+      "width": {
+        "direction": "output",
+        "semantic": "joint_state",
+        "dim": 1,
+        "unit": "m"
+      },
+      "width_goal": {
+        "direction": "input",
+        "semantic": "joint_targets",
+        "dim": 1,
+        "unit": "m"
+      }
+    },
+    "port_roles": {
+      "feedback": "width",
+      "command": "width_goal"
+    },
+    "backend_variants": {
+      "fake": {
+        "available": true
+      }
+    },
+    "joints": [
+      {
+        "name": "opening",
+        "unit": "m",
+        "lower": 0,
+        "upper": 0.05
+      }
+    ],
+    "command_modes": [
+      "position"
+    ]
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "example.external.sensor",
+    "plugin_version": "1.0.0",
+    "kind": "sensor",
+    "ports": {
+      "telemetry": {
+        "direction": "output",
+        "semantic": "numeric",
+        "dim": 1,
+        "unit": "Pa",
+        "sample_fields": {
+          "pressure": {
+            "dtype": "float32",
+            "shape": [
+              2,
+              2
+            ],
+            "unit": "Pa"
+          },
+          "temperature": {
+            "dtype": "int16",
+            "shape": [
+              2
+            ],
+            "unit": "degC"
+          }
+        }
+      }
+    },
+    "port_roles": {
+      "sensors": [
+        "telemetry"
+      ]
+    },
+    "backend_variants": {
+      "fake": {
+        "available": true
+      }
+    }
+  },
+  {
+    "descriptor_version": 1,
+    "api_version": "1.0",
+    "plugin_id": "example.external.camera",
+    "plugin_version": "1.0.0",
+    "kind": "sensor",
+    "ports": {
+      "wide": {
+        "direction": "output",
+        "semantic": "image",
+        "dim": 3,
+        "unit": "rgb",
+        "codec": "image",
+        "dtype": "uint8"
+      },
+      "detail": {
+        "direction": "output",
+        "semantic": "image",
+        "dim": 3,
+        "unit": "rgb",
+        "codec": "image",
+        "dtype": "uint8"
+      }
+    },
+    "port_roles": {
+      "preview": [
+        "wide",
+        "detail"
+      ],
+      "images": [
+        "wide",
+        "detail"
+      ]
+    },
+    "backend_variants": {
+      "fake": {
+        "available": true
+      }
+    }
+  }
+]

@@ -1,0 +1,11 @@
+<mujoco model="example_external_arm">
+  <worldbody>
+    <body name="base">
+      <geom type="sphere" size="0.05"/>
+      <body name="tool" pos="0 0 0.1">
+        <joint name="axis" type="hinge" range="-30 30"/>
+        <geom type="sphere" size="0.025"/>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>

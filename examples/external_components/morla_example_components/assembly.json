@@ -1,0 +1,22 @@
+{
+  "assembly_version": 1,
+  "assembly_id": "external_components",
+  "revision": 1,
+  "instances": {
+    "arm": {
+      "plugin": "example.external.arm"
+    },
+    "gripper": {
+      "plugin": "example.external.gripper"
+    },
+    "sensor": {
+      "plugin": "example.external.sensor"
+    },
+    "camera": {
+      "plugin": "example.external.camera"
+    }
+  },
+  "capture": {
+    "action": []
+  }
+}

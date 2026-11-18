@@ -6,11 +6,12 @@ transport endpoints and report actual feedback/stop outcomes.
 import json
 from pathlib import Path
 from .session import RuntimeSession
+from morla_core.contracts.port_roles import port_roles
 
 
 def has_si_joint_position(instance):
     """JointState positions are radians/metres, never raw SDK scalars or speeds."""
-    port=instance.get('ports',{}).get('position',{})
+    port=instance.get('ports',{}).get(port_roles(instance)['feedback'],{})
     return (instance.get('kind')=='actuator' and port.get('semantic')=='joint_state'
             and port.get('unit') in {'rad','m'})
 

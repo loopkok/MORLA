@@ -16,8 +16,10 @@ export const workStates:Record<string,string>={RUNNING:'移动中',SUCCEEDED:'�
 export const metric=(n:number|undefined,scale=1,digits=2)=>n==null?'—':(n*scale).toFixed(digits)
 export function Section({title,note,children}:{title:string;note?:string;children:React.ReactNode}){return <section className="wc-section"><div className="wc-section-heading"><h3>{title}</h3>{note&&<p>{note}</p>}</div>{children}</section>}
 export function Check({text,value,onChange}:{text:string;value:boolean;onChange:(v:boolean)=>void}){return <label className="wc-check"><input type="checkbox" checked={value} onChange={e=>onChange(e.target.checked)} />{text}</label>}
-export function SimPreview({ sessionId, cameraId }: { sessionId: string; cameraId: string }) {
+export function SimPreview({ sessionId, cameraId, port }: { sessionId: string; cameraId: string; port?: string }) {
   const [error,setError]=useState(''),[version,setVersion]=useState(0)
+  const portQuery=port?'&port='+encodeURIComponent(port):''
+  const viewQuery=port?'?port='+encodeURIComponent(port):''
   const image = useRef<HTMLImageElement | null>(null)
   const drag = useRef<{ action: 'orbit' | 'pan'; x: number; y: number } | null>(null)
   const queued = useRef<{ action: string; dx: number; dy: number } | null>(null)
@@ -28,7 +30,7 @@ export function SimPreview({ sessionId, cameraId }: { sessionId: string; cameraI
     timer.current = null
     const item = queued.current
     queued.current = null
-    if (item) void request(`/sessions/${sessionId}/cameras/${cameraId}/view`, item).catch(e => setError(e.message))
+    if (item) void request(`/sessions/${sessionId}/cameras/${cameraId}/view${viewQuery}`, item).catch(e => setError(e.message))
   }
   const queue = (action: string, dx: number, dy: number) => {
     if (!dx && !dy) return
@@ -67,9 +69,9 @@ export function SimPreview({ sessionId, cameraId }: { sessionId: string; cameraI
     <figcaption style={{ ...mutedSmall, display: 'flex', alignItems: 'center', gap: 8 }}>
       <span>MuJoCo · {cameraId}</span>
       <span style={{ flex: 1 }} />
-      <button type="button" style={{ ...ghostBtn, padding: '3px 10px', fontSize: 12 }} onClick={() => void request(`/sessions/${sessionId}/cameras/${cameraId}/view`, { action: 'reset' }).catch(e => setError(e.message))}>复位视角</button>
+      <button type="button" style={{ ...ghostBtn, padding: '3px 10px', fontSize: 12 }} onClick={() => void request(`/sessions/${sessionId}/cameras/${cameraId}/view${viewQuery}`, { action: 'reset' }).catch(e => setError(e.message))}>复位视角</button>
     </figcaption>
-    <img ref={image} alt={`${cameraId} 仿真画面`} src={`/api/v2/sessions/${sessionId}/cameras/${cameraId}/stream?retry=${version}`} onLoad={()=>setError('')} onError={()=>setError('摄像头画面暂不可用，请检查运行诊断或重试。')} draggable={false}
+    <img ref={image} alt={`${cameraId} 仿真画面`} src={`/api/v2/sessions/${sessionId}/cameras/${cameraId}/stream?retry=${version}${portQuery}`} onLoad={()=>setError('')} onError={()=>setError('摄像头画面暂不可用，请检查运行诊断或重试。')} draggable={false}
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
       onContextMenu={event => event.preventDefault()}
       style={{ maxWidth: '100%', width: 640, borderRadius: 8, touchAction: 'none', cursor: 'grab', userSelect: 'none' }} />

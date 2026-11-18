@@ -16,6 +16,7 @@ jobs:
       - run: python -m pip install -r dependencies/composable-test.txt
       - run: bash scripts/test_composable.sh --layer pure
       - run: bash scripts/test_composable.sh --layer fake
+      - run: bash scripts/test_composable.sh --layer external
       - run: python -m pip install mujoco==3.3.7
       - run: bash scripts/test_composable.sh --layer sim
   web:
@@ -27,5 +28,5 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: src/common/morla_web_manager/web/package-lock.json
-      - run: npm ci && npm run build
+      - run: npm ci && npm run test:workcell && npm run build
         working-directory: src/common/morla_web_manager/web

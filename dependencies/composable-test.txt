@@ -22,3 +22,6 @@ Pillow==12.3.0
 
 # Local CR5 URDF IK regression; PyPI package is pin (module pinocchio).
 pin==4.1.0
+
+# Build the external-plugin acceptance wheel without network access during tests.
+setuptools>=70.1

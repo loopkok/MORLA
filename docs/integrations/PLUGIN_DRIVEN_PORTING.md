@@ -14,7 +14,7 @@
 
 ## 新设备包怎么声明
 
-设备和控制器继续通过 `morla_components` ament 索引或 `morla.component_manifests` 静态资源注册。发现不导入厂商 SDK。已有运行工厂接口不变：`morla.adapters`、`morla.controllers`、`morla.kinematics`。纯 Python 安装必须同时安装静态 manifest 与相关资源，不能只有工厂 entry point。
+设备和控制器通过 `morla_components` ament 索引或标准 wheel 包数据中的 `morla_plugin.json` 静态资源注册。发现不导入厂商 SDK。已有运行工厂接口不变：`morla.adapters`、`morla.controllers`、`morla.kinematics`。纯 Python 安装同时交付静态索引、描述和相关资源。见 [组件 SDK](../architecture_refactor/SDK.md)。
 
 设备 descriptor 示例片段（合并到完整 descriptor，不能单独当作完整文件）：
 

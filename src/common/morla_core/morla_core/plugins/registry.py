@@ -7,9 +7,30 @@ from morla_core.composition.hashing import digest
 class Catalog:
     def __init__(self, descriptors=()):
         self._descriptors={}
+        self._distributions={}
+        self._conflicts=set()
+        self.diagnostics=[]
         for descriptor in descriptors: self.register(descriptor)
+
+    def report(self, origin, error):
+        self.diagnostics.append({'origin': origin, 'message': str(error)})
+
+    def add_installed(self, descriptors, origin, distribution=None):
+        for descriptor in descriptors:
+            try:
+                self.register(descriptor)
+            except (ValueError, TypeError) as exc:
+                self.report(origin, exc)
+                continue
+            key = descriptor['plugin_id'], descriptor['plugin_version']
+            if distribution:
+                self._distributions[key] = distribution
+
+    def distribution(self, plugin_id, version):
+        return self._distributions.get((plugin_id, version))
+
     def register(self, descriptor):
-        fields(descriptor,{"descriptor_version","plugin_id","plugin_version","api_version","kind","ports","joints","features","backend_variants","resources","operations","geometry","configuration_schema","defaults","validation_artifacts","source","command_modes","controller_types","joint_variants","web"},("descriptor_version","plugin_id","plugin_version","kind","ports","backend_variants"))
+        fields(descriptor,{"descriptor_version","plugin_id","plugin_version","api_version","kind","ports","joints","features","backend_variants","resources","operations","geometry","configuration_schema","defaults","validation_artifacts","source","command_modes","controller_types","joint_variants","web","port_roles"},("descriptor_version","plugin_id","plugin_version","kind","ports","backend_variants"))
         finite_json(descriptor)
         from .web_metadata import validate_web_metadata
         validate_web_metadata(descriptor.get("web", {}))
@@ -19,19 +40,30 @@ class Catalog:
         if descriptor['kind'] not in {'input','actuator','sensor','controller','device_session'}: raise CompilationError("unknown component kind")
         if type(descriptor['descriptor_version']) is not int or descriptor['descriptor_version']!=1: raise CompilationError("unsupported descriptor version")
         key=(descriptor['plugin_id'],descriptor['plugin_version'])
-        if key in self._descriptors: raise CompilationError("ambiguous plugin registration: "+str(key))
         ports=descriptor['ports']
         if not isinstance(ports,dict): raise CompilationError("ports must be mapping")
         for name,port in ports.items():
-            fields(port,{'direction','semantic','dim','shape','dtype','unit','codec','frame','clock','required','qos','validity','update_range','max_age_ms','axis_names'})
+            fields(port,{'direction','semantic','dim','shape','dtype','unit','codec','frame','clock','required','qos','validity','update_range','max_age_ms','axis_names','sample_fields'})
             if port.get('direction') not in {'input','output'} or not port.get('semantic'): raise CompilationError("port requires direction and semantic")
             if type(port.get('dim',1)) is not int or port.get('dim',1)<1: raise CompilationError("port dimension must be positive")
+        from morla_core.contracts.port_roles import validate_port_roles
+        validate_port_roles(descriptor)
+        if key in self._descriptors or key in self._conflicts:
+            self._conflicts.add(key)
+            self._descriptors.pop(key, None)
+            self._distributions.pop(key, None)
+            raise CompilationError("ambiguous plugin registration: "+str(key), code="PLUGIN_CONFLICT")
         self._descriptors[key]=deepcopy(descriptor)
     def get(self, plugin_id, version="1.0.0"):
+        if (plugin_id,version) in self._conflicts:
+            raise CompilationError("ambiguous plugin registration: "+plugin_id+"@"+version,code="PLUGIN_CONFLICT")
         try: return deepcopy(self._descriptors[(plugin_id,version)])
         except KeyError: raise CompilationError("uninstalled plugin/version: "+plugin_id+"@"+version,code="PLUGIN_NOT_FOUND")
     def list(self): return [deepcopy(self._descriptors[k]) for k in sorted(self._descriptors)]
-    def to_dict(self): return {"components":self.list(),"catalog_hash":digest(self.list())}
+    def to_dict(self):
+        components = self.list()
+        return {"components": components, "catalog_hash": digest(components),
+                "diagnostics": deepcopy(self.diagnostics)}
 
 def _port(direction,semantic,dim=1,unit="ratio",**extra):
     return {"direction":direction,"semantic":semantic,"dim":dim,"unit":unit,"codec":"numeric","dtype":"float64",**extra}
@@ -130,12 +162,13 @@ def default_catalog():
         if descriptor['kind'] == 'actuator' and descriptor['joints']:
             count = len(descriptor['joints'])
             fields['initial_positions'].update(minItems=count, maxItems=count)
-    from .manifest_loader import discover_descriptors
+    from .manifest_loader import register_installed
     web_metadata=json.loads((Path(__file__).parent/"data"/"web_metadata.json").read_text())
     for descriptor in descriptors:
         descriptor["web"]=deepcopy(web_metadata.get(descriptor["plugin_id"],{}))
         if descriptor["plugin_id"]=="morla.input.quest":descriptor["defaults"].setdefault("protocol","udp")
         if descriptor["plugin_id"].startswith("morla.camera"):descriptor["defaults"].setdefault("camera_backend","ros_image")
     descriptors.extend(json.loads((Path(__file__).parent/"data"/"controllers.json").read_text()))
-    descriptors.extend(discover_descriptors())
-    return Catalog(descriptors)
+    catalog=Catalog(descriptors)
+    register_installed(catalog)
+    return catalog
